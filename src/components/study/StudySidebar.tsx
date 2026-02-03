@@ -10,7 +10,7 @@ interface StudySidebarProps {
   systemNotes: string | null;
   userNotes: string | null;
   exampleSentences: ExampleSentence[];
-  relatedWords: Pick<Word, "id" | "english" | "foreign_word" | "memory_trigger_image_url">[];
+  relatedWords: Pick<Word, "id" | "translation" | "headword" | "memory_trigger_image_url">[];
   isEnabled: boolean;
   onUserNotesChange: (notes: string | null) => void;
 }
