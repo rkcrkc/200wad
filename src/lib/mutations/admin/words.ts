@@ -131,15 +131,15 @@ export async function updateWord(
       .from("words")
       .update({
         headword: validated.headword,
-        lemma: validated.lemma,
+        lemma: validated.lemma ?? undefined,
         english: validated.english,
-        part_of_speech: validated.part_of_speech,
-        notes: validated.notes,
-        memory_trigger_text: validated.memory_trigger_text,
-        memory_trigger_image_url: validated.memory_trigger_image_url,
-        audio_url_english: validated.audio_url_english,
-        audio_url_foreign: validated.audio_url_foreign,
-        audio_url_trigger: validated.audio_url_trigger,
+        part_of_speech: validated.part_of_speech ?? undefined,
+        notes: validated.notes ?? undefined,
+        memory_trigger_text: validated.memory_trigger_text ?? undefined,
+        memory_trigger_image_url: validated.memory_trigger_image_url ?? undefined,
+        audio_url_english: validated.audio_url_english ?? undefined,
+        audio_url_foreign: validated.audio_url_foreign ?? undefined,
+        audio_url_trigger: validated.audio_url_trigger ?? undefined,
         related_word_ids: validated.related_word_ids,
         updated_by: admin.userId,
       })
