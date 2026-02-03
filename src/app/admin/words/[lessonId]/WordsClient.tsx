@@ -95,7 +95,7 @@ interface FormData {
 
 interface FormErrors {
   headword?: string;
-  translation?: string;
+  english?: string;
 }
 
 interface FileUploads {
