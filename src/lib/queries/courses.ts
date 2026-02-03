@@ -66,19 +66,19 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     }
   });
 
-  // Count actual words per course (via words -> lessons)
+  // Count actual words per course (via lesson_words -> lessons)
   const allLessonIds = lessons?.map((l) => l.id) || [];
   let wordCountByCourse: Record<string, number> = {};
 
   if (allLessonIds.length > 0) {
-    const { data: words } = await supabase
-      .from("words")
-      .select("id, lesson_id")
+    const { data: lessonWords } = await supabase
+      .from("lesson_words")
+      .select("lesson_id")
       .in("lesson_id", allLessonIds);
 
-    words?.forEach((word) => {
+    lessonWords?.forEach((lw) => {
       // Find which course this lesson belongs to
-      const lesson = lessons?.find((l) => l.id === word.lesson_id);
+      const lesson = lessons?.find((l) => l.id === lw.lesson_id);
       if (lesson?.course_id) {
         wordCountByCourse[lesson.course_id] =
           (wordCountByCourse[lesson.course_id] || 0) + 1;

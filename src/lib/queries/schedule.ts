@@ -272,16 +272,16 @@ export async function getDueTestsCount(courseId?: string): Promise<number> {
   
   if (validWordIds.length === 0) return 0;
 
-  const { data: words } = await supabase
-    .from("words")
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
     .select("lesson_id")
-    .in("id", validWordIds);
+    .in("word_id", validWordIds);
 
-  if (!words) return 0;
+  if (!lessonWords) return 0;
 
   // Filter by course if specified
   const lessonIds = new Set<string>(
-    words.map((w) => w.lesson_id).filter((id): id is string => id !== null)
+    lessonWords.map((lw) => lw.lesson_id)
   );
   if (lessonFilter) {
     const filtered = Array.from(lessonIds).filter((id) =>
@@ -399,23 +399,23 @@ export async function getScheduleData(
   const dueWordsByLesson: Record<string, number> = {};
 
   if (dueWordProgress && dueWordProgress.length > 0) {
-    // Get lesson IDs for due words
+    // Get lesson IDs for due words via lesson_words join table
     const validDueWordIds = dueWordProgress
       .map((p) => p.word_id)
       .filter((id): id is string => id !== null);
     
-    const { data: dueWords } = validDueWordIds.length > 0 
+    const { data: dueWordLessons } = validDueWordIds.length > 0 
       ? await supabase
-        .from("words")
-        .select("id, lesson_id")
-        .in("id", validDueWordIds)
+        .from("lesson_words")
+        .select("word_id, lesson_id")
+        .in("word_id", validDueWordIds)
       : { data: null };
 
-    if (dueWords) {
+    if (dueWordLessons) {
       // Count due words per lesson and filter to current course
       const dueLessonIds = new Set<string>();
-      dueWords.forEach((w) => {
-        const wLessonId = w.lesson_id;
+      dueWordLessons.forEach((lw) => {
+        const wLessonId = lw.lesson_id;
         if (wLessonId && lessonIds.includes(wLessonId)) {
           dueLessonIds.add(wLessonId);
           dueWordsByLesson[wLessonId] =
