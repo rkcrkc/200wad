@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Copy, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +21,8 @@ import {
   cloneLesson,
 } from "@/lib/mutations/admin/lessons";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { WordsModal } from "./WordsModal";
+import { createClient } from "@/lib/supabase/client";
 
 interface Language {
   id: string;
@@ -49,6 +50,36 @@ interface Lesson {
     name: string;
     language: Language | null;
   } | null;
+}
+
+interface ExampleSentence {
+  id: string;
+  foreign_sentence: string;
+  english_sentence: string;
+  thumbnail_image_url: string | null;
+  sort_order: number | null;
+}
+
+interface Word {
+  id: string;
+  headword: string;
+  lemma: string;
+  english: string;
+  language_id: string;
+  part_of_speech: string | null;
+  gender: string | null;
+  transitivity: string | null;
+  is_irregular: boolean | null;
+  grammatical_number: string | null;
+  notes: string | null;
+  memory_trigger_text: string | null;
+  memory_trigger_image_url: string | null;
+  audio_url_english: string | null;
+  audio_url_foreign: string | null;
+  audio_url_trigger: string | null;
+  related_word_ids: string[] | null;
+  sort_order: number;
+  example_sentences: ExampleSentence[];
 }
 
 interface LessonsClientProps {
@@ -90,6 +121,12 @@ export function LessonsClient({
     emoji: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Words modal state
+  const [isWordsModalOpen, setIsWordsModalOpen] = useState(false);
+  const [selectedLessonForWords, setSelectedLessonForWords] = useState<Lesson | null>(null);
+  const [wordsForModal, setWordsForModal] = useState<Word[]>([]);
+  const [isLoadingWords, setIsLoadingWords] = useState(false);
 
   // Filter courses by language
   const filteredCourses = useMemo(() => {
@@ -255,6 +292,51 @@ export function LessonsClient({
     }
   };
 
+  // Open words modal and fetch words for the lesson
+  const handleOpenWordsModal = async (lesson: Lesson) => {
+    setSelectedLessonForWords(lesson);
+    setIsLoadingWords(true);
+    setIsWordsModalOpen(true);
+
+    try {
+      const supabase = createClient();
+      
+      // Fetch words via lesson_words join table
+      const { data: lessonWords, error } = await supabase
+        .from("lesson_words")
+        .select(`
+          sort_order,
+          words(*, example_sentences(*))
+        `)
+        .eq("lesson_id", lesson.id)
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching words:", error);
+        setWordsForModal([]);
+      } else {
+        // Extract words with sort_order from join table
+        const words = (lessonWords || []).map((lw) => ({
+          ...(lw.words as any),
+          sort_order: lw.sort_order,
+        }));
+        setWordsForModal(words);
+      }
+    } catch (error) {
+      console.error("Error fetching words:", error);
+      setWordsForModal([]);
+    } finally {
+      setIsLoadingWords(false);
+    }
+  };
+
+  const handleCloseWordsModal = () => {
+    setIsWordsModalOpen(false);
+    setSelectedLessonForWords(null);
+    setWordsForModal([]);
+    router.refresh(); // Refresh to update word counts
+  };
+
   // Handle language filter change - reset course filter if language changes
   const handleLanguageChange = (languageId: string) => {
     setFilterLanguageId(languageId);
@@ -397,13 +479,13 @@ export function LessonsClient({
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/admin/words/${lesson.id}`}
+                      <button
+                        onClick={() => handleOpenWordsModal(lesson)}
                         className="rounded-lg p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
                         title="Manage Words"
                       >
                         <Type className="h-4 w-4" />
-                      </Link>
+                      </button>
                       <button
                         onClick={() => handleClone(lesson)}
                         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -571,6 +653,22 @@ export function LessonsClient({
         confirmVariant="destructive"
         isLoading={isLoading}
       />
+
+      {/* Words Modal */}
+      {selectedLessonForWords && (
+        <WordsModal
+          isOpen={isWordsModalOpen}
+          onClose={handleCloseWordsModal}
+          lesson={{
+            id: selectedLessonForWords.id,
+            number: selectedLessonForWords.number,
+            title: selectedLessonForWords.title,
+            emoji: selectedLessonForWords.emoji,
+            course: selectedLessonForWords.course,
+          }}
+          words={isLoadingWords ? [] : wordsForModal}
+        />
+      )}
     </div>
   );
 }

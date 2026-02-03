@@ -1,0 +1,939 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Volume2,
+  Image as ImageIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AdminModal,
+  ConfirmModal,
+  AdminFormField,
+  AdminInput,
+  AdminTextarea,
+  AdminSelect,
+  AdminFileUpload,
+} from "@/components/admin";
+import {
+  createWord,
+  updateWord,
+  deleteWord,
+} from "@/lib/mutations/admin/words";
+import {
+  createSentence,
+  deleteSentence,
+} from "@/lib/mutations/admin/sentences";
+import { uploadFileClient } from "@/lib/supabase/storage.client";
+import { getFlagFromCode } from "@/lib/utils/flags";
+
+interface Language {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Course {
+  id: string;
+  name: string;
+  language: Language | null;
+}
+
+interface Lesson {
+  id: string;
+  number: number;
+  title: string;
+  emoji: string | null;
+  course: Course | null;
+}
+
+interface ExampleSentence {
+  id: string;
+  foreign_sentence: string;
+  english_sentence: string;
+  thumbnail_image_url: string | null;
+  sort_order: number | null;
+}
+
+interface Word {
+  id: string;
+  headword: string;
+  lemma: string;
+  english: string;
+  language_id: string;
+  part_of_speech: string | null;
+  gender: string | null;
+  transitivity: string | null;
+  is_irregular: boolean | null;
+  grammatical_number: string | null;
+  notes: string | null;
+  memory_trigger_text: string | null;
+  memory_trigger_image_url: string | null;
+  audio_url_english: string | null;
+  audio_url_foreign: string | null;
+  audio_url_trigger: string | null;
+  related_word_ids: string[] | null;
+  sort_order: number;
+  example_sentences: ExampleSentence[];
+}
+
+interface WordsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  lesson: Lesson;
+  words: Word[];
+}
+
+interface FormData {
+  headword: string;
+  lemma: string;
+  english: string;
+  part_of_speech: string;
+  gender: string;
+  transitivity: string;
+  is_irregular: boolean;
+  grammatical_number: string;
+  notes: string;
+  memory_trigger_text: string;
+}
+
+interface FormErrors {
+  headword?: string;
+  english?: string;
+}
+
+interface FileUploads {
+  triggerImage: File | null;
+  audioEnglish: File | null;
+  audioForeign: File | null;
+  audioTrigger: File | null;
+}
+
+const partOfSpeechOptions = [
+  { value: "", label: "Select..." },
+  { value: "noun", label: "Noun" },
+  { value: "verb", label: "Verb" },
+  { value: "adjective", label: "Adjective" },
+  { value: "adverb", label: "Adverb" },
+  { value: "pronoun", label: "Pronoun" },
+  { value: "preposition", label: "Preposition" },
+  { value: "conjunction", label: "Conjunction" },
+  { value: "interjection", label: "Interjection" },
+  { value: "article", label: "Article" },
+  { value: "phrase", label: "Phrase" },
+];
+
+const genderOptions = [
+  { value: "", label: "Select..." },
+  { value: "m", label: "Masculine (m)" },
+  { value: "f", label: "Feminine (f)" },
+  { value: "n", label: "Neuter (n)" },
+  { value: "mf", label: "Both (m/f)" },
+];
+
+const transitivityOptions = [
+  { value: "", label: "Select..." },
+  { value: "vt", label: "Transitive (vt)" },
+  { value: "vi", label: "Intransitive (vi)" },
+  { value: "vt_vi", label: "Both (vt/vi)" },
+];
+
+export function WordsModal({ isOpen, onClose, lesson, words }: WordsModalProps) {
+  const router = useRouter();
+  const [isWordModalOpen, setIsWordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingWord, setEditingWord] = useState<Word | null>(null);
+  const [deletingWord, setDeletingWord] = useState<Word | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    headword: "",
+    lemma: "",
+    english: "",
+    part_of_speech: "",
+    gender: "",
+    transitivity: "",
+    is_irregular: false,
+    grammatical_number: "sg",
+    notes: "",
+    memory_trigger_text: "",
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [fileUploads, setFileUploads] = useState<FileUploads>({
+    triggerImage: null,
+    audioEnglish: null,
+    audioForeign: null,
+    audioTrigger: null,
+  });
+  const [previewUrls, setPreviewUrls] = useState<{
+    triggerImage: string | null;
+    audioEnglish: string | null;
+    audioForeign: string | null;
+    audioTrigger: string | null;
+  }>({
+    triggerImage: null,
+    audioEnglish: null,
+    audioForeign: null,
+    audioTrigger: null,
+  });
+
+  // New sentence form
+  const [showSentenceForm, setShowSentenceForm] = useState(false);
+  const [newSentence, setNewSentence] = useState({
+    foreign_sentence: "",
+    english_sentence: "",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      headword: "",
+      lemma: "",
+      english: "",
+      part_of_speech: "",
+      gender: "",
+      transitivity: "",
+      is_irregular: false,
+      grammatical_number: "sg",
+      notes: "",
+      memory_trigger_text: "",
+    });
+    setErrors({});
+    setFileUploads({
+      triggerImage: null,
+      audioEnglish: null,
+      audioForeign: null,
+      audioTrigger: null,
+    });
+    setPreviewUrls({
+      triggerImage: null,
+      audioEnglish: null,
+      audioForeign: null,
+      audioTrigger: null,
+    });
+    setEditingWord(null);
+    setShowSentenceForm(false);
+    setNewSentence({ foreign_sentence: "", english_sentence: "" });
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setIsWordModalOpen(true);
+  };
+
+  const openEditModal = (word: Word) => {
+    setEditingWord(word);
+    setFormData({
+      headword: word.headword,
+      lemma: word.lemma,
+      english: word.english,
+      part_of_speech: word.part_of_speech || "",
+      gender: word.gender || "",
+      transitivity: word.transitivity || "",
+      is_irregular: word.is_irregular ?? false,
+      grammatical_number: word.grammatical_number || "sg",
+      notes: word.notes || "",
+      memory_trigger_text: word.memory_trigger_text || "",
+    });
+    setPreviewUrls({
+      triggerImage: word.memory_trigger_image_url,
+      audioEnglish: word.audio_url_english,
+      audioForeign: word.audio_url_foreign,
+      audioTrigger: word.audio_url_trigger,
+    });
+    setErrors({});
+    setIsWordModalOpen(true);
+  };
+
+  const openDeleteModal = (word: Word) => {
+    setDeletingWord(word);
+    setIsDeleteModalOpen(true);
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.headword.trim()) {
+      newErrors.headword = "Headword is required";
+    }
+    if (!formData.english.trim()) {
+      newErrors.english = "English translation is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+
+    try {
+      // Prepare base data
+      const wordData: any = {
+        headword: formData.headword,
+        lemma: formData.lemma || formData.headword, // Default lemma to headword
+        english: formData.english,
+        part_of_speech: formData.part_of_speech || null,
+        gender: formData.gender || null,
+        transitivity: formData.transitivity || null,
+        is_irregular: formData.is_irregular,
+        grammatical_number: formData.grammatical_number || null,
+        notes: formData.notes || null,
+        memory_trigger_text: formData.memory_trigger_text || null,
+      };
+
+      // Get the word ID (for uploads)
+      let wordId = editingWord?.id;
+
+      if (editingWord) {
+        // Update word first
+        const result = await updateWord(editingWord.id, wordData, lesson.id);
+        if (!result.success) {
+          setErrors({ headword: result.error || "Failed to update word" });
+          return;
+        }
+      } else {
+        // Create word first
+        const result = await createWord({
+          lesson_id: lesson.id,
+          ...wordData,
+        });
+        if (!result.success || !result.id) {
+          setErrors({ headword: result.error || "Failed to create word" });
+          return;
+        }
+        wordId = result.id;
+      }
+
+      // Handle file uploads
+      if (wordId) {
+        const uploadPromises: Promise<any>[] = [];
+
+        if (fileUploads.triggerImage) {
+          uploadPromises.push(
+            uploadFileClient("images", fileUploads.triggerImage, "words", wordId, "trigger")
+              .then((res) => {
+                if (res.url) {
+                  return updateWord(wordId!, { memory_trigger_image_url: res.url });
+                }
+              })
+          );
+        }
+
+        if (fileUploads.audioEnglish) {
+          uploadPromises.push(
+            uploadFileClient("audio", fileUploads.audioEnglish, "words", wordId, "english")
+              .then((res) => {
+                if (res.url) {
+                  return updateWord(wordId!, { audio_url_english: res.url });
+                }
+              })
+          );
+        }
+
+        if (fileUploads.audioForeign) {
+          uploadPromises.push(
+            uploadFileClient("audio", fileUploads.audioForeign, "words", wordId, "foreign")
+              .then((res) => {
+                if (res.url) {
+                  return updateWord(wordId!, { audio_url_foreign: res.url });
+                }
+              })
+          );
+        }
+
+        if (fileUploads.audioTrigger) {
+          uploadPromises.push(
+            uploadFileClient("audio", fileUploads.audioTrigger, "words", wordId, "trigger")
+              .then((res) => {
+                if (res.url) {
+                  return updateWord(wordId!, { audio_url_trigger: res.url });
+                }
+              })
+          );
+        }
+
+        await Promise.all(uploadPromises);
+      }
+
+      setIsWordModalOpen(false);
+      resetForm();
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingWord) return;
+
+    setIsLoading(true);
+
+    try {
+      const result = await deleteWord(deletingWord.id);
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+
+      setIsDeleteModalOpen(false);
+      setDeletingWord(null);
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddSentence = async () => {
+    if (!editingWord || !newSentence.foreign_sentence || !newSentence.english_sentence) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await createSentence({
+        word_id: editingWord.id,
+        foreign_sentence: newSentence.foreign_sentence,
+        english_sentence: newSentence.english_sentence,
+      });
+
+      if (result.success) {
+        setNewSentence({ foreign_sentence: "", english_sentence: "" });
+        setShowSentenceForm(false);
+        router.refresh();
+      } else {
+        alert(result.error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSentence = async (sentenceId: string) => {
+    const confirmed = window.confirm("Delete this example sentence?");
+    if (!confirmed) return;
+
+    const result = await deleteSentence(sentenceId);
+    if (!result.success) {
+      alert(result.error);
+    } else {
+      router.refresh();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Full-screen overlay modal */}
+      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-4 z-50 flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900">
+              {lesson.emoji && <span>{lesson.emoji}</span>}
+              Lesson #{lesson.number}: {lesson.title}
+            </h2>
+            <p className="mt-0.5 text-sm text-gray-600">
+              {getFlagFromCode(lesson.course?.language?.code)} {lesson.course?.name} &middot;{" "}
+              {words.length} word{words.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={openCreateModal}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Word
+            </Button>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Words List */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="rounded-xl border border-gray-200 bg-white">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    English
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {lesson.course?.language?.name || "Foreign"}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Media
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Sentences
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {words.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      No words yet. Add your first word to this lesson.
+                    </td>
+                  </tr>
+                ) : (
+                  words.map((word) => (
+                    <tr key={word.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {word.english}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {word.headword}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 capitalize">
+                        {word.part_of_speech || "-"}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {word.memory_trigger_image_url && (
+                            <span title="Has image">
+                              <ImageIcon className="h-4 w-4 text-green-500" />
+                            </span>
+                          )}
+                          {(word.audio_url_english ||
+                            word.audio_url_foreign ||
+                            word.audio_url_trigger) && (
+                            <span title="Has audio">
+                              <Volume2 className="h-4 w-4 text-blue-500" />
+                            </span>
+                          )}
+                          {!word.memory_trigger_image_url &&
+                            !word.audio_url_english &&
+                            !word.audio_url_foreign &&
+                            !word.audio_url_trigger && (
+                              <span className="text-gray-400">-</span>
+                            )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                        {word.example_sentences?.length || 0}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(word)}
+                            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(word)}
+                            className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Create/Edit Word Modal */}
+      <AdminModal
+        isOpen={isWordModalOpen}
+        onClose={() => {
+          setIsWordModalOpen(false);
+          resetForm();
+        }}
+        title={editingWord ? "Edit Word" : "Add Word"}
+        description={
+          editingWord
+            ? "Update the word details, media, and example sentences."
+            : "Add a new vocabulary word to this lesson."
+        }
+        size="xl"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsWordModalOpen(false);
+                resetForm();
+              }}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading
+                ? "Saving..."
+                : editingWord
+                ? "Save Changes"
+                : "Add Word"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <AdminFormField
+              label={`Headword (${lesson.course?.language?.name || "Foreign"})`}
+              name="headword"
+              required
+              error={errors.headword}
+            >
+              <AdminInput
+                id="headword"
+                name="headword"
+                value={formData.headword}
+                onChange={(e) =>
+                  setFormData({ ...formData, headword: e.target.value })
+                }
+                placeholder="e.g., l'avventura"
+                error={!!errors.headword}
+              />
+            </AdminFormField>
+
+            <AdminFormField
+              label="English"
+              name="english"
+              required
+              error={errors.english}
+            >
+              <AdminInput
+                id="english"
+                name="english"
+                value={formData.english}
+                onChange={(e) =>
+                  setFormData({ ...formData, english: e.target.value })
+                }
+                placeholder="e.g., the adventure"
+                error={!!errors.english}
+              />
+            </AdminFormField>
+          </div>
+
+          <AdminFormField
+            label="Lemma (base form)"
+            name="lemma"
+            hint="Optional. Used for search/grouping. Defaults to headword if empty."
+          >
+            <AdminInput
+              id="lemma"
+              name="lemma"
+              value={formData.lemma}
+              onChange={(e) =>
+                setFormData({ ...formData, lemma: e.target.value })
+              }
+              placeholder="e.g., avventura"
+            />
+          </AdminFormField>
+
+          <AdminFormField label="Part of Speech" name="part_of_speech">
+            <AdminSelect
+              id="part_of_speech"
+              name="part_of_speech"
+              value={formData.part_of_speech}
+              onChange={(e) =>
+                setFormData({ ...formData, part_of_speech: e.target.value })
+              }
+              options={partOfSpeechOptions}
+            />
+          </AdminFormField>
+
+          {/* Lexical Metadata - shown conditionally based on POS */}
+          <div className="grid grid-cols-2 gap-4">
+            {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
+              <AdminFormField 
+                label="Gender" 
+                name="gender"
+                hint="For nouns and adjectives"
+              >
+                <AdminSelect
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                  options={genderOptions}
+                />
+              </AdminFormField>
+            )}
+
+            {formData.part_of_speech === "verb" && (
+              <AdminFormField 
+                label="Transitivity" 
+                name="transitivity"
+                hint="For verbs only"
+              >
+                <AdminSelect
+                  id="transitivity"
+                  name="transitivity"
+                  value={formData.transitivity}
+                  onChange={(e) =>
+                    setFormData({ ...formData, transitivity: e.target.value })
+                  }
+                  options={transitivityOptions}
+                />
+              </AdminFormField>
+            )}
+          </div>
+
+          {/* Boolean flags */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.is_irregular}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_irregular: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">Irregular form</span>
+            </label>
+
+            {formData.part_of_speech === "noun" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.grammatical_number === "pl"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Plural</span>
+              </label>
+            )}
+          </div>
+
+          <AdminFormField label="Notes" name="notes">
+            <AdminTextarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder="Grammar notes, usage tips, etc."
+            />
+          </AdminFormField>
+
+          {/* Memory Trigger */}
+          <div className="border-t pt-4">
+            <h3 className="mb-3 font-medium text-gray-900">Memory Trigger</h3>
+            
+            <AdminFormField label="Trigger Text" name="memory_trigger_text">
+              <AdminTextarea
+                id="memory_trigger_text"
+                name="memory_trigger_text"
+                value={formData.memory_trigger_text}
+                onChange={(e) =>
+                  setFormData({ ...formData, memory_trigger_text: e.target.value })
+                }
+                placeholder="Mnemonic or memory aid..."
+              />
+            </AdminFormField>
+
+            <div className="mt-3">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Trigger Image
+              </label>
+              <AdminFileUpload
+                type="image"
+                value={previewUrls.triggerImage}
+                onChange={(file, url) => {
+                  setFileUploads({ ...fileUploads, triggerImage: file });
+                  setPreviewUrls({ ...previewUrls, triggerImage: url });
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Audio Files */}
+          <div className="border-t pt-4">
+            <h3 className="mb-3 font-medium text-gray-900">Audio Files</h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  English Audio
+                </label>
+                <AdminFileUpload
+                  type="audio"
+                  value={previewUrls.audioEnglish}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioEnglish: file });
+                    setPreviewUrls({ ...previewUrls, audioEnglish: url });
+                  }}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Foreign Audio
+                </label>
+                <AdminFileUpload
+                  type="audio"
+                  value={previewUrls.audioForeign}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioForeign: file });
+                    setPreviewUrls({ ...previewUrls, audioForeign: url });
+                  }}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Trigger Audio
+                </label>
+                <AdminFileUpload
+                  type="audio"
+                  value={previewUrls.audioTrigger}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioTrigger: file });
+                    setPreviewUrls({ ...previewUrls, audioTrigger: url });
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Example Sentences (only when editing) */}
+          {editingWord && (
+            <div className="border-t pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-medium text-gray-900">Example Sentences</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSentenceForm(true)}
+                  disabled={showSentenceForm}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add Sentence
+                </Button>
+              </div>
+
+              {/* Existing sentences */}
+              <div className="space-y-2">
+                {editingWord.example_sentences?.map((sentence) => (
+                  <div
+                    key={sentence.id}
+                    className="flex items-start justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {sentence.foreign_sentence}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {sentence.english_sentence}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteSentence(sentence.id)}
+                      className="rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* New sentence form */}
+              {showSentenceForm && (
+                <div className="mt-3 rounded-lg border border-primary/50 bg-primary/5 p-4">
+                  <div className="space-y-3">
+                    <AdminFormField label="Foreign Sentence" name="new_foreign">
+                      <AdminInput
+                        id="new_foreign"
+                        value={newSentence.foreign_sentence}
+                        onChange={(e) =>
+                          setNewSentence({
+                            ...newSentence,
+                            foreign_sentence: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Ciao, come stai?"
+                      />
+                    </AdminFormField>
+                    <AdminFormField label="English Translation" name="new_english">
+                      <AdminInput
+                        id="new_english"
+                        value={newSentence.english_sentence}
+                        onChange={(e) =>
+                          setNewSentence({
+                            ...newSentence,
+                            english_sentence: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Hello, how are you?"
+                      />
+                    </AdminFormField>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowSentenceForm(false);
+                          setNewSentence({ foreign_sentence: "", english_sentence: "" });
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAddSentence}
+                        disabled={
+                          isLoading ||
+                          !newSentence.foreign_sentence ||
+                          !newSentence.english_sentence
+                        }
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </AdminModal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingWord(null);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Word"
+        message={`Are you sure you want to delete "${deletingWord?.headword}" (${deletingWord?.english})? This will also delete all example sentences.`}
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        isLoading={isLoading}
+      />
+    </>
+  );
+}

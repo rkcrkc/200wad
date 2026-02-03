@@ -1,127 +1,142 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import { GraduationCap, ChevronRight } from "lucide-react";
-import { getFlagFromCode } from "@/lib/utils/flags";
+import { WordsBrowserClient } from "./WordsBrowserClient";
 
-type LessonWithCourse = {
+interface Language {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Course {
+  id: string;
+  name: string;
+  language_id: string | null;
+}
+
+interface LessonInfo {
   id: string;
   number: number;
   title: string;
   emoji: string | null;
-  word_count: number;
-  course: {
-    id: string;
-    name: string;
-    language: { id: string; name: string; code: string } | null;
-  } | null;
-};
-
-async function getLessonsWithWords(): Promise<LessonWithCourse[]> {
-  const supabase = await createClient();
-
-  const { data: lessons, error } = await supabase
-    .from("lessons")
-    .select(`
-      id,
-      number,
-      title,
-      emoji,
-      word_count,
-      course:courses(
-        id,
-        name,
-        language:languages(id, name, code)
-      )
-    `)
-    .order("course_id", { ascending: true })
-    .order("number", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching lessons:", error);
-    return [];
-  }
-
-  return lessons as unknown as LessonWithCourse[];
+  course_id: string | null;
 }
 
-export default async function WordsIndexPage() {
-  const lessons = await getLessonsWithWords();
+interface WordWithLessons {
+  id: string;
+  headword: string;
+  lemma: string;
+  english: string;
+  language_id: string;
+  part_of_speech: string | null;
+  gender: string | null;
+  transitivity: string | null;
+  is_irregular: boolean | null;
+  grammatical_number: string | null;
+  notes: string | null;
+  created_at: string | null;
+  language: Language | null;
+  lessons: LessonInfo[];
+}
 
-  // Group lessons by course
-  const groupedLessons = lessons.reduce((acc, lesson) => {
-    if (!lesson.course) return acc;
-    const courseId = lesson.course.id;
-    if (!acc[courseId]) {
-      acc[courseId] = {
-        course: lesson.course,
-        lessons: [],
-      };
+async function getData() {
+  const supabase = await createClient();
+
+  // Fetch all languages
+  const { data: languages, error: languagesError } = await supabase
+    .from("languages")
+    .select("id, name, code")
+    .order("sort_order");
+
+  if (languagesError) {
+    console.error("Error fetching languages:", languagesError);
+  }
+
+  // Fetch all courses
+  const { data: courses, error: coursesError } = await supabase
+    .from("courses")
+    .select("id, name, language_id")
+    .order("sort_order");
+
+  if (coursesError) {
+    console.error("Error fetching courses:", coursesError);
+  }
+
+  // Fetch all words with their language
+  const { data: words, error: wordsError } = await supabase
+    .from("words")
+    .select(`
+      id,
+      headword,
+      lemma,
+      english,
+      language_id,
+      part_of_speech,
+      gender,
+      transitivity,
+      is_irregular,
+      grammatical_number,
+      notes,
+      created_at,
+      language:languages(id, name, code)
+    `)
+    .order("headword");
+
+  if (wordsError) {
+    console.error("Error fetching words:", wordsError);
+    return {
+      languages: languages || [],
+      courses: courses || [],
+      words: [],
+    };
+  }
+
+  // Fetch all lesson_words associations
+  const { data: lessonWords, error: lessonWordsError } = await supabase
+    .from("lesson_words")
+    .select(`
+      word_id,
+      lesson:lessons(id, number, title, emoji, course_id)
+    `);
+
+  if (lessonWordsError) {
+    console.error("Error fetching lesson_words:", lessonWordsError);
+  }
+
+  // Build a map of word_id -> lessons
+  const wordLessonsMap: Record<string, LessonInfo[]> = {};
+  (lessonWords || []).forEach((lw) => {
+    const wordId = lw.word_id;
+    const lesson = lw.lesson as LessonInfo | null;
+    if (wordId && lesson) {
+      if (!wordLessonsMap[wordId]) {
+        wordLessonsMap[wordId] = [];
+      }
+      wordLessonsMap[wordId].push(lesson);
     }
-    acc[courseId].lessons.push(lesson);
-    return acc;
-  }, {} as Record<string, { course: NonNullable<LessonWithCourse["course"]>; lessons: LessonWithCourse[] }>);
+  });
+
+  // Combine words with their lessons
+  const wordsWithLessons: WordWithLessons[] = (words || []).map((word) => ({
+    ...word,
+    language: word.language as Language | null,
+    lessons: wordLessonsMap[word.id] || [],
+  }));
+
+  return {
+    languages: languages || [],
+    courses: courses || [],
+    words: wordsWithLessons,
+  };
+}
+
+export default async function WordsBrowserPage() {
+  const { languages, courses, words } = await getData();
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Words</h1>
-        <p className="mt-1 text-gray-600">
-          Select a lesson to manage its vocabulary.
-        </p>
-      </div>
-
-      {/* Lessons grouped by course */}
-      {Object.keys(groupedLessons).length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-          <GraduationCap className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-gray-500">
-            No lessons yet. Create lessons first to add words.
-          </p>
-          <Link
-            href="/admin/lessons"
-            className="mt-4 inline-block text-primary hover:underline"
-          >
-            Go to Lessons
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {Object.values(groupedLessons).map(({ course, lessons }) => (
-            <div key={course.id}>
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                <span className="text-xl">{getFlagFromCode(course.language?.code)}</span>
-                {course.name}
-              </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {lessons.map((lesson) => (
-                  <Link
-                    key={lesson.id}
-                    href={`/admin/words/${lesson.id}`}
-                    className="group flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-primary/50 hover:shadow-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      {lesson.emoji && (
-                        <span className="text-2xl">{lesson.emoji}</span>
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          #{lesson.number} {lesson.title}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {lesson.word_count} word
-                          {lesson.word_count !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <WordsBrowserClient
+      languages={languages}
+      courses={courses}
+      words={words}
+    />
   );
 }
