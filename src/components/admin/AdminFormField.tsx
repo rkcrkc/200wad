@@ -7,6 +7,7 @@ interface AdminFormFieldProps {
   name: string;
   error?: string;
   required?: boolean;
+  hint?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -16,6 +17,7 @@ export function AdminFormField({
   name,
   error,
   required,
+  hint,
   children,
   className,
 }: AdminFormFieldProps) {
@@ -29,6 +31,7 @@ export function AdminFormField({
         {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       {children}
+      {hint && !error && <p className="text-sm text-gray-500">{hint}</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   );
