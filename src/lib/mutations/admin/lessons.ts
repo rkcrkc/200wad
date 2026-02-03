@@ -278,7 +278,7 @@ export async function cloneLesson(
             language_id: word.language_id,
             headword: word.headword,
             lemma: word.lemma,
-            translation: word.translation,
+            english: word.english,
             part_of_speech: word.part_of_speech,
             notes: word.notes,
             memory_trigger_text: word.memory_trigger_text,

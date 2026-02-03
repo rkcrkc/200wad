@@ -167,7 +167,7 @@ export function TestCompletedModal({
                   {hasImage ? (
                     <Image
                       src={word.memory_trigger_image_url!}
-                      alt={word.translation}
+                      alt={word.english}
                       fill
                       className="object-cover"
                       sizes="150px"
@@ -182,7 +182,7 @@ export function TestCompletedModal({
                 {/* Word Info */}
                 <div className="p-2">
                   <p className="truncate text-sm font-medium text-foreground">
-                    {word.translation}
+                    {word.english}
                   </p>
                 </div>
               </div>

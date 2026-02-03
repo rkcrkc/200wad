@@ -62,7 +62,7 @@ export async function createWord(
         language_id: languageId,
         headword: validated.headword,
         lemma: validated.lemma || validated.headword, // Default lemma to headword
-        translation: validated.translation,
+        english: validated.english,
         part_of_speech: validated.part_of_speech,
         notes: validated.notes,
         memory_trigger_text: validated.memory_trigger_text,
@@ -132,7 +132,7 @@ export async function updateWord(
       .update({
         headword: validated.headword,
         lemma: validated.lemma,
-        translation: validated.translation,
+        english: validated.english,
         part_of_speech: validated.part_of_speech,
         notes: validated.notes,
         memory_trigger_text: validated.memory_trigger_text,

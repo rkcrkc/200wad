@@ -436,7 +436,7 @@ export function StudyModeClient({
               {/* Word Card */}
               <WordCard
                 partOfSpeech={currentWord.part_of_speech}
-                englishWord={currentWord.translation}
+                englishWord={currentWord.english}
                 foreignWord={currentWord.headword}
                 englishFlag="🇬🇧"
                 foreignFlag={languageFlag}
@@ -458,7 +458,7 @@ export function StudyModeClient({
               <MemoryTriggerCard
                 imageUrl={currentWord.memory_trigger_image_url}
                 triggerText={currentWord.memory_trigger_text}
-                englishWord={currentWord.translation}
+                englishWord={currentWord.english}
                 foreignWord={currentWord.headword}
                 isVisible={showTrigger}
                 playingAudioType={currentAudioType}

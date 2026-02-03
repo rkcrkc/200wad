@@ -68,7 +68,7 @@ export const createWordSchema = z.object({
   lesson_id: z.string().uuid("Invalid lesson ID"),
   headword: z.string().min(1, "Headword is required").max(200),
   lemma: z.string().max(200).optional().nullable(), // Defaults to headword if not provided
-  translation: z.string().min(1, "Translation is required").max(200),
+  english: z.string().min(1, "English translation is required").max(200),
   part_of_speech: z.string().max(50).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   memory_trigger_text: z.string().max(500).optional().nullable(),

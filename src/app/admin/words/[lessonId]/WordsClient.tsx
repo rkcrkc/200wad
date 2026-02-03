@@ -65,7 +65,7 @@ interface Word {
   id: string;
   headword: string;
   lemma: string;
-  translation: string;
+  english: string;
   language_id: string;
   part_of_speech: string | null;
   notes: string | null;
@@ -87,7 +87,7 @@ interface WordsClientProps {
 interface FormData {
   headword: string;
   lemma: string;
-  translation: string;
+  english: string;
   part_of_speech: string;
   notes: string;
   memory_trigger_text: string;
@@ -129,7 +129,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
   const [formData, setFormData] = useState<FormData>({
     headword: "",
     lemma: "",
-    translation: "",
+    english: "",
     part_of_speech: "",
     notes: "",
     memory_trigger_text: "",
@@ -164,7 +164,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     setFormData({
       headword: "",
       lemma: "",
-      translation: "",
+      english: "",
       part_of_speech: "",
       notes: "",
       memory_trigger_text: "",
@@ -197,7 +197,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     setFormData({
       headword: word.headword,
       lemma: word.lemma,
-      translation: word.translation,
+      english: word.english,
       part_of_speech: word.part_of_speech || "",
       notes: word.notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
@@ -223,8 +223,8 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     if (!formData.headword.trim()) {
       newErrors.headword = "Headword is required";
     }
-    if (!formData.translation.trim()) {
-      newErrors.translation = "Translation is required";
+    if (!formData.english.trim()) {
+      newErrors.english = "English translation is required";
     }
 
     setErrors(newErrors);
@@ -241,7 +241,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       const wordData: any = {
         headword: formData.headword,
         lemma: formData.lemma || formData.headword, // Default lemma to headword
-        translation: formData.translation,
+        english: formData.english,
         part_of_speech: formData.part_of_speech || null,
         notes: formData.notes || null,
         memory_trigger_text: formData.memory_trigger_text || null,
@@ -451,7 +451,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               words.map((word) => (
                 <tr key={word.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    {word.translation}
+                    {word.english}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
                     {word.headword}
@@ -567,20 +567,20 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
             </AdminFormField>
 
             <AdminFormField
-              label="Translation (English)"
-              name="translation"
+              label="English"
+              name="english"
               required
-              error={errors.translation}
+              error={errors.english}
             >
               <AdminInput
-                id="translation"
-                name="translation"
-                value={formData.translation}
+                id="english"
+                name="english"
+                value={formData.english}
                 onChange={(e) =>
-                  setFormData({ ...formData, translation: e.target.value })
+                  setFormData({ ...formData, english: e.target.value })
                 }
                 placeholder="e.g., the adventure"
-                error={!!errors.translation}
+                error={!!errors.english}
               />
             </AdminFormField>
           </div>
@@ -814,7 +814,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         }}
         onConfirm={handleDelete}
         title="Delete Word"
-        message={`Are you sure you want to delete "${deletingWord?.headword}" (${deletingWord?.translation})? This will also delete all example sentences.`}
+        message={`Are you sure you want to delete "${deletingWord?.headword}" (${deletingWord?.english})? This will also delete all example sentences.`}
         confirmLabel="Delete"
         confirmVariant="destructive"
         isLoading={isLoading}

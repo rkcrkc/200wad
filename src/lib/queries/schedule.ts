@@ -172,7 +172,7 @@ async function getLessonSampleWords(
     }
     // Limit to 10 sample words per lesson
     if (samplesByLesson[lessonId].length < 10 && lw.words) {
-      samplesByLesson[lessonId].push((lw.words as { translation: string }).translation);
+      samplesByLesson[lessonId].push((lw.words as { english: string }).english);
     }
   });
 

@@ -10,7 +10,7 @@ interface StudySidebarProps {
   systemNotes: string | null;
   userNotes: string | null;
   exampleSentences: ExampleSentence[];
-  relatedWords: Pick<Word, "id" | "translation" | "headword" | "memory_trigger_image_url">[];
+  relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[];
   isEnabled: boolean;
   onUserNotesChange: (notes: string | null) => void;
 }
@@ -220,7 +220,7 @@ export function StudySidebar({
                     )}
                     <div className="flex flex-1 flex-col gap-1">
                       <p className="text-regular-medium text-foreground">
-                        {word.translation}
+                        {word.english}
                       </p>
                       <p className="text-small-regular text-foreground/60">
                         {word.headword}

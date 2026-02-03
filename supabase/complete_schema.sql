@@ -68,7 +68,7 @@ CREATE TABLE words (
   language_id UUID NOT NULL REFERENCES languages(id) ON DELETE RESTRICT,
   headword TEXT NOT NULL,        -- The display form learners see (e.g., "l'avventura")
   lemma TEXT NOT NULL,           -- Base form for grouping/search (e.g., "avventura")
-  translation TEXT NOT NULL,     -- English translation
+  english TEXT NOT NULL,         -- English translation
   part_of_speech TEXT,
   notes TEXT,
   memory_trigger_text TEXT,
