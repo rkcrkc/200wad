@@ -69,7 +69,11 @@ CREATE TABLE words (
   headword TEXT NOT NULL,        -- The display form learners see (e.g., "l'avventura")
   lemma TEXT NOT NULL,           -- Base form for grouping/search (e.g., "avventura")
   english TEXT NOT NULL,         -- English translation
-  part_of_speech TEXT,
+  part_of_speech TEXT,           -- noun, verb, adjective, etc.
+  gender TEXT,                   -- m, f, n, mf (for nouns)
+  transitivity TEXT,             -- vt, vi, vt_vi (for verbs)
+  is_irregular BOOLEAN DEFAULT false,
+  is_plural_only BOOLEAN DEFAULT false,
   notes TEXT,
   memory_trigger_text TEXT,
   memory_trigger_image_url TEXT,
@@ -80,7 +84,9 @@ CREATE TABLE words (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   created_by UUID REFERENCES users(id),
-  updated_by UUID REFERENCES users(id)
+  updated_by UUID REFERENCES users(id),
+  CONSTRAINT words_gender_check CHECK (gender IS NULL OR gender IN ('m', 'f', 'n', 'mf')),
+  CONSTRAINT words_transitivity_check CHECK (transitivity IS NULL OR transitivity IN ('vt', 'vi', 'vt_vi'))
 );
 
 -- Lesson-Word join table (many-to-many relationship)
@@ -96,6 +102,12 @@ CREATE TABLE lesson_words (
 CREATE INDEX idx_words_language_id ON words(language_id);
 CREATE INDEX idx_words_language_lemma ON words(language_id, lemma);
 CREATE INDEX idx_words_language_headword ON words(language_id, headword);
+CREATE INDEX idx_words_language_pos ON words(language_id, part_of_speech);
+CREATE INDEX idx_words_language_gender ON words(language_id, gender);
+CREATE INDEX idx_words_language_transitivity ON words(language_id, transitivity);
+CREATE INDEX idx_words_language_irregular ON words(language_id, is_irregular) WHERE is_irregular = true;
+CREATE INDEX idx_words_language_pos_gender ON words(language_id, part_of_speech, gender);
+CREATE INDEX idx_words_language_pos_transitivity ON words(language_id, part_of_speech, transitivity);
 
 -- Indexes for lesson_words table
 CREATE INDEX idx_lesson_words_sort ON lesson_words(lesson_id, sort_order);

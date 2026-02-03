@@ -660,6 +660,10 @@ export type Database = {
           memory_trigger_text: string | null
           notes: string | null
           part_of_speech: string | null
+          gender: string | null
+          transitivity: string | null
+          is_irregular: boolean | null
+          is_plural_only: boolean | null
           related_word_ids: string[] | null
           english: string
           updated_at: string | null
@@ -679,6 +683,10 @@ export type Database = {
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
+          gender?: string | null
+          transitivity?: string | null
+          is_irregular?: boolean | null
+          is_plural_only?: boolean | null
           related_word_ids?: string[] | null
           english: string
           updated_at?: string | null
@@ -698,6 +706,10 @@ export type Database = {
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
+          gender?: string | null
+          transitivity?: string | null
+          is_irregular?: boolean | null
+          is_plural_only?: boolean | null
           related_word_ids?: string[] | null
           english?: string
           updated_at?: string | null
