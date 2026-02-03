@@ -67,7 +67,9 @@ export async function createWord(
         gender: validated.gender,
         transitivity: validated.transitivity,
         is_irregular: validated.is_irregular ?? false,
-        grammatical_number: validated.grammatical_number,
+        grammatical_number: validated.part_of_speech === "noun" 
+          ? (validated.grammatical_number || "sg") 
+          : validated.grammatical_number,
         notes: validated.notes,
         memory_trigger_text: validated.memory_trigger_text,
         memory_trigger_image_url: validated.memory_trigger_image_url,

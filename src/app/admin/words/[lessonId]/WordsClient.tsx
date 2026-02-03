@@ -142,12 +142,6 @@ const transitivityOptions = [
   { value: "vt_vi", label: "Both (vt/vi)" },
 ];
 
-const grammaticalNumberOptions = [
-  { value: "", label: "Select..." },
-  { value: "sg", label: "Singular (sg)" },
-  { value: "pl", label: "Plural (pl)" },
-];
-
 export function WordsClient({ lesson, words }: WordsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,7 +157,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     gender: "",
     transitivity: "",
     is_irregular: false,
-    grammatical_number: "",
+    grammatical_number: "sg",
     notes: "",
     memory_trigger_text: "",
   });
@@ -202,7 +196,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       gender: "",
       transitivity: "",
       is_irregular: false,
-      grammatical_number: "",
+      grammatical_number: "sg",
       notes: "",
       memory_trigger_text: "",
     });
@@ -239,7 +233,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       gender: word.gender || "",
       transitivity: word.transitivity || "",
       is_irregular: word.is_irregular ?? false,
-      grammatical_number: word.grammatical_number || "",
+      grammatical_number: word.grammatical_number || "sg",
       notes: word.notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
     });
@@ -697,25 +691,6 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
             )}
           </div>
 
-          {/* Grammatical Number - shown for nouns */}
-          {formData.part_of_speech === "noun" && (
-            <AdminFormField 
-              label="Number" 
-              name="grammatical_number"
-              hint="Whether this headword is singular or plural"
-            >
-              <AdminSelect
-                id="grammatical_number"
-                name="grammatical_number"
-                value={formData.grammatical_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, grammatical_number: e.target.value })
-                }
-                options={grammaticalNumberOptions}
-              />
-            </AdminFormField>
-          )}
-
           {/* Boolean flags */}
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm">
@@ -729,6 +704,20 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               />
               <span className="text-gray-700">Irregular form</span>
             </label>
+
+            {formData.part_of_speech === "noun" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.grammatical_number === "pl"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Plural</span>
+              </label>
+            )}
           </div>
 
           <AdminFormField label="Notes" name="notes">
