@@ -68,6 +68,10 @@ interface Word {
   english: string;
   language_id: string;
   part_of_speech: string | null;
+  gender: string | null;
+  transitivity: string | null;
+  is_irregular: boolean | null;
+  is_plural_only: boolean | null;
   notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
@@ -89,6 +93,10 @@ interface FormData {
   lemma: string;
   english: string;
   part_of_speech: string;
+  gender: string;
+  transitivity: string;
+  is_irregular: boolean;
+  is_plural_only: boolean;
   notes: string;
   memory_trigger_text: string;
 }
@@ -119,6 +127,21 @@ const partOfSpeechOptions = [
   { value: "phrase", label: "Phrase" },
 ];
 
+const genderOptions = [
+  { value: "", label: "Select..." },
+  { value: "m", label: "Masculine (m)" },
+  { value: "f", label: "Feminine (f)" },
+  { value: "n", label: "Neuter (n)" },
+  { value: "mf", label: "Both (m/f)" },
+];
+
+const transitivityOptions = [
+  { value: "", label: "Select..." },
+  { value: "vt", label: "Transitive (vt)" },
+  { value: "vi", label: "Intransitive (vi)" },
+  { value: "vt_vi", label: "Both (vt/vi)" },
+];
+
 export function WordsClient({ lesson, words }: WordsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -131,6 +154,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     lemma: "",
     english: "",
     part_of_speech: "",
+    gender: "",
+    transitivity: "",
+    is_irregular: false,
+    is_plural_only: false,
     notes: "",
     memory_trigger_text: "",
   });
@@ -166,6 +193,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       lemma: "",
       english: "",
       part_of_speech: "",
+      gender: "",
+      transitivity: "",
+      is_irregular: false,
+      is_plural_only: false,
       notes: "",
       memory_trigger_text: "",
     });
@@ -199,6 +230,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       lemma: word.lemma,
       english: word.english,
       part_of_speech: word.part_of_speech || "",
+      gender: word.gender || "",
+      transitivity: word.transitivity || "",
+      is_irregular: word.is_irregular ?? false,
+      is_plural_only: word.is_plural_only ?? false,
       notes: word.notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
     });
@@ -243,6 +278,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         lemma: formData.lemma || formData.headword, // Default lemma to headword
         english: formData.english,
         part_of_speech: formData.part_of_speech || null,
+        gender: formData.gender || null,
+        transitivity: formData.transitivity || null,
+        is_irregular: formData.is_irregular,
+        is_plural_only: formData.is_plural_only,
         notes: formData.notes || null,
         memory_trigger_text: formData.memory_trigger_text || null,
       };
@@ -612,6 +651,74 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               options={partOfSpeechOptions}
             />
           </AdminFormField>
+
+          {/* Lexical Metadata - shown conditionally based on POS */}
+          <div className="grid grid-cols-2 gap-4">
+            {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
+              <AdminFormField 
+                label="Gender" 
+                name="gender"
+                hint="For nouns and adjectives"
+              >
+                <AdminSelect
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                  options={genderOptions}
+                />
+              </AdminFormField>
+            )}
+
+            {formData.part_of_speech === "verb" && (
+              <AdminFormField 
+                label="Transitivity" 
+                name="transitivity"
+                hint="For verbs only"
+              >
+                <AdminSelect
+                  id="transitivity"
+                  name="transitivity"
+                  value={formData.transitivity}
+                  onChange={(e) =>
+                    setFormData({ ...formData, transitivity: e.target.value })
+                  }
+                  options={transitivityOptions}
+                />
+              </AdminFormField>
+            )}
+          </div>
+
+          {/* Boolean flags */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.is_irregular}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_irregular: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">Irregular form</span>
+            </label>
+
+            {formData.part_of_speech === "noun" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.is_plural_only}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_plural_only: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Plural only</span>
+              </label>
+            )}
+          </div>
 
           <AdminFormField label="Notes" name="notes">
             <AdminTextarea

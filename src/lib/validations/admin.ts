@@ -70,6 +70,10 @@ export const createWordSchema = z.object({
   lemma: z.string().max(200).optional().nullable(), // Defaults to headword if not provided
   english: z.string().min(1, "English translation is required").max(200),
   part_of_speech: z.string().max(50).optional().nullable(),
+  gender: z.enum(["m", "f", "n", "mf"]).optional().nullable(),
+  transitivity: z.enum(["vt", "vi", "vt_vi"]).optional().nullable(),
+  is_irregular: z.boolean().optional().default(false),
+  is_plural_only: z.boolean().optional().default(false),
   notes: z.string().max(1000).optional().nullable(),
   memory_trigger_text: z.string().max(500).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),
