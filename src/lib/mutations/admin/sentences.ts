@@ -38,12 +38,11 @@ export async function createSentence(
 
     const supabase = await createClient();
 
-    // Get the word's lesson_id for revalidation
-    const { data: word } = await supabase
-      .from("words")
+    // Get lesson IDs for revalidation (word can be in multiple lessons)
+    const { data: lessonWords } = await supabase
+      .from("lesson_words")
       .select("lesson_id")
-      .eq("id", validated.word_id)
-      .single();
+      .eq("word_id", validated.word_id);
 
     const { data, error } = await supabase
       .from("example_sentences")
@@ -65,9 +64,9 @@ export async function createSentence(
     }
 
     revalidatePath("/admin/words");
-    if (word?.lesson_id) {
-      revalidatePath(`/admin/words/${word.lesson_id}`);
-    }
+    lessonWords?.forEach((lw) => {
+      revalidatePath(`/admin/words/${lw.lesson_id}`);
+    });
 
     return { success: true, id: data.id, error: null };
   } catch (err) {
@@ -124,21 +123,20 @@ export async function deleteSentence(id: string): Promise<MutationResult> {
 
     const supabase = await createClient();
 
-    // Get the sentence's word_id to find lesson_id for revalidation
+    // Get the sentence's word_id to find lesson IDs for revalidation
     const { data: sentence } = await supabase
       .from("example_sentences")
       .select("word_id")
       .eq("id", id)
       .single();
 
-    let lessonId: string | null = null;
+    let lessonIds: string[] = [];
     if (sentence?.word_id) {
-      const { data: word } = await supabase
-        .from("words")
+      const { data: lessonWords } = await supabase
+        .from("lesson_words")
         .select("lesson_id")
-        .eq("id", sentence.word_id)
-        .single();
-      lessonId = word?.lesson_id || null;
+        .eq("word_id", sentence.word_id);
+      lessonIds = lessonWords?.map((lw) => lw.lesson_id) || [];
     }
 
     const { error } = await supabase
@@ -152,9 +150,9 @@ export async function deleteSentence(id: string): Promise<MutationResult> {
     }
 
     revalidatePath("/admin/words");
-    if (lessonId) {
+    lessonIds.forEach((lessonId) => {
       revalidatePath(`/admin/words/${lessonId}`);
-    }
+    });
 
     return { success: true, error: null };
   } catch (err) {
