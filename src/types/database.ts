@@ -699,7 +699,7 @@ export type Database = {
           notes?: string | null
           part_of_speech?: string | null
           related_word_ids?: string[] | null
-          translation?: string
+          english?: string
           updated_at?: string | null
           updated_by?: string | null
         }

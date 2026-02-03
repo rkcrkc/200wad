@@ -159,7 +159,7 @@ async function getLessonSampleWords(
   // Use lesson_words join table to get words per lesson
   const { data: lessonWords } = await supabase
     .from("lesson_words")
-    .select("lesson_id, words(translation)")
+    .select("lesson_id, words(english)")
     .in("lesson_id", lessonIds)
     .order("sort_order");
 

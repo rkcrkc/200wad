@@ -143,7 +143,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   if (allRelatedWordIds.size > 0) {
     const { data: relatedWords } = await supabase
       .from("words")
-      .select("id, translation, headword, memory_trigger_image_url")
+      .select("id, english, headword, memory_trigger_image_url")
       .in("id", Array.from(allRelatedWordIds));
 
     relatedWords?.forEach((rw) => {
@@ -285,7 +285,7 @@ export async function getWord(wordId: string): Promise<{
   if (word.related_word_ids && word.related_word_ids.length > 0) {
     const { data: relatedWordsData } = await supabase
       .from("words")
-      .select("id, translation, headword, memory_trigger_image_url")
+      .select("id, english, headword, memory_trigger_image_url")
       .in("id", word.related_word_ids);
 
     relatedWords = relatedWordsData || [];
