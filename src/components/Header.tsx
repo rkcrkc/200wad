@@ -26,48 +26,43 @@ export function Header({ showSidebar = true }: HeaderProps) {
     return user.email.charAt(0).toUpperCase();
   };
 
-  // When sidebar is visible, header is rendered inside a positioned container
-  // When sidebar is not visible, header is standalone and needs its own fixed positioning
-  const headerClasses = showSidebar
-    ? "h-[72px] bg-white py-2 px-6"
-    : "fixed top-0 right-0 left-0 z-20 h-[72px] bg-white py-2 pr-8";
+  // Header is always full-width fixed at top
+  const headerClasses = "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
 
   return (
     <header className={headerClasses}>
       <div className="flex h-full w-full items-center justify-between">
-        {/* Left side - Logo + Navigation (only when sidebar is NOT visible) */}
+        {/* Left side - Logo + Navigation */}
         <div className="flex shrink-0 items-center pr-4">
-          {/* Logo / Course Selector - Only show when sidebar is hidden */}
-          {!showSidebar && (
-            <div className="flex w-[240px] shrink-0 items-start px-4">
-              <Link
-                href="/dashboard"
-                className="flex h-14 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
-              >
-                <div className="flex h-full items-center gap-3 px-2">
-                  {/* Logo Icon or Language Flag */}
-                  {hasContext ? (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center text-[28px]">
-                      {languageFlag}
-                    </div>
-                  ) : (
-                    <div className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]">
-                      <span className="text-xl font-bold text-white">W</span>
-                    </div>
-                  )}
-                  {/* Title */}
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-                      {isGuest ? "Welcome to" : "Learning"}
-                    </span>
-                    <span className="text-foreground text-[15px] leading-[1.35] font-medium tracking-[-0.3px]">
-                      {hasContext ? displayName : "200 Words a Day"}
-                    </span>
+          {/* Logo / Course Selector */}
+          <div className="flex w-[240px] shrink-0 items-start px-4">
+            <Link
+              href="/dashboard"
+              className="flex h-14 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
+            >
+              <div className="flex h-full items-center gap-3 px-2">
+                {/* Logo Icon or Language Flag */}
+                {hasContext ? (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center text-[28px]">
+                    {languageFlag}
                   </div>
+                ) : (
+                  <div className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]">
+                    <span className="text-xl font-bold text-white">W</span>
+                  </div>
+                )}
+                {/* Title */}
+                <div className="flex flex-col">
+                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
+                    {isGuest ? "Welcome to" : "Learning"}
+                  </span>
+                  <span className="text-foreground text-[15px] leading-[1.35] font-medium tracking-[-0.3px]">
+                    {hasContext ? displayName : "200 Words a Day"}
+                  </span>
                 </div>
-              </Link>
-            </div>
-          )}
+              </div>
+            </Link>
+          </div>
 
           {/* Back/Forward Navigation - Only when logged in */}
           {!isGuest && (

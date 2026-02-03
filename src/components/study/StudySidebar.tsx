@@ -220,10 +220,10 @@ export function StudySidebar({
                     )}
                     <div className="flex flex-1 flex-col gap-1">
                       <p className="text-regular-medium text-foreground">
-                        {word.english}
+                        {word.translation}
                       </p>
                       <p className="text-small-regular text-foreground/60">
-                        {word.foreign_word}
+                        {word.headword}
                       </p>
                     </div>
                     <ChevronRight className="h-5 w-5 shrink-0 text-foreground/50" />

@@ -16,6 +16,7 @@ import {
 } from "@/components/study";
 import { Sidebar } from "@/components/Sidebar";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { getFlagFromCode } from "@/lib/utils/flags";
 import {
   createStudySession,
   completeStudySession,
@@ -61,9 +62,11 @@ export function StudyModeClient({
   const router = useRouter();
   const { playAudio, stopAudio, currentAudioType } = useAudio();
 
+  const languageFlag = getFlagFromCode(language?.code);
+
   // Set course context for the sidebar
   useSetCourseContext({
-    languageFlag: language?.flag,
+    languageFlag,
     languageName: language?.name,
     courseId: course?.id,
     courseName: course?.name,
@@ -419,7 +422,7 @@ export function StudyModeClient({
       <div className="ml-[240px] flex min-h-screen flex-1 flex-col">
         {/* Custom navbar (replaces default header) */}
         <StudyNavbar
-          languageFlag={language?.flag}
+          languageFlag={languageFlag}
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitLesson}
@@ -433,10 +436,10 @@ export function StudyModeClient({
               {/* Word Card */}
               <WordCard
                 partOfSpeech={currentWord.part_of_speech}
-                englishWord={currentWord.english}
-                foreignWord={currentWord.foreign_word}
+                englishWord={currentWord.translation}
+                foreignWord={currentWord.headword}
                 englishFlag="🇬🇧"
-                foreignFlag={language?.flag || "🇮🇹"}
+                foreignFlag={languageFlag}
                 showForeign={showForeign}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -455,8 +458,8 @@ export function StudyModeClient({
               <MemoryTriggerCard
                 imageUrl={currentWord.memory_trigger_image_url}
                 triggerText={currentWord.memory_trigger_text}
-                englishWord={currentWord.english}
-                foreignWord={currentWord.foreign_word}
+                englishWord={currentWord.translation}
+                foreignWord={currentWord.headword}
                 isVisible={showTrigger}
                 playingAudioType={currentAudioType}
                 onPlayTriggerAudio={() => {
@@ -486,8 +489,8 @@ export function StudyModeClient({
           {/* Answer Input Row */}
           <AnswerInput
             languageName={language?.name || "Italian"}
-            languageFlag={language?.flag || "🇮🇹"}
-            correctAnswer={currentWord.foreign_word}
+            languageFlag={languageFlag}
+            correctAnswer={currentWord.headword}
             isVisible={showInput}
             isLastWord={isLastWord}
             onSubmit={handleSubmit}

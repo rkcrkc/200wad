@@ -103,15 +103,10 @@ interface SidebarProps {
 
 export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
   const pathname = usePathname();
-  const { languageFlag, languageName, courseName, courseId, dueTestsCount: contextDueTestsCount } =
-    useCourseContext();
+  const { courseId, dueTestsCount: contextDueTestsCount } = useCourseContext();
 
   // Prefer prop (from layout) over context (from page)
   const dueTestsCount = propDueTestsCount ?? contextDueTestsCount;
-
-  // Determine display name - course name takes priority
-  const hasContext = languageFlag && (languageName || courseName);
-  const displayName = courseName || languageName;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -125,43 +120,9 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
   };
 
   return (
-    <div className="fixed top-0 bottom-0 left-0 flex w-[240px] flex-col bg-white">
-      {/* Header - Context-aware branding */}
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-3 px-5 py-5 transition-all hover:bg-gray-50"
-      >
-        {hasContext ? (
-          <>
-            <span className="text-[28px]">{languageFlag}</span>
-            <div className="flex flex-col">
-              <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-                Learning
-              </span>
-              <span className="text-foreground text-[15px] leading-[1.35] font-semibold tracking-[-0.3px]">
-                {displayName}
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]">
-              <span className="text-xl font-bold text-white">W</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-                Welcome to
-              </span>
-              <span className="text-foreground text-[15px] leading-[1.35] font-semibold tracking-[-0.3px]">
-                200 Words a Day
-              </span>
-            </div>
-          </>
-        )}
-      </Link>
-
+    <div className="fixed top-[72px] bottom-0 left-0 flex w-[240px] flex-col bg-white">
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 px-4">
+      <nav className="flex flex-1 flex-col gap-1 px-4 pt-4">
         {getNavItems(courseId).map((item) => (
           <SidebarNavItem
             key={item.label}

@@ -125,37 +125,31 @@ export type Database = {
       }
       languages: {
         Row: {
+          code: string
           created_at: string | null
-          created_by: string | null
-          flag: string
           id: string
           name: string
           native_name: string
           sort_order: number | null
           updated_at: string | null
-          updated_by: string | null
         }
         Insert: {
+          code: string
           created_at?: string | null
-          created_by?: string | null
-          flag: string
           id?: string
           name: string
           native_name: string
           sort_order?: number | null
           updated_at?: string | null
-          updated_by?: string | null
         }
         Update: {
+          code?: string
           created_at?: string | null
-          created_by?: string | null
-          flag?: string
           id?: string
           name?: string
           native_name?: string
           sort_order?: number | null
           updated_at?: string | null
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -658,16 +652,16 @@ export type Database = {
           audio_url_trigger: string | null
           created_at: string | null
           created_by: string | null
-          english: string
-          foreign_word: string
+          headword: string
           id: string
-          lesson_id: string | null
+          language_id: string
+          lemma: string
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
           notes: string | null
           part_of_speech: string | null
           related_word_ids: string[] | null
-          sort_order: number | null
+          translation: string
           updated_at: string | null
           updated_by: string | null
         }
@@ -677,16 +671,16 @@ export type Database = {
           audio_url_trigger?: string | null
           created_at?: string | null
           created_by?: string | null
-          english: string
-          foreign_word: string
+          headword: string
           id?: string
-          lesson_id?: string | null
+          language_id: string
+          lemma: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
           related_word_ids?: string[] | null
-          sort_order?: number | null
+          translation: string
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -696,25 +690,61 @@ export type Database = {
           audio_url_trigger?: string | null
           created_at?: string | null
           created_by?: string | null
-          english?: string
-          foreign_word?: string
+          headword?: string
           id?: string
-          lesson_id?: string | null
+          language_id?: string
+          lemma?: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
           related_word_ids?: string[] | null
-          sort_order?: number | null
+          translation?: string
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "words_lesson_id_fkey"
+            foreignKeyName: "words_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_words: {
+        Row: {
+          lesson_id: string
+          word_id: string
+          sort_order: number
+          created_at: string | null
+        }
+        Insert: {
+          lesson_id: string
+          word_id: string
+          sort_order?: number
+          created_at?: string | null
+        }
+        Update: {
+          lesson_id?: string
+          word_id?: string
+          sort_order?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_words_lesson_id_fkey"
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_words_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
             referencedColumns: ["id"]
           },
         ]
@@ -867,6 +897,7 @@ export type Language = Database["public"]["Tables"]["languages"]["Row"];
 export type Course = Database["public"]["Tables"]["courses"]["Row"];
 export type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 export type Word = Database["public"]["Tables"]["words"]["Row"];
+export type LessonWord = Database["public"]["Tables"]["lesson_words"]["Row"];
 export type ExampleSentence = Database["public"]["Tables"]["example_sentences"]["Row"];
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type UserLanguage = Database["public"]["Tables"]["user_languages"]["Row"];
@@ -882,6 +913,7 @@ export type LanguageInsert = Database["public"]["Tables"]["languages"]["Insert"]
 export type CourseInsert = Database["public"]["Tables"]["courses"]["Insert"];
 export type LessonInsert = Database["public"]["Tables"]["lessons"]["Insert"];
 export type WordInsert = Database["public"]["Tables"]["words"]["Insert"];
+export type LessonWordInsert = Database["public"]["Tables"]["lesson_words"]["Insert"];
 export type UserWordProgressInsert = Database["public"]["Tables"]["user_word_progress"]["Insert"];
 export type UserTestScoreInsert = Database["public"]["Tables"]["user_test_scores"]["Insert"];
 export type TestQuestionInsert = Database["public"]["Tables"]["test_questions"]["Insert"];

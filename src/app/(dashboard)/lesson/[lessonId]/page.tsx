@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/lib/utils/helpers";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface LessonPageProps {
   params: Promise<{ lessonId: string }>;
@@ -30,8 +31,10 @@ export default async function LessonPage({ params }: LessonPageProps) {
       ? Math.round((stats.wordsMastered / stats.totalWords) * 100)
       : 0;
 
+  const languageFlag = getFlagFromCode(language?.code);
+
   return (
-    <SetCourseContext languageFlag={language?.flag} courseId={course?.id} courseName={course?.name}>
+    <SetCourseContext languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
     <div>
       {/* Back Button */}
       <BackButton
@@ -72,7 +75,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       ) : (
         <WordsList
           words={words}
-          languageFlag={language?.flag}
+          languageFlag={languageFlag}
           wordsNotStudied={wordsNotStudied}
           wordsNotMastered={wordsNotMastered}
         />

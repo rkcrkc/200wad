@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { UnlockBundlePromo } from "@/components/UnlockBundlePromo";
 import { notFound } from "next/navigation";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface CoursesPageProps {
   params: Promise<{ languageId: string }>;
@@ -22,8 +23,10 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
   // Calculate total words across all courses
   const totalWords = courses.reduce((sum, course) => sum + course.actualWordCount, 0);
 
+  const languageFlag = getFlagFromCode(language.code);
+
   return (
-    <SetCourseContext languageFlag={language.flag} languageName={language.name}>
+    <SetCourseContext languageFlag={languageFlag} languageName={language.name}>
     <div>
       {/* Back Button */}
       <BackButton href="/dashboard" label="All Languages" />
@@ -31,7 +34,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
       {/* Header with Language Flag */}
       <div className="mb-8 flex items-center gap-4">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-4xl">
-          {language.flag}
+          {languageFlag}
         </div>
         <div>
           <h1 className="mb-1 text-page-header">{language.name} Courses</h1>

@@ -255,26 +255,30 @@ export async function cloneLesson(
       return { success: false, id: null, error: createError?.message || "Failed to create lesson" };
     }
 
-    // 4. Get all words from the original lesson
-    const { data: originalWords } = await supabase
-      .from("words")
-      .select("*")
+    // 4. Get all words from the original lesson via lesson_words join table
+    const { data: originalLessonWords } = await supabase
+      .from("lesson_words")
+      .select("sort_order, words(*)")
       .eq("lesson_id", lessonId)
       .order("sort_order", { ascending: true });
 
-    if (originalWords && originalWords.length > 0) {
+    if (originalLessonWords && originalLessonWords.length > 0) {
       // 5. Clone words one-by-one to maintain mapping between original and new IDs
       // This ensures we can correctly map example sentences regardless of insert order
       const wordIdMapping = new Map<string, string>(); // originalId -> newId
 
-      for (let i = 0; i < originalWords.length; i++) {
-        const word = originalWords[i];
+      for (let i = 0; i < originalLessonWords.length; i++) {
+        const lessonWord = originalLessonWords[i];
+        const word = lessonWord.words as any;
+        if (!word) continue;
+
         const { data: newWord, error: wordError } = await supabase
           .from("words")
           .insert({
-            lesson_id: newLesson.id,
-            english: word.english,
-            foreign_word: word.foreign_word,
+            language_id: word.language_id,
+            headword: word.headword,
+            lemma: word.lemma,
+            translation: word.translation,
             part_of_speech: word.part_of_speech,
             notes: word.notes,
             memory_trigger_text: word.memory_trigger_text,
@@ -283,7 +287,6 @@ export async function cloneLesson(
             audio_url_foreign: word.audio_url_foreign,
             audio_url_trigger: word.audio_url_trigger,
             related_word_ids: [], // Don't copy relationships
-            sort_order: i,
             created_by: admin.userId,
             updated_by: admin.userId,
           })
@@ -297,6 +300,15 @@ export async function cloneLesson(
 
         if (newWord) {
           wordIdMapping.set(word.id, newWord.id);
+          
+          // Create lesson_words association
+          await supabase
+            .from("lesson_words")
+            .insert({
+              lesson_id: newLesson.id,
+              word_id: newWord.id,
+              sort_order: i,
+            });
         }
       }
 

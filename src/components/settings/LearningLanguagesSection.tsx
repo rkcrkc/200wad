@@ -9,6 +9,7 @@ import {
   removeLanguage,
 } from "@/lib/mutations/settings";
 import type { LearningLanguage } from "@/lib/queries/settings";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface LearningLanguagesSectionProps {
   languages: LearningLanguage[];
@@ -99,7 +100,7 @@ export function LearningLanguagesSection({
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 text-2xl">
-                  {language.flag}
+                  {getFlagFromCode(language.code)}
                 </div>
                 <div>
                   <div className="mb-1 flex items-center gap-2">

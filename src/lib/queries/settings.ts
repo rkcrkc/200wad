@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 export interface LearningLanguage {
   id: string;
   name: string;
-  flag: string;
+  code: string;
   isCurrent: boolean;
   courseCount: number;
 }
@@ -65,7 +65,7 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
       languages!inner (
         id,
         name,
-        flag
+        code
       )
     `
     )
@@ -105,13 +105,13 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
       const lang = ul.languages as unknown as {
         id: string;
         name: string;
-        flag: string;
+        code: string;
       };
       const langId = ul.language_id;
       return {
         id: lang.id,
         name: lang.name,
-        flag: lang.flag,
+        code: lang.code,
         isCurrent: ul.is_current ?? false,
         courseCount: langId ? (courseCounts[langId] || 0) : 0,
       };

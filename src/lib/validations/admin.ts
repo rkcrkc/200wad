@@ -12,7 +12,7 @@ import { z } from "zod";
 export const createLanguageSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   native_name: z.string().min(1, "Native name is required").max(100),
-  flag: z.string().min(1, "Flag emoji is required").max(10),
+  code: z.string().min(2, "Code is required").max(3).regex(/^[a-z]{2,3}$/, "Code must be 2-3 lowercase letters"),
   sort_order: z.number().int().min(0).optional().default(0),
 });
 
@@ -66,8 +66,9 @@ export type UpdateLessonInput = z.input<typeof updateLessonSchema>;
 
 export const createWordSchema = z.object({
   lesson_id: z.string().uuid("Invalid lesson ID"),
-  english: z.string().min(1, "English word is required").max(200),
-  foreign_word: z.string().min(1, "Foreign word is required").max(200),
+  headword: z.string().min(1, "Headword is required").max(200),
+  lemma: z.string().max(200).optional().nullable(), // Defaults to headword if not provided
+  translation: z.string().min(1, "Translation is required").max(200),
   part_of_speech: z.string().max(50).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   memory_trigger_text: z.string().max(500).optional().nullable(),

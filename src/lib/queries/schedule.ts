@@ -148,7 +148,7 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
 // ============================================================================
 
 /**
- * Get sample words for a lesson (first 6 words)
+ * Get sample words for a lesson (first 10 words)
  */
 async function getLessonSampleWords(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -156,22 +156,23 @@ async function getLessonSampleWords(
 ): Promise<Record<string, string[]>> {
   if (lessonIds.length === 0) return {};
 
-  const { data: words } = await supabase
-    .from("words")
-    .select("lesson_id, english")
+  // Use lesson_words join table to get words per lesson
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
+    .select("lesson_id, words(translation)")
     .in("lesson_id", lessonIds)
     .order("sort_order");
 
   const samplesByLesson: Record<string, string[]> = {};
-  words?.forEach((word) => {
-    const lessonId = word.lesson_id;
+  lessonWords?.forEach((lw) => {
+    const lessonId = lw.lesson_id;
     if (!lessonId) return;
     if (!samplesByLesson[lessonId]) {
       samplesByLesson[lessonId] = [];
     }
     // Limit to 10 sample words per lesson
-    if (samplesByLesson[lessonId].length < 10) {
-      samplesByLesson[lessonId].push(word.english);
+    if (samplesByLesson[lessonId].length < 10 && lw.words) {
+      samplesByLesson[lessonId].push((lw.words as { translation: string }).translation);
     }
   });
 
@@ -187,21 +188,21 @@ async function getLessonImages(
 ): Promise<Record<string, string | null>> {
   if (lessonIds.length === 0) return {};
 
-  // Get first word with an image for each lesson
-  const { data: words } = await supabase
-    .from("words")
-    .select("lesson_id, memory_trigger_image_url")
+  // Get first word with an image for each lesson via lesson_words join table
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
+    .select("lesson_id, words(memory_trigger_image_url)")
     .in("lesson_id", lessonIds)
-    .not("memory_trigger_image_url", "is", null)
     .order("sort_order");
 
   const imagesByLesson: Record<string, string | null> = {};
-  words?.forEach((word) => {
-    const lessonId = word.lesson_id;
-    if (!lessonId) return;
+  lessonWords?.forEach((lw) => {
+    const lessonId = lw.lesson_id;
+    if (!lessonId || !lw.words) return;
+    const imageUrl = (lw.words as { memory_trigger_image_url: string | null }).memory_trigger_image_url;
     // Only take the first image per lesson
-    if (!imagesByLesson[lessonId]) {
-      imagesByLesson[lessonId] = word.memory_trigger_image_url;
+    if (!imagesByLesson[lessonId] && imageUrl) {
+      imagesByLesson[lessonId] = imageUrl;
     }
   });
 

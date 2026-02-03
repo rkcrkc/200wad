@@ -39,12 +39,30 @@ export async function createWord(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    // Get language_id from the lesson's course
+    const { data: lesson } = await supabase
+      .from("lessons")
+      .select("courses(language_id)")
+      .eq("id", validated.lesson_id)
+      .single();
+
+    if (!lesson?.courses) {
+      return { success: false, id: null, error: "Lesson not found or has no course" };
+    }
+
+    const languageId = (lesson.courses as { language_id: string }).language_id;
+    if (!languageId) {
+      return { success: false, id: null, error: "Course has no language" };
+    }
+
+    // Create the word
+    const { data: word, error: wordError } = await supabase
       .from("words")
       .insert({
-        lesson_id: validated.lesson_id,
-        english: validated.english,
-        foreign_word: validated.foreign_word,
+        language_id: languageId,
+        headword: validated.headword,
+        lemma: validated.lemma || validated.headword, // Default lemma to headword
+        translation: validated.translation,
         part_of_speech: validated.part_of_speech,
         notes: validated.notes,
         memory_trigger_text: validated.memory_trigger_text,
@@ -53,23 +71,38 @@ export async function createWord(
         audio_url_foreign: validated.audio_url_foreign,
         audio_url_trigger: validated.audio_url_trigger,
         related_word_ids: validated.related_word_ids ?? [],
-        sort_order: validated.sort_order ?? 0,
         created_by: admin.userId,
         updated_by: admin.userId,
       })
       .select("id")
       .single();
 
-    if (error) {
-      console.error("Error creating word:", error);
-      return { success: false, id: null, error: error.message };
+    if (wordError) {
+      console.error("Error creating word:", wordError);
+      return { success: false, id: null, error: wordError.message };
+    }
+
+    // Create the lesson_words association
+    const { error: linkError } = await supabase
+      .from("lesson_words")
+      .insert({
+        lesson_id: validated.lesson_id,
+        word_id: word.id,
+        sort_order: validated.sort_order ?? 0,
+      });
+
+    if (linkError) {
+      console.error("Error linking word to lesson:", linkError);
+      // Attempt to clean up the word we just created
+      await supabase.from("words").delete().eq("id", word.id);
+      return { success: false, id: null, error: linkError.message };
     }
 
     revalidatePath("/admin/words");
     revalidatePath(`/admin/words/${validated.lesson_id}`);
     revalidatePath("/admin/lessons");
 
-    return { success: true, id: data.id, error: null };
+    return { success: true, id: word.id, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, id: null, error: message };
@@ -82,7 +115,8 @@ export async function createWord(
 
 export async function updateWord(
   id: string,
-  input: UpdateWordInput
+  input: UpdateWordInput,
+  lessonId?: string
 ): Promise<MutationResult> {
   try {
     const admin = await requireAdmin();
@@ -92,17 +126,21 @@ export async function updateWord(
 
     const supabase = await createClient();
 
-    // Get the word's lesson_id for revalidation
-    const { data: word } = await supabase
-      .from("words")
-      .select("lesson_id")
-      .eq("id", id)
-      .single();
-
+    // Update the word (excluding sort_order which is now on lesson_words)
     const { error } = await supabase
       .from("words")
       .update({
-        ...validated,
+        headword: validated.headword,
+        lemma: validated.lemma,
+        translation: validated.translation,
+        part_of_speech: validated.part_of_speech,
+        notes: validated.notes,
+        memory_trigger_text: validated.memory_trigger_text,
+        memory_trigger_image_url: validated.memory_trigger_image_url,
+        audio_url_english: validated.audio_url_english,
+        audio_url_foreign: validated.audio_url_foreign,
+        audio_url_trigger: validated.audio_url_trigger,
+        related_word_ids: validated.related_word_ids,
         updated_by: admin.userId,
       })
       .eq("id", id);
@@ -113,8 +151,8 @@ export async function updateWord(
     }
 
     revalidatePath("/admin/words");
-    if (word?.lesson_id) {
-      revalidatePath(`/admin/words/${word.lesson_id}`);
+    if (lessonId) {
+      revalidatePath(`/admin/words/${lessonId}`);
     }
 
     return { success: true, error: null };
@@ -128,18 +166,11 @@ export async function updateWord(
 // DELETE WORD
 // ============================================================================
 
-export async function deleteWord(id: string): Promise<MutationResult> {
+export async function deleteWord(id: string, lessonId?: string): Promise<MutationResult> {
   try {
     await requireAdmin();
 
     const supabase = await createClient();
-
-    // Get the word to find its lesson_id for revalidation
-    const { data: word } = await supabase
-      .from("words")
-      .select("lesson_id")
-      .eq("id", id)
-      .single();
 
     // Delete storage files for this word (both images and audio)
     await Promise.all([
@@ -147,7 +178,7 @@ export async function deleteWord(id: string): Promise<MutationResult> {
       deleteEntityFiles("audio", "words", id),
     ]);
 
-    // Delete will cascade to example_sentences due to FK constraint
+    // Delete will cascade to lesson_words and example_sentences due to FK constraints
     const { error } = await supabase.from("words").delete().eq("id", id);
 
     if (error) {
@@ -156,8 +187,8 @@ export async function deleteWord(id: string): Promise<MutationResult> {
     }
 
     revalidatePath("/admin/words");
-    if (word?.lesson_id) {
-      revalidatePath(`/admin/words/${word.lesson_id}`);
+    if (lessonId) {
+      revalidatePath(`/admin/words/${lessonId}`);
     }
     revalidatePath("/admin/lessons");
 
@@ -169,7 +200,7 @@ export async function deleteWord(id: string): Promise<MutationResult> {
 }
 
 // ============================================================================
-// REORDER WORDS
+// REORDER WORDS IN A LESSON
 // ============================================================================
 
 export async function reorderWords(
@@ -181,9 +212,13 @@ export async function reorderWords(
 
     const supabase = await createClient();
 
-    // Update each word's sort_order
-    const updates = orderedIds.map((id, index) =>
-      supabase.from("words").update({ sort_order: index }).eq("id", id)
+    // Update sort_order in the lesson_words join table
+    const updates = orderedIds.map((wordId, index) =>
+      supabase
+        .from("lesson_words")
+        .update({ sort_order: index })
+        .eq("lesson_id", lessonId)
+        .eq("word_id", wordId)
     );
 
     const results = await Promise.all(updates);
@@ -195,6 +230,94 @@ export async function reorderWords(
     }
 
     revalidatePath("/admin/words");
+    revalidatePath(`/admin/words/${lessonId}`);
+
+    return { success: true, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+// ============================================================================
+// ADD EXISTING WORD TO LESSON
+// ============================================================================
+
+export async function addWordToLesson(
+  wordId: string,
+  lessonId: string,
+  sortOrder?: number
+): Promise<MutationResult> {
+  try {
+    await requireAdmin();
+
+    const supabase = await createClient();
+
+    // Get current max sort_order if not provided
+    let order = sortOrder;
+    if (order === undefined) {
+      const { data: existing } = await supabase
+        .from("lesson_words")
+        .select("sort_order")
+        .eq("lesson_id", lessonId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .single();
+      
+      order = (existing?.sort_order ?? -1) + 1;
+    }
+
+    const { error } = await supabase
+      .from("lesson_words")
+      .insert({
+        lesson_id: lessonId,
+        word_id: wordId,
+        sort_order: order,
+      });
+
+    if (error) {
+      console.error("Error adding word to lesson:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/words");
+    revalidatePath(`/admin/words/${lessonId}`);
+    revalidatePath("/admin/lessons");
+
+    return { success: true, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+// ============================================================================
+// REMOVE WORD FROM LESSON (without deleting the word)
+// ============================================================================
+
+export async function removeWordFromLesson(
+  wordId: string,
+  lessonId: string
+): Promise<MutationResult> {
+  try {
+    await requireAdmin();
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("lesson_words")
+      .delete()
+      .eq("lesson_id", lessonId)
+      .eq("word_id", wordId);
+
+    if (error) {
+      console.error("Error removing word from lesson:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/words");
+    revalidatePath(`/admin/words/${lessonId}`);
+    revalidatePath("/admin/lessons");
 
     return { success: true, error: null };
   } catch (err) {

@@ -20,11 +20,12 @@ import {
   publishCourse,
   unpublishCourse,
 } from "@/lib/mutations/admin/courses";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface Language {
   id: string;
   name: string;
-  flag: string;
+  code: string;
 }
 
 interface Course {
@@ -224,7 +225,7 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
 
   const languageOptions = languages.map((l) => ({
     value: l.id,
-    label: `${l.flag} ${l.name}`,
+    label: `${getFlagFromCode(l.code)} ${l.name}`,
   }));
 
   return (
@@ -256,7 +257,7 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
           <option value="">All languages</option>
           {languages.map((lang) => (
             <option key={lang.id} value={lang.id}>
-              {lang.flag} {lang.name}
+              {getFlagFromCode(lang.code)} {lang.name}
             </option>
           ))}
         </select>
@@ -313,7 +314,7 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {course.language?.flag} {course.language?.name}
+                    {getFlagFromCode(course.language?.code)} {course.language?.name}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600 capitalize">
                     {course.level || "-"}

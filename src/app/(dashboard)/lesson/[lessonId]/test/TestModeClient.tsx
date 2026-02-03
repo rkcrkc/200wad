@@ -18,6 +18,7 @@ import {
 } from "@/components/study";
 import { Sidebar } from "@/components/Sidebar";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
 import {
   initSessionProgress,
@@ -58,9 +59,11 @@ export function TestModeClient({
   const router = useRouter();
   const { playAudio, stopAudio, currentAudioType } = useAudio();
 
+  const languageFlag = getFlagFromCode(language?.code);
+
   // Set course context for the sidebar
   useSetCourseContext({
-    languageFlag: language?.flag,
+    languageFlag,
     languageName: language?.name,
     courseId: course?.id,
     courseName: course?.name,
@@ -296,7 +299,7 @@ export function TestModeClient({
           return {
             wordId,
             userAnswer: progress.userAnswer,
-            correctAnswer: word?.foreign_word || "",
+            correctAnswer: word?.headword || "",
             clueLevel: progress.clueLevel,
             mistakeCount: progress.mistakeCount,
             pointsEarned: progress.pointsEarned,
@@ -418,7 +421,7 @@ export function TestModeClient({
       <div className="ml-[240px] flex min-h-screen flex-1 flex-col">
         {/* Custom navbar */}
         <StudyNavbar
-          languageFlag={language?.flag}
+          languageFlag={languageFlag}
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitTest}
@@ -433,10 +436,10 @@ export function TestModeClient({
               {/* Word Card */}
               <WordCard
                 partOfSpeech={currentWord?.part_of_speech}
-                englishWord={currentWord?.english}
-                foreignWord={currentWord?.foreign_word}
+                englishWord={currentWord?.translation}
+                foreignWord={currentWord?.headword}
                 englishFlag="🇬🇧"
-                foreignFlag={language?.flag || "🇮🇹"}
+                foreignFlag={languageFlag}
                 showForeign={hasSubmittedAnswer}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -457,8 +460,8 @@ export function TestModeClient({
               <MemoryTriggerCard
                 imageUrl={currentWord?.memory_trigger_image_url}
                 triggerText={currentWord?.memory_trigger_text}
-                englishWord={currentWord?.english}
-                foreignWord={currentWord?.foreign_word}
+                englishWord={currentWord?.translation}
+                foreignWord={currentWord?.headword}
                 isVisible={hasSubmittedAnswer}
                 playingAudioType={currentAudioType}
                 onPlayTriggerAudio={() => {
@@ -489,8 +492,8 @@ export function TestModeClient({
           {/* Test Answer Input */}
           <TestAnswerInput
             languageName={language?.name || "Italian"}
-            languageFlag={language?.flag || "🇮🇹"}
-            correctAnswer={currentWord?.foreign_word}
+            languageFlag={languageFlag}
+            correctAnswer={currentWord?.headword}
             isVisible={true}
             isLastWord={isLastWord}
             clueLevel={clueLevel}

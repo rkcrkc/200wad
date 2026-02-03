@@ -15,12 +15,13 @@ import {
   updateLanguage,
   deleteLanguage,
 } from "@/lib/mutations/admin/languages";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface Language {
   id: string;
   name: string;
   native_name: string;
-  flag: string;
+  code: string;
   sort_order: number | null;
   courseCount: number;
   created_at: string | null;
@@ -33,13 +34,13 @@ interface LanguagesClientProps {
 interface FormData {
   name: string;
   native_name: string;
-  flag: string;
+  code: string;
 }
 
 interface FormErrors {
   name?: string;
   native_name?: string;
-  flag?: string;
+  code?: string;
 }
 
 export function LanguagesClient({ languages }: LanguagesClientProps) {
@@ -52,12 +53,12 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     native_name: "",
-    flag: "",
+    code: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
   const resetForm = () => {
-    setFormData({ name: "", native_name: "", flag: "" });
+    setFormData({ name: "", native_name: "", code: "" });
     setErrors({});
     setEditingLanguage(null);
   };
@@ -72,7 +73,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     setFormData({
       name: language.name,
       native_name: language.native_name,
-      flag: language.flag,
+      code: language.code,
     });
     setErrors({});
     setIsModalOpen(true);
@@ -92,8 +93,10 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     if (!formData.native_name.trim()) {
       newErrors.native_name = "Native name is required";
     }
-    if (!formData.flag.trim()) {
-      newErrors.flag = "Flag emoji is required";
+    if (!formData.code.trim()) {
+      newErrors.code = "Language code is required";
+    } else if (!/^[a-z]{2,3}$/.test(formData.code.toLowerCase())) {
+      newErrors.code = "Code must be 2-3 lowercase letters (ISO 639-1)";
     }
 
     setErrors(newErrors);
@@ -173,6 +176,9 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
                 Flag
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Code
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -189,7 +195,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
           <tbody className="divide-y divide-gray-200">
             {languages.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   No languages yet. Add your first language to get started.
                 </td>
               </tr>
@@ -197,7 +203,10 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
               languages.map((language) => (
                 <tr key={language.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4 text-2xl">
-                    {language.flag}
+                    {getFlagFromCode(language.code)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-gray-600">
+                    {language.code}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                     {language.name}
@@ -306,21 +315,30 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
           </AdminFormField>
 
           <AdminFormField
-            label="Flag Emoji"
-            name="flag"
+            label="Language Code (ISO 639-1)"
+            name="code"
             required
-            error={errors.flag}
+            error={errors.code}
+            hint="2-3 letter code like 'it', 'es', 'fr', 'de', 'zh'"
           >
-            <AdminInput
-              id="flag"
-              name="flag"
-              value={formData.flag}
-              onChange={(e) =>
-                setFormData({ ...formData, flag: e.target.value })
-              }
-              placeholder="e.g., 🇮🇹"
-              error={!!errors.flag}
-            />
+            <div className="flex items-center gap-3">
+              <AdminInput
+                id="code"
+                name="code"
+                value={formData.code}
+                onChange={(e) =>
+                  setFormData({ ...formData, code: e.target.value.toLowerCase() })
+                }
+                placeholder="e.g., it"
+                error={!!errors.code}
+                className="w-24"
+              />
+              {formData.code && (
+                <span className="text-2xl" title="Flag preview">
+                  {getFlagFromCode(formData.code)}
+                </span>
+              )}
+            </div>
           </AdminFormField>
         </div>
       </AdminModal>

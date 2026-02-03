@@ -21,11 +21,12 @@ import {
   unpublishLesson,
   cloneLesson,
 } from "@/lib/mutations/admin/lessons";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface Language {
   id: string;
   name: string;
-  flag: string;
+  code: string;
 }
 
 interface Course {
@@ -311,7 +312,7 @@ export function LessonsClient({
             <option value="">All languages</option>
             {languages.map((lang) => (
               <option key={lang.id} value={lang.id}>
-                {lang.flag} {lang.name}
+                {getFlagFromCode(lang.code)} {lang.name}
               </option>
             ))}
           </select>
@@ -386,7 +387,7 @@ export function LessonsClient({
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {lesson.course?.language?.flag} {lesson.course?.name}
+                    {getFlagFromCode(lesson.course?.language?.code)} {lesson.course?.name}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                     {lesson.word_count ?? 0}

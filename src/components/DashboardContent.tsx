@@ -12,9 +12,9 @@ interface DashboardContentProps {
 
 /**
  * Dashboard content wrapper that conditionally shows header and sidebar.
- * - /dashboard: Header, no sidebar, full width
- * - /study routes: No header (StudyNavbar instead), sidebar handled by page
- * - Other routes: Header + sidebar visible
+ * - /dashboard, /courses: Header full width, no sidebar
+ * - /study, /test routes: No header (StudyNavbar instead), sidebar handled by page
+ * - Other routes: Header full width at top, sidebar + content below
  * 
  * Wraps everything in CourseProvider so pages can set context that Header consumes.
  */
@@ -50,19 +50,17 @@ export function DashboardContent({
     );
   }
   
-  // With sidebar (sidebar has its own branding at top)
+  // With sidebar - header full width at top, sidebar + content below
   return (
     <CourseProvider>
-      {/* Sidebar - full height from top, includes branding */}
+      {/* Header - full width at top */}
+      <Header showSidebar={true} />
+      
+      {/* Sidebar - starts below header */}
       <Sidebar dueTestsCount={dueTestsCount} />
       
-      {/* Header - positioned to the right of sidebar */}
-      <div className="fixed top-0 right-0 left-[240px] z-20 h-[72px] bg-white">
-        <Header showSidebar={true} />
-      </div>
-      
-      {/* Main content - offset by sidebar and header */}
-      <main className="bg-background ml-[240px] min-h-screen overflow-auto rounded-tl-[20px] pt-[72px] px-[60px] py-[60px]">
+      {/* Main content - offset by header height and sidebar width */}
+      <main className="bg-background ml-[240px] min-h-[calc(100vh-72px)] overflow-auto pt-[72px] px-[60px] py-[60px]">
         <div className="max-w-content-lg mx-auto">{children}</div>
       </main>
     </CourseProvider>

@@ -83,7 +83,7 @@ export function LessonCompletedModal({
                   {hasImage ? (
                     <Image
                       src={word.memory_trigger_image_url!}
-                      alt={word.english}
+                      alt={word.translation}
                       fill
                       className="object-cover"
                       sizes="150px"
@@ -98,7 +98,7 @@ export function LessonCompletedModal({
                 {/* Word Info */}
                 <div className="p-2">
                   <p className="truncate text-sm font-medium text-foreground">
-                    {word.english}
+                    {word.translation}
                   </p>
                   <div className="mt-1 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">

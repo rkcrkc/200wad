@@ -56,8 +56,10 @@ export interface TestAttempt {
 }
 
 export interface WordWithDetails extends Word {
+  /** Sort order within the current lesson (from lesson_words join table) */
+  sort_order: number;
   exampleSentences: ExampleSentence[];
-  relatedWords: Pick<Word, "id" | "english" | "foreign_word" | "memory_trigger_image_url">[];
+  relatedWords: Pick<Word, "id" | "translation" | "headword" | "memory_trigger_image_url">[];
   progress: UserWordProgress | null;
   status: WordStatus;
   /** Last 3 test attempts on this word (most recent first) */
@@ -105,10 +107,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const course = lesson.courses as Course & { languages: Language };
   const language = course?.languages as Language | null;
 
-  // Fetch words for this lesson with example sentences
-  const { data: words, error: wordsError } = await supabase
-    .from("words")
-    .select("*, example_sentences(*)")
+  // Fetch words for this lesson via lesson_words join table
+  const { data: lessonWords, error: wordsError } = await supabase
+    .from("lesson_words")
+    .select("sort_order, words(*, example_sentences(*))")
     .eq("lesson_id", lessonId)
     .order("sort_order");
 
@@ -124,6 +126,12 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     };
   }
 
+  // Extract words from join table results
+  const words = lessonWords?.map((lw) => ({
+    ...(lw.words as Word & { example_sentences: ExampleSentence[] }),
+    sort_order: lw.sort_order,
+  })) || [];
+
   // Collect all related word IDs
   const allRelatedWordIds = new Set<string>();
   words?.forEach((word) => {
@@ -131,11 +139,11 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   });
 
   // Fetch related words if any
-  let relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "foreign_word" | "memory_trigger_image_url">> = {};
+  let relatedWordsMap: Record<string, Pick<Word, "id" | "translation" | "headword" | "memory_trigger_image_url">> = {};
   if (allRelatedWordIds.size > 0) {
     const { data: relatedWords } = await supabase
       .from("words")
-      .select("id, english, foreign_word, memory_trigger_image_url")
+      .select("id, translation, headword, memory_trigger_image_url")
       .in("id", Array.from(allRelatedWordIds));
 
     relatedWords?.forEach((rw) => {
@@ -259,10 +267,10 @@ export async function getWord(wordId: string): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch word with example sentences
+  // Fetch word with example sentences and language
   const { data: word } = await supabase
     .from("words")
-    .select("*, example_sentences(*), lessons(*, courses(*, languages(*)))")
+    .select("*, example_sentences(*), languages(*)")
     .eq("id", wordId)
     .single();
 
@@ -270,15 +278,14 @@ export async function getWord(wordId: string): Promise<{
     return { word: null, language: null, isGuest: !user };
   }
 
-  const lesson = word.lessons as Lesson & { courses: Course & { languages: Language } };
-  const language = lesson?.courses?.languages || null;
+  const language = word.languages as Language | null;
 
   // Fetch related words
-  let relatedWords: Pick<Word, "id" | "english" | "foreign_word" | "memory_trigger_image_url">[] = [];
+  let relatedWords: Pick<Word, "id" | "translation" | "headword" | "memory_trigger_image_url">[] = [];
   if (word.related_word_ids && word.related_word_ids.length > 0) {
     const { data: relatedWordsData } = await supabase
       .from("words")
-      .select("id, english, foreign_word, memory_trigger_image_url")
+      .select("id, translation, headword, memory_trigger_image_url")
       .in("id", word.related_word_ids);
 
     relatedWords = relatedWordsData || [];
@@ -314,9 +321,10 @@ export async function getWord(wordId: string): Promise<{
   // Build word without nested relations
   const wordWithDetails: WordWithDetails = {
     id: word.id,
-    lesson_id: word.lesson_id,
-    english: word.english,
-    foreign_word: word.foreign_word,
+    language_id: word.language_id,
+    headword: word.headword,
+    lemma: word.lemma,
+    translation: word.translation,
     part_of_speech: word.part_of_speech,
     notes: word.notes,
     memory_trigger_text: word.memory_trigger_text,
@@ -325,7 +333,7 @@ export async function getWord(wordId: string): Promise<{
     audio_url_foreign: word.audio_url_foreign,
     audio_url_trigger: word.audio_url_trigger,
     related_word_ids: word.related_word_ids,
-    sort_order: word.sort_order,
+    sort_order: 0, // Default; actual sort_order is context-dependent on the lesson
     created_at: word.created_at,
     updated_at: word.updated_at,
     created_by: word.created_by,

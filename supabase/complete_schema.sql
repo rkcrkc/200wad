@@ -23,8 +23,8 @@
 -- Languages
 CREATE TABLE languages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  flag TEXT NOT NULL,
   native_name TEXT NOT NULL,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -62,12 +62,13 @@ CREATE TABLE lessons (
   UNIQUE(course_id, number) -- Ensure unique lesson numbers within a course
 );
 
--- Words
+-- Words (reusable vocabulary entries linked to languages)
 CREATE TABLE words (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
-  english TEXT NOT NULL,
-  foreign_word TEXT NOT NULL,
+  language_id UUID NOT NULL REFERENCES languages(id) ON DELETE RESTRICT,
+  headword TEXT NOT NULL,        -- The display form learners see (e.g., "l'avventura")
+  lemma TEXT NOT NULL,           -- Base form for grouping/search (e.g., "avventura")
+  translation TEXT NOT NULL,     -- English translation
   part_of_speech TEXT,
   notes TEXT,
   memory_trigger_text TEXT,
@@ -76,10 +77,29 @@ CREATE TABLE words (
   audio_url_foreign TEXT,
   audio_url_trigger TEXT,
   related_word_ids UUID[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES users(id),
+  updated_by UUID REFERENCES users(id)
+);
+
+-- Lesson-Word join table (many-to-many relationship)
+CREATE TABLE lesson_words (
+  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  word_id UUID NOT NULL REFERENCES words(id) ON DELETE CASCADE,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  PRIMARY KEY (lesson_id, word_id)
 );
+
+-- Indexes for words table
+CREATE INDEX idx_words_language_id ON words(language_id);
+CREATE INDEX idx_words_language_lemma ON words(language_id, lemma);
+CREATE INDEX idx_words_language_headword ON words(language_id, headword);
+
+-- Indexes for lesson_words table
+CREATE INDEX idx_lesson_words_sort ON lesson_words(lesson_id, sort_order);
+CREATE INDEX idx_lesson_words_word ON lesson_words(word_id);
 
 -- Example Sentences
 CREATE TABLE example_sentences (

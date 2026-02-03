@@ -24,7 +24,7 @@ async function getData() {
       course:courses(
         id,
         name,
-        language:languages(id, name, flag)
+        language:languages(id, name, code)
       )
     `)
     .order("sort_order", { ascending: true });

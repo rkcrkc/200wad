@@ -31,11 +31,12 @@ import {
   deleteSentence,
 } from "@/lib/mutations/admin/sentences";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface Language {
   id: string;
   name: string;
-  flag: string;
+  code: string;
 }
 
 interface Course {
@@ -62,8 +63,10 @@ interface ExampleSentence {
 
 interface Word {
   id: string;
-  english: string;
-  foreign_word: string;
+  headword: string;
+  lemma: string;
+  translation: string;
+  language_id: string;
   part_of_speech: string | null;
   notes: string | null;
   memory_trigger_text: string | null;
@@ -72,7 +75,7 @@ interface Word {
   audio_url_foreign: string | null;
   audio_url_trigger: string | null;
   related_word_ids: string[] | null;
-  sort_order: number | null;
+  sort_order: number;
   example_sentences: ExampleSentence[];
 }
 
@@ -82,16 +85,17 @@ interface WordsClientProps {
 }
 
 interface FormData {
-  english: string;
-  foreign_word: string;
+  headword: string;
+  lemma: string;
+  translation: string;
   part_of_speech: string;
   notes: string;
   memory_trigger_text: string;
 }
 
 interface FormErrors {
-  english?: string;
-  foreign_word?: string;
+  headword?: string;
+  translation?: string;
 }
 
 interface FileUploads {
@@ -123,8 +127,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
   const [deletingWord, setDeletingWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    english: "",
-    foreign_word: "",
+    headword: "",
+    lemma: "",
+    translation: "",
     part_of_speech: "",
     notes: "",
     memory_trigger_text: "",
@@ -157,8 +162,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
 
   const resetForm = () => {
     setFormData({
-      english: "",
-      foreign_word: "",
+      headword: "",
+      lemma: "",
+      translation: "",
       part_of_speech: "",
       notes: "",
       memory_trigger_text: "",
@@ -189,8 +195,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
   const openEditModal = (word: Word) => {
     setEditingWord(word);
     setFormData({
-      english: word.english,
-      foreign_word: word.foreign_word,
+      headword: word.headword,
+      lemma: word.lemma,
+      translation: word.translation,
       part_of_speech: word.part_of_speech || "",
       notes: word.notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
@@ -213,11 +220,11 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.english.trim()) {
-      newErrors.english = "English word is required";
+    if (!formData.headword.trim()) {
+      newErrors.headword = "Headword is required";
     }
-    if (!formData.foreign_word.trim()) {
-      newErrors.foreign_word = "Foreign word is required";
+    if (!formData.translation.trim()) {
+      newErrors.translation = "Translation is required";
     }
 
     setErrors(newErrors);
@@ -232,8 +239,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     try {
       // Prepare base data
       const wordData: any = {
-        english: formData.english,
-        foreign_word: formData.foreign_word,
+        headword: formData.headword,
+        lemma: formData.lemma || formData.headword, // Default lemma to headword
+        translation: formData.translation,
         part_of_speech: formData.part_of_speech || null,
         notes: formData.notes || null,
         memory_trigger_text: formData.memory_trigger_text || null,
@@ -244,9 +252,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
 
       if (editingWord) {
         // Update word first
-        const result = await updateWord(editingWord.id, wordData);
+        const result = await updateWord(editingWord.id, wordData, lesson.id);
         if (!result.success) {
-          setErrors({ english: result.error || "Failed to update word" });
+          setErrors({ headword: result.error || "Failed to update word" });
           return;
         }
       } else {
@@ -256,7 +264,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
           ...wordData,
         });
         if (!result.success || !result.id) {
-          setErrors({ english: result.error || "Failed to create word" });
+          setErrors({ headword: result.error || "Failed to create word" });
           return;
         }
         wordId = result.id;
@@ -396,7 +404,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               Lesson #{lesson.number}: {lesson.title}
             </h1>
             <p className="mt-1 text-gray-600">
-              {lesson.course?.language?.flag} {lesson.course?.name} &middot;{" "}
+              {getFlagFromCode(lesson.course?.language?.code)} {lesson.course?.name} &middot;{" "}
               {words.length} word{words.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -443,10 +451,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               words.map((word) => (
                 <tr key={word.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    {word.english}
+                    {word.translation}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {word.foreign_word}
+                    {word.headword}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 capitalize">
                     {word.part_of_speech || "-"}
@@ -541,41 +549,57 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <AdminFormField
-              label="English"
-              name="english"
+              label={`Headword (${lesson.course?.language?.name || "Foreign"})`}
+              name="headword"
               required
-              error={errors.english}
+              error={errors.headword}
             >
               <AdminInput
-                id="english"
-                name="english"
-                value={formData.english}
+                id="headword"
+                name="headword"
+                value={formData.headword}
                 onChange={(e) =>
-                  setFormData({ ...formData, english: e.target.value })
+                  setFormData({ ...formData, headword: e.target.value })
                 }
-                placeholder="e.g., hello"
-                error={!!errors.english}
+                placeholder="e.g., l'avventura"
+                error={!!errors.headword}
               />
             </AdminFormField>
 
             <AdminFormField
-              label={lesson.course?.language?.name || "Foreign Word"}
-              name="foreign_word"
+              label="Translation (English)"
+              name="translation"
               required
-              error={errors.foreign_word}
+              error={errors.translation}
             >
               <AdminInput
-                id="foreign_word"
-                name="foreign_word"
-                value={formData.foreign_word}
+                id="translation"
+                name="translation"
+                value={formData.translation}
                 onChange={(e) =>
-                  setFormData({ ...formData, foreign_word: e.target.value })
+                  setFormData({ ...formData, translation: e.target.value })
                 }
-                placeholder="e.g., ciao"
-                error={!!errors.foreign_word}
+                placeholder="e.g., the adventure"
+                error={!!errors.translation}
               />
             </AdminFormField>
           </div>
+
+          <AdminFormField
+            label="Lemma (base form)"
+            name="lemma"
+            hint="Optional. Used for search/grouping. Defaults to headword if empty."
+          >
+            <AdminInput
+              id="lemma"
+              name="lemma"
+              value={formData.lemma}
+              onChange={(e) =>
+                setFormData({ ...formData, lemma: e.target.value })
+              }
+              placeholder="e.g., avventura"
+            />
+          </AdminFormField>
 
           <AdminFormField label="Part of Speech" name="part_of_speech">
             <AdminSelect
@@ -790,7 +814,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         }}
         onConfirm={handleDelete}
         title="Delete Word"
-        message={`Are you sure you want to delete "${deletingWord?.english}"? This will also delete all example sentences.`}
+        message={`Are you sure you want to delete "${deletingWord?.headword}" (${deletingWord?.translation})? This will also delete all example sentences.`}
         confirmLabel="Delete"
         confirmVariant="destructive"
         isLoading={isLoading}

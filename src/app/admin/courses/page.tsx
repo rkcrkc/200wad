@@ -7,7 +7,7 @@ async function getData() {
   // Fetch languages for the filter dropdown
   const { data: languages } = await supabase
     .from("languages")
-    .select("id, name, flag")
+    .select("id, name, code")
     .order("sort_order", { ascending: true });
 
   // Fetch all courses with language info and lesson count
@@ -15,7 +15,7 @@ async function getData() {
     .from("courses")
     .select(`
       *,
-      language:languages(id, name, flag),
+      language:languages(id, name, code),
       lessons:lessons(count)
     `)
     .order("sort_order", { ascending: true });

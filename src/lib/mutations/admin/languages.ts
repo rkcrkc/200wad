@@ -43,10 +43,8 @@ export async function createLanguage(
       .insert({
         name: validated.name,
         native_name: validated.native_name,
-        flag: validated.flag,
+        code: validated.code,
         sort_order: validated.sort_order ?? 0,
-        created_by: admin.userId,
-        updated_by: admin.userId,
       })
       .select("id")
       .single();
@@ -86,7 +84,6 @@ export async function updateLanguage(
       .from("languages")
       .update({
         ...validated,
-        updated_by: admin.userId,
       })
       .eq("id", id);
 

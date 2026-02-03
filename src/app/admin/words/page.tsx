@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { GraduationCap, ChevronRight } from "lucide-react";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 type LessonWithCourse = {
   id: string;
@@ -11,7 +12,7 @@ type LessonWithCourse = {
   course: {
     id: string;
     name: string;
-    language: { id: string; name: string; flag: string } | null;
+    language: { id: string; name: string; code: string } | null;
   } | null;
 };
 
@@ -29,7 +30,7 @@ async function getLessonsWithWords(): Promise<LessonWithCourse[]> {
       course:courses(
         id,
         name,
-        language:languages(id, name, flag)
+        language:languages(id, name, code)
       )
     `)
     .order("course_id", { ascending: true })
@@ -89,7 +90,7 @@ export default async function WordsIndexPage() {
           {Object.values(groupedLessons).map(({ course, lessons }) => (
             <div key={course.id}>
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                <span className="text-xl">{course.language?.flag}</span>
+                <span className="text-xl">{getFlagFromCode(course.language?.code)}</span>
                 {course.name}
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

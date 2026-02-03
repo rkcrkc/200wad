@@ -20,7 +20,7 @@ async function getData(lessonId: string) {
       course:courses(
         id,
         name,
-        language:languages(id, name, flag)
+        language:languages(id, name, code)
       )
     `)
     .eq("id", lessonId)
@@ -30,12 +30,12 @@ async function getData(lessonId: string) {
     return null;
   }
 
-  // Fetch words with example sentences
-  const { data: words, error: wordsError } = await supabase
-    .from("words")
+  // Fetch words via lesson_words join table
+  const { data: lessonWords, error: wordsError } = await supabase
+    .from("lesson_words")
     .select(`
-      *,
-      example_sentences(*)
+      sort_order,
+      words(*, example_sentences(*))
     `)
     .eq("lesson_id", lessonId)
     .order("sort_order", { ascending: true });
@@ -45,7 +45,13 @@ async function getData(lessonId: string) {
     return { lesson, words: [] };
   }
 
-  return { lesson, words: words || [] };
+  // Extract words with sort_order from join table
+  const words = (lessonWords || []).map((lw) => ({
+    ...(lw.words as any),
+    sort_order: lw.sort_order,
+  }));
+
+  return { lesson, words };
 }
 
 export default async function WordsPage({ params }: PageProps) {

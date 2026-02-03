@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { notFound } from "next/navigation";
 import { formatTime } from "@/lib/utils/helpers";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface LessonsPageProps {
   params: Promise<{ courseId: string }>;
@@ -33,8 +34,10 @@ export default async function LessonsPage({ params }: LessonsPageProps) {
       ? Math.round((stats.wordsMastered / stats.totalWords) * 100)
       : 0;
 
+  const languageFlag = getFlagFromCode(language?.code);
+
   return (
-    <SetCourseContext languageFlag={language?.flag} courseId={courseId} courseName={course.name}>
+    <SetCourseContext languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
     <div>
       {/* Back Button */}
       <BackButton
@@ -101,7 +104,7 @@ export default async function LessonsPage({ params }: LessonsPageProps) {
       {lessons.length === 0 ? (
         <EmptyState title="No lessons available yet for this course." />
       ) : (
-        <LessonsList lessons={lessons} languageFlag={language?.flag} />
+        <LessonsList lessons={lessons} languageFlag={languageFlag} />
       )}
 
       {/* Guest CTA */}

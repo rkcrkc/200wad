@@ -3,6 +3,7 @@ import { ChevronRight, BookOpen } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
 import { LanguageWithProgress } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface LanguageCardProps {
   language: LanguageWithProgress;
@@ -23,7 +24,7 @@ export function LanguageCard({ language, isActive = false }: LanguageCardProps) 
       {/* Language Flag & Name */}
       <div className="mb-4 flex items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-3xl">
-          {language.flag}
+          {getFlagFromCode(language.code)}
         </div>
         <div className="flex-1">
           <h3 className="mb-1 text-2xl font-semibold">{language.name}</h3>

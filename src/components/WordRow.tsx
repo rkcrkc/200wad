@@ -26,7 +26,7 @@ export function WordRow({ word, index, languageFlag = "🇮🇹" }: WordRowProps
           {hasImage ? (
             <Image
               src={word.memory_trigger_image_url!}
-              alt={word.english}
+              alt={word.translation}
               fill
               className="object-cover"
               sizes="48px"
@@ -38,15 +38,15 @@ export function WordRow({ word, index, languageFlag = "🇮🇹" }: WordRowProps
           )}
         </div>
 
-        {/* English word */}
+        {/* Translation (English) */}
         <div className="flex-1">
-          <p className="text-regular-medium text-foreground/70">{word.english}</p>
+          <p className="text-regular-medium text-foreground/70">{word.translation}</p>
         </div>
 
-        {/* Foreign word with flag */}
+        {/* Headword (foreign) with flag */}
         <div className="flex flex-1 items-center gap-2">
           <span className="text-lg">{languageFlag}</span>
-          <p className="text-regular-semibold text-foreground">{word.foreign_word}</p>
+          <p className="text-regular-semibold text-foreground">{word.headword}</p>
         </div>
 
         {/* Status pill */}

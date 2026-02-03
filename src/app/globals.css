@@ -67,6 +67,17 @@
   --status-studying-color: #ff9224;
   --status-not-started-bg: #f5f5f5;
   --status-not-started-color: rgba(20, 21, 21, 0.5);
+
+  /* Corner Radius */
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+
+  /* Page Max Width */
+  --max-width-s: 840px;
+  --max-width-m: 1080px;
+  --max-width-l: 1280px;
+
   --background: #faf8f3;
   --foreground: #141515;
   --chart-1: oklch(0.646 0.222 41.116);

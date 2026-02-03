@@ -4,6 +4,7 @@ import { SetCourseContext } from "@/components/SetCourseContext";
 import { SchedulerSection, LessonGridSection } from "@/components/schedule";
 import { GuestCTA } from "@/components/GuestCTA";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getFlagFromCode } from "@/lib/utils/flags";
 
 export default async function SchedulePage() {
   // Get the user's current course
@@ -48,10 +49,12 @@ export default async function SchedulePage() {
     newLessons.length > 0 ||
     recentLessons.length > 0;
 
+  const languageFlag = getFlagFromCode(language?.code);
+
   return (
     <SetCourseContext
       languageId={language?.id}
-      languageFlag={language?.flag}
+      languageFlag={languageFlag}
       languageName={language?.name}
       courseId={course.id}
       courseName={course.name}
