@@ -7,7 +7,7 @@ async function getData() {
   // Fetch languages for the filter dropdown
   const { data: languages } = await supabase
     .from("languages")
-    .select("id, name, flag")
+    .select("id, name, code")
     .order("sort_order", { ascending: true });
 
   // Fetch courses for the filter dropdown
