@@ -330,6 +330,7 @@ export async function getWord(wordId: string): Promise<{
     transitivity: word.transitivity,
     is_irregular: word.is_irregular,
     is_plural_only: word.is_plural_only,
+    grammatical_number: word.grammatical_number,
     notes: word.notes,
     memory_trigger_text: word.memory_trigger_text,
     memory_trigger_image_url: word.memory_trigger_image_url,

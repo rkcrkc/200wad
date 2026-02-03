@@ -73,7 +73,7 @@ export const createWordSchema = z.object({
   gender: z.enum(["m", "f", "n", "mf"]).optional().nullable(),
   transitivity: z.enum(["vt", "vi", "vt_vi"]).optional().nullable(),
   is_irregular: z.boolean().optional().default(false),
-  is_plural_only: z.boolean().optional().default(false),
+  grammatical_number: z.enum(["sg", "pl"]).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   memory_trigger_text: z.string().max(500).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),

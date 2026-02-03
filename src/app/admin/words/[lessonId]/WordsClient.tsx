@@ -71,7 +71,7 @@ interface Word {
   gender: string | null;
   transitivity: string | null;
   is_irregular: boolean | null;
-  is_plural_only: boolean | null;
+  grammatical_number: string | null;
   notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
@@ -96,7 +96,7 @@ interface FormData {
   gender: string;
   transitivity: string;
   is_irregular: boolean;
-  is_plural_only: boolean;
+  grammatical_number: string;
   notes: string;
   memory_trigger_text: string;
 }
@@ -142,6 +142,12 @@ const transitivityOptions = [
   { value: "vt_vi", label: "Both (vt/vi)" },
 ];
 
+const grammaticalNumberOptions = [
+  { value: "", label: "Select..." },
+  { value: "sg", label: "Singular (sg)" },
+  { value: "pl", label: "Plural (pl)" },
+];
+
 export function WordsClient({ lesson, words }: WordsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,7 +163,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     gender: "",
     transitivity: "",
     is_irregular: false,
-    is_plural_only: false,
+    grammatical_number: "",
     notes: "",
     memory_trigger_text: "",
   });
@@ -196,7 +202,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       gender: "",
       transitivity: "",
       is_irregular: false,
-      is_plural_only: false,
+      grammatical_number: "",
       notes: "",
       memory_trigger_text: "",
     });
@@ -233,7 +239,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       gender: word.gender || "",
       transitivity: word.transitivity || "",
       is_irregular: word.is_irregular ?? false,
-      is_plural_only: word.is_plural_only ?? false,
+      grammatical_number: word.grammatical_number || "",
       notes: word.notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
     });
@@ -281,7 +287,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         gender: formData.gender || null,
         transitivity: formData.transitivity || null,
         is_irregular: formData.is_irregular,
-        is_plural_only: formData.is_plural_only,
+        grammatical_number: formData.grammatical_number || null,
         notes: formData.notes || null,
         memory_trigger_text: formData.memory_trigger_text || null,
       };
@@ -691,6 +697,25 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
             )}
           </div>
 
+          {/* Grammatical Number - shown for nouns */}
+          {formData.part_of_speech === "noun" && (
+            <AdminFormField 
+              label="Number" 
+              name="grammatical_number"
+              hint="Whether this headword is singular or plural"
+            >
+              <AdminSelect
+                id="grammatical_number"
+                name="grammatical_number"
+                value={formData.grammatical_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, grammatical_number: e.target.value })
+                }
+                options={grammaticalNumberOptions}
+              />
+            </AdminFormField>
+          )}
+
           {/* Boolean flags */}
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm">
@@ -704,20 +729,6 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
               />
               <span className="text-gray-700">Irregular form</span>
             </label>
-
-            {formData.part_of_speech === "noun" && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={formData.is_plural_only}
-                  onChange={(e) =>
-                    setFormData({ ...formData, is_plural_only: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Plural only</span>
-              </label>
-            )}
           </div>
 
           <AdminFormField label="Notes" name="notes">

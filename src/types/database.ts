@@ -664,6 +664,7 @@ export type Database = {
           transitivity: string | null
           is_irregular: boolean | null
           is_plural_only: boolean | null
+          grammatical_number: string | null
           related_word_ids: string[] | null
           english: string
           updated_at: string | null
@@ -687,6 +688,7 @@ export type Database = {
           transitivity?: string | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
+          grammatical_number?: string | null
           related_word_ids?: string[] | null
           english: string
           updated_at?: string | null
@@ -710,6 +712,7 @@ export type Database = {
           transitivity?: string | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
+          grammatical_number?: string | null
           related_word_ids?: string[] | null
           english?: string
           updated_at?: string | null

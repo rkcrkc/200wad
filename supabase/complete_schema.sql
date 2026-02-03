@@ -73,7 +73,8 @@ CREATE TABLE words (
   gender TEXT,                   -- m, f, n, mf (for nouns)
   transitivity TEXT,             -- vt, vi, vt_vi (for verbs)
   is_irregular BOOLEAN DEFAULT false,
-  is_plural_only BOOLEAN DEFAULT false,
+  is_plural_only BOOLEAN DEFAULT false, -- DEPRECATED: use grammatical_number instead
+  grammatical_number TEXT,              -- sg (singular) or pl (plural)
   notes TEXT,
   memory_trigger_text TEXT,
   memory_trigger_image_url TEXT,
@@ -86,7 +87,8 @@ CREATE TABLE words (
   created_by UUID REFERENCES users(id),
   updated_by UUID REFERENCES users(id),
   CONSTRAINT words_gender_check CHECK (gender IS NULL OR gender IN ('m', 'f', 'n', 'mf')),
-  CONSTRAINT words_transitivity_check CHECK (transitivity IS NULL OR transitivity IN ('vt', 'vi', 'vt_vi'))
+  CONSTRAINT words_transitivity_check CHECK (transitivity IS NULL OR transitivity IN ('vt', 'vi', 'vt_vi')),
+  CONSTRAINT words_grammatical_number_check CHECK (grammatical_number IS NULL OR grammatical_number IN ('sg', 'pl'))
 );
 
 -- Lesson-Word join table (many-to-many relationship)
@@ -106,7 +108,9 @@ CREATE INDEX idx_words_language_pos ON words(language_id, part_of_speech);
 CREATE INDEX idx_words_language_gender ON words(language_id, gender);
 CREATE INDEX idx_words_language_transitivity ON words(language_id, transitivity);
 CREATE INDEX idx_words_language_irregular ON words(language_id, is_irregular) WHERE is_irregular = true;
+CREATE INDEX idx_words_language_grammatical_number ON words(language_id, grammatical_number);
 CREATE INDEX idx_words_language_pos_gender ON words(language_id, part_of_speech, gender);
+CREATE INDEX idx_words_language_pos_grammatical_number ON words(language_id, part_of_speech, grammatical_number);
 CREATE INDEX idx_words_language_pos_transitivity ON words(language_id, part_of_speech, transitivity);
 
 -- Indexes for lesson_words table
