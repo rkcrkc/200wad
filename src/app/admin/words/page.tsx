@@ -33,6 +33,11 @@ interface WordWithLessons {
   is_irregular: boolean | null;
   grammatical_number: string | null;
   notes: string | null;
+  memory_trigger_text: string | null;
+  memory_trigger_image_url: string | null;
+  audio_url_english: string | null;
+  audio_url_foreign: string | null;
+  audio_url_trigger: string | null;
   created_at: string | null;
   language: Language | null;
   lessons: LessonInfo[];
@@ -76,6 +81,11 @@ async function getData() {
       is_irregular,
       grammatical_number,
       notes,
+      memory_trigger_text,
+      memory_trigger_image_url,
+      audio_url_english,
+      audio_url_foreign,
+      audio_url_trigger,
       created_at,
       language:languages(id, name, code)
     `)
