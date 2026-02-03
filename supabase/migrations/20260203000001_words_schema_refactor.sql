@@ -78,7 +78,10 @@ CREATE INDEX IF NOT EXISTS idx_lesson_words_word ON lesson_words(word_id);
 -- STEP 6: CLEANUP (DROP OLD COLUMNS)
 -- ============================================================================
 
--- Drop FK constraint first
+-- Drop old trigger FIRST (it depends on lesson_id column)
+DROP TRIGGER IF EXISTS trigger_update_lesson_word_count ON words;
+
+-- Drop FK constraint
 ALTER TABLE words DROP CONSTRAINT IF EXISTS words_lesson_id_fkey;
 
 -- Drop old columns that are now replaced
@@ -122,9 +125,6 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
-
--- Drop old trigger on words table
-DROP TRIGGER IF EXISTS trigger_update_lesson_word_count ON words;
 
 -- Create new trigger on lesson_words table
 DROP TRIGGER IF EXISTS trigger_update_lesson_word_count ON lesson_words;
