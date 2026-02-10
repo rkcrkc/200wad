@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 // Base nav items - lessons path is dynamic based on course context
 const getNavItems = (courseId?: string) => [
   { path: "/schedule", icon: GraduationCap, label: "Schedule" },
-  { path: `/lessons/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
+  { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: "/dictionary", icon: BookMarked, label: "Dictionary" },
   { path: "/community", icon: Users, label: "Community" },
@@ -112,9 +112,9 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
     if (path === "/dashboard") {
       return pathname === "/dashboard";
     }
-    // For lessons, match various lesson-related routes (dynamic path includes /lessons/)
-    if (path.startsWith("/lessons/")) {
-      return pathname.includes("/lesson");
+    // For lessons, match various lesson-related routes
+    if (path.startsWith("/course/")) {
+      return pathname.includes("/lesson") || pathname.includes("/course/");
     }
     return pathname === path || pathname.startsWith(path);
   };

@@ -49,11 +49,11 @@ export function SchedulerSection({
   } else if (isFirstLesson) {
     heading = "It's time for your first lesson";
     linkText = "All lessons";
-    linkHref = nextLesson ? `/lessons/${nextLesson.course_id}` : "/lessons";
+    linkHref = nextLesson ? `/course/${nextLesson.course_id}` : "/dashboard";
   } else {
     heading = "It's time for your next lesson";
     linkText = "All lessons";
-    linkHref = nextLesson ? `/lessons/${nextLesson.course_id}` : "/lessons";
+    linkHref = nextLesson ? `/course/${nextLesson.course_id}` : "/dashboard";
   }
 
   return (

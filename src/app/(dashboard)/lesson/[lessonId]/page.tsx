@@ -38,7 +38,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
     <div>
       {/* Back Button */}
       <BackButton
-        href={course ? `/lessons/${course.id}` : "/dashboard"}
+        href={course ? `/course/${course.id}` : "/dashboard"}
         label={course?.name || "Lessons"}
       />
 

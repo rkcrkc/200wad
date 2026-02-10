@@ -49,7 +49,7 @@ export function LessonGridSection({
           )}
         </div>
         <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={`/lessons/${courseId}`}>
+          <Link href={`/course/${courseId}`}>
             All lessons
             <ArrowRight className="h-4 w-4" />
           </Link>
