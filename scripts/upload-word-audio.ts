@@ -123,31 +123,45 @@ async function ensureBucketExists(): Promise<void> {
 }
 
 async function getWordsForCourse(courseName: string): Promise<WordRecord[]> {
-  const { data, error } = await supabase
-    .from("words")
-    .select(`
-      id,
-      audio_url_english,
-      audio_url_foreign,
-      audio_url_trigger,
-      lesson_words!inner (
-        lessons!inner (
-          courses!inner (
-            name
+  const allWords: WordRecord[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("words")
+      .select(`
+        id,
+        audio_url_english,
+        audio_url_foreign,
+        audio_url_trigger,
+        lesson_words!inner (
+          lessons!inner (
+            courses!inner (
+              name
+            )
           )
         )
-      )
-    `)
-    .eq("lesson_words.lessons.courses.name", courseName);
+      `)
+      .eq("lesson_words.lessons.courses.name", courseName)
+      .range(offset, offset + pageSize - 1);
 
-  if (error) {
-    console.error(`Failed to fetch words for ${courseName}:`, error.message);
-    return [];
+    if (error) {
+      console.error(`Failed to fetch words for ${courseName}:`, error.message);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    allWords.push(...data);
+
+    if (data.length < pageSize) break;
+    offset += pageSize;
   }
 
   // Deduplicate by word id
   const seen = new Set<string>();
-  return (data || []).filter((w) => {
+  return allWords.filter((w) => {
     if (seen.has(w.id)) return false;
     seen.add(w.id);
     return true;
@@ -185,45 +199,83 @@ async function getExistingFiles(prefix: string): Promise<Set<string>> {
   return existingFiles;
 }
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function uploadFile(
   filePath: string,
-  storagePath: string
+  storagePath: string,
+  retries = 3
 ): Promise<string | null> {
   const fileBuffer = fs.readFileSync(filePath);
 
-  const { error } = await supabase.storage.from(bucketName).upload(storagePath, fileBuffer, {
-    contentType: "audio/mpeg",
-    upsert: false,
-  });
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const { error } = await supabase.storage.from(bucketName).upload(storagePath, fileBuffer, {
+        contentType: "audio/mpeg",
+        upsert: false,
+      });
 
-  if (error) {
-    if (error.message.includes("already exists")) {
-      // Return existing URL
+      if (error) {
+        if (error.message.includes("already exists")) {
+          // Return existing URL
+          return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${storagePath}`;
+        }
+        if (attempt < retries) {
+          await sleep(1000 * attempt);
+          continue;
+        }
+        console.error(`  Failed to upload ${storagePath}: ${error.message}`);
+        return null;
+      }
+
       return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${storagePath}`;
+    } catch (err) {
+      if (attempt < retries) {
+        await sleep(1000 * attempt);
+        continue;
+      }
+      console.error(`  Failed to upload ${storagePath}: ${err}`);
+      return null;
     }
-    console.error(`  Failed to upload ${storagePath}: ${error.message}`);
-    return null;
   }
-
-  return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${storagePath}`;
+  return null;
 }
 
 async function updateWordAudioUrl(
   wordId: string,
   column: string,
-  url: string
+  url: string,
+  retries = 3
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from("words")
-    .update({ [column]: url })
-    .eq("id", wordId);
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const { error } = await supabase
+        .from("words")
+        .update({ [column]: url })
+        .eq("id", wordId);
 
-  if (error) {
-    console.error(`  Failed to update word ${wordId}: ${error.message}`);
-    return false;
+      if (error) {
+        if (attempt < retries) {
+          await sleep(1000 * attempt);
+          continue;
+        }
+        console.error(`  Failed to update word ${wordId}: ${error.message}`);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      if (attempt < retries) {
+        await sleep(1000 * attempt);
+        continue;
+      }
+      console.error(`  Failed to update word ${wordId}: ${err}`);
+      return false;
+    }
   }
-
-  return true;
+  return false;
 }
 
 async function processAudioType(
@@ -243,14 +295,16 @@ async function processAudioType(
     return stats;
   }
 
-  const audioFiles = fs.readdirSync(folderPath).filter((f) => f.endsWith(".mp3"));
+  const audioFiles = fs.readdirSync(folderPath).filter((f) => f.toLowerCase().endsWith(".mp3"));
   console.log(`  ${folderName}: ${audioFiles.length} files`);
 
-  // Create a map from filename stem to actual file
+  // Create a map from filename stem (lowercase) to actual file
   const fileMap = new Map<string, string>();
   for (const file of audioFiles) {
     const stem = file.replace(/\.mp3$/i, "");
     fileMap.set(stem, file);
+    // Also add lowercase version for case-insensitive matching
+    fileMap.set(stem.toLowerCase(), file);
   }
 
   for (const word of words) {
@@ -267,19 +321,23 @@ async function processAudioType(
       continue;
     }
 
-    const audioFile = fileMap.get(currentValue);
-    if (!audioFile) {
-      // Try case-insensitive match
-      const lowerStem = currentValue.toLowerCase();
-      for (const [stem, file] of fileMap) {
-        if (stem.toLowerCase() === lowerStem) {
-          fileMap.set(currentValue, file);
-          break;
-        }
-      }
+    let matchedFile = fileMap.get(currentValue);
+
+    if (!matchedFile) {
+      // Try lowercase
+      matchedFile = fileMap.get(currentValue.toLowerCase());
     }
 
-    const matchedFile = fileMap.get(currentValue);
+    if (!matchedFile) {
+      // Try with -f suffix (common for foreign audio files)
+      matchedFile = fileMap.get(`${currentValue}-f`);
+    }
+
+    if (!matchedFile) {
+      // Try lowercase with -f suffix
+      matchedFile = fileMap.get(`${currentValue.toLowerCase()}-f`);
+    }
+
     if (!matchedFile) {
       continue; // No matching file found
     }
