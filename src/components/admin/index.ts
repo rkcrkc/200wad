@@ -7,3 +7,4 @@ export { AdminModal, ConfirmModal } from "./AdminModal";
 export { AdminFormField, AdminInput, AdminTextarea, AdminSelect } from "./AdminFormField";
 export { AdminStatusBadge } from "./AdminStatusBadge";
 export { AdminFileUpload } from "./AdminFileUpload";
+export { AdminPagination } from "./AdminPagination";

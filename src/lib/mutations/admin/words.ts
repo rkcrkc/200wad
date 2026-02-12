@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/adminGuard";
+import { ZodError } from "zod";
 import {
   createWordSchema,
   updateWordSchema,
@@ -63,12 +64,13 @@ export async function createWord(
         headword: validated.headword,
         lemma: validated.lemma || validated.headword, // Default lemma to headword
         english: validated.english,
-        part_of_speech: validated.part_of_speech,
+        category: validated.category,
+        part_of_speech: validated.category === "word" ? validated.part_of_speech : null,
         gender: validated.gender,
         transitivity: validated.transitivity,
         is_irregular: validated.is_irregular ?? false,
-        grammatical_number: validated.part_of_speech === "noun" 
-          ? (validated.grammatical_number || "sg") 
+        grammatical_number: validated.part_of_speech === "noun"
+          ? (validated.grammatical_number || "sg")
           : validated.grammatical_number,
         notes: validated.notes,
         memory_trigger_text: validated.memory_trigger_text,
@@ -110,6 +112,11 @@ export async function createWord(
 
     return { success: true, id: word.id, error: null };
   } catch (err) {
+    if (err instanceof ZodError) {
+      const firstError = err.issues[0];
+      const fieldName = firstError.path.join(".");
+      return { success: false, id: null, error: `${fieldName}: ${firstError.message}` };
+    }
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, id: null, error: message };
   }
@@ -139,6 +146,7 @@ export async function updateWord(
         headword: validated.headword,
         lemma: validated.lemma ?? undefined,
         english: validated.english,
+        category: validated.category ?? undefined,
         part_of_speech: validated.part_of_speech ?? undefined,
         gender: validated.gender ?? undefined,
         transitivity: validated.transitivity ?? undefined,
@@ -167,6 +175,11 @@ export async function updateWord(
 
     return { success: true, error: null };
   } catch (err) {
+    if (err instanceof ZodError) {
+      const firstError = err.issues[0];
+      const fieldName = firstError.path.join(".");
+      return { success: false, error: `${fieldName}: ${firstError.message}` };
+    }
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };
   }

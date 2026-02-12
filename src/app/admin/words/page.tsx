@@ -30,6 +30,7 @@ interface WordWithLessons {
   lemma: string;
   english: string;
   language_id: string;
+  category: string | null;
   part_of_speech: string | null;
   gender: string | null;
   transitivity: string | null;
@@ -90,6 +91,7 @@ async function getData(searchParams: SearchParams) {
       lemma,
       english,
       language_id,
+      category,
       part_of_speech,
       gender,
       transitivity,

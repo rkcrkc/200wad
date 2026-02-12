@@ -11,7 +11,9 @@ import {
   AdminTextarea,
   AdminSelect,
   AdminFileUpload,
+  AdminPagination,
 } from "@/components/admin";
+import { AdminAudioUpload } from "@/components/admin/AdminAudioUpload";
 import { updateWord, addWordToLesson } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -42,6 +44,7 @@ interface WordWithLessons {
   lemma: string;
   english: string;
   language_id: string;
+  category: string | null;
   part_of_speech: string | null;
   gender: string | null;
   transitivity: string | null;
@@ -86,6 +89,7 @@ interface FormData {
   headword: string;
   lemma: string;
   english: string;
+  category: string;
   part_of_speech: string;
   gender: string;
   transitivity: string;
@@ -98,6 +102,7 @@ interface FormData {
 interface FormErrors {
   headword?: string;
   english?: string;
+  general?: string;
 }
 
 interface FileUploads {
@@ -108,6 +113,15 @@ interface FileUploads {
 }
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+const categoryOptions = [
+  { value: "", label: "Select..." },
+  { value: "word", label: "Word" },
+  { value: "phrase", label: "Phrase" },
+  { value: "sentence", label: "Sentence" },
+  { value: "fact", label: "Fact" },
+  { value: "information", label: "Information" },
+];
 
 const partOfSpeechOptions = [
   { value: "", label: "Select..." },
@@ -120,7 +134,7 @@ const partOfSpeechOptions = [
   { value: "conjunction", label: "Conjunction" },
   { value: "interjection", label: "Interjection" },
   { value: "article", label: "Article" },
-  { value: "phrase", label: "Phrase" },
+  { value: "number", label: "Number" },
 ];
 
 const genderOptions = [
@@ -167,6 +181,7 @@ export function WordsBrowserClient({
     headword: "",
     lemma: "",
     english: "",
+    category: "",
     part_of_speech: "",
     gender: "",
     transitivity: "",
@@ -269,6 +284,7 @@ export function WordsBrowserClient({
       headword: "",
       lemma: "",
       english: "",
+      category: "",
       part_of_speech: "",
       gender: "",
       transitivity: "",
@@ -332,6 +348,7 @@ export function WordsBrowserClient({
       headword: word.headword,
       lemma: word.lemma,
       english: word.english,
+      category: word.category || "",
       part_of_speech: word.part_of_speech || "",
       gender: word.gender || "",
       transitivity: word.transitivity || "",
@@ -375,7 +392,8 @@ export function WordsBrowserClient({
         headword: formData.headword,
         lemma: formData.lemma || formData.headword,
         english: formData.english,
-        part_of_speech: formData.part_of_speech || null,
+        category: formData.category || null,
+        part_of_speech: formData.category === "word" ? (formData.part_of_speech || null) : null,
         gender: formData.gender || null,
         transitivity: formData.transitivity || null,
         is_irregular: formData.is_irregular,
@@ -387,7 +405,7 @@ export function WordsBrowserClient({
       // Update word
       const result = await updateWord(editingWord.id, wordData);
       if (!result.success) {
-        setErrors({ headword: result.error || "Failed to update word" });
+        setErrors({ general: result.error || "Failed to update word" });
         return;
       }
 
@@ -446,74 +464,6 @@ export function WordsBrowserClient({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Pagination component
-  const PaginationControls = () => {
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Page {currentPage} of {totalPages} ({totalCount} words)
-        </p>
-        <div className="flex gap-1">
-          <button
-            onClick={() => handlePageChange(1)}
-            disabled={currentPage === 1}
-            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            First
-          </button>
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Prev
-          </button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum: number;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
-            return (
-              <button
-                key={pageNum}
-                onClick={() => handlePageChange(pageNum)}
-                className={`min-w-[32px] rounded px-2 py-1 text-sm ${
-                  currentPage === pageNum
-                    ? "bg-primary text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-          <button
-            onClick={() => handlePageChange(totalPages)}
-            disabled={currentPage === totalPages}
-            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Last
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -613,7 +563,13 @@ export function WordsBrowserClient({
 
       {/* Pagination Controls (Top) */}
       <div className="mb-4">
-        <PaginationControls />
+        <AdminPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          itemLabel="words"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Results count */}
@@ -722,7 +678,13 @@ export function WordsBrowserClient({
 
       {/* Pagination Controls (Bottom) */}
       <div className="mt-4">
-        <PaginationControls />
+        <AdminPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          itemLabel="words"
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Edit Modal */}
@@ -754,6 +716,13 @@ export function WordsBrowserClient({
         }
       >
         <div className="space-y-6">
+          {/* General Error */}
+          {errors.general && (
+            <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+              {errors.general}
+            </div>
+          )}
+
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <AdminFormField
@@ -809,17 +778,33 @@ export function WordsBrowserClient({
             />
           </AdminFormField>
 
-          <AdminFormField label="Part of Speech" name="part_of_speech">
-            <AdminSelect
-              id="part_of_speech"
-              name="part_of_speech"
-              value={formData.part_of_speech}
-              onChange={(e) =>
-                setFormData({ ...formData, part_of_speech: e.target.value })
-              }
-              options={partOfSpeechOptions}
-            />
-          </AdminFormField>
+          <div className="grid grid-cols-2 gap-4">
+            <AdminFormField label="Category" name="category">
+              <AdminSelect
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
+                options={categoryOptions}
+              />
+            </AdminFormField>
+
+            {formData.category === "word" && (
+              <AdminFormField label="Part of Speech" name="part_of_speech">
+                <AdminSelect
+                  id="part_of_speech"
+                  name="part_of_speech"
+                  value={formData.part_of_speech}
+                  onChange={(e) =>
+                    setFormData({ ...formData, part_of_speech: e.target.value })
+                  }
+                  options={partOfSpeechOptions}
+                />
+              </AdminFormField>
+            )}
+          </div>
 
           {/* Lexical Metadata - shown conditionally based on POS */}
           <div className="grid grid-cols-2 gap-4">
@@ -937,45 +922,30 @@ export function WordsBrowserClient({
             <h3 className="mb-3 font-medium text-gray-900">Audio Files</h3>
 
             <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  English Audio
-                </label>
-                <AdminFileUpload
-                  type="audio"
-                  value={previewUrls.audioEnglish}
-                  onChange={(file, url) => {
-                    setFileUploads({ ...fileUploads, audioEnglish: file });
-                    setPreviewUrls({ ...previewUrls, audioEnglish: url });
-                  }}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Foreign Audio
-                </label>
-                <AdminFileUpload
-                  type="audio"
-                  value={previewUrls.audioForeign}
-                  onChange={(file, url) => {
-                    setFileUploads({ ...fileUploads, audioForeign: file });
-                    setPreviewUrls({ ...previewUrls, audioForeign: url });
-                  }}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Trigger Audio
-                </label>
-                <AdminFileUpload
-                  type="audio"
-                  value={previewUrls.audioTrigger}
-                  onChange={(file, url) => {
-                    setFileUploads({ ...fileUploads, audioTrigger: file });
-                    setPreviewUrls({ ...previewUrls, audioTrigger: url });
-                  }}
-                />
-              </div>
+              <AdminAudioUpload
+                label="English Audio"
+                value={previewUrls.audioEnglish}
+                onChange={(file, url) => {
+                  setFileUploads({ ...fileUploads, audioEnglish: file });
+                  setPreviewUrls({ ...previewUrls, audioEnglish: url });
+                }}
+              />
+              <AdminAudioUpload
+                label="Foreign Audio"
+                value={previewUrls.audioForeign}
+                onChange={(file, url) => {
+                  setFileUploads({ ...fileUploads, audioForeign: file });
+                  setPreviewUrls({ ...previewUrls, audioForeign: url });
+                }}
+              />
+              <AdminAudioUpload
+                label="Trigger Audio"
+                value={previewUrls.audioTrigger}
+                onChange={(file, url) => {
+                  setFileUploads({ ...fileUploads, audioTrigger: file });
+                  setPreviewUrls({ ...previewUrls, audioTrigger: url });
+                }}
+              />
             </div>
           </div>
 
