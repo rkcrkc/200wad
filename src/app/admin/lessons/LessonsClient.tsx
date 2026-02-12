@@ -28,6 +28,7 @@ import {
   AdminStatusBadge,
   AdminFileUpload,
 } from "@/components/admin";
+import { AdminAudioUpload } from "@/components/admin/AdminAudioUpload";
 import {
   createLesson,
   updateLesson,
@@ -91,6 +92,7 @@ interface Word {
   lemma: string;
   english: string;
   language_id: string;
+  category: string | null;
   part_of_speech: string | null;
   gender: string | null;
   transitivity: string | null;
@@ -132,6 +134,7 @@ interface WordFormData {
   headword: string;
   lemma: string;
   english: string;
+  category: string;
   part_of_speech: string;
   gender: string;
   transitivity: string;
@@ -153,6 +156,15 @@ interface FileUploads {
   audioTrigger: File | null;
 }
 
+const categoryOptions = [
+  { value: "", label: "Select..." },
+  { value: "word", label: "Word" },
+  { value: "phrase", label: "Phrase" },
+  { value: "sentence", label: "Sentence" },
+  { value: "fact", label: "Fact" },
+  { value: "information", label: "Information" },
+];
+
 const partOfSpeechOptions = [
   { value: "", label: "Select..." },
   { value: "noun", label: "Noun" },
@@ -164,7 +176,7 @@ const partOfSpeechOptions = [
   { value: "conjunction", label: "Conjunction" },
   { value: "interjection", label: "Interjection" },
   { value: "article", label: "Article" },
-  { value: "phrase", label: "Phrase" },
+  { value: "number", label: "Number" },
 ];
 
 const genderOptions = [
@@ -224,6 +236,7 @@ export function LessonsClient({
     headword: "",
     lemma: "",
     english: "",
+    category: "",
     part_of_speech: "",
     gender: "",
     transitivity: "",
@@ -710,6 +723,7 @@ export function LessonsClient({
       headword: "",
       lemma: "",
       english: "",
+      category: "",
       part_of_speech: "",
       gender: "",
       transitivity: "",
@@ -750,6 +764,7 @@ export function LessonsClient({
       headword: word.headword,
       lemma: word.lemma,
       english: word.english,
+      category: word.category || "",
       part_of_speech: word.part_of_speech || "",
       gender: word.gender || "",
       transitivity: word.transitivity || "",
@@ -797,7 +812,8 @@ export function LessonsClient({
         headword: wordFormData.headword,
         lemma: wordFormData.lemma || wordFormData.headword,
         english: wordFormData.english,
-        part_of_speech: wordFormData.part_of_speech || null,
+        category: wordFormData.category || null,
+        part_of_speech: wordFormData.category === "word" ? (wordFormData.part_of_speech || null) : null,
         gender: wordFormData.gender || null,
         transitivity: wordFormData.transitivity || null,
         is_irregular: wordFormData.is_irregular,
@@ -1323,17 +1339,33 @@ export function LessonsClient({
               />
             </AdminFormField>
 
-            <AdminFormField label="Part of Speech" name="part_of_speech">
-              <AdminSelect
-                id="part_of_speech"
-                name="part_of_speech"
-                value={wordFormData.part_of_speech}
-                onChange={(e) =>
-                  setWordFormData({ ...wordFormData, part_of_speech: e.target.value })
-                }
-                options={partOfSpeechOptions}
-              />
-            </AdminFormField>
+            <div className="grid grid-cols-2 gap-4">
+              <AdminFormField label="Category" name="category">
+                <AdminSelect
+                  id="category"
+                  name="category"
+                  value={wordFormData.category}
+                  onChange={(e) =>
+                    setWordFormData({ ...wordFormData, category: e.target.value })
+                  }
+                  options={categoryOptions}
+                />
+              </AdminFormField>
+
+              {wordFormData.category === "word" && (
+                <AdminFormField label="Part of Speech" name="part_of_speech">
+                  <AdminSelect
+                    id="part_of_speech"
+                    name="part_of_speech"
+                    value={wordFormData.part_of_speech}
+                    onChange={(e) =>
+                      setWordFormData({ ...wordFormData, part_of_speech: e.target.value })
+                    }
+                    options={partOfSpeechOptions}
+                  />
+                </AdminFormField>
+              )}
+            </div>
 
             {/* Lexical Metadata */}
             <div className="grid grid-cols-2 gap-4">
@@ -1441,47 +1473,32 @@ export function LessonsClient({
             {/* Audio Files */}
             <div className="border-t pt-4">
               <h3 className="mb-3 font-medium text-gray-900">Audio Files</h3>
-              
+
               <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    English Audio
-                  </label>
-                  <AdminFileUpload
-                    type="audio"
-                    value={previewUrls.audioEnglish}
-                    onChange={(file, url) => {
-                      setFileUploads({ ...fileUploads, audioEnglish: file });
-                      setPreviewUrls({ ...previewUrls, audioEnglish: url });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Foreign Audio
-                  </label>
-                  <AdminFileUpload
-                    type="audio"
-                    value={previewUrls.audioForeign}
-                    onChange={(file, url) => {
-                      setFileUploads({ ...fileUploads, audioForeign: file });
-                      setPreviewUrls({ ...previewUrls, audioForeign: url });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Trigger Audio
-                  </label>
-                  <AdminFileUpload
-                    type="audio"
-                    value={previewUrls.audioTrigger}
-                    onChange={(file, url) => {
-                      setFileUploads({ ...fileUploads, audioTrigger: file });
-                      setPreviewUrls({ ...previewUrls, audioTrigger: url });
-                    }}
-                  />
-                </div>
+                <AdminAudioUpload
+                  label="English Audio"
+                  value={previewUrls.audioEnglish}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioEnglish: file });
+                    setPreviewUrls({ ...previewUrls, audioEnglish: url });
+                  }}
+                />
+                <AdminAudioUpload
+                  label="Foreign Audio"
+                  value={previewUrls.audioForeign}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioForeign: file });
+                    setPreviewUrls({ ...previewUrls, audioForeign: url });
+                  }}
+                />
+                <AdminAudioUpload
+                  label="Trigger Audio"
+                  value={previewUrls.audioTrigger}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, audioTrigger: file });
+                    setPreviewUrls({ ...previewUrls, audioTrigger: url });
+                  }}
+                />
               </div>
             </div>
 
