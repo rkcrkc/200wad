@@ -41,7 +41,17 @@ async function getData() {
   };
 }
 
-export default async function LessonsPage() {
+interface SearchParams {
+  lesson?: string;
+  fromCourse?: string;
+}
+
+export default async function LessonsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
   const { languages, courses, lessons } = await getData();
 
   return (
@@ -50,6 +60,8 @@ export default async function LessonsPage() {
         languages={languages}
         courses={courses}
         lessons={lessons}
+        initialLessonId={params.lesson}
+        fromCourseId={params.fromCourse}
       />
     </div>
   );

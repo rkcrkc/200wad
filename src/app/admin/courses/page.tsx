@@ -20,9 +20,24 @@ async function getData() {
     `)
     .order("sort_order", { ascending: true });
 
+  // Fetch all lessons with word count
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select(`
+      id,
+      course_id,
+      number,
+      title,
+      emoji,
+      word_count,
+      sort_order,
+      is_published
+    `)
+    .order("sort_order", { ascending: true });
+
   if (error) {
     console.error("Error fetching courses:", error);
-    return { languages: languages || [], courses: [] };
+    return { languages: languages || [], courses: [], lessons: [] };
   }
 
   // Transform the data
@@ -35,15 +50,30 @@ async function getData() {
   return {
     languages: languages || [],
     courses: transformedCourses,
+    lessons: lessons || [],
   };
 }
 
-export default async function CoursesPage() {
-  const { languages, courses } = await getData();
+interface SearchParams {
+  course?: string;
+}
+
+export default async function CoursesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const { languages, courses, lessons } = await getData();
 
   return (
     <div>
-      <CoursesClient languages={languages} courses={courses} />
+      <CoursesClient
+        languages={languages}
+        courses={courses}
+        lessons={lessons}
+        initialCourseId={params.course}
+      />
     </div>
   );
 }

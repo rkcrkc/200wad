@@ -43,16 +43,19 @@ function getArg(name: string): string | undefined {
   return undefined;
 }
 
-const courseId = getArg("course-id");
-const filePath = getArg("file");
+const courseIdArg = getArg("course-id");
+const filePathArg = getArg("file");
 
-if (!courseId || !filePath) {
+if (!courseIdArg || !filePathArg) {
   console.error("Usage: npx tsx scripts/import-lessons.ts --course-id <UUID> --file <path-to-csv>");
   console.error("");
   console.error("Example:");
   console.error("  npx tsx scripts/import-lessons.ts --course-id abc123-def456 --file ./lessons.csv");
   process.exit(1);
 }
+
+const courseId: string = courseIdArg;
+const filePath: string = filePathArg;
 
 // Validate environment
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -95,11 +95,11 @@ export function AdminFileUpload({
       {displayUrl ? (
         <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
           {type === "image" ? (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
+            <div className="relative max-w-[500px] max-h-[500px] overflow-hidden rounded-lg bg-gray-100">
               <img
                 src={displayUrl}
                 alt="Preview"
-                className="h-full w-full object-cover"
+                className="max-w-full max-h-[500px] object-contain"
               />
             </div>
           ) : (

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Search, Book, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search, Book, ChevronRight, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -12,7 +12,7 @@ import {
   AdminSelect,
   AdminFileUpload,
 } from "@/components/admin";
-import { updateWord } from "@/lib/mutations/admin/words";
+import { updateWord, addWordToLesson } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -58,10 +58,28 @@ interface WordWithLessons {
   lessons: LessonInfo[];
 }
 
+interface LessonOption {
+  id: string;
+  number: number;
+  title: string;
+  emoji: string | null;
+  course_id: string | null;
+}
+
 interface WordsBrowserClientProps {
   languages: Language[];
   courses: Course[];
+  lessons: LessonOption[];
   words: WordWithLessons[];
+  totalCount: number;
+  totalWords: number;
+  letterCounts: Record<string, number>;
+  currentLetter: string;
+  currentPage: number;
+  pageSize: number;
+  languageId: string;
+  courseId: string;
+  searchQuery: string;
 }
 
 interface FormData {
@@ -88,6 +106,8 @@ interface FileUploads {
   audioForeign: File | null;
   audioTrigger: File | null;
 }
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const partOfSpeechOptions = [
   { value: "", label: "Select..." },
@@ -121,12 +141,23 @@ const transitivityOptions = [
 export function WordsBrowserClient({
   languages,
   courses,
+  lessons,
   words,
+  totalCount,
+  totalWords,
+  letterCounts,
+  currentLetter,
+  currentPage,
+  pageSize,
+  languageId,
+  courseId,
+  searchQuery,
 }: WordsBrowserClientProps) {
   const router = useRouter();
-  const [filterLanguageId, setFilterLanguageId] = useState<string>("");
-  const [filterCourseId, setFilterCourseId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const searchParams = useSearchParams();
+
+  // Local search input state (for debouncing)
+  const [localSearch, setLocalSearch] = useState(searchQuery);
 
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -163,54 +194,68 @@ export function WordsBrowserClient({
     audioTrigger: null,
   });
 
-  // Filter courses by language
-  const filteredCourses = useMemo(() => {
-    if (!filterLanguageId) return courses;
-    return courses.filter((c) => c.language_id === filterLanguageId);
-  }, [courses, filterLanguageId]);
+  // Add to lesson state
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [isAddingToLesson, setIsAddingToLesson] = useState(false);
 
-  // Filter and search words
-  const filteredWords = useMemo(() => {
-    let result = words;
+  // Build URL with updated params
+  const buildUrl = (updates: Record<string, string | undefined>) => {
+    const params = new URLSearchParams(searchParams.toString());
 
-    // Filter by language
-    if (filterLanguageId) {
-      result = result.filter((w) => w.language_id === filterLanguageId);
-    }
-
-    // Filter by course (words that are in at least one lesson of the selected course)
-    if (filterCourseId) {
-      result = result.filter((w) =>
-        w.lessons.some((l) => l.course_id === filterCourseId)
-      );
-    }
-
-    // Search by headword or english
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (w) =>
-          w.headword.toLowerCase().includes(query) ||
-          w.english.toLowerCase().includes(query) ||
-          w.lemma.toLowerCase().includes(query)
-      );
-    }
-
-    return result;
-  }, [words, filterLanguageId, filterCourseId, searchQuery]);
-
-  // Handle language filter change - reset course filter if language changes
-  const handleLanguageChange = (languageId: string) => {
-    setFilterLanguageId(languageId);
-    if (languageId) {
-      const validCourse = courses.find(
-        (c) => c.language_id === languageId && c.id === filterCourseId
-      );
-      if (!validCourse) {
-        setFilterCourseId("");
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
       }
+    });
+
+    return `/admin/words?${params.toString()}`;
+  };
+
+  // Navigation handlers
+  const handleLetterChange = (letter: string) => {
+    router.push(buildUrl({ letter, page: "1", search: undefined }));
+  };
+
+  const handlePageChange = (page: number) => {
+    router.push(buildUrl({ page: page.toString() }));
+  };
+
+  const handleLanguageChange = (langId: string) => {
+    router.push(buildUrl({ language: langId || undefined, course: undefined, page: "1" }));
+  };
+
+  const handleCourseChange = (crsId: string) => {
+    router.push(buildUrl({ course: crsId || undefined, page: "1" }));
+  };
+
+  const handleSearch = () => {
+    if (localSearch.trim()) {
+      router.push(buildUrl({ search: localSearch.trim(), page: "1" }));
+    } else {
+      router.push(buildUrl({ search: undefined, page: "1" }));
     }
   };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  const clearSearch = () => {
+    setLocalSearch("");
+    router.push(buildUrl({ search: undefined, page: "1" }));
+  };
+
+  // Filter courses by language
+  const filteredCourses = languageId
+    ? courses.filter((c) => c.language_id === languageId)
+    : courses;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Get course name for a lesson
   const getCourseName = (courseId: string | null) => {
@@ -246,6 +291,39 @@ export function WordsBrowserClient({
       audioTrigger: null,
     });
     setEditingWord(null);
+    setSelectedLessonId("");
+  };
+
+  const handleAddToLesson = async () => {
+    if (!editingWord || !selectedLessonId) return;
+
+    setIsAddingToLesson(true);
+    try {
+      const result = await addWordToLesson(editingWord.id, selectedLessonId);
+      if (result.success) {
+        // Refresh to update the lesson list
+        router.refresh();
+        setSelectedLessonId("");
+        // Update local state to show the new lesson
+        const addedLesson = lessons.find((l) => l.id === selectedLessonId);
+        if (addedLesson && editingWord) {
+          setEditingWord({
+            ...editingWord,
+            lessons: [...editingWord.lessons, addedLesson],
+          });
+        }
+      } else {
+        alert(result.error || "Failed to add word to lesson");
+      }
+    } finally {
+      setIsAddingToLesson(false);
+    }
+  };
+
+  const navigateToLesson = (lessonId: string) => {
+    setIsEditModalOpen(false);
+    resetForm();
+    router.push(`/admin/lessons?lesson=${lessonId}`);
   };
 
   const openEditModal = (word: WordWithLessons) => {
@@ -293,7 +371,7 @@ export function WordsBrowserClient({
 
     try {
       // Prepare base data
-      const wordData: any = {
+      const wordData: Record<string, unknown> = {
         headword: formData.headword,
         lemma: formData.lemma || formData.headword,
         english: formData.english,
@@ -314,7 +392,7 @@ export function WordsBrowserClient({
       }
 
       // Handle file uploads
-      const uploadPromises: Promise<any>[] = [];
+      const uploadPromises: Promise<unknown>[] = [];
 
       if (fileUploads.triggerImage) {
         uploadPromises.push(
@@ -370,13 +448,81 @@ export function WordsBrowserClient({
     }
   };
 
+  // Pagination component
+  const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Page {currentPage} of {totalPages} ({totalCount} words)
+        </p>
+        <div className="flex gap-1">
+          <button
+            onClick={() => handlePageChange(1)}
+            disabled={currentPage === 1}
+            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            First
+          </button>
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Prev
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum: number;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
+                className={`min-w-[32px] rounded px-2 py-1 text-sm ${
+                  currentPage === pageNum
+                    ? "bg-primary text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+          <button
+            onClick={() => handlePageChange(totalPages)}
+            disabled={currentPage === totalPages}
+            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Last
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Words</h1>
         <p className="mt-1 text-gray-600">
-          Browse all vocabulary words across courses. {words.length} total words.
+          Browse all vocabulary words across courses. {totalWords} total words.
         </p>
       </div>
 
@@ -387,7 +533,7 @@ export function WordsBrowserClient({
             Language:
           </label>
           <select
-            value={filterLanguageId}
+            value={languageId}
             onChange={(e) => handleLanguageChange(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
@@ -404,8 +550,8 @@ export function WordsBrowserClient({
             Course:
           </label>
           <select
-            value={filterCourseId}
-            onChange={(e) => setFilterCourseId(e.target.value)}
+            value={courseId}
+            onChange={(e) => handleCourseChange(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">All courses</option>
@@ -422,18 +568,59 @@ export function WordsBrowserClient({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search words..."
               className="rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
+          <Button size="sm" onClick={handleSearch}>
+            Search
+          </Button>
+          {searchQuery && (
+            <Button size="sm" variant="outline" onClick={clearSearch}>
+              Clear
+            </Button>
+          )}
         </div>
+      </div>
+
+      {/* Alphabet Tabs */}
+      <div className="mb-3 flex flex-wrap gap-1">
+        {ALPHABET.map((letter) => {
+          const count = letterCounts[letter] || 0;
+          const isSelected = currentLetter === letter && !searchQuery;
+          return (
+            <button
+              key={letter}
+              onClick={() => handleLetterChange(letter)}
+              disabled={count === 0}
+              className={`min-w-[36px] rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
+                isSelected
+                  ? "bg-primary text-white"
+                  : count === 0
+                  ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              title={`${count} words`}
+            >
+              {letter}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Pagination Controls (Top) */}
+      <div className="mb-4">
+        <PaginationControls />
       </div>
 
       {/* Results count */}
       <p className="mb-4 text-sm text-gray-500">
-        Showing {filteredWords.length} of {words.length} words
+        Showing {words.length} of {totalCount} words
+        {currentLetter && !searchQuery && ` starting with "${currentLetter}"`}
+        {searchQuery && ` matching "${searchQuery}"`}
       </p>
 
       {/* Words Table */}
@@ -457,15 +644,15 @@ export function WordsBrowserClient({
                 Lessons
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Actions
+                <span className="sr-only">View</span>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredWords.length === 0 ? (
+            {words.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                  {words.length === 0 ? (
+                  {totalWords === 0 ? (
                     <div className="flex flex-col items-center gap-2">
                       <Book className="h-8 w-8 text-gray-300" />
                       <p>No words yet. Add words through the Lessons page.</p>
@@ -476,8 +663,12 @@ export function WordsBrowserClient({
                 </td>
               </tr>
             ) : (
-              filteredWords.map((word) => (
-                <tr key={word.id} className="hover:bg-gray-50">
+              words.map((word) => (
+                <tr
+                  key={word.id}
+                  onClick={() => openEditModal(word)}
+                  className="cursor-pointer hover:bg-gray-50"
+                >
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{word.headword}</div>
                     {word.lemma !== word.headword && (
@@ -520,19 +711,18 @@ export function WordsBrowserClient({
                     )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button
-                      onClick={() => openEditModal(word)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                      title="Edit"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls (Bottom) */}
+      <div className="mt-4">
+        <PaginationControls />
       </div>
 
       {/* Edit Modal */}
@@ -634,8 +824,8 @@ export function WordsBrowserClient({
           {/* Lexical Metadata - shown conditionally based on POS */}
           <div className="grid grid-cols-2 gap-4">
             {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
-              <AdminFormField 
-                label="Gender" 
+              <AdminFormField
+                label="Gender"
                 name="gender"
                 hint="For nouns and adjectives"
               >
@@ -652,8 +842,8 @@ export function WordsBrowserClient({
             )}
 
             {formData.part_of_speech === "verb" && (
-              <AdminFormField 
-                label="Transitivity" 
+              <AdminFormField
+                label="Transitivity"
                 name="transitivity"
                 hint="For verbs only"
               >
@@ -714,7 +904,7 @@ export function WordsBrowserClient({
           {/* Memory Trigger */}
           <div className="border-t pt-4">
             <h3 className="mb-3 font-medium text-gray-900">Memory Trigger</h3>
-            
+
             <AdminFormField label="Trigger Text" name="memory_trigger_text">
               <AdminTextarea
                 id="memory_trigger_text"
@@ -745,7 +935,7 @@ export function WordsBrowserClient({
           {/* Audio Files */}
           <div className="border-t pt-4">
             <h3 className="mb-3 font-medium text-gray-900">Audio Files</h3>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -790,19 +980,54 @@ export function WordsBrowserClient({
           </div>
 
           {/* Lessons info */}
-          {editingWord && editingWord.lessons.length > 0 && (
+          {editingWord && (
             <div className="border-t pt-4">
               <h3 className="mb-3 font-medium text-gray-900">Used in Lessons</h3>
-              <div className="flex flex-wrap gap-2">
-                {editingWord.lessons.map((lesson) => (
-                  <span
-                    key={lesson.id}
-                    className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
-                  >
-                    {lesson.emoji && <span>{lesson.emoji}</span>}
-                    #{lesson.number}: {lesson.title}
-                  </span>
-                ))}
+
+              {editingWord.lessons.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {editingWord.lessons.map((lesson) => (
+                    <button
+                      key={lesson.id}
+                      onClick={() => navigateToLesson(lesson.id)}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                      title="Click to open in Lessons page"
+                    >
+                      {lesson.emoji && <span>{lesson.emoji}</span>}
+                      #{lesson.number}: {lesson.title}
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 mb-4">Not used in any lesson yet.</p>
+              )}
+
+              {/* Add to lesson */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedLessonId}
+                  onChange={(e) => setSelectedLessonId(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">Select a lesson to add...</option>
+                  {lessons
+                    .filter((l) => !editingWord.lessons.some((wl) => wl.id === l.id))
+                    .sort((a, b) => a.number - b.number)
+                    .map((lesson) => (
+                      <option key={lesson.id} value={lesson.id}>
+                        #{lesson.number}: {lesson.title} ({getCourseName(lesson.course_id)})
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  size="sm"
+                  onClick={handleAddToLesson}
+                  disabled={!selectedLessonId || isAddingToLesson}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {isAddingToLesson ? "Adding..." : "Add"}
+                </Button>
               </div>
             </div>
           )}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -45,9 +46,22 @@ interface Course {
   lessonCount: number;
 }
 
+interface Lesson {
+  id: string;
+  course_id: string | null;
+  number: number;
+  title: string;
+  emoji: string | null;
+  word_count: number | null;
+  sort_order: number | null;
+  is_published: boolean | null;
+}
+
 interface CoursesClientProps {
   languages: Language[];
   courses: Course[];
+  lessons: Lesson[];
+  initialCourseId?: string;
 }
 
 interface FormData {
@@ -65,8 +79,21 @@ interface FormErrors {
   name?: string;
 }
 
-export function CoursesClient({ languages, courses }: CoursesClientProps) {
+interface InlineCourseForm {
+  name: string;
+  description: string;
+  level: string;
+  cefr_range: string;
+}
+
+export function CoursesClient({ languages, courses, lessons, initialCourseId }: CoursesClientProps) {
   const router = useRouter();
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<"list" | "lessons">("list");
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+  // List view state
   const [filterLanguageId, setFilterLanguageId] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -84,11 +111,37 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  // Inline editing state for lessons view
+  const [isEditingCourseDetails, setIsEditingCourseDetails] = useState(false);
+  const [isSavingCourse, setIsSavingCourse] = useState(false);
+  const [inlineCourseForm, setInlineCourseForm] = useState<InlineCourseForm>({
+    name: "",
+    description: "",
+    level: "",
+    cefr_range: "",
+  });
+
   // Filter courses by language
   const filteredCourses = useMemo(() => {
     if (!filterLanguageId) return courses;
     return courses.filter((c) => c.language_id === filterLanguageId);
   }, [courses, filterLanguageId]);
+
+  // Filter lessons for selected course
+  const courseLessons = useMemo(() => {
+    if (!selectedCourse) return [];
+    return lessons.filter((l) => l.course_id === selectedCourse.id);
+  }, [lessons, selectedCourse]);
+
+  // Initialize from URL param
+  useEffect(() => {
+    if (initialCourseId && courses.length > 0 && !selectedCourse) {
+      const course = courses.find((c) => c.id === initialCourseId);
+      if (course) {
+        selectCourse(course);
+      }
+    }
+  }, [initialCourseId]);
 
   const resetForm = () => {
     setFormData({
@@ -109,23 +162,91 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (course: Course) => {
-    setEditingCourse(course);
-    setFormData({
-      language_id: course.language_id || "",
+  const selectCourse = (course: Course) => {
+    setSelectedCourse(course);
+    setViewMode("lessons");
+    setInlineCourseForm({
       name: course.name,
       description: course.description || "",
       level: course.level || "",
       cefr_range: course.cefr_range || "",
-      free_lessons: course.free_lessons ?? 10,
-      price_cents: course.price_cents ?? 5000,
     });
-    setErrors({});
-    setIsModalOpen(true);
   };
 
-  const openDeleteModal = (course: Course) => {
-    setDeletingCourse(course);
+  const goBackToCourses = () => {
+    setViewMode("list");
+    setSelectedCourse(null);
+    setIsEditingCourseDetails(false);
+  };
+
+  const startEditingCourseDetails = () => {
+    if (selectedCourse) {
+      setInlineCourseForm({
+        name: selectedCourse.name,
+        description: selectedCourse.description || "",
+        level: selectedCourse.level || "",
+        cefr_range: selectedCourse.cefr_range || "",
+      });
+      setIsEditingCourseDetails(true);
+    }
+  };
+
+  const cancelEditingCourseDetails = () => {
+    setIsEditingCourseDetails(false);
+    if (selectedCourse) {
+      setInlineCourseForm({
+        name: selectedCourse.name,
+        description: selectedCourse.description || "",
+        level: selectedCourse.level || "",
+        cefr_range: selectedCourse.cefr_range || "",
+      });
+    }
+  };
+
+  const saveInlineCourseDetails = async () => {
+    if (!selectedCourse) return;
+
+    setIsSavingCourse(true);
+    try {
+      const result = await updateCourse(selectedCourse.id, {
+        name: inlineCourseForm.name,
+        description: inlineCourseForm.description || null,
+        level: (inlineCourseForm.level as "beginner" | "intermediate" | "advanced") || null,
+        cefr_range: inlineCourseForm.cefr_range || null,
+      });
+
+      if (result.success) {
+        setSelectedCourse({
+          ...selectedCourse,
+          name: inlineCourseForm.name,
+          description: inlineCourseForm.description || null,
+          level: inlineCourseForm.level || null,
+          cefr_range: inlineCourseForm.cefr_range || null,
+        });
+        setIsEditingCourseDetails(false);
+        router.refresh();
+      }
+    } finally {
+      setIsSavingCourse(false);
+    }
+  };
+
+  const handleInlineTogglePublish = async () => {
+    if (!selectedCourse) return;
+    const action = selectedCourse.is_published ? unpublishCourse : publishCourse;
+    const result = await action(selectedCourse.id);
+    if (result.success) {
+      setSelectedCourse({
+        ...selectedCourse,
+        is_published: !selectedCourse.is_published,
+      });
+      router.refresh();
+    }
+  };
+
+  const handleInlineDelete = () => {
+    if (!selectedCourse) return;
+    setDeletingCourse(selectedCourse);
     setIsDeleteModalOpen(true);
   };
 
@@ -200,6 +321,12 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
 
       setIsDeleteModalOpen(false);
       setDeletingCourse(null);
+
+      // If we deleted the selected course, go back to list
+      if (selectedCourse && selectedCourse.id === deletingCourse.id) {
+        goBackToCourses();
+      }
+
       router.refresh();
     } finally {
       setIsLoading(false);
@@ -212,6 +339,9 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
     if (!result.success) {
       alert(result.error);
     } else {
+      if (editingCourse && editingCourse.id === course.id) {
+        setEditingCourse({ ...editingCourse, is_published: !course.is_published });
+      }
       router.refresh();
     }
   };
@@ -227,6 +357,254 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
     value: l.id,
     label: `${getFlagFromCode(l.code)} ${l.name}`,
   }));
+
+  // ============================================================================
+  // RENDER - Lessons View (Course Detail)
+  // ============================================================================
+
+  if (viewMode === "lessons" && selectedCourse) {
+    const totalWords = courseLessons.reduce((sum, l) => sum + (l.word_count || 0), 0);
+
+    return (
+      <div>
+        {/* Breadcrumb */}
+        <button
+          onClick={goBackToCourses}
+          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          All Courses
+        </button>
+
+        {/* Course Details Card */}
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              {isEditingCourseDetails ? (
+                /* Editing Mode */
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={inlineCourseForm.name}
+                        onChange={(e) => setInlineCourseForm({ ...inlineCourseForm, name: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Course name"
+                      />
+                    </div>
+                    <div className="w-40">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Level</label>
+                      <select
+                        value={inlineCourseForm.level}
+                        onChange={(e) => setInlineCourseForm({ ...inlineCourseForm, level: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {levelOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-28">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">CEFR</label>
+                      <input
+                        type="text"
+                        value={inlineCourseForm.cefr_range}
+                        onChange={(e) => setInlineCourseForm({ ...inlineCourseForm, cefr_range: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="A1-A2"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                    <textarea
+                      value={inlineCourseForm.description}
+                      onChange={(e) => setInlineCourseForm({ ...inlineCourseForm, description: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Course description..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveInlineCourseDetails} disabled={isSavingCourse}>
+                        {isSavingCourse ? "Saving..." : "Save"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={cancelEditingCourseDetails} disabled={isSavingCourse}>
+                        Cancel
+                      </Button>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleInlineDelete}
+                      disabled={isSavingCourse}
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" />
+                      Delete Course
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Display Mode */
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                      {selectedCourse.name}
+                    </h1>
+                    <button
+                      onClick={startEditingCourseDetails}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      title="Edit course details"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {selectedCourse.description && (
+                    <p className="mt-1 text-sm text-gray-600">{selectedCourse.description}</p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                    <span className="inline-flex items-center gap-1">
+                      {getFlagFromCode(selectedCourse.language?.code)}
+                      <strong>Language:</strong> {selectedCourse.language?.name || "Not assigned"}
+                    </span>
+                    <span className="text-gray-300">|</span>
+                    <span>
+                      <strong>Level:</strong> {selectedCourse.level ? selectedCourse.level.charAt(0).toUpperCase() + selectedCourse.level.slice(1) : "-"}
+                      {selectedCourse.cefr_range && ` (${selectedCourse.cefr_range})`}
+                    </span>
+                    <span className="text-gray-300">|</span>
+                    <span>{courseLessons.length} lesson{courseLessons.length !== 1 ? "s" : ""}</span>
+                    <span className="text-gray-300">|</span>
+                    <span>{totalWords} word{totalWords !== 1 ? "s" : ""}</span>
+                    <span className="text-gray-300">|</span>
+                    <AdminStatusBadge isPublished={selectedCourse.is_published ?? false} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            {!isEditingCourseDetails && (
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInlineTogglePublish}
+                  disabled={isLoading}
+                >
+                  {selectedCourse.is_published ? (
+                    <>
+                      <EyeOff className="mr-1 h-4 w-4" />
+                      Unpublish
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-1 h-4 w-4" />
+                      Publish
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lessons Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
+          <Button asChild>
+            <Link href={`/admin/lessons?course=${selectedCourse.id}`}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Lesson
+            </Link>
+          </Button>
+        </div>
+
+        {/* Lessons Table */}
+        <div className="rounded-xl border border-gray-200 bg-white">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Lesson
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Words
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="sr-only">View</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {courseLessons.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    No lessons yet. Add your first lesson to this course.
+                  </td>
+                </tr>
+              ) : (
+                courseLessons.map((lesson) => (
+                  <tr
+                    key={lesson.id}
+                    onClick={() => router.push(`/admin/lessons?lesson=${lesson.id}&fromCourse=${selectedCourse.id}`)}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
+                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                      {lesson.number}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {lesson.emoji && <span>{lesson.emoji}</span>}
+                        <span className="font-medium text-gray-900">{lesson.title}</span>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                      {lesson.word_count || 0}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <AdminStatusBadge isPublished={lesson.is_published ?? false} />
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeletingCourse(null);
+          }}
+          onConfirm={handleDelete}
+          title="Delete Course"
+          message={`Are you sure you want to delete "${deletingCourse?.name}"? This will also delete all lessons in this course. This action cannot be undone.`}
+          confirmLabel="Delete"
+          confirmVariant="destructive"
+          isLoading={isLoading}
+        />
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // RENDER - List View
+  // ============================================================================
 
   return (
     <div>
@@ -287,7 +665,7 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
                 Status
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Actions
+                <span className="sr-only">View</span>
               </th>
             </tr>
           </thead>
@@ -302,7 +680,11 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
               </tr>
             ) : (
               filteredCourses.map((course) => (
-                <tr key={course.id} className="hover:bg-gray-50">
+                <tr
+                  key={course.id}
+                  onClick={() => selectCourse(course)}
+                  className="cursor-pointer hover:bg-gray-50"
+                >
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-medium text-gray-900">{course.name}</p>
@@ -329,33 +711,7 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
                     <AdminStatusBadge isPublished={course.is_published ?? false} />
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleTogglePublish(course)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        title={course.is_published ? "Unpublish" : "Publish"}
-                      >
-                        {course.is_published ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => openEditModal(course)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(course)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </td>
                 </tr>
               ))
@@ -364,22 +720,18 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
         </table>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create Modal */}
       <AdminModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           resetForm();
         }}
-        title={editingCourse ? "Edit Course" : "Add Course"}
-        description={
-          editingCourse
-            ? "Update the course details."
-            : "Add a new course to a language."
-        }
+        title="Add Course"
+        description="Add a new course to a language."
         size="lg"
         footer={
-          <>
+          <div className="flex w-full items-center justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -391,36 +743,30 @@ export function CoursesClient({ languages, courses }: CoursesClientProps) {
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading
-                ? "Saving..."
-                : editingCourse
-                ? "Save Changes"
-                : "Add Course"}
+              {isLoading ? "Saving..." : "Add Course"}
             </Button>
-          </>
+          </div>
         }
       >
         <div className="space-y-4">
-          {!editingCourse && (
-            <AdminFormField
-              label="Language"
+          <AdminFormField
+            label="Language"
+            name="language_id"
+            required
+            error={errors.language_id}
+          >
+            <AdminSelect
+              id="language_id"
               name="language_id"
-              required
-              error={errors.language_id}
-            >
-              <AdminSelect
-                id="language_id"
-                name="language_id"
-                value={formData.language_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, language_id: e.target.value })
-                }
-                options={languageOptions}
-                placeholder="Select a language"
-                error={!!errors.language_id}
-              />
-            </AdminFormField>
-          )}
+              value={formData.language_id}
+              onChange={(e) =>
+                setFormData({ ...formData, language_id: e.target.value })
+              }
+              options={languageOptions}
+              placeholder="Select a language"
+              error={!!errors.language_id}
+            />
+          </AdminFormField>
 
           <AdminFormField
             label="Name"

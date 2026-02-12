@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { WordsBrowserClient } from "./WordsBrowserClient";
 
+const PAGE_SIZE = 100;
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 interface Language {
   id: string;
   name: string;
@@ -43,31 +46,43 @@ interface WordWithLessons {
   lessons: LessonInfo[];
 }
 
-async function getData() {
+interface SearchParams {
+  letter?: string;
+  page?: string;
+  language?: string;
+  course?: string;
+  search?: string;
+}
+
+async function getData(searchParams: SearchParams) {
   const supabase = await createClient();
 
+  const letter = searchParams.letter || "A";
+  const page = parseInt(searchParams.page || "1", 10);
+  const languageId = searchParams.language || "";
+  const courseId = searchParams.course || "";
+  const searchQuery = searchParams.search || "";
+
   // Fetch all languages
-  const { data: languages, error: languagesError } = await supabase
+  const { data: languages } = await supabase
     .from("languages")
     .select("id, name, code")
     .order("sort_order");
 
-  if (languagesError) {
-    console.error("Error fetching languages:", languagesError);
-  }
-
   // Fetch all courses
-  const { data: courses, error: coursesError } = await supabase
+  const { data: courses } = await supabase
     .from("courses")
     .select("id, name, language_id")
     .order("sort_order");
 
-  if (coursesError) {
-    console.error("Error fetching courses:", coursesError);
-  }
+  // Fetch all lessons for the "add to lesson" dropdown
+  const { data: allLessons } = await supabase
+    .from("lessons")
+    .select("id, number, title, emoji, course_id")
+    .order("number");
 
-  // Fetch all words with their language
-  const { data: words, error: wordsError } = await supabase
+  // Build the base query for words
+  let wordsQuery = supabase
     .from("words")
     .select(`
       id,
@@ -88,33 +103,48 @@ async function getData() {
       audio_url_trigger,
       created_at,
       language:languages(id, name, code)
-    `)
-    .order("headword");
+    `, { count: "exact" });
 
-  if (wordsError) {
-    console.error("Error fetching words:", wordsError);
-    return {
-      languages: languages || [],
-      courses: courses || [],
-      words: [],
-    };
+  // Apply language filter
+  if (languageId) {
+    wordsQuery = wordsQuery.eq("language_id", languageId);
   }
 
-  // Fetch all lesson_words associations
-  const { data: lessonWords, error: lessonWordsError } = await supabase
-    .from("lesson_words")
-    .select(`
-      word_id,
-      lesson:lessons(id, number, title, emoji, course_id)
-    `);
-
-  if (lessonWordsError) {
-    console.error("Error fetching lesson_words:", lessonWordsError);
+  // Apply search or letter filter
+  if (searchQuery.trim()) {
+    // Search across headword, english, lemma
+    wordsQuery = wordsQuery.or(`headword.ilike.%${searchQuery}%,english.ilike.%${searchQuery}%,lemma.ilike.%${searchQuery}%`);
+  } else {
+    // Filter by starting letter
+    const nextLetter = String.fromCharCode(letter.charCodeAt(0) + 1);
+    wordsQuery = wordsQuery.gte("headword", letter.toLowerCase()).lt("headword", nextLetter.toLowerCase());
   }
 
-  // Build a map of word_id -> lessons
+  // Order and paginate
+  const offset = (page - 1) * PAGE_SIZE;
+  wordsQuery = wordsQuery.order("headword").range(offset, offset + PAGE_SIZE - 1);
+
+  const { data: words, count: totalCount } = await wordsQuery;
+
+  // Get word IDs for lesson lookup
+  const wordIds = (words || []).map((w) => w.id);
+
+  // Fetch lesson associations for these words only
+  let lessonWords: { word_id: string; lesson: LessonInfo | null }[] = [];
+  if (wordIds.length > 0) {
+    const { data: lw } = await supabase
+      .from("lesson_words")
+      .select(`
+        word_id,
+        lesson:lessons(id, number, title, emoji, course_id)
+      `)
+      .in("word_id", wordIds);
+    lessonWords = lw || [];
+  }
+
+  // Build word -> lessons map
   const wordLessonsMap: Record<string, LessonInfo[]> = {};
-  (lessonWords || []).forEach((lw) => {
+  lessonWords.forEach((lw) => {
     const wordId = lw.word_id;
     const lesson = lw.lesson as LessonInfo | null;
     if (wordId && lesson) {
@@ -125,28 +155,91 @@ async function getData() {
     }
   });
 
-  // Combine words with their lessons
-  const wordsWithLessons: WordWithLessons[] = (words || []).map((word) => ({
+  // If filtering by course, filter words client-side (for now)
+  let filteredWords = (words || []).map((word) => ({
     ...word,
     language: word.language as Language | null,
     lessons: wordLessonsMap[word.id] || [],
   }));
 
+  if (courseId) {
+    filteredWords = filteredWords.filter((w) =>
+      w.lessons.some((l) => l.course_id === courseId)
+    );
+  }
+
+  // Get letter counts for the alphabet tabs (with current language filter) - run in parallel
+  const letterCountPromises = ALPHABET.map(async (l) => {
+    let countQuery = supabase
+      .from("words")
+      .select("id", { count: "exact", head: true });
+
+    if (languageId) {
+      countQuery = countQuery.eq("language_id", languageId);
+    }
+
+    const nextL = String.fromCharCode(l.charCodeAt(0) + 1);
+    countQuery = countQuery.gte("headword", l.toLowerCase()).lt("headword", nextL.toLowerCase());
+
+    const { count } = await countQuery;
+    return { letter: l, count: count || 0 };
+  });
+
+  const letterCountResults = await Promise.all(letterCountPromises);
+  const letterCounts: Record<string, number> = {};
+  letterCountResults.forEach(({ letter, count }) => {
+    letterCounts[letter] = count;
+  });
+
+  // Get total words count
+  let totalWordsQuery = supabase
+    .from("words")
+    .select("id", { count: "exact", head: true });
+  if (languageId) {
+    totalWordsQuery = totalWordsQuery.eq("language_id", languageId);
+  }
+  const { count: totalWords } = await totalWordsQuery;
+
   return {
     languages: languages || [],
     courses: courses || [],
-    words: wordsWithLessons,
+    lessons: allLessons || [],
+    words: filteredWords,
+    totalCount: totalCount || 0,
+    totalWords: totalWords || 0,
+    letterCounts,
+    currentLetter: letter,
+    currentPage: page,
+    pageSize: PAGE_SIZE,
+    languageId,
+    courseId,
+    searchQuery,
   };
 }
 
-export default async function WordsBrowserPage() {
-  const { languages, courses, words } = await getData();
+export default async function WordsBrowserPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const data = await getData(params);
 
   return (
     <WordsBrowserClient
-      languages={languages}
-      courses={courses}
-      words={words}
+      languages={data.languages}
+      courses={data.courses}
+      lessons={data.lessons}
+      words={data.words}
+      totalCount={data.totalCount}
+      totalWords={data.totalWords}
+      letterCounts={data.letterCounts}
+      currentLetter={data.currentLetter}
+      currentPage={data.currentPage}
+      pageSize={data.pageSize}
+      languageId={data.languageId}
+      courseId={data.courseId}
+      searchQuery={data.searchQuery}
     />
   );
 }

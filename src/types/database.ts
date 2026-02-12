@@ -24,6 +24,7 @@ export type Database = {
           id: string
           is_published: boolean | null
           language_id: string | null
+          legacy_ref: number | null
           level: string | null
           name: string
           price_cents: number | null
@@ -42,6 +43,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           language_id?: string | null
+          legacy_ref?: number | null
           level?: string | null
           name: string
           price_cents?: number | null
@@ -60,6 +62,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           language_id?: string | null
+          legacy_ref?: number | null
           level?: string | null
           name?: string
           price_cents?: number | null
@@ -161,6 +164,7 @@ export type Database = {
           emoji: string | null
           id: string
           is_published: boolean | null
+          legacy_lesson_id: number | null
           number: number
           sort_order: number | null
           title: string
@@ -175,6 +179,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           is_published?: boolean | null
+          legacy_lesson_id?: number | null
           number: number
           sort_order?: number | null
           title: string
@@ -189,6 +194,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           is_published?: boolean | null
+          legacy_lesson_id?: number | null
           number?: number
           sort_order?: number | null
           title?: string
@@ -650,23 +656,30 @@ export type Database = {
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
+          category: string | null
           created_at: string | null
           created_by: string | null
+          english: string
+          gender: string | null
+          grammatical_number: string | null
           headword: string
           id: string
+          is_false_friend: boolean | null
+          is_irregular: boolean | null
+          is_plural_only: boolean | null
           language_id: string
+          legacy_gender_code: string | null
+          legacy_image_suffix: string | null
+          legacy_refn: number | null
           lemma: string
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
           notes: string | null
           part_of_speech: string | null
-          gender: string | null
-          transitivity: string | null
-          is_irregular: boolean | null
-          is_plural_only: boolean | null
-          grammatical_number: string | null
+          phrase_type: string | null
           related_word_ids: string[] | null
-          english: string
+          tags: string[] | null
+          transitivity: string | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -674,23 +687,30 @@ export type Database = {
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
+          english: string
+          gender?: string | null
+          grammatical_number?: string | null
           headword: string
           id?: string
+          is_false_friend?: boolean | null
+          is_irregular?: boolean | null
+          is_plural_only?: boolean | null
           language_id: string
+          legacy_gender_code?: string | null
+          legacy_image_suffix?: string | null
+          legacy_refn?: number | null
           lemma: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
-          gender?: string | null
-          transitivity?: string | null
-          is_irregular?: boolean | null
-          is_plural_only?: boolean | null
-          grammatical_number?: string | null
+          phrase_type?: string | null
           related_word_ids?: string[] | null
-          english: string
+          tags?: string[] | null
+          transitivity?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -698,23 +718,30 @@ export type Database = {
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
+          english?: string
+          gender?: string | null
+          grammatical_number?: string | null
           headword?: string
           id?: string
+          is_false_friend?: boolean | null
+          is_irregular?: boolean | null
+          is_plural_only?: boolean | null
           language_id?: string
+          legacy_gender_code?: string | null
+          legacy_image_suffix?: string | null
+          legacy_refn?: number | null
           lemma?: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
-          gender?: string | null
-          transitivity?: string | null
-          is_irregular?: boolean | null
-          is_plural_only?: boolean | null
-          grammatical_number?: string | null
+          phrase_type?: string | null
           related_word_ids?: string[] | null
-          english?: string
+          tags?: string[] | null
+          transitivity?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -758,6 +785,45 @@ export type Database = {
           {
             foreignKeyName: "lesson_words_word_id_fkey"
             columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_relationships: {
+        Row: {
+          id: string
+          word_id: string
+          related_word_id: string
+          relationship_type: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          word_id: string
+          related_word_id: string
+          relationship_type: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          word_id?: string
+          related_word_id?: string
+          relationship_type?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_relationships_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "word_relationships_related_word_id_fkey"
+            columns: ["related_word_id"]
             isOneToOne: false
             referencedRelation: "words"
             referencedColumns: ["id"]

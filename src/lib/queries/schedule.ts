@@ -8,6 +8,7 @@ function extractCourse(course: Course & { languages?: unknown }): Course {
     name: course.name,
     description: course.description,
     language_id: course.language_id,
+    legacy_ref: course.legacy_ref,
     level: course.level,
     cefr_range: course.cefr_range,
     total_lessons: course.total_lessons,
