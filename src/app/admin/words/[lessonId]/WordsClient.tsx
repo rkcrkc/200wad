@@ -8,6 +8,8 @@ import {
   Pencil,
   Trash2,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   Volume2,
   Image as ImageIcon,
   X,
@@ -28,6 +30,7 @@ import {
   createWord,
   updateWord,
   deleteWord,
+  reorderWords,
 } from "@/lib/mutations/admin/words";
 import {
   createSentence,
@@ -529,6 +532,25 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     }
   };
 
+  const handleMoveWord = async (wordId: string, direction: "up" | "down") => {
+    const currentIndex = words.findIndex((w) => w.id === wordId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= words.length) return;
+
+    // Create new order by swapping
+    const newOrder = [...words];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+
+    const result = await reorderWords(lesson.id, newOrder.map((w) => w.id));
+    if (result.success) {
+      router.refresh();
+    } else {
+      alert(result.error || "Failed to reorder words");
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -563,6 +585,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="w-20 px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
+                #
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 English
               </th>
@@ -586,13 +611,38 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
           <tbody className="divide-y divide-gray-200">
             {words.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                   No words yet. Add your first word to this lesson.
                 </td>
               </tr>
             ) : (
-              words.map((word) => (
+              words.map((word, index) => (
                 <tr key={word.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="flex flex-col">
+                        <button
+                          onClick={() => handleMoveWord(word.id, "up")}
+                          disabled={index === 0}
+                          className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Move up"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleMoveWord(word.id, "down")}
+                          disabled={index === words.length - 1}
+                          className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Move down"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <span className="w-6 text-center text-sm font-medium text-gray-500">
+                        {index + 1}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
                     {word.english}
                   </td>
