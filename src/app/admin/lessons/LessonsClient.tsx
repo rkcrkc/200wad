@@ -16,6 +16,7 @@ import {
   Volume2,
   Image as ImageIcon,
   X,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +50,13 @@ import {
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getWordRelationships,
+  searchWordsForRelationship,
+  addWordRelationship,
+  removeWordRelationship,
+  type RelatedWord,
+} from "@/lib/queries/wordRelationships.client";
 
 interface Language {
   id: string;
@@ -272,11 +280,19 @@ export function LessonsClient({
     english_sentence: "",
   });
 
-  // Related words state
+  // Related words state (for related_word_ids array on word)
   const [relatedWordIds, setRelatedWordIds] = useState<string[]>([]);
   const [relatedWordSearch, setRelatedWordSearch] = useState("");
   const [relatedWordSearchResults, setRelatedWordSearchResults] = useState<Word[]>([]);
   const [isSearchingRelatedWords, setIsSearchingRelatedWords] = useState(false);
+
+  // Word relationships state (for word_relationships table - compound, grammar, sentence types)
+  const [typedRelations, setTypedRelations] = useState<RelatedWord[]>([]);
+  const [isLoadingTypedRelations, setIsLoadingTypedRelations] = useState(false);
+  const [typedRelationSearch, setTypedRelationSearch] = useState("");
+  const [typedRelationSearchResults, setTypedRelationSearchResults] = useState<{ id: string; headword: string; english: string }[]>([]);
+  const [isSearchingTypedRelations, setIsSearchingTypedRelations] = useState(false);
+  const [newTypedRelationType, setNewTypedRelationType] = useState("compound");
 
   // Inline lesson editing state (for words view)
   const [isEditingLessonDetails, setIsEditingLessonDetails] = useState(false);
@@ -717,6 +733,43 @@ export function LessonsClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLessonId]);
 
+  // Fetch typed word relationships when editing word changes
+  useEffect(() => {
+    if (editingWord) {
+      setIsLoadingTypedRelations(true);
+      getWordRelationships(editingWord.id)
+        .then((result) => {
+          if (!result.error) {
+            setTypedRelations(result.relatedWords);
+          }
+        })
+        .finally(() => setIsLoadingTypedRelations(false));
+    } else {
+      setTypedRelations([]);
+    }
+  }, [editingWord?.id]);
+
+  // Search for words to add as typed relations
+  useEffect(() => {
+    if (!typedRelationSearch.trim() || !editingWord) {
+      setTypedRelationSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingTypedRelations(true);
+      const result = await searchWordsForRelationship(typedRelationSearch, editingWord.id);
+      if (!result.error) {
+        // Filter out words already in relationships
+        const existingIds = typedRelations.map(r => r.id);
+        setTypedRelationSearchResults(result.words.filter(w => !existingIds.includes(w.id)));
+      }
+      setIsSearchingTypedRelations(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [typedRelationSearch, editingWord?.id, typedRelations]);
+
   // ============================================================================
   // WORD HANDLERS
   // ============================================================================
@@ -755,6 +808,9 @@ export function LessonsClient({
     setRelatedWordIds([]);
     setRelatedWordSearch("");
     setRelatedWordSearchResults([]);
+    setTypedRelations([]);
+    setTypedRelationSearch("");
+    setTypedRelationSearchResults([]);
   };
 
   const openCreateWordModal = () => {
@@ -1005,6 +1061,31 @@ export function LessonsClient({
 
   const removeRelatedWord = (wordId: string) => {
     setRelatedWordIds(relatedWordIds.filter((id) => id !== wordId));
+  };
+
+  const handleAddTypedRelation = async (relatedWordId: string) => {
+    if (!editingWord) return;
+    const result = await addWordRelationship(editingWord.id, relatedWordId, newTypedRelationType);
+    if (result.success) {
+      // Refresh relationships
+      const refreshResult = await getWordRelationships(editingWord.id);
+      if (!refreshResult.error) {
+        setTypedRelations(refreshResult.relatedWords);
+      }
+      setTypedRelationSearch("");
+      setTypedRelationSearchResults([]);
+    } else {
+      alert(result.error || "Failed to add relationship");
+    }
+  };
+
+  const handleRemoveTypedRelation = async (relationshipId: string) => {
+    const result = await removeWordRelationship(relationshipId);
+    if (result.success) {
+      setTypedRelations(typedRelations.filter(r => r.relationship_id !== relationshipId));
+    } else {
+      alert(result.error || "Failed to remove relationship");
+    }
   };
 
   const courseOptions = (filterLanguageId ? filteredCourses : courses).map(
@@ -1675,6 +1756,99 @@ export function LessonsClient({
                     No related words yet. Search above to add words.
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Word Relationships (compound, grammar, sentence - only when editing) */}
+            {editingWord && (
+              <div className="border-t pt-4">
+                <h3 className="mb-3 font-medium text-gray-900 flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Word Relationships
+                </h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  Compound parts, grammar links, and example sentences from the database.
+                </p>
+
+                {isLoadingTypedRelations ? (
+                  <p className="text-sm text-gray-500">Loading relationships...</p>
+                ) : typedRelations.length > 0 ? (
+                  <div className="space-y-2 mb-4">
+                    {/* Group by relationship type */}
+                    {["compound", "grammar", "sentence"].map((type) => {
+                      const typeWords = typedRelations.filter(r => r.relationship_type === type);
+                      if (typeWords.length === 0) return null;
+                      return (
+                        <div key={type}>
+                          <p className="text-xs font-medium text-gray-500 uppercase mb-1">{type}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {typeWords.map((rel) => (
+                              <span
+                                key={rel.relationship_id}
+                                className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                              >
+                                <span className="font-medium">{rel.headword}</span>
+                                <span className="text-blue-400">({rel.english})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTypedRelation(rel.relationship_id)}
+                                  className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                                  title="Remove relationship"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mb-4">No word relationships.</p>
+                )}
+
+                {/* Add new typed relationship */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newTypedRelationType}
+                    onChange={(e) => setNewTypedRelationType(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="compound">Compound</option>
+                    <option value="grammar">Grammar</option>
+                    <option value="sentence">Sentence</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={typedRelationSearch}
+                      onChange={(e) => setTypedRelationSearch(e.target.value)}
+                      placeholder="Search words to link..."
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    {isSearchingTypedRelations && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        Searching...
+                      </span>
+                    )}
+                    {typedRelationSearchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                        {typedRelationSearchResults.map((word) => (
+                          <button
+                            key={word.id}
+                            type="button"
+                            onClick={() => handleAddTypedRelation(word.id)}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex justify-between items-center"
+                          >
+                            <span className="font-medium">{word.headword}</span>
+                            <span className="text-gray-400">{word.english}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

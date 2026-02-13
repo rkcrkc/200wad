@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   Volume2,
   Image as ImageIcon,
+  X,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +35,13 @@ import {
 } from "@/lib/mutations/admin/sentences";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import {
+  getWordRelationships,
+  searchWordsForRelationship,
+  addWordRelationship,
+  removeWordRelationship,
+  type RelatedWord,
+} from "@/lib/queries/wordRelationships.client";
 
 interface Language {
   id: string;
@@ -203,6 +212,76 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     english_sentence: "",
   });
 
+  // Related words state
+  const [relatedWords, setRelatedWords] = useState<RelatedWord[]>([]);
+  const [isLoadingRelations, setIsLoadingRelations] = useState(false);
+  const [relationSearch, setRelationSearch] = useState("");
+  const [relationSearchResults, setRelationSearchResults] = useState<{ id: string; headword: string; english: string }[]>([]);
+  const [isSearchingRelations, setIsSearchingRelations] = useState(false);
+  const [newRelationType, setNewRelationType] = useState("compound");
+
+  // Fetch related words when editing word changes
+  useEffect(() => {
+    if (editingWord) {
+      setIsLoadingRelations(true);
+      getWordRelationships(editingWord.id)
+        .then((result) => {
+          if (!result.error) {
+            setRelatedWords(result.relatedWords);
+          }
+        })
+        .finally(() => setIsLoadingRelations(false));
+    } else {
+      setRelatedWords([]);
+    }
+  }, [editingWord?.id]);
+
+  // Search for words to add as related
+  useEffect(() => {
+    if (!relationSearch.trim() || !editingWord) {
+      setRelationSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingRelations(true);
+      const result = await searchWordsForRelationship(relationSearch, editingWord.id);
+      if (!result.error) {
+        // Filter out words already in relationships
+        const existingIds = relatedWords.map(r => r.id);
+        setRelationSearchResults(result.words.filter(w => !existingIds.includes(w.id)));
+      }
+      setIsSearchingRelations(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [relationSearch, editingWord?.id, relatedWords]);
+
+  const handleAddRelation = async (relatedWordId: string) => {
+    if (!editingWord) return;
+    const result = await addWordRelationship(editingWord.id, relatedWordId, newRelationType);
+    if (result.success) {
+      // Refresh relationships
+      const refreshResult = await getWordRelationships(editingWord.id);
+      if (!refreshResult.error) {
+        setRelatedWords(refreshResult.relatedWords);
+      }
+      setRelationSearch("");
+      setRelationSearchResults([]);
+    } else {
+      alert(result.error || "Failed to add relationship");
+    }
+  };
+
+  const handleRemoveRelation = async (relationshipId: string) => {
+    const result = await removeWordRelationship(relationshipId);
+    if (result.success) {
+      setRelatedWords(relatedWords.filter(r => r.relationship_id !== relationshipId));
+    } else {
+      alert(result.error || "Failed to remove relationship");
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       headword: "",
@@ -234,6 +313,9 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     setEditingWord(null);
     setShowSentenceForm(false);
     setNewSentence({ foreign_sentence: "", english_sentence: "" });
+    setRelatedWords([]);
+    setRelationSearch("");
+    setRelationSearchResults([]);
   };
 
   const openCreateModal = () => {
@@ -930,6 +1012,96 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Related Words */}
+          {editingWord && (
+            <div className="border-t pt-4">
+              <h3 className="mb-3 font-medium text-gray-900 flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                Related Words
+              </h3>
+
+              {isLoadingRelations ? (
+                <p className="text-sm text-gray-500">Loading relationships...</p>
+              ) : relatedWords.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {/* Group by relationship type */}
+                  {["compound", "grammar", "sentence"].map((type) => {
+                    const typeWords = relatedWords.filter(r => r.relationship_type === type);
+                    if (typeWords.length === 0) return null;
+                    return (
+                      <div key={type}>
+                        <p className="text-xs font-medium text-gray-500 uppercase mb-1">{type}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {typeWords.map((rel) => (
+                            <span
+                              key={rel.relationship_id}
+                              className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                            >
+                              <span className="font-medium">{rel.headword}</span>
+                              <span className="text-blue-400">({rel.english})</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRelation(rel.relationship_id)}
+                                className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                                title="Remove relationship"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 mb-4">No related words.</p>
+              )}
+
+              {/* Add new relationship */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={newRelationType}
+                  onChange={(e) => setNewRelationType(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="compound">Compound</option>
+                  <option value="grammar">Grammar</option>
+                  <option value="sentence">Sentence</option>
+                </select>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={relationSearch}
+                    onChange={(e) => setRelationSearch(e.target.value)}
+                    placeholder="Search words to link..."
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  {isSearchingRelations && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                      Searching...
+                    </span>
+                  )}
+                  {relationSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      {relationSearchResults.map((word) => (
+                        <button
+                          key={word.id}
+                          type="button"
+                          onClick={() => handleAddRelation(word.id)}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex justify-between items-center"
+                        >
+                          <span className="font-medium">{word.headword}</span>
+                          <span className="text-gray-400">{word.english}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
