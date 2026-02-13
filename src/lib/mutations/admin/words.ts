@@ -73,6 +73,7 @@ export async function createWord(
           ? (validated.grammatical_number || "sg")
           : validated.grammatical_number,
         notes: validated.notes,
+        admin_notes: validated.admin_notes,
         memory_trigger_text: validated.memory_trigger_text,
         memory_trigger_image_url: validated.memory_trigger_image_url,
         audio_url_english: validated.audio_url_english,
@@ -153,6 +154,7 @@ export async function updateWord(
         is_irregular: validated.is_irregular ?? undefined,
         grammatical_number: validated.grammatical_number ?? undefined,
         notes: validated.notes ?? undefined,
+        admin_notes: validated.admin_notes ?? undefined,
         memory_trigger_text: validated.memory_trigger_text ?? undefined,
         memory_trigger_image_url: validated.memory_trigger_image_url ?? undefined,
         audio_url_english: validated.audio_url_english ?? undefined,

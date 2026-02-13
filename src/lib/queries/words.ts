@@ -341,6 +341,7 @@ export async function getWord(wordId: string): Promise<{
     legacy_gender_code: word.legacy_gender_code,
     legacy_image_suffix: word.legacy_image_suffix,
     notes: word.notes,
+    admin_notes: word.admin_notes,
     memory_trigger_text: word.memory_trigger_text,
     memory_trigger_image_url: word.memory_trigger_image_url,
     audio_url_english: word.audio_url_english,

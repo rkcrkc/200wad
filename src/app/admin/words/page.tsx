@@ -37,6 +37,7 @@ interface WordWithLessons {
   is_irregular: boolean | null;
   grammatical_number: string | null;
   notes: string | null;
+  admin_notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
   audio_url_english: string | null;
@@ -98,6 +99,7 @@ async function getData(searchParams: SearchParams) {
       is_irregular,
       grammatical_number,
       notes,
+      admin_notes,
       memory_trigger_text,
       memory_trigger_image_url,
       audio_url_english,

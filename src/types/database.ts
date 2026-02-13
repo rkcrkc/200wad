@@ -653,6 +653,7 @@ export type Database = {
       }
       words: {
         Row: {
+          admin_notes: string | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -684,6 +685,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          admin_notes?: string | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -715,6 +717,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          admin_notes?: string | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null

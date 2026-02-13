@@ -99,6 +99,7 @@ interface Word {
   is_irregular: boolean | null;
   grammatical_number: string | null;
   notes: string | null;
+  admin_notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
   audio_url_english: string | null;
@@ -141,6 +142,7 @@ interface WordFormData {
   is_irregular: boolean;
   grammatical_number: string;
   notes: string;
+  admin_notes: string;
   memory_trigger_text: string;
 }
 
@@ -243,6 +245,7 @@ export function LessonsClient({
     is_irregular: false,
     grammatical_number: "sg",
     notes: "",
+    admin_notes: "",
     memory_trigger_text: "",
   });
   const [wordErrors, setWordErrors] = useState<WordFormErrors>({});
@@ -730,6 +733,7 @@ export function LessonsClient({
       is_irregular: false,
       grammatical_number: "sg",
       notes: "",
+      admin_notes: "",
       memory_trigger_text: "",
     });
     setWordErrors({});
@@ -771,6 +775,7 @@ export function LessonsClient({
       is_irregular: word.is_irregular ?? false,
       grammatical_number: word.grammatical_number || "sg",
       notes: word.notes || "",
+      admin_notes: word.admin_notes || "",
       memory_trigger_text: word.memory_trigger_text || "",
     });
     setPreviewUrls({
@@ -819,6 +824,7 @@ export function LessonsClient({
         is_irregular: wordFormData.is_irregular,
         grammatical_number: wordFormData.grammatical_number || null,
         notes: wordFormData.notes || null,
+        admin_notes: wordFormData.admin_notes || null,
         memory_trigger_text: wordFormData.memory_trigger_text || null,
         related_word_ids: relatedWordIds,
       };
@@ -1427,7 +1433,7 @@ export function LessonsClient({
               )}
             </div>
 
-            <AdminFormField label="Notes" name="notes">
+            <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
               <AdminTextarea
                 id="notes"
                 name="notes"
@@ -1671,6 +1677,21 @@ export function LessonsClient({
                 )}
               </div>
             )}
+
+            {/* Admin Notes */}
+            <div className="border-t pt-4">
+              <AdminFormField label="Admin Notes" name="admin_notes" hint="The student will NOT see these">
+                <AdminTextarea
+                  id="admin_notes"
+                  name="admin_notes"
+                  value={wordFormData.admin_notes}
+                  onChange={(e) =>
+                    setWordFormData({ ...wordFormData, admin_notes: e.target.value })
+                  }
+                  placeholder="Private notes for administrators only..."
+                />
+              </AdminFormField>
+            </div>
           </div>
         </AdminModal>
 

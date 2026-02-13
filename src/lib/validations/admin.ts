@@ -76,6 +76,7 @@ export const createWordSchema = z.object({
   is_irregular: z.boolean().optional().default(false),
   grammatical_number: z.enum(["sg", "pl"]).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
+  admin_notes: z.string().max(2000).optional().nullable(),
   memory_trigger_text: z.string().max(2000).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),
   audio_url_english: z.string().url().optional().nullable(),
