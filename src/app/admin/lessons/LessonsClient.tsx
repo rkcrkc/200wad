@@ -1485,22 +1485,24 @@ export function LessonsClient({
               )}
             </div>
 
-            {/* Boolean flags - only show for words */}
-            {wordFormData.category === "word" && (
+            {/* Boolean flags - only show for specific word types */}
+            {wordFormData.category === "word" && (wordFormData.part_of_speech === "verb" || ["noun", "article", "adjective_noun"].includes(wordFormData.part_of_speech)) && (
               <div className="flex gap-6">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={wordFormData.is_irregular}
-                    onChange={(e) =>
-                      setWordFormData({ ...wordFormData, is_irregular: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">Irregular form</span>
-                </label>
+                {wordFormData.part_of_speech === "verb" && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={wordFormData.is_irregular}
+                      onChange={(e) =>
+                        setWordFormData({ ...wordFormData, is_irregular: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-gray-700">Irregular verb</span>
+                  </label>
+                )}
 
-                {wordFormData.part_of_speech === "noun" && (
+                {["noun", "article", "adjective_noun"].includes(wordFormData.part_of_speech) && (
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
