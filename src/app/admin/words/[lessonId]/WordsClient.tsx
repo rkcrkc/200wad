@@ -811,34 +811,36 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
             )}
           </div>
 
-          {/* Boolean flags */}
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={formData.is_irregular}
-                onChange={(e) =>
-                  setFormData({ ...formData, is_irregular: e.target.checked })
-                }
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-gray-700">Irregular form</span>
-            </label>
-
-            {formData.part_of_speech === "noun" && (
+          {/* Boolean flags - only show for words */}
+          {formData.category === "word" && (
+            <div className="flex gap-6">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={formData.grammatical_number === "pl"}
+                  checked={formData.is_irregular}
                   onChange={(e) =>
-                    setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                    setFormData({ ...formData, is_irregular: e.target.checked })
                   }
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-gray-700">Plural</span>
+                <span className="text-gray-700">Irregular form</span>
               </label>
-            )}
-          </div>
+
+              {formData.part_of_speech === "noun" && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={formData.grammatical_number === "pl"}
+                    onChange={(e) =>
+                      setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                    }
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700">Plural</span>
+                </label>
+              )}
+            </div>
+          )}
 
           <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
             <AdminTextarea

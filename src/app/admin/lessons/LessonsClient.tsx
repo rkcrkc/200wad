@@ -1485,34 +1485,36 @@ export function LessonsClient({
               )}
             </div>
 
-            {/* Boolean flags */}
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={wordFormData.is_irregular}
-                  onChange={(e) =>
-                    setWordFormData({ ...wordFormData, is_irregular: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Irregular form</span>
-              </label>
-
-              {wordFormData.part_of_speech === "noun" && (
+            {/* Boolean flags - only show for words */}
+            {wordFormData.category === "word" && (
+              <div className="flex gap-6">
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={wordFormData.grammatical_number === "pl"}
+                    checked={wordFormData.is_irregular}
                     onChange={(e) =>
-                      setWordFormData({ ...wordFormData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                      setWordFormData({ ...wordFormData, is_irregular: e.target.checked })
                     }
                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-gray-700">Plural</span>
+                  <span className="text-gray-700">Irregular form</span>
                 </label>
-              )}
-            </div>
+
+                {wordFormData.part_of_speech === "noun" && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={wordFormData.grammatical_number === "pl"}
+                      onChange={(e) =>
+                        setWordFormData({ ...wordFormData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-gray-700">Plural</span>
+                  </label>
+                )}
+              </div>
+            )}
 
             <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
               <AdminTextarea
