@@ -131,6 +131,7 @@ export type Database = {
           code: string
           created_at: string | null
           id: string
+          is_visible: boolean
           name: string
           native_name: string
           sort_order: number | null
@@ -140,6 +141,7 @@ export type Database = {
           code: string
           created_at?: string | null
           id?: string
+          is_visible?: boolean
           name: string
           native_name: string
           sort_order?: number | null
@@ -149,6 +151,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           id?: string
+          is_visible?: boolean
           name?: string
           native_name?: string
           sort_order?: number | null
@@ -654,6 +657,7 @@ export type Database = {
       words: {
         Row: {
           admin_notes: string | null
+          alternate_answers: string[] | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -686,6 +690,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          alternate_answers?: string[] | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -718,6 +723,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          alternate_answers?: string[] | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
