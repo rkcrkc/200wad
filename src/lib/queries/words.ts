@@ -68,11 +68,18 @@ export interface WordWithDetails extends Word {
   testHistory: TestAttempt[];
 }
 
+/** Minimal lesson info for previous/next navigation */
+export type AdjacentLesson = Pick<Lesson, "id" | "number" | "title">;
+
 export interface GetWordsResult {
   language: Language | null;
   course: Course | null;
   lesson: Lesson | null;
   words: WordWithDetails[];
+  /** Previous lesson in course order; on first lesson, last lesson (loop). Null only if single lesson. */
+  previousLesson: AdjacentLesson | null;
+  /** Next lesson in course order; on last lesson, first lesson (loop). Null only if single lesson. */
+  nextLesson: AdjacentLesson | null;
   stats: {
     totalWords: number;
     wordsStudied: number;
@@ -101,6 +108,8 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       course: null,
       lesson: null,
       words: [],
+      previousLesson: null,
+      nextLesson: null,
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
       isGuest: !user,
     };
@@ -108,6 +117,32 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
 
   const course = lesson.courses as Course & { languages: Language };
   const language = course?.languages as Language | null;
+  const extractedLesson = extractLesson(lesson);
+
+  // Fetch adjacent lessons (previous/next) in course order
+  const { data: courseLessons } = await supabase
+    .from("lessons")
+    .select("id, number, title")
+    .eq("course_id", lesson.course_id)
+    .eq("is_published", true)
+    .order("sort_order")
+    .order("number");
+  const orderedLessons = courseLessons ?? [];
+  const currentIndex = orderedLessons.findIndex((l) => l.id === lesson.id);
+  const hasMultiple = orderedLessons.length > 1;
+  // Loop: first lesson → previous = last; last lesson → next = first
+  const previousLesson: AdjacentLesson | null =
+    currentIndex > 0
+      ? orderedLessons[currentIndex - 1]
+      : hasMultiple
+        ? orderedLessons[orderedLessons.length - 1]
+        : null;
+  const nextLesson: AdjacentLesson | null =
+    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
+      ? orderedLessons[currentIndex + 1]
+      : hasMultiple
+        ? orderedLessons[0]
+        : null;
 
   // Fetch words for this lesson via lesson_words join table
   const { data: lessonWords, error: wordsError } = await supabase
@@ -121,8 +156,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     return {
       language,
       course: course ? extractCourse(course) : null,
-      lesson: extractLesson(lesson),
+      lesson: extractedLesson,
       words: [],
+      previousLesson,
+      nextLesson,
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
       isGuest: !user,
     };
@@ -244,8 +281,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   return {
     language,
     course: course ? extractCourse(course) : null,
-    lesson: extractLesson(lesson),
+    lesson: extractedLesson,
     words: wordsWithDetails,
+    previousLesson,
+    nextLesson,
     stats: {
       totalWords: words?.length || 0,
       wordsStudied,
@@ -327,6 +366,7 @@ export async function getWord(wordId: string): Promise<{
     headword: word.headword,
     lemma: word.lemma,
     english: word.english,
+    alternate_answers: word.alternate_answers,
     part_of_speech: word.part_of_speech,
     gender: word.gender,
     transitivity: word.transitivity,

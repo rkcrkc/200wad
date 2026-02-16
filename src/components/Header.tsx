@@ -14,11 +14,24 @@ interface HeaderProps {
 export function Header({ showSidebar = true }: HeaderProps) {
   const { user, isLoading, isGuest } = useUser();
   const pathname = usePathname();
-  const { languageFlag, languageName, courseName } = useCourseContext();
+  const { languageFlag, languageId, courseId, courseName } = useCourseContext();
 
-  // Determine if we have context to show
-  const hasContext = languageFlag && (languageName || courseName);
-  const displayName = courseName || languageName;
+  // Determine if we have a course context to show
+  const hasContext = languageFlag && courseId && courseName;
+
+  // Determine if we're inside a course (course pages, lesson pages)
+  const isInsideCourse = pathname.startsWith("/course/") || pathname.startsWith("/lesson/");
+
+  // Course selector routing:
+  // - Inside course → go to language courses list (browse other courses)
+  // - Outside course → go to current course schedule (jump to course dashboard)
+  const courseSelectorHref = (() => {
+    if (!courseId) return "/dashboard";
+    if (isInsideCourse && languageId) {
+      return `/courses/${languageId}`;
+    }
+    return `/course/${courseId}/schedule`;
+  })();
 
   // Get user initials for avatar
   const getUserInitial = () => {
@@ -34,30 +47,30 @@ export function Header({ showSidebar = true }: HeaderProps) {
       <div className="flex h-full w-full items-center justify-between">
         {/* Left side - Logo + Navigation */}
         <div className="flex shrink-0 items-center pr-4">
-          {/* Logo / Course Selector */}
-          <div className="flex w-[240px] shrink-0 items-start px-4">
+          {/* Logo / Course Selector - matches sidebar width and button alignment */}
+          <div className="-ml-4 flex w-[240px] shrink-0 px-4">
             <Link
-              href="/dashboard"
-              className="flex h-14 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
+              href={courseSelectorHref}
+              className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
             >
-              <div className="flex h-full items-center gap-3 px-2">
+              <div className="flex h-full min-w-0 items-center gap-3 pl-4">
                 {/* Logo Icon or Language Flag */}
                 {hasContext ? (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center text-[28px]">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
                     {languageFlag}
                   </div>
                 ) : (
-                  <div className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]">
-                    <span className="text-xl font-bold text-white">W</span>
+                  <div className="bg-primary relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
+                    <span className="text-sm font-bold text-white">W</span>
                   </div>
                 )}
                 {/* Title */}
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
                     {isGuest ? "Welcome to" : "Learning"}
                   </span>
-                  <span className="text-foreground text-[15px] leading-[1.35] font-medium tracking-[-0.3px]">
-                    {hasContext ? displayName : "200 Words a Day"}
+                  <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+                    {hasContext ? courseName : "200 Words a Day"}
                   </span>
                 </div>
               </div>

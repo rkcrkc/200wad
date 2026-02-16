@@ -59,7 +59,7 @@ export function LessonGridSection({
       {/* Lesson Grid */}
       {displayLessons.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {displayLessons.slice(0, 4).map((lesson) => (
+          {displayLessons.slice(0, 6).map((lesson) => (
             <LessonPreviewCard key={lesson.id} lesson={lesson} />
           ))}
         </div>

@@ -37,17 +37,32 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
           {lesson.title}
         </h3>
 
-        {/* Word Tags */}
-        <div className="flex flex-wrap gap-1.5">
-          {lesson.sampleWords.slice(0, 6).map((word, index) => (
-            <span
-              key={index}
-              className="rounded bg-gray-100 px-2 py-0.5 text-xs text-muted-foreground"
-            >
-              {word}
-            </span>
-          ))}
-        </div>
+        {/* Word Tags - max 2 rows with overflow hidden */}
+        {(() => {
+          const totalWords = lesson.word_count || lesson.sampleWords.length;
+          // Fixed limit of 5 word pills - reliable fit in 2 rows
+          const maxVisiblePills = 5;
+          const visibleWords = lesson.sampleWords.slice(0, maxVisiblePills);
+          const remainingCount = totalWords - visibleWords.length;
+
+          return (
+            <div className="flex max-h-[54px] flex-wrap gap-1.5 overflow-hidden">
+              {visibleWords.map((word, index) => (
+                <span
+                  key={index}
+                  className="max-w-[110px] truncate whitespace-nowrap rounded bg-gray-100 px-2 py-0.5 text-xs text-muted-foreground"
+                >
+                  {word}
+                </span>
+              ))}
+              {remainingCount > 0 && (
+                <span className="shrink-0 whitespace-nowrap rounded bg-gray-100 px-2 py-0.5 text-xs text-muted-foreground">
+                  +{remainingCount} more
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </Link>
   );

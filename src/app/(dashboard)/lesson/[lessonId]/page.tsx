@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Clock, ChevronRight } from "lucide-react";
-import { BackButton } from "@/components/ui/back-button";
+import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getWords } from "@/lib/queries";
 import { WordsList } from "@/components/WordsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
+import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { formatTime } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -17,7 +17,7 @@ interface LessonPageProps {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { lessonId } = await params;
-  const { language, course, lesson, words, stats, isGuest } = await getWords(lessonId);
+  const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson } = await getWords(lessonId);
 
   if (!lesson) {
     notFound();
@@ -34,37 +34,38 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const languageFlag = getFlagFromCode(language?.code);
 
   return (
-    <SetCourseContext languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
-    <div>
-      {/* Back Button */}
-      <BackButton
-        href={course ? `/course/${course.id}` : "/dashboard"}
-        label={course?.name || "Lessons"}
-      />
-
+    <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
+    <>
+    <PageContainer size="md" className={words.length > 0 ? "pb-[160px]" : undefined}>
       {/* Header */}
-      <div className="mb-6">
-        <p className="mb-2 text-small-semibold text-foreground/50">
-          Lesson #{lesson.number}
-        </p>
-        <h1 className="mb-4 text-xxl-bold">
-          {lesson.emoji && <span className="mr-2">{lesson.emoji}</span>}
-          {lesson.title}
-        </h1>
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="mb-2 text-small-semibold text-foreground/50">
+            Lesson #{lesson.number}
+          </p>
+          <h1 className="text-xxl-bold">
+            {lesson.emoji && <span className="mr-2">{lesson.emoji}</span>}
+            {lesson.title}
+          </h1>
+        </div>
 
-        {/* Stats bar */}
-        <div className="flex items-center gap-6">
-          {/* Average score - placeholder for now */}
-          <div className="flex items-center gap-2 text-success">
-            <span className="text-small-regular">Average score</span>
-            <span className="text-regular-semibold">✓ {masteredPercentage}%</span>
+        {/* Stats */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+          {/* Average score */}
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Average score</span>
+            <div className="flex items-center gap-1.5 text-success">
+              <span className="text-regular-semibold">✓ {masteredPercentage}%</span>
+            </div>
           </div>
 
           {/* Total time */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span className="text-small-regular">Total time</span>
-            <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Total time</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -76,27 +77,10 @@ export default async function LessonPage({ params }: LessonPageProps) {
         <WordsList
           words={words}
           languageFlag={languageFlag}
+          languageName={language?.name ?? undefined}
           wordsNotStudied={wordsNotStudied}
           wordsNotMastered={wordsNotMastered}
         />
-      )}
-
-      {/* Action Buttons */}
-      {words.length > 0 && (
-        <div className="mt-8 flex gap-4">
-          <Button asChild size="xl" className="flex-1">
-            <Link href={`/lesson/${lessonId}/study`}>
-              Study lesson
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="xl" className="flex-1">
-            <Link href={`/lesson/${lessonId}/test`}>
-              Take test
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-        </div>
       )}
 
       {/* Previous/Next lesson navigation - TODO: implement with adjacent lessons query */}
@@ -115,7 +99,62 @@ export default async function LessonPage({ params }: LessonPageProps) {
       {isGuest && words.length > 0 && (
         <GuestCTA title="Sign up to save your learning progress" />
       )}
-    </div>
+    </PageContainer>
+
+    {/* Fixed footer bar - same height and styling as study/test mode */}
+    {words.length > 0 && (
+      <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+        <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
+          {previousLesson ? (
+            <Link
+              href={`/lesson/${previousLesson.id}`}
+              className="flex min-w-0 max-w-[120px] shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <span className="text-xs text-muted-foreground">Previous</span>
+                <span className="block min-w-0 truncate text-regular-semibold text-foreground" title={`#${previousLesson.number} ${previousLesson.title}`}>
+                  #{previousLesson.number} {previousLesson.title}
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <div />
+          )}
+          <div className="flex flex-1 items-center justify-center gap-4">
+            <Button asChild size="xl" className="flex-1 max-w-[240px]">
+              <Link href={`/lesson/${lessonId}/study`}>
+                Study lesson
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="xl" className="flex-1 max-w-[240px]">
+              <Link href={`/lesson/${lessonId}/test`}>
+                Take test
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+          {nextLesson ? (
+            <Link
+              href={`/lesson/${nextLesson.id}`}
+              className="flex min-w-0 max-w-[120px] shrink-0 items-center gap-2 overflow-hidden text-right transition-colors hover:text-foreground"
+            >
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden items-end">
+                <span className="text-xs text-muted-foreground">Next</span>
+                <span className="block min-w-0 truncate text-regular-semibold text-foreground text-right" title={`#${nextLesson.number} ${nextLesson.title}`}>
+                  #{nextLesson.number} {nextLesson.title}
+                </span>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+            </Link>
+          ) : (
+            <div />
+          )}
+        </div>
+      </div>
+    )}
+    </>
     </SetCourseContext>
   );
 }
