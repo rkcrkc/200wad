@@ -120,13 +120,15 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const extractedLesson = extractLesson(lesson);
 
   // Fetch adjacent lessons (previous/next) in course order
-  const { data: courseLessons } = await supabase
-    .from("lessons")
-    .select("id, number, title")
-    .eq("course_id", lesson.course_id)
-    .eq("is_published", true)
-    .order("sort_order")
-    .order("number");
+  const { data: courseLessons } = lesson.course_id
+    ? await supabase
+        .from("lessons")
+        .select("id, number, title")
+        .eq("course_id", lesson.course_id)
+        .eq("is_published", true)
+        .order("sort_order")
+        .order("number")
+    : { data: null };
   const orderedLessons = courseLessons ?? [];
   const currentIndex = orderedLessons.findIndex((l) => l.id === lesson.id);
   const hasMultiple = orderedLessons.length > 1;
