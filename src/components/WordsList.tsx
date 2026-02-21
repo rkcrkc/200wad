@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
 import { WordWithDetails } from "@/lib/queries/words";
-import { cn } from "@/lib/utils";
 
 interface WordsListProps {
   words: WordWithDetails[];
@@ -57,7 +56,7 @@ export function WordsList({
   return (
     <div>
       {/* Filter Tabs + Page controls */}
-      <div className="mb-2 flex items-center justify-between gap-4">
+      <div className="mb-4 flex items-center justify-between gap-4">
         <Tabs
           tabs={tabs}
           activeTab={activeTab}
@@ -75,7 +74,7 @@ export function WordsList({
           <Button
             variant="ghost"
             size="icon"
-            className={cn("size-8", "bg-accent text-primary")}
+            className="size-8"
             onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
             aria-label={viewMode === "list" ? "Switch to grid view" : "Switch to list view"}
           >
@@ -90,56 +89,37 @@ export function WordsList({
 
       {/* Words content */}
       {filteredWords.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <p className="text-muted-foreground">{emptyMessage}</p>
+        <div className="overflow-hidden rounded-xl border border-gray-200">
+          <div className="px-6 py-12 text-center">
+            <p className="text-muted-foreground">{emptyMessage}</p>
+            {activeTab !== "all" && (
+              <button
+                onClick={() => setActiveTab("all")}
+                className="mt-2 text-sm text-primary hover:underline"
+              >
+                Show all words
+              </button>
+            )}
+          </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="space-y-2">
-          {/* Column headers - same flex structure as WordRow */}
-          <div className="mb-1 flex items-center justify-between rounded-xl border border-transparent p-4">
-            <div className="flex flex-1 items-center gap-4">
-              <span className="w-8 text-center text-xs text-muted-foreground">
-                #
-              </span>
-              <span className="h-12 w-12 shrink-0" aria-hidden />
-              <span className="flex-1 text-xs text-muted-foreground">English</span>
-              <span className="flex-1 text-xs text-muted-foreground">
-                {languageName ?? "Translation"}
-              </span>
-              <div className="flex flex-1 justify-end">
-                <span className="text-xs text-muted-foreground">Status</span>
-              </div>
+        <div className="flex flex-col gap-2">
+          {/* Table Header */}
+          <div className="grid grid-cols-[40px_64px_1fr_1fr_140px_60px] items-center gap-4 px-6 py-3">
+            <div className="text-small-medium text-black-50">#</div>
+            <div></div>
+            <div className="text-small-medium text-black-50">English</div>
+            <div className="text-small-medium text-black-50">
+              {languageName ?? "Translation"}
             </div>
-            <span className="ml-4 w-5" aria-hidden />
+            <div className="text-small-medium text-black-50">Status</div>
+            <div></div>
           </div>
-          {filteredWords.map((word, index) => (
-            <WordRow
-              key={word.id}
-              word={word}
-              index={index}
-              languageFlag={languageFlag}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {/* Invisible spacer so first row of cards aligns with first row in list view */}
-          <div
-            className="mb-1 flex items-center justify-between rounded-xl border border-transparent p-4 invisible"
-            aria-hidden
-          >
-            <span className="w-8 text-center text-xs" />
-            <span className="h-12 w-12 shrink-0" />
-            <span className="flex-1 text-xs" />
-            <span className="flex-1 text-xs" />
-            <div className="flex flex-1 justify-end">
-              <span className="text-xs" />
-            </div>
-            <span className="ml-4 w-5" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+
+          {/* Table Body */}
+          <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
             {filteredWords.map((word, index) => (
-              <WordCard
+              <WordRow
                 key={word.id}
                 word={word}
                 index={index}
@@ -147,6 +127,17 @@ export function WordsList({
               />
             ))}
           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {filteredWords.map((word, index) => (
+            <WordCard
+              key={word.id}
+              word={word}
+              index={index}
+              languageFlag={languageFlag}
+            />
+          ))}
         </div>
       )}
     </div>

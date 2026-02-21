@@ -135,7 +135,7 @@ export default function ResetPasswordPage() {
     <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
       <div className="border-border bg-card w-full max-w-md space-y-8 rounded-2xl border p-8 shadow-lg">
         <div className="text-center">
-          <h1 className="text-xxl-bold text-foreground">Reset password</h1>
+          <h1 className="text-xl-semibold text-foreground">Reset password</h1>
           <p className="text-muted-foreground mt-2">Enter your new password</p>
         </div>
 

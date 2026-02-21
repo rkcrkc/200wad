@@ -52,26 +52,27 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
       </div>
 
       {/* Lessons Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div>
         {/* Table Header */}
-        <div className="grid grid-cols-[80px_minmax(300px,1fr)_160px_100px_100px_140px_60px] items-center gap-6 border-b border-gray-200 bg-[#FAF8F3] px-6 py-3">
-          <div className="text-xs-medium text-muted-foreground">#</div>
-          <div className="text-xs-medium text-muted-foreground">Lesson</div>
-          <div className="text-xs-medium text-muted-foreground">Status</div>
-          <div className="text-center text-xs-medium text-muted-foreground">
-            # Words
+        <div className="flex items-center justify-between gap-6 px-6 py-3">
+          <div className="text-small-medium text-black-50">Lesson</div>
+          <div className="flex items-center gap-6">
+            <div className="w-[160px] text-small-medium text-black-50">Status</div>
+            <div className="w-[100px] text-center text-small-medium text-black-50">
+              # Words
+            </div>
+            <div className="w-[100px] text-center text-small-medium text-black-50">
+              # Mastered
+            </div>
+            <div className="w-[140px] text-center text-small-medium text-black-50">
+              Completion
+            </div>
+            <div className="w-5"></div>
           </div>
-          <div className="text-center text-xs-medium text-muted-foreground">
-            # Mastered
-          </div>
-          <div className="text-center text-xs-medium text-muted-foreground">
-            Completion
-          </div>
-          <div></div>
         </div>
 
         {/* Table Body */}
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
           {filteredLessons.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-muted-foreground">

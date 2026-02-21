@@ -36,14 +36,32 @@ export default async function LessonPage({ params }: LessonPageProps) {
   return (
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
     <>
-    <PageContainer size="md" className={words.length > 0 ? "pb-[160px]" : undefined}>
+    <PageContainer size="md" withTopPadding={false} className={`pt-8 ${words.length > 0 ? "pb-[160px]" : ""}`.trim()}>
+      {/* Breadcrumbs */}
+      <nav className="mb-8 flex items-center gap-2 text-xs-medium text-black-50" aria-label="Breadcrumb">
+        {course?.id ? (
+          <Link
+            href={`/course/${course.id}`}
+            className="transition-colors hover:text-foreground"
+          >
+            All Lessons
+          </Link>
+        ) : (
+          <span>All Lessons</span>
+        )}
+        <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+        <span className="truncate" aria-current="page">
+          #{lesson.number} {lesson.title}
+        </span>
+      </nav>
+
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="mb-2 text-small-semibold text-foreground/50">
+          <p className="mb-2 text-regular-semibold text-black-80">
             Lesson #{lesson.number}
           </p>
-          <h1 className="text-xxl-bold">
+          <h1 className="text-xxl-semibold">
             {lesson.emoji && <span className="mr-2">{lesson.emoji}</span>}
             {lesson.title}
           </h1>
@@ -108,7 +126,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           {previousLesson ? (
             <Link
               href={`/lesson/${previousLesson.id}`}
-              className="flex min-w-0 max-w-[120px] shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
+              className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
             >
               <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -138,11 +156,11 @@ export default async function LessonPage({ params }: LessonPageProps) {
           {nextLesson ? (
             <Link
               href={`/lesson/${nextLesson.id}`}
-              className="flex min-w-0 max-w-[120px] shrink-0 items-center gap-2 overflow-hidden text-right transition-colors hover:text-foreground"
+              className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
             >
-              <div className="flex min-w-0 flex-1 flex-col overflow-hidden items-end">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <span className="text-xs text-muted-foreground">Next</span>
-                <span className="block min-w-0 truncate text-regular-semibold text-foreground text-right" title={`#${nextLesson.number} ${nextLesson.title}`}>
+                <span className="block min-w-0 truncate text-regular-semibold text-foreground" title={`#${nextLesson.number} ${nextLesson.title}`}>
                   #{nextLesson.number} {nextLesson.title}
                 </span>
               </div>

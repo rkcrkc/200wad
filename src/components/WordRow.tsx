@@ -14,49 +14,44 @@ export function WordRow({ word, index, languageFlag = "🇮🇹" }: WordRowProps
   const hasImage = !!word.memory_trigger_image_url;
 
   return (
-    <div className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-      <div className="flex flex-1 items-center gap-4">
-        {/* Word number */}
-        <span className="w-8 text-center text-regular-medium text-muted-foreground">
-          {index + 1}
-        </span>
+    <div className="grid cursor-pointer grid-cols-[40px_64px_1fr_1fr_140px_60px] items-center gap-4 px-6 py-4 transition-colors hover:bg-bone-50">
+      {/* Word number */}
+      <div className="text-regular-medium">
+        {index + 1}
+      </div>
 
-        {/* Thumbnail */}
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-purple-400 to-pink-400">
-          {hasImage ? (
-            <Image
-              src={word.memory_trigger_image_url!}
-              alt={word.english}
-              fill
-              className="object-cover"
-              sizes="48px"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl">
-              🗣️
-            </div>
-          )}
-        </div>
+      {/* Thumbnail */}
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+        {hasImage ? (
+          <Image
+            src={word.memory_trigger_image_url!}
+            alt={word.english}
+            fill
+            className="object-cover"
+            sizes="48px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-2xl">
+            🗣️
+          </div>
+        )}
+      </div>
 
-        {/* Translation (English) */}
-        <div className="flex-1">
-          <p className="text-regular-medium text-foreground/70">{word.english}</p>
-        </div>
+      {/* Translation (English) */}
+      <div className="text-medium-medium">{word.english}</div>
 
-        {/* Headword (foreign) with flag */}
-        <div className="flex flex-1 items-center gap-2">
-          <span className="text-lg">{languageFlag}</span>
-          <p className="text-regular-semibold text-foreground">{word.headword}</p>
-        </div>
+      {/* Headword (foreign) */}
+      <div className="text-medium-medium">{word.headword}</div>
 
-        {/* Status pill */}
-        <div className="flex flex-1 justify-end">
-          <StatusPill status={mapStatus(word.status)} />
-        </div>
+      {/* Status pill */}
+      <div className="flex items-center">
+        <StatusPill status={mapStatus(word.status)} />
       </div>
 
       {/* Chevron */}
-      <ChevronRight className="ml-4 h-5 w-5 text-gray-400" />
+      <div className="flex justify-end">
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </div>
     </div>
   );
 }

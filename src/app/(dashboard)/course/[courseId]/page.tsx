@@ -1,10 +1,10 @@
 import { Clock } from "lucide-react";
-import { BackButton } from "@/components/ui/back-button";
 import { getLessons } from "@/lib/queries";
 import { LessonsList } from "@/components/LessonsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
+import { PageContainer } from "@/components/PageContainer";
 import { notFound } from "next/navigation";
 import { formatTime } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -21,7 +21,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  // Calculate progress stats
+  // Calculate progress percentages
+  const studiedPercentage =
+    stats.totalWords > 0
+      ? Math.round((stats.wordsStudied / stats.totalWords) * 100)
+      : 0;
   const masteredPercentage =
     stats.totalWords > 0
       ? Math.round((stats.wordsMastered / stats.totalWords) * 100)
@@ -30,52 +34,49 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const languageFlag = getFlagFromCode(language?.code);
 
   return (
-    <SetCourseContext languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
-    <div>
-      {/* Back Button */}
-      <BackButton
-        href={language ? `/courses/${language.id}` : "/dashboard"}
-        label={`${language?.name || "All"} Courses`}
-      />
-
+    <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
+    <PageContainer size="lg" withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
       {/* Header */}
-      <div className="mb-6">
-        <p className="mb-2 text-small-semibold text-foreground/50">
-          {course.level && course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-          {course.cefr_range && ` • ${course.cefr_range}`}
-        </p>
-        <h1 className="mb-4 text-xxl-bold">
-          {course.name}
-        </h1>
-        {course.description && (
-          <p className="mb-4 text-sm text-muted-foreground">{course.description}</p>
-        )}
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <h1 className="text-page-header">All Lessons</h1>
 
-        {/* Stats bar */}
-        <div className="flex items-center gap-6">
-          {/* Words mastered */}
-          <div className="flex items-center gap-2 text-success">
-            <span className="text-small-regular">Words mastered</span>
-            <span className="text-regular-semibold">✓ {masteredPercentage}%</span>
-          </div>
-
-          {/* Total time */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span className="text-small-regular">Total time</span>
-            <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
-          </div>
-
+        {/* Stats */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
           {/* Total words */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="text-small-regular">Total words</span>
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Total words</span>
             <span className="text-regular-semibold">{stats.totalWords}</span>
           </div>
 
-          {/* Total lessons */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="text-small-regular">Lessons</span>
-            <span className="text-regular-semibold">{lessons.length}</span>
+          {/* Total time */}
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Total Time</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
+            </div>
+          </div>
+
+          {/* Words studied */}
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Words studied</span>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-success" />
+              <span className="text-regular-semibold">
+                {stats.wordsStudied} ({studiedPercentage}%)
+              </span>
+            </div>
+          </div>
+
+          {/* Words mastered */}
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-muted-foreground">Words mastered</span>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+              <span className="text-regular-semibold">
+                {stats.wordsMastered} ({masteredPercentage}%)
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -91,7 +92,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       {isGuest && lessons.length > 0 && (
         <GuestCTA title="Sign up to save your learning progress" />
       )}
-    </div>
+    </PageContainer>
     </SetCourseContext>
   );
 }
