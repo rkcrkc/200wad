@@ -45,6 +45,7 @@ export async function createLanguage(
         native_name: validated.native_name,
         code: validated.code,
         sort_order: validated.sort_order ?? 0,
+        is_visible: validated.is_visible ?? false,
       })
       .select("id")
       .single();

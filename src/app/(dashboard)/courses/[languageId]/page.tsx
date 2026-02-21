@@ -5,8 +5,10 @@ import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { UnlockBundlePromo } from "@/components/UnlockBundlePromo";
+import { PageContainer } from "@/components/PageContainer";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { setCurrentLanguage } from "@/lib/mutations/settings";
 
 interface CoursesPageProps {
   params: Promise<{ languageId: string }>;
@@ -20,14 +22,20 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
     notFound();
   }
 
+  // Update the user's current language preference when they navigate here
+  // This is a "fire and forget" operation - we don't await or handle errors
+  if (!isGuest) {
+    setCurrentLanguage(languageId);
+  }
+
   // Calculate total words across all courses
   const totalWords = courses.reduce((sum, course) => sum + course.actualWordCount, 0);
 
   const languageFlag = getFlagFromCode(language.code);
 
   return (
-    <SetCourseContext languageFlag={languageFlag} languageName={language.name}>
-    <div>
+    <SetCourseContext languageId={languageId} languageFlag={languageFlag} languageName={language.name}>
+    <PageContainer size="sm">
       {/* Back Button */}
       <BackButton href="/dashboard" label="All Languages" />
 
@@ -74,7 +82,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
           className="mt-4"
         />
       )}
-    </div>
+    </PageContainer>
     </SetCourseContext>
   );
 }

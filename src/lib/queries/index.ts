@@ -1,8 +1,8 @@
 export { getLanguages } from "./languages";
 export type { LanguageWithProgress, GetLanguagesResult } from "./languages";
 
-export { getCourses } from "./courses";
-export type { CourseWithProgress, GetCoursesResult } from "./courses";
+export { getCourses, getCourseById } from "./courses";
+export type { CourseWithProgress, GetCoursesResult, GetCourseByIdResult } from "./courses";
 
 export { getLessons } from "./lessons";
 export type {

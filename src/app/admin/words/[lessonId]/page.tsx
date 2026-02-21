@@ -30,6 +30,19 @@ async function getData(lessonId: string) {
     return null;
   }
 
+  // Position in lesson order: fetch lessons in same course by sort_order
+  let positionInOrder: number | null = null;
+  const courseId = (lesson as any).course?.id;
+  if (courseId) {
+    const { data: courseLessons } = await supabase
+      .from("lessons")
+      .select("id")
+      .eq("course_id", courseId)
+      .order("sort_order", { ascending: true });
+    const idx = (courseLessons || []).findIndex((l) => l.id === lessonId);
+    if (idx >= 0) positionInOrder = idx + 1;
+  }
+
   // Fetch words via lesson_words join table
   const { data: lessonWords, error: wordsError } = await supabase
     .from("lesson_words")
@@ -51,7 +64,7 @@ async function getData(lessonId: string) {
     sort_order: lw.sort_order,
   }));
 
-  return { lesson, words };
+  return { lesson, words, positionInOrder };
 }
 
 export default async function WordsPage({ params }: PageProps) {
@@ -64,7 +77,11 @@ export default async function WordsPage({ params }: PageProps) {
 
   return (
     <div>
-      <WordsClient lesson={data.lesson as any} words={data.words as any[]} />
+      <WordsClient
+        lesson={data.lesson as any}
+        words={data.words as any[]}
+        positionInOrder={data.positionInOrder}
+      />
     </div>
   );
 }

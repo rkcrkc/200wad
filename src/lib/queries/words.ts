@@ -80,6 +80,8 @@ export interface GetWordsResult {
   previousLesson: AdjacentLesson | null;
   /** Next lesson in course order; on last lesson, first lesson (loop). Null only if single lesson. */
   nextLesson: AdjacentLesson | null;
+  /** All lessons in the same course (for lesson selector). */
+  courseLessons: AdjacentLesson[];
   stats: {
     totalWords: number;
     wordsStudied: number;
@@ -110,6 +112,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       words: [],
       previousLesson: null,
       nextLesson: null,
+      courseLessons: [],
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
       isGuest: !user,
     };
@@ -162,6 +165,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       words: [],
       previousLesson,
       nextLesson,
+      courseLessons: orderedLessons,
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
       isGuest: !user,
     };
@@ -287,6 +291,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     words: wordsWithDetails,
     previousLesson,
     nextLesson,
+    courseLessons: orderedLessons,
     stats: {
       totalWords: words?.length || 0,
       wordsStudied,

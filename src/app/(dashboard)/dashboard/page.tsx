@@ -3,12 +3,13 @@ import { LanguageCard } from "@/components/LanguageCard";
 import { AddLanguageCard } from "@/components/AddLanguageCard";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
+import { PageContainer } from "@/components/PageContainer";
 
 export default async function DashboardPage() {
   const { languages, isGuest } = await getLanguages();
 
   return (
-    <div>
+    <PageContainer size="md">
       <div className="mb-8">
         <h1 className="mb-2 text-page-header text-foreground">My Languages</h1>
         <p className="text-muted-foreground">
@@ -43,6 +44,6 @@ export default async function DashboardPage() {
       {isGuest && languages.length > 0 && (
         <GuestCTA description="Your learning progress will be saved when you sign up." />
       )}
-    </div>
+    </PageContainer>
   );
 }

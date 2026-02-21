@@ -50,6 +50,7 @@ interface WordWithLessons {
   headword: string;
   lemma: string;
   english: string;
+  alternate_answers: string[] | null;
   language_id: string;
   category: string | null;
   part_of_speech: string | null;
@@ -97,6 +98,7 @@ interface FormData {
   headword: string;
   lemma: string;
   english: string;
+  alternate_answers: string[];
   category: string;
   part_of_speech: string;
   gender: string;
@@ -190,6 +192,7 @@ export function WordsBrowserClient({
     headword: "",
     lemma: "",
     english: "",
+    alternate_answers: [],
     category: "",
     part_of_speech: "",
     gender: "",
@@ -200,6 +203,7 @@ export function WordsBrowserClient({
     admin_notes: "",
     memory_trigger_text: "",
   });
+  const [newAlternateAnswer, setNewAlternateAnswer] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [fileUploads, setFileUploads] = useState<FileUploads>({
     triggerImage: null,
@@ -339,6 +343,7 @@ export function WordsBrowserClient({
       headword: "",
       lemma: "",
       english: "",
+      alternate_answers: [],
       category: "",
       part_of_speech: "",
       gender: "",
@@ -367,6 +372,7 @@ export function WordsBrowserClient({
     setRelatedWords([]);
     setRelationSearch("");
     setRelationSearchResults([]);
+    setNewAlternateAnswer("");
   };
 
   const handleAddToLesson = async () => {
@@ -432,6 +438,7 @@ export function WordsBrowserClient({
       headword: word.headword,
       lemma: word.lemma,
       english: word.english,
+      alternate_answers: word.alternate_answers || [],
       category: word.category || "",
       part_of_speech: word.part_of_speech || "",
       gender: word.gender || "",
@@ -449,6 +456,7 @@ export function WordsBrowserClient({
       audioTrigger: word.audio_url_trigger,
     });
     setErrors({});
+    setNewAlternateAnswer("");
     setIsEditModalOpen(true);
   };
 
@@ -477,6 +485,7 @@ export function WordsBrowserClient({
         headword: formData.headword,
         lemma: formData.lemma || formData.headword,
         english: formData.english,
+        alternate_answers: formData.alternate_answers.length > 0 ? formData.alternate_answers : null,
         category: formData.category || null,
         part_of_speech: formData.category === "word" ? (formData.part_of_speech || null) : null,
         gender: formData.gender || null,
@@ -846,6 +855,81 @@ export function WordsBrowserClient({
                 error={!!errors.english}
               />
             </AdminFormField>
+          </div>
+
+          {/* Alternate Answers */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Alternate Valid Answers
+              <span className="ml-1 text-xs font-normal text-gray-500">
+                (other spellings that should be accepted)
+              </span>
+            </label>
+            {formData.alternate_answers.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {formData.alternate_answers.map((answer, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                  >
+                    {answer}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          alternate_answers: formData.alternate_answers.filter(
+                            (_, i) => i !== index
+                          ),
+                        })
+                      }
+                      className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newAlternateAnswer}
+                onChange={(e) => setNewAlternateAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newAlternateAnswer.trim()) {
+                    e.preventDefault();
+                    if (!formData.alternate_answers.includes(newAlternateAnswer.trim())) {
+                      setFormData({
+                        ...formData,
+                        alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                      });
+                    }
+                    setNewAlternateAnswer("");
+                  }
+                }}
+                placeholder="e.g., buonanotte!"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (newAlternateAnswer.trim() && !formData.alternate_answers.includes(newAlternateAnswer.trim())) {
+                    setFormData({
+                      ...formData,
+                      alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                    });
+                    setNewAlternateAnswer("");
+                  }
+                }}
+                disabled={!newAlternateAnswer.trim()}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
           </div>
 
           <AdminFormField

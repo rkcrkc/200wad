@@ -117,16 +117,16 @@ export async function deleteLesson(id: string): Promise<MutationResult> {
 
     const supabase = await createClient();
 
-    // Check for dependent words
+    // Check for dependent words via lesson_words junction table
     const { count } = await supabase
-      .from("words")
+      .from("lesson_words")
       .select("*", { count: "exact", head: true })
       .eq("lesson_id", id);
 
     if (count && count > 0) {
       return {
         success: false,
-        error: `Cannot delete lesson with ${count} word(s). Delete words first.`,
+        error: `Cannot delete lesson with ${count} word(s). Remove words first.`,
       };
     }
 
@@ -156,6 +156,71 @@ export async function publishLesson(id: string): Promise<MutationResult> {
 
 export async function unpublishLesson(id: string): Promise<MutationResult> {
   return updateLesson(id, { is_published: false });
+}
+
+export async function setAllLessonsPublished(
+  courseId: string,
+  isPublished: boolean
+): Promise<MutationResult> {
+  try {
+    const admin = await requireAdmin();
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("lessons")
+      .update({
+        is_published: isPublished,
+        updated_by: admin.userId,
+      })
+      .eq("course_id", courseId);
+
+    if (error) {
+      console.error("Error updating lessons:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/lessons");
+    revalidatePath("/admin/courses");
+
+    return { success: true, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+// ============================================================================
+// REMOVE LESSON FROM COURSE
+// ============================================================================
+
+export async function removeLessonFromCourse(id: string): Promise<MutationResult> {
+  try {
+    const admin = await requireAdmin();
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("lessons")
+      .update({
+        course_id: null,
+        updated_by: admin.userId,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error removing lesson from course:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/lessons");
+    revalidatePath("/admin/courses");
+
+    return { success: true, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
 }
 
 // ============================================================================

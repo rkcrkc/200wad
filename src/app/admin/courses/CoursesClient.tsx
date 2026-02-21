@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -20,7 +20,16 @@ import {
   deleteCourse,
   publishCourse,
   unpublishCourse,
+  reorderCourses,
 } from "@/lib/mutations/admin/courses";
+import {
+  publishLesson,
+  unpublishLesson,
+  reorderLessons,
+  removeLessonFromCourse,
+  setAllLessonsPublished,
+} from "@/lib/mutations/admin/lessons";
+import { Switch } from "@/components/ui/switch";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface Language {
@@ -121,17 +130,123 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     cefr_range: "",
   });
 
+  // Lesson publish toggle state
+  const [togglingLessonId, setTogglingLessonId] = useState<string | null>(null);
+
+  // Lesson remove state
+  const [isRemoveLessonModalOpen, setIsRemoveLessonModalOpen] = useState(false);
+  const [removingLesson, setRemovingLesson] = useState<Lesson | null>(null);
+
+  // Course publish toggle state
+  const [isPublishCourseModalOpen, setIsPublishCourseModalOpen] = useState(false);
+  const [courseToTogglePublish, setCourseToTogglePublish] = useState<Course | null>(null);
+
+  // Handle lesson publish toggle
+  const handleToggleLessonPublish = async (lesson: Lesson) => {
+    setTogglingLessonId(lesson.id);
+    const action = lesson.is_published ? unpublishLesson : publishLesson;
+    const result = await action(lesson.id);
+    if (!result.success) {
+      alert(result.error);
+    } else {
+      router.refresh();
+    }
+    setTogglingLessonId(null);
+  };
+
+  // Handle lesson remove from course
+  const handleRemoveLesson = async () => {
+    if (!removingLesson) return;
+    setIsLoading(true);
+    try {
+      const result = await removeLessonFromCourse(removingLesson.id);
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      setIsRemoveLessonModalOpen(false);
+      setRemovingLesson(null);
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle master publish toggle for all lessons
+  const handleToggleAllLessonsPublish = async (publish: boolean) => {
+    if (!selectedCourse) return;
+    setIsLoading(true);
+    try {
+      const result = await setAllLessonsPublished(selectedCourse.id, publish);
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Filter courses by language
   const filteredCourses = useMemo(() => {
     if (!filterLanguageId) return courses;
     return courses.filter((c) => c.language_id === filterLanguageId);
   }, [courses, filterLanguageId]);
 
-  // Filter lessons for selected course
+  // Handle course reordering
+  const handleMoveCourse = async (courseId: string, direction: "up" | "down") => {
+    if (!filterLanguageId) return; // Only allow reordering when filtered by language
+
+    const currentIndex = filteredCourses.findIndex((c) => c.id === courseId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= filteredCourses.length) return;
+
+    // Create new order by swapping
+    const newOrder = [...filteredCourses];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+
+    // Persist the change
+    const result = await reorderCourses(filterLanguageId, newOrder.map((c) => c.id));
+    if (!result.success) {
+      alert(result.error || "Failed to reorder courses");
+    } else {
+      router.refresh();
+    }
+  };
+
+  // Filter and sort lessons for selected course
   const courseLessons = useMemo(() => {
     if (!selectedCourse) return [];
-    return lessons.filter((l) => l.course_id === selectedCourse.id);
+    return lessons
+      .filter((l) => l.course_id === selectedCourse.id)
+      .sort((a, b) => (a.sort_order ?? a.number) - (b.sort_order ?? b.number));
   }, [lessons, selectedCourse]);
+
+  // Handle lesson reordering
+  const handleMoveLesson = async (lessonId: string, direction: "up" | "down") => {
+    if (!selectedCourse) return;
+
+    const currentIndex = courseLessons.findIndex((l) => l.id === lessonId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= courseLessons.length) return;
+
+    // Create new order by swapping
+    const newOrder = [...courseLessons];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+
+    // Persist the change
+    const result = await reorderLessons(selectedCourse.id, newOrder.map((l) => l.id));
+    if (!result.success) {
+      alert(result.error || "Failed to reorder lessons");
+    } else {
+      router.refresh();
+    }
+  };
 
   // Initialize from URL param
   useEffect(() => {
@@ -231,16 +346,33 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     }
   };
 
-  const handleInlineTogglePublish = async () => {
-    if (!selectedCourse) return;
-    const action = selectedCourse.is_published ? unpublishCourse : publishCourse;
-    const result = await action(selectedCourse.id);
-    if (result.success) {
-      setSelectedCourse({
-        ...selectedCourse,
-        is_published: !selectedCourse.is_published,
-      });
-      router.refresh();
+  const openPublishCourseModal = (course: Course) => {
+    setCourseToTogglePublish(course);
+    setIsPublishCourseModalOpen(true);
+  };
+
+  const handleConfirmTogglePublish = async () => {
+    if (!courseToTogglePublish) return;
+    setIsLoading(true);
+    try {
+      const action = courseToTogglePublish.is_published ? unpublishCourse : publishCourse;
+      const result = await action(courseToTogglePublish.id);
+      if (result.success) {
+        // Update selectedCourse if it's the one being toggled
+        if (selectedCourse && selectedCourse.id === courseToTogglePublish.id) {
+          setSelectedCourse({
+            ...selectedCourse,
+            is_published: !courseToTogglePublish.is_published,
+          });
+        }
+        setIsPublishCourseModalOpen(false);
+        setCourseToTogglePublish(null);
+        router.refresh();
+      } else {
+        alert(result.error);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -492,7 +624,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleInlineTogglePublish}
+                  onClick={() => openPublishCourseModal(selectedCourse)}
                   disabled={isLoading}
                 >
                   {selectedCourse.is_published ? (
@@ -514,7 +646,19 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
 
         {/* Lessons Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
+          <div className="flex items-center gap-6">
+            <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
+            {courseLessons.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Publish all</span>
+                <Switch
+                  checked={courseLessons.every((l) => l.is_published)}
+                  onCheckedChange={(checked) => handleToggleAllLessonsPublish(checked)}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+          </div>
           <Button asChild>
             <Link href={`/admin/lessons?course=${selectedCourse.id}`}>
               <Plus className="mr-2 h-4 w-4" />
@@ -528,8 +672,11 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  #
+                <th className="w-20 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Order
+                </th>
+                <th className="w-16 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Lesson
@@ -538,7 +685,10 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                   Words
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
+                  Published
+                </th>
+                <th className="w-16 px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="sr-only">Delete</span>
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                   <span className="sr-only">View</span>
@@ -548,18 +698,55 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
             <tbody className="divide-y divide-gray-200">
               {courseLessons.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     No lessons yet. Add your first lesson to this course.
                   </td>
                 </tr>
               ) : (
-                courseLessons.map((lesson) => (
+                courseLessons.map((lesson, index) => (
                   <tr
                     key={lesson.id}
                     onClick={() => router.push(`/admin/lessons?lesson=${lesson.id}&fromCourse=${selectedCourse.id}`)}
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                    <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
+                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveLesson(lesson.id, "up");
+                            }}
+                            disabled={index === 0}
+                            className={`rounded p-0.5 ${
+                              index === 0
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveLesson(lesson.id, "down");
+                            }}
+                            disabled={index === courseLessons.length - 1}
+                            className={`rounded p-0.5 ${
+                              index === courseLessons.length - 1
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-gray-600">
                       {lesson.number}
                     </td>
                     <td className="px-6 py-4">
@@ -571,8 +758,24 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                     <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                       {lesson.word_count || 0}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <AdminStatusBadge isPublished={lesson.is_published ?? false} />
+                    <td className="whitespace-nowrap px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        checked={lesson.is_published ?? false}
+                        onCheckedChange={() => handleToggleLessonPublish(lesson)}
+                        disabled={togglingLessonId === lesson.id}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => {
+                          setRemovingLesson(lesson);
+                          setIsRemoveLessonModalOpen(true);
+                        }}
+                        className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                        title="Remove lesson"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <ChevronRight className="h-5 w-5 text-gray-400" />
@@ -584,7 +787,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           </table>
         </div>
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Course Confirmation Modal */}
         <ConfirmModal
           isOpen={isDeleteModalOpen}
           onClose={() => {
@@ -596,6 +799,40 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           message={`Are you sure you want to delete "${deletingCourse?.name}"? This will also delete all lessons in this course. This action cannot be undone.`}
           confirmLabel="Delete"
           confirmVariant="destructive"
+          isLoading={isLoading}
+        />
+
+        {/* Remove Lesson Confirmation Modal */}
+        <ConfirmModal
+          isOpen={isRemoveLessonModalOpen}
+          onClose={() => {
+            setIsRemoveLessonModalOpen(false);
+            setRemovingLesson(null);
+          }}
+          onConfirm={handleRemoveLesson}
+          title="Remove Lesson"
+          message={`Remove "Lesson #${removingLesson?.number}: ${removingLesson?.title}" from this course? The lesson will still exist and can be added to another course.`}
+          confirmLabel="Remove"
+          confirmVariant="destructive"
+          isLoading={isLoading}
+        />
+
+        {/* Publish/Unpublish Course Confirmation Modal */}
+        <ConfirmModal
+          isOpen={isPublishCourseModalOpen}
+          onClose={() => {
+            setIsPublishCourseModalOpen(false);
+            setCourseToTogglePublish(null);
+          }}
+          onConfirm={handleConfirmTogglePublish}
+          title={courseToTogglePublish?.is_published ? "Unpublish Course" : "Publish Course"}
+          message={
+            courseToTogglePublish?.is_published
+              ? `Are you sure you want to unpublish "${courseToTogglePublish?.name}"? It will no longer be visible to users.`
+              : `Are you sure you want to publish "${courseToTogglePublish?.name}"? It will become visible to users.`
+          }
+          confirmLabel={courseToTogglePublish?.is_published ? "Unpublish" : "Publish"}
+          confirmVariant={courseToTogglePublish?.is_published ? "destructive" : "default"}
           isLoading={isLoading}
         />
       </div>
@@ -646,6 +883,11 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
+              {filterLanguageId && (
+                <th className="w-20 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Order
+                </th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Course
               </th>
@@ -672,19 +914,58 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           <tbody className="divide-y divide-gray-200">
             {filteredCourses.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={filterLanguageId ? 8 : 7} className="px-6 py-12 text-center text-gray-500">
                   {languages.length === 0
                     ? "Add a language first before creating courses."
                     : "No courses yet. Add your first course to get started."}
                 </td>
               </tr>
             ) : (
-              filteredCourses.map((course) => (
+              filteredCourses.map((course, index) => (
                 <tr
                   key={course.id}
                   onClick={() => selectCourse(course)}
                   className="cursor-pointer hover:bg-gray-50"
                 >
+                  {filterLanguageId && (
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <div className="flex items-center gap-1">
+                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveCourse(course.id, "up");
+                            }}
+                            disabled={index === 0}
+                            className={`rounded p-0.5 ${
+                              index === 0
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveCourse(course.id, "down");
+                            }}
+                            disabled={index === filteredCourses.length - 1}
+                            className={`rounded p-0.5 ${
+                              index === filteredCourses.length - 1
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-medium text-gray-900">{course.name}</p>

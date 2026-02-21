@@ -1,6 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { Course, Language } from "@/types/database";
 
+export interface GetCourseByIdResult {
+  course: Course | null;
+  language: Language | null;
+}
+
+/**
+ * Get a single course by ID with its language
+ */
+export async function getCourseById(courseId: string): Promise<GetCourseByIdResult> {
+  const supabase = await createClient();
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("*, languages(*)")
+    .eq("id", courseId)
+    .single();
+
+  if (!course) {
+    return { course: null, language: null };
+  }
+
+  // Extract language from joined data
+  const language = course.languages as Language | null;
+
+  // Return course without the nested languages object
+  const { languages: _, ...courseWithoutLanguages } = course;
+
+  return {
+    course: courseWithoutLanguages as Course,
+    language,
+  };
+}
+
 export interface CourseWithProgress extends Course {
   lessonsCompleted: number;
   totalLessons: number;
@@ -28,11 +61,12 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     .eq("id", languageId)
     .single();
 
-  // Fetch courses for this language
+  // Fetch published courses for this language
   const { data: courses, error: coursesError } = await supabase
     .from("courses")
     .select("*")
     .eq("language_id", languageId)
+    .eq("is_published", true)
     .order("sort_order");
 
   if (coursesError) {
@@ -87,7 +121,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
   }
 
   // Get user's lesson progress if authenticated
-  let lessonsCompletedByCourse: Record<string, number> = {};
+  const lessonsCompletedByCourse: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
     const { data: lessonProgress } = await supabase

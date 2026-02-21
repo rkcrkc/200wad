@@ -79,6 +79,43 @@ export function getMistakeCount(userAnswer: string, correctAnswer: string): numb
 }
 
 // ============================================================================
+// MULTIPLE VALID ANSWERS
+// ============================================================================
+
+/**
+ * Check if the user's answer exactly matches any of the valid answers (for Study Mode)
+ * Returns true if normalized answer matches any valid answer exactly
+ */
+export function isExactMatch(userAnswer: string, validAnswers: string[]): boolean {
+  const normalizedUser = normalizeAnswer(userAnswer);
+  return validAnswers.some(
+    (validAnswer) => normalizeAnswer(validAnswer) === normalizedUser
+  );
+}
+
+/**
+ * Find the best matching answer from a list of valid answers (for Test Mode)
+ * Returns the answer with the lowest mistake count
+ */
+export function getBestMatch(
+  userAnswer: string,
+  validAnswers: string[]
+): { answer: string; mistakeCount: number } {
+  let bestAnswer = validAnswers[0];
+  let lowestMistakeCount = getMistakeCount(userAnswer, validAnswers[0]);
+
+  for (let i = 1; i < validAnswers.length; i++) {
+    const mistakeCount = getMistakeCount(userAnswer, validAnswers[i]);
+    if (mistakeCount < lowestMistakeCount) {
+      lowestMistakeCount = mistakeCount;
+      bestAnswer = validAnswers[i];
+    }
+  }
+
+  return { answer: bestAnswer, mistakeCount: lowestMistakeCount };
+}
+
+// ============================================================================
 // ANSWER GRADING
 // ============================================================================
 

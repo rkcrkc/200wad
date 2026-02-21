@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   AdminModal,
   ConfirmModal,
@@ -23,6 +24,7 @@ interface Language {
   native_name: string;
   code: string;
   sort_order: number | null;
+  is_visible: boolean;
   courseCount: number;
   created_at: string | null;
 }
@@ -43,12 +45,17 @@ interface FormErrors {
   code?: string;
 }
 
+type SortKey = "code" | "name" | "native_name" | "courseCount" | "is_visible";
+type SortDirection = "asc" | "desc";
+
 export function LanguagesClient({ languages }: LanguagesClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
   const [editingLanguage, setEditingLanguage] = useState<Language | null>(null);
   const [deletingLanguage, setDeletingLanguage] = useState<Language | null>(null);
+  const [togglingLanguage, setTogglingLanguage] = useState<Language | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -56,6 +63,73 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     code: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const sortedLanguages = useMemo(() => {
+    return [...languages].sort((a, b) => {
+      let aVal: string | number | boolean;
+      let bVal: string | number | boolean;
+
+      switch (sortKey) {
+        case "code":
+          aVal = a.code.toLowerCase();
+          bVal = b.code.toLowerCase();
+          break;
+        case "name":
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case "native_name":
+          aVal = a.native_name.toLowerCase();
+          bVal = b.native_name.toLowerCase();
+          break;
+        case "courseCount":
+          aVal = a.courseCount;
+          bVal = b.courseCount;
+          break;
+        case "is_visible":
+          aVal = a.is_visible ? 1 : 0;
+          bVal = b.is_visible ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [languages, sortKey, sortDirection]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortHeader = ({ column, label }: { column: SortKey; label: string }) => (
+    <th
+      className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+      onClick={() => handleSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortKey === column ? (
+          sortDirection === "asc" ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <span className="w-4" />
+        )}
+      </div>
+    </th>
+  );
 
   const resetForm = () => {
     setFormData({ name: "", native_name: "", code: "" });
@@ -151,6 +225,30 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     }
   };
 
+  const openVisibilityModal = (language: Language) => {
+    setTogglingLanguage(language);
+    setIsVisibilityModalOpen(true);
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!togglingLanguage) return;
+    setIsLoading(true);
+    try {
+      const result = await updateLanguage(togglingLanguage.id, {
+        is_visible: !togglingLanguage.is_visible,
+      });
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      setIsVisibilityModalOpen(false);
+      setTogglingLanguage(null);
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -175,32 +273,25 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Flag
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Code
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Native Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Courses
-              </th>
+              <SortHeader column="code" label="Code" />
+              <SortHeader column="name" label="Name" />
+              <SortHeader column="native_name" label="Native Name" />
+              <SortHeader column="courseCount" label="Courses" />
+              <SortHeader column="is_visible" label="Visible" />
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {languages.length === 0 ? (
+            {sortedLanguages.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                   No languages yet. Add your first language to get started.
                 </td>
               </tr>
             ) : (
-              languages.map((language) => (
+              sortedLanguages.map((language) => (
                 <tr key={language.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4 text-2xl">
                     {getFlagFromCode(language.code)}
@@ -216,6 +307,12 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                     {language.courseCount}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <Switch
+                      checked={language.is_visible}
+                      onCheckedChange={() => openVisibilityModal(language)}
+                    />
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -355,6 +452,25 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
         message={`Are you sure you want to delete "${deletingLanguage?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         confirmVariant="destructive"
+        isLoading={isLoading}
+      />
+
+      {/* Visibility Toggle Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isVisibilityModalOpen}
+        onClose={() => {
+          setIsVisibilityModalOpen(false);
+          setTogglingLanguage(null);
+        }}
+        onConfirm={handleToggleVisibility}
+        title={togglingLanguage?.is_visible ? "Hide Language" : "Show Language"}
+        message={
+          togglingLanguage?.is_visible
+            ? `Are you sure you want to hide "${togglingLanguage?.name}"? It will no longer be visible to users.`
+            : `Are you sure you want to show "${togglingLanguage?.name}"? It will become visible to users.`
+        }
+        confirmLabel={togglingLanguage?.is_visible ? "Hide" : "Show"}
+        confirmVariant={togglingLanguage?.is_visible ? "destructive" : "default"}
         isLoading={isLoading}
       />
     </div>

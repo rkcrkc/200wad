@@ -29,6 +29,7 @@ interface WordWithLessons {
   headword: string;
   lemma: string;
   english: string;
+  alternate_answers: string[] | null;
   language_id: string;
   category: string | null;
   part_of_speech: string | null;
@@ -91,6 +92,7 @@ async function getData(searchParams: SearchParams) {
       headword,
       lemma,
       english,
+      alternate_answers,
       language_id,
       category,
       part_of_speech,

@@ -9,32 +9,43 @@ export interface LanguageWithProgress extends Language {
   isCurrentLanguage: boolean;
 }
 
+export interface GetLanguagesOptions {
+  visibleOnly?: boolean;
+}
+
 export interface GetLanguagesResult {
   languages: LanguageWithProgress[];
   isGuest: boolean;
 }
 
-export async function getLanguages(): Promise<GetLanguagesResult> {
+export async function getLanguages(options: GetLanguagesOptions = { visibleOnly: true }): Promise<GetLanguagesResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch all languages
-  const { data: languages, error: langError } = await supabase
+  // Fetch languages (filtered by visibility if requested)
+  let query = supabase
     .from("languages")
     .select("*")
     .order("sort_order");
+
+  if (options.visibleOnly) {
+    query = query.eq("is_visible", true);
+  }
+
+  const { data: languages, error: langError } = await query;
 
   if (langError) {
     console.error("Error fetching languages:", langError);
     return { languages: [], isGuest: !user };
   }
 
-  // Fetch course counts per language
+  // Fetch published course counts per language
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, language_id");
+    .select("id, language_id")
+    .eq("is_published", true);
 
   // Build course count map
   const courseCountByLanguage: Record<string, number> = {};

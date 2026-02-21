@@ -88,6 +88,7 @@ interface Word {
   grammatical_number: string | null;
   notes: string | null;
   admin_notes: string | null;
+  alternate_answers: string[] | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
   audio_url_english: string | null;
@@ -101,6 +102,7 @@ interface Word {
 interface WordsClientProps {
   lesson: Lesson;
   words: Word[];
+  positionInOrder?: number | null;
 }
 
 interface FormData {
@@ -115,6 +117,7 @@ interface FormData {
   grammatical_number: string;
   notes: string;
   admin_notes: string;
+  alternate_answers: string[];
   memory_trigger_text: string;
 }
 
@@ -168,7 +171,7 @@ const transitivityOptions = [
   { value: "vt_vi", label: "Both (vt/vi)" },
 ];
 
-export function WordsClient({ lesson, words }: WordsClientProps) {
+export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -187,8 +190,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
     grammatical_number: "sg",
     notes: "",
     admin_notes: "",
+    alternate_answers: [],
     memory_trigger_text: "",
   });
+  const [newAlternateAnswer, setNewAlternateAnswer] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [fileUploads, setFileUploads] = useState<FileUploads>({
     triggerImage: null,
@@ -298,8 +303,10 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       grammatical_number: "sg",
       notes: "",
       admin_notes: "",
+      alternate_answers: [],
       memory_trigger_text: "",
     });
+    setNewAlternateAnswer("");
     setErrors({});
     setFileUploads({
       triggerImage: null,
@@ -340,6 +347,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
       grammatical_number: word.grammatical_number || "sg",
       notes: word.notes || "",
       admin_notes: word.admin_notes || "",
+      alternate_answers: word.alternate_answers || [],
       memory_trigger_text: word.memory_trigger_text || "",
     });
     setPreviewUrls({
@@ -390,6 +398,7 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
         grammatical_number: formData.grammatical_number || null,
         notes: formData.notes || null,
         admin_notes: formData.admin_notes || null,
+        alternate_answers: formData.alternate_answers.length > 0 ? formData.alternate_answers : null,
         memory_trigger_text: formData.memory_trigger_text || null,
       };
 
@@ -566,11 +575,18 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
               {lesson.emoji && <span>{lesson.emoji}</span>}
-              Lesson #{lesson.number}: {lesson.title}
+              {lesson.title}
             </h1>
+            <p className="mt-1 text-xs text-gray-500">
+              Lesson ID: {lesson.number}
+            </p>
             <p className="mt-1 text-gray-600">
-              {getFlagFromCode(lesson.course?.language?.code)} {lesson.course?.name} &middot;{" "}
-              {words.length} word{words.length !== 1 ? "s" : ""}
+              {getFlagFromCode(lesson.course?.language?.code)}{" "}
+              <strong>Course:</strong> {lesson.course?.name || "Not assigned"}
+              {lesson.course && positionInOrder != null && (
+                <span className="text-gray-500"> · Lesson {positionInOrder}</span>
+              )}{" "}
+              &middot; {words.length} word{words.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button onClick={openCreateModal}>
@@ -778,21 +794,98 @@ export function WordsClient({ lesson, words }: WordsClientProps) {
             </AdminFormField>
           </div>
 
-          <AdminFormField
-            label="Lemma (base form)"
-            name="lemma"
-            hint="Optional. Used for search/grouping. Defaults to headword if empty."
-          >
-            <AdminInput
-              id="lemma"
+          <div className="grid grid-cols-2 gap-4">
+            <AdminFormField
+              label="Lemma (base form)"
               name="lemma"
-              value={formData.lemma}
-              onChange={(e) =>
-                setFormData({ ...formData, lemma: e.target.value })
-              }
-              placeholder="e.g., avventura"
-            />
-          </AdminFormField>
+              hint="Optional. Used for search/grouping. Defaults to headword if empty."
+            >
+              <AdminInput
+                id="lemma"
+                name="lemma"
+                value={formData.lemma}
+                onChange={(e) =>
+                  setFormData({ ...formData, lemma: e.target.value })
+                }
+                placeholder="e.g., avventura"
+              />
+            </AdminFormField>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Alternate Answers
+                <span className="ml-1 text-xs font-normal text-gray-500">
+                  (other spellings accepted in tests)
+                </span>
+              </label>
+              {formData.alternate_answers.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {formData.alternate_answers.map((answer, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                    >
+                      {answer}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            alternate_answers: formData.alternate_answers.filter(
+                              (_, i) => i !== index
+                            ),
+                          })
+                        }
+                        className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                        title="Remove"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newAlternateAnswer}
+                  onChange={(e) => setNewAlternateAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newAlternateAnswer.trim()) {
+                      e.preventDefault();
+                      if (!formData.alternate_answers.includes(newAlternateAnswer.trim())) {
+                        setFormData({
+                          ...formData,
+                          alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                        });
+                      }
+                      setNewAlternateAnswer("");
+                    }
+                  }}
+                  placeholder="Type and press Enter to add"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (newAlternateAnswer.trim() && !formData.alternate_answers.includes(newAlternateAnswer.trim())) {
+                      setFormData({
+                        ...formData,
+                        alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                      });
+                      setNewAlternateAnswer("");
+                    }
+                  }}
+                  disabled={!newAlternateAnswer.trim()}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <AdminFormField label="Category" name="category">

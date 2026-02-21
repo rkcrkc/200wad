@@ -42,6 +42,7 @@ import {
   createWord,
   updateWord,
   removeWordFromLesson,
+  reorderWords,
 } from "@/lib/mutations/admin/words";
 import {
   createSentence,
@@ -983,6 +984,30 @@ export function LessonsClient({
     }
   };
 
+  const handleMoveWord = async (wordId: string, direction: "up" | "down") => {
+    if (!selectedLesson) return;
+    const currentIndex = words.findIndex((w) => w.id === wordId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= words.length) return;
+
+    // Swap the words
+    const newOrder = [...words];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+
+    // Optimistically update the UI
+    setWords(newOrder);
+
+    // Persist the change
+    const result = await reorderWords(selectedLesson.id, newOrder.map((w) => w.id));
+    if (!result.success) {
+      // Revert on failure
+      setWords(words);
+      alert(result.error || "Failed to reorder words");
+    }
+  };
+
   const handleAddSentence = async () => {
     if (!editingWord || !newSentence.foreign_sentence || !newSentence.english_sentence) {
       return;
@@ -1160,6 +1185,7 @@ export function LessonsClient({
                       </Button>
                     </div>
                     <Button
+                      type="button"
                       variant="destructive"
                       size="sm"
                       onClick={handleInlineDelete}
@@ -1176,7 +1202,7 @@ export function LessonsClient({
                   <div className="flex items-center gap-3">
                     <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
                       {selectedLesson.emoji && <span>{selectedLesson.emoji}</span>}
-                      Lesson #{selectedLesson.number}: {selectedLesson.title}
+                      {selectedLesson.title}
                     </h1>
                     <button
                       onClick={startEditingLessonDetails}
@@ -1186,10 +1212,19 @@ export function LessonsClient({
                       <Pencil className="h-4 w-4" />
                     </button>
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Lesson ID: {selectedLesson.number}
+                  </p>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
                     <span className="inline-flex items-center gap-1">
                       {getFlagFromCode(selectedLesson.course?.language?.code)}
                       <strong>Course:</strong> {selectedLesson.course?.name || "Not assigned"}
+                      {selectedLesson.course && (() => {
+                        const pos = filteredLessons.findIndex((l) => l.id === selectedLesson.id) + 1;
+                        return pos > 0 ? (
+                          <span className="text-gray-500"> · Lesson {pos}</span>
+                        ) : null;
+                      })()}
                     </span>
                     <span className="text-gray-300">|</span>
                     <span>{words.length} word{words.length !== 1 ? "s" : ""}</span>
@@ -1249,6 +1284,9 @@ export function LessonsClient({
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="w-20 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  #
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   English
                 </th>
@@ -1269,23 +1307,60 @@ export function LessonsClient({
             <tbody className="divide-y divide-gray-200">
               {isLoadingWords ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     Loading words...
                   </td>
                 </tr>
               ) : words.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     No words yet. Add your first word to this lesson.
                   </td>
                 </tr>
               ) : (
-                words.map((word) => (
+                words.map((word, index) => (
                   <tr
                     key={word.id}
                     onClick={() => openEditWordModal(word)}
                     className="cursor-pointer hover:bg-gray-50"
                   >
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <div className="flex items-center gap-1">
+                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveWord(word.id, "up");
+                            }}
+                            disabled={index === 0}
+                            className={`rounded p-0.5 ${
+                              index === 0
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveWord(word.id, "down");
+                            }}
+                            disabled={index === words.length - 1}
+                            className={`rounded p-0.5 ${
+                              index === words.length - 1
+                                ? "text-gray-200 cursor-not-allowed"
+                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            }`}
+                            title="Move down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {word.english}
                     </td>
@@ -1887,6 +1962,21 @@ export function LessonsClient({
           confirmVariant="destructive"
           isLoading={isLoading}
         />
+
+        {/* Delete Lesson Confirmation Modal */}
+        <ConfirmModal
+          isOpen={isDeleteLessonModalOpen}
+          onClose={() => {
+            setIsDeleteLessonModalOpen(false);
+            setDeletingLesson(null);
+          }}
+          onConfirm={handleDeleteLesson}
+          title="Delete Lesson"
+          message={`Are you sure you want to delete "Lesson #${deletingLesson?.number}: ${deletingLesson?.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          confirmVariant="destructive"
+          isLoading={isLoading}
+        />
       </div>
     );
   }
@@ -2011,6 +2101,9 @@ export function LessonsClient({
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                     {getFlagFromCode(lesson.course?.language?.code)} {lesson.course?.name}
+                    {lesson.course && (
+                      <span className="text-gray-500"> · Lesson #{lesson.number}</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                     {lesson.word_count ?? 0}

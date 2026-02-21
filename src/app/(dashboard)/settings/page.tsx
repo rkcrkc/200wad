@@ -7,6 +7,7 @@ import {
   DangerZoneSection,
   ErrorState,
 } from "@/components/settings";
+import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 
 export default async function SettingsPage() {
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
   // Guest user prompt
   if (isGuest) {
     return (
-      <div className="mx-auto max-w-4xl">
+      <PageContainer size="sm">
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
           <h1 className="mb-4 text-3xl font-semibold">Create an Account</h1>
           <p className="mb-6 text-gray-600">
@@ -31,17 +32,21 @@ export default async function SettingsPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   // Error state
   if (error || !settings) {
-    return <ErrorState error={error} />;
+    return (
+      <PageContainer size="sm">
+        <ErrorState error={error} />
+      </PageContainer>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <PageContainer size="sm">
       <h1 className="mb-8 text-3xl font-semibold">Account Settings</h1>
 
       <ProfileSection settings={settings} />
@@ -54,6 +59,6 @@ export default async function SettingsPage() {
       />
 
       <DangerZoneSection />
-    </div>
+    </PageContainer>
   );
 }
