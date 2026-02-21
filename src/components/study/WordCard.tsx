@@ -7,8 +7,6 @@ interface WordCardProps {
   partOfSpeech: string | null;
   englishWord: string;
   foreignWord: string;
-  englishFlag?: string;
-  foreignFlag?: string;
   showForeign: boolean;
   playingAudioType: AudioType | null;
   onPlayEnglishAudio: () => void;
@@ -23,8 +21,6 @@ export function WordCard({
   partOfSpeech,
   englishWord,
   foreignWord,
-  englishFlag = "🇬🇧",
-  foreignFlag = "🇮🇹",
   showForeign,
   playingAudioType,
   onPlayEnglishAudio,
@@ -47,7 +43,7 @@ export function WordCard({
       {/* Part of speech */}
       {partOfSpeech && (
         <div className="mb-4">
-          <span className="text-xs-medium uppercase tracking-wide text-foreground/50">
+          <span className="study-card-label uppercase tracking-wide text-foreground/50">
             {partOfSpeech}
           </span>
         </div>
@@ -58,7 +54,6 @@ export function WordCard({
         {/* English word row */}
         <div className="flex items-center gap-4 rounded-lg">
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">{englishFlag}</span>
             <AudioButton
               onClick={onPlayEnglishAudio}
               isPlaying={isPlayingEnglish}
@@ -81,7 +76,6 @@ export function WordCard({
         {showForeign ? (
           <div className="flex items-center gap-4 rounded-lg">
             <div className="flex items-center gap-2.5">
-              <span className="text-xl">{foreignFlag}</span>
               <AudioButton
                 onClick={onPlayForeignAudio}
                 isPlaying={isPlayingForeign}

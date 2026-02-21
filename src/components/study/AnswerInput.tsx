@@ -4,13 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isExactMatch } from "@/lib/utils/scoring";
 
 type FeedbackType = "correct" | "incorrect" | null;
 
 interface AnswerInputProps {
   languageName: string;
   languageFlag: string;
-  correctAnswer: string;
+  validAnswers: string[];
   isVisible: boolean;
   isLastWord: boolean;
   onSubmit: (isCorrect: boolean, userAnswer: string) => void;
@@ -20,7 +21,7 @@ interface AnswerInputProps {
 export function AnswerInput({
   languageName,
   languageFlag,
-  correctAnswer,
+  validAnswers,
   isVisible,
   isLastWord,
   onSubmit,
@@ -45,22 +46,37 @@ export function AnswerInput({
       setFeedback(null);
       setSubmittedAnswer("");
     }
-  }, [isVisible, correctAnswer]);
+  }, [isVisible, validAnswers]);
+
+  // Global keydown listener for Enter when feedback is shown
+  // (input is disabled so it can't receive key events directly)
+  useEffect(() => {
+    if (!feedback) return;
+
+    let handler: ((e: KeyboardEvent) => void) | null = null;
+
+    // Small delay to prevent the same Enter keypress from triggering next word
+    const timeoutId = setTimeout(() => {
+      handler = (e: KeyboardEvent) => {
+        if (e.key === "Enter") {
+          onNextWord();
+        }
+      };
+      window.addEventListener("keydown", handler);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (handler) {
+        window.removeEventListener("keydown", handler);
+      }
+    };
+  }, [feedback, onNextWord]);
 
   const handleSubmit = () => {
     if (!input.trim()) return;
 
-    // Normalize answers for comparison
-    const normalizedCorrect = correctAnswer
-      .toLowerCase()
-      .replace(/[!?.,'"]/g, "")
-      .trim();
-    const normalizedInput = input
-      .toLowerCase()
-      .replace(/[!?.,'"]/g, "")
-      .trim();
-
-    const isCorrect = normalizedInput === normalizedCorrect;
+    const isCorrect = isExactMatch(input, validAnswers);
     setFeedback(isCorrect ? "correct" : "incorrect");
     setSubmittedAnswer(input);
     onSubmit(isCorrect, input);
@@ -81,7 +97,7 @@ export function AnswerInput({
   }
 
   return (
-    <div className="px-6 py-3">
+    <div className="px-6 pt-3 pb-0">
       <div
         className={cn(
           "flex items-center gap-4 rounded-2xl border-2 bg-white px-6 py-4 transition-colors",
@@ -100,7 +116,7 @@ export function AnswerInput({
             placeholder={`Type the word in ${languageName} ${languageFlag}...`}
             disabled={!!feedback}
             className={cn(
-              "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-warning/60",
+              "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-primary/60",
               feedback === "incorrect" && "text-red-500",
               feedback === "correct" && "text-foreground"
             )}

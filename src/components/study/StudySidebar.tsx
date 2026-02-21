@@ -86,14 +86,14 @@ export function StudySidebar({
       {/* Notes Card */}
       <div className={cardClasses}>
         <div className="flex flex-col gap-5 p-6">
-          <span className="text-xs-medium uppercase tracking-wide text-foreground/50">
+          <span className="study-card-label uppercase tracking-wide text-foreground/50">
             NOTES
           </span>
 
           <div className="flex flex-col gap-5">
             {/* System notes */}
             {systemNotes && (
-              <p className="text-regular-medium text-foreground">{systemNotes}</p>
+              <p className="text-small-regular text-foreground whitespace-pre-wrap">{systemNotes}</p>
             )}
 
             {(systemNotes || userNotes || isEditingNotes) && (
@@ -107,7 +107,7 @@ export function StudySidebar({
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
                   placeholder="Add your notes here..."
-                  className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-regular-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-small-regular focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   autoFocus
                 />
                 <div className="flex gap-2">
@@ -127,7 +127,7 @@ export function StudySidebar({
               </div>
             ) : userNotes ? (
               <div className="flex flex-col gap-2">
-                <p className="text-regular-medium text-foreground">{userNotes}</p>
+                <p className="text-small-regular text-foreground whitespace-pre-wrap">{userNotes}</p>
                 <button
                   onClick={() => setIsEditingNotes(true)}
                   className="self-start text-small-medium text-foreground/50 transition-colors hover:text-foreground"
@@ -138,7 +138,7 @@ export function StudySidebar({
             ) : (
               <button
                 onClick={() => setIsEditingNotes(true)}
-                className="self-start text-regular-medium text-foreground/50 transition-colors hover:text-foreground"
+                className="self-start text-small-regular text-foreground/50 transition-colors hover:text-foreground"
               >
                 + Add notes
               </button>
@@ -151,9 +151,9 @@ export function StudySidebar({
       {exampleSentences.length > 0 && (
         <div className={cardClasses}>
           <div className="flex flex-col gap-5 p-6">
-            <span className="text-xs-medium uppercase tracking-wide text-foreground/50">
-              EXAMPLE SENTENCES
-            </span>
+          <span className="study-card-label uppercase tracking-wide text-foreground/50">
+            EXAMPLE SENTENCES
+          </span>
 
             <div className="flex flex-col gap-5">
               {exampleSentences.map((sentence, index) => (
@@ -171,7 +171,7 @@ export function StudySidebar({
                       </div>
                     )}
                     <div className="flex flex-1 flex-col gap-2">
-                      <p className="text-regular-medium text-foreground">
+                      <p className="text-small-regular text-foreground">
                         {sentence.foreign_sentence}
                       </p>
                       <p className="text-small-regular text-foreground/60">
@@ -194,9 +194,9 @@ export function StudySidebar({
       {relatedWords.length > 0 && (
         <div className={cardClasses}>
           <div className="flex flex-col gap-5 p-6">
-            <span className="text-xs-medium uppercase tracking-wide text-foreground/50">
-              RELATED WORDS
-            </span>
+          <span className="study-card-label uppercase tracking-wide text-foreground/50">
+            RELATED WORDS
+          </span>
 
             <div className="flex flex-col gap-5">
               {relatedWords.map((word, index) => (
@@ -219,7 +219,7 @@ export function StudySidebar({
                       </div>
                     )}
                     <div className="flex flex-1 flex-col gap-1">
-                      <p className="text-regular-medium text-foreground">
+                      <p className="text-small-regular text-foreground">
                         {word.english}
                       </p>
                       <p className="text-small-regular text-foreground/60">

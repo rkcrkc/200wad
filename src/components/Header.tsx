@@ -39,7 +39,7 @@ export function Header({ showSidebar = true }: HeaderProps) {
     return user.email.charAt(0).toUpperCase();
   };
 
-  // Header is always full-width fixed at top
+  // Header is always full-width fixed at top so it stays visible when content scrolls
   const headerClasses = "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
 
   return (

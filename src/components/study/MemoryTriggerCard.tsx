@@ -110,14 +110,16 @@ export function MemoryTriggerCard({
   const showTrigger = clueLevel !== undefined ? clueLevel >= 2 : isVisible;
   const showNothing = clueLevel !== undefined ? clueLevel === 0 : !isVisible;
 
-  // Full skeleton when nothing visible
+  // Full skeleton when nothing visible (header/text above image)
   if (showNothing) {
     return (
       <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
-        <div className="p-6">
+        <div className="flex flex-col gap-5 p-6">
+          <div className="flex flex-col gap-3">
+            <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+            <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
+          </div>
           <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
-          <div className="mt-5 h-4 w-32 animate-pulse rounded bg-gray-100" />
-          <div className="mt-5 h-8 w-full animate-pulse rounded bg-gray-100" />
         </div>
       </div>
     );
@@ -126,6 +128,35 @@ export function MemoryTriggerCard({
   return (
     <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
       <div className="flex flex-col gap-5 p-6">
+        {/* Header + trigger text - above image, gap 0.75rem */}
+        <div className="flex flex-col gap-3">
+          {/* Label and Audio - visible at clueLevel 2+ */}
+          {showTrigger ? (
+            <div className="flex items-center justify-between">
+              <span className="study-card-label uppercase tracking-wide text-foreground/50">
+                MEMORY TRIGGER
+              </span>
+              <AudioButton
+                onClick={onPlayTriggerAudio}
+                isPlaying={isPlayingTrigger}
+                playingColor="#0B6CFF"
+                idleColor="#141515"
+              />
+            </div>
+          ) : (
+            <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+          )}
+
+          {/* Trigger Text with highlighting - visible at clueLevel 2+ */}
+          {showTrigger && triggerText ? (
+            <p className="text-2xl font-medium leading-relaxed">
+              {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger)}
+            </p>
+          ) : (
+            <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
+          )}
+        </div>
+
         {/* Trigger Image - visible at clueLevel 1+ */}
         {showImage && imageUrl ? (
           <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
@@ -133,7 +164,7 @@ export function MemoryTriggerCard({
               src={imageUrl}
               alt="Memory trigger"
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 768px) 100vw, 730px"
             />
           </div>
@@ -145,32 +176,6 @@ export function MemoryTriggerCard({
         ) : (
           // Image skeleton when clueLevel=0 but should show card
           <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
-        )}
-
-        {/* Label and Audio - visible at clueLevel 2+ */}
-        {showTrigger ? (
-          <div className="flex items-center justify-between">
-            <span className="text-xs-medium uppercase tracking-wide text-foreground/50">
-              MEMORY TRIGGER
-            </span>
-            <AudioButton
-              onClick={onPlayTriggerAudio}
-              isPlaying={isPlayingTrigger}
-              playingColor="#0B6CFF"
-              idleColor="#141515"
-            />
-          </div>
-        ) : (
-          <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
-        )}
-
-        {/* Trigger Text with highlighting - visible at clueLevel 2+ */}
-        {showTrigger && triggerText ? (
-          <p className="text-2xl font-medium leading-relaxed">
-            {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger)}
-          </p>
-        ) : (
-          <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
         )}
       </div>
     </div>

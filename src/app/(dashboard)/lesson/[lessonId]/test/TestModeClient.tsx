@@ -16,7 +16,6 @@ import {
   type TestAnswerResult,
   type TestWordResult,
 } from "@/components/study";
-import { Sidebar } from "@/components/Sidebar";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
@@ -63,6 +62,7 @@ export function TestModeClient({
 
   // Set course context for the sidebar
   useSetCourseContext({
+    languageId: language?.id,
     languageFlag,
     languageName: language?.name,
     courseId: course?.id,
@@ -413,12 +413,9 @@ export function TestModeClient({
   const currentUserNotes = currentWord?.progress?.user_notes || null;
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar - Fixed on left */}
-      <Sidebar />
-
-      {/* Main content area - offset by sidebar */}
-      <div className="ml-[240px] flex min-h-screen flex-1 flex-col">
+    <div className="flex h-screen overflow-hidden">
+      {/* Main content area - no sidebar in test mode */}
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Custom navbar */}
         <StudyNavbar
           languageFlag={languageFlag}
@@ -426,20 +423,19 @@ export function TestModeClient({
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitTest}
           mode="test"
+          lessonNumber={lesson.number}
+          lessonTitle={lesson.title}
         />
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-[160px] pt-6">
-          <div className="flex gap-6">
-            {/* Left column - Main content */}
-            <div className="flex w-[700px] flex-col gap-6">
-              {/* Word Card */}
+        {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
+          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
+            {/* Word Card - full width */}
+            <div className="w-full">
               <WordCard
                 partOfSpeech={currentWord?.part_of_speech}
                 englishWord={currentWord?.english}
                 foreignWord={currentWord?.headword}
-                englishFlag="🇬🇧"
-                foreignFlag={languageFlag}
                 showForeign={hasSubmittedAnswer}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -455,45 +451,47 @@ export function TestModeClient({
                 mode="test"
                 hasSubmitted={hasSubmittedAnswer}
               />
-
-              {/* Memory Trigger Card with clue-based reveal */}
-              <MemoryTriggerCard
-                imageUrl={currentWord?.memory_trigger_image_url}
-                triggerText={currentWord?.memory_trigger_text}
-                englishWord={currentWord?.english}
-                foreignWord={currentWord?.headword}
-                isVisible={hasSubmittedAnswer}
-                playingAudioType={currentAudioType}
-                onPlayTriggerAudio={() => {
-                  if (currentWord?.audio_url_trigger) {
-                    playAudio(currentWord.audio_url_trigger, "trigger");
-                  }
-                }}
-                clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
-              />
             </div>
 
-            {/* Right column - Notes/Sentences Sidebar */}
-            <div className="flex-1">
-              <StudySidebar
-                systemNotes={currentWord?.notes}
-                userNotes={currentUserNotes}
-                exampleSentences={currentWord?.exampleSentences}
-                relatedWords={currentWord?.relatedWords}
-                isEnabled={hasSubmittedAnswer}
-                onUserNotesChange={() => {}} // Notes editing not supported in test mode
-              />
+            {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
+            <div className="flex gap-6">
+              <div className="flex w-[700px] flex-col gap-6">
+                <MemoryTriggerCard
+                  imageUrl={currentWord?.memory_trigger_image_url}
+                  triggerText={currentWord?.memory_trigger_text}
+                  englishWord={currentWord?.english}
+                  foreignWord={currentWord?.headword}
+                  isVisible={hasSubmittedAnswer}
+                  playingAudioType={currentAudioType}
+                  onPlayTriggerAudio={() => {
+                    if (currentWord?.audio_url_trigger) {
+                      playAudio(currentWord.audio_url_trigger, "trigger");
+                    }
+                  }}
+                  clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
+                />
+              </div>
+              <div className="flex-1">
+                <StudySidebar
+                  systemNotes={currentWord?.notes}
+                  userNotes={currentUserNotes}
+                  exampleSentences={currentWord?.exampleSentences}
+                  relatedWords={currentWord?.relatedWords}
+                  isEnabled={hasSubmittedAnswer}
+                  onUserNotesChange={() => {}} // Notes editing not supported in test mode
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Fixed bottom container */}
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+        <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           {/* Test Answer Input */}
           <TestAnswerInput
             languageName={language?.name || "Italian"}
             languageFlag={languageFlag}
-            correctAnswer={currentWord?.headword}
+            validAnswers={[currentWord?.headword || "", ...(currentWord?.alternate_answers || [])]}
             isVisible={true}
             isLastWord={isLastWord}
             clueLevel={clueLevel}
@@ -504,8 +502,6 @@ export function TestModeClient({
 
           {/* Action Bar */}
           <StudyActionBar
-            lessonNumber={lesson.number}
-            lessonTitle={lesson.title}
             currentWordIndex={currentWordIndex}
             totalWords={words.length}
             completedWords={completedWordIndices}

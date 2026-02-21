@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  getMistakeCount,
+  getBestMatch,
   calculatePoints,
   getMaxPoints,
   getAnswerGrade,
@@ -29,7 +29,7 @@ export interface TestAnswerResult {
 interface TestAnswerInputProps {
   languageName: string;
   languageFlag: string;
-  correctAnswer: string;
+  validAnswers: string[];
   isVisible: boolean;
   isLastWord: boolean;
   clueLevel: 0 | 1 | 2;
@@ -41,7 +41,7 @@ interface TestAnswerInputProps {
 export function TestAnswerInput({
   languageName,
   languageFlag,
-  correctAnswer,
+  validAnswers,
   isVisible,
   isLastWord,
   clueLevel,
@@ -64,19 +64,19 @@ export function TestAnswerInput({
     }
   }, [isVisible, result, isLocked]);
 
-  // Reset local state when word changes (correctAnswer changes)
+  // Reset local state when word changes (validAnswers changes)
   // Only reset if there's no existing result (word not already answered)
   useEffect(() => {
     if (isVisible && !existingResult) {
       setInput("");
       setLocalResult(null);
     }
-  }, [isVisible, correctAnswer, existingResult]);
+  }, [isVisible, validAnswers, existingResult]);
 
   const handleSubmit = () => {
     if (!input.trim()) return;
 
-    const mistakeCount = getMistakeCount(input, correctAnswer);
+    const { mistakeCount } = getBestMatch(input, validAnswers);
     const pointsEarned = calculatePoints(clueLevel, mistakeCount);
     const maxPoints = getMaxPoints(clueLevel);
     const grade = getAnswerGrade(mistakeCount);
@@ -169,7 +169,7 @@ export function TestAnswerInput({
           placeholder={`Type the word in ${languageName} ${languageFlag}...`}
           disabled={!!result}
           className={cn(
-            "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-warning/60",
+            "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-primary/60",
             feedback?.inputTextColor || "text-foreground"
           )}
         />

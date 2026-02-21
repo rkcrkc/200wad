@@ -3,11 +3,36 @@
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { CourseProvider } from "@/context/CourseContext";
+import { CourseProvider, useSetCourseContext } from "@/context/CourseContext";
+
+interface DefaultCourseContext {
+  languageId: string;
+  languageFlag: string;
+  languageName: string;
+  courseId: string;
+  courseName: string;
+}
 
 interface DashboardContentProps {
   children: React.ReactNode;
   dueTestsCount?: number;
+  defaultCourseContext?: DefaultCourseContext;
+}
+
+/**
+ * Sets the default course context from server-provided data.
+ * This ensures the header always shows the current course.
+ * Individual pages can override this with more specific context.
+ */
+function DefaultContextSetter({ context }: { context?: DefaultCourseContext }) {
+  useSetCourseContext(context ? {
+    languageId: context.languageId,
+    languageFlag: context.languageFlag,
+    languageName: context.languageName,
+    courseId: context.courseId,
+    courseName: context.courseName,
+  } : {});
+  return null;
 }
 
 /**
@@ -21,6 +46,7 @@ interface DashboardContentProps {
 export function DashboardContent({
   children,
   dueTestsCount,
+  defaultCourseContext,
 }: DashboardContentProps) {
   const pathname = usePathname();
   
@@ -30,39 +56,43 @@ export function DashboardContent({
   if (isStudyMode || isTestMode) {
     // Study/Test mode handles its own header and sidebar via their Client component
     // Still wrap in CourseProvider for consistency
-    return <CourseProvider>{children}</CourseProvider>;
+    return (
+      <CourseProvider>
+        <DefaultContextSetter context={defaultCourseContext} />
+        {children}
+      </CourseProvider>
+    );
   }
   
   // At top-level dashboard and courses page, no sidebar
   const showSidebar = pathname !== "/dashboard" && !pathname.startsWith("/courses/");
   
   if (!showSidebar) {
-    // No sidebar - full width content with header
+    // No sidebar - full width content with fixed header; only main scrolls
     return (
       <CourseProvider>
+        <DefaultContextSetter context={defaultCourseContext} />
         <Header showSidebar={false} />
-        <div className="pt-[72px]">
-          <main className="bg-background min-h-[calc(100vh-72px)] overflow-auto px-[60px] py-[60px]">
-            <div className="max-w-content-lg mx-auto">{children}</div>
+        <div className="h-screen overflow-hidden pt-[72px]">
+          <main className="bg-background h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
+            {children}
           </main>
         </div>
       </CourseProvider>
     );
   }
-  
-  // With sidebar - header full width at top, sidebar + content below
+
+  // With sidebar - fixed header, sidebar and main; only main scrolls
   return (
     <CourseProvider>
-      {/* Header - full width at top */}
+      <DefaultContextSetter context={defaultCourseContext} />
       <Header showSidebar={true} />
-      
-      {/* Sidebar - starts below header */}
       <Sidebar dueTestsCount={dueTestsCount} />
-      
-      {/* Main content - offset by header height and sidebar width */}
-      <main className="bg-background ml-[240px] min-h-[calc(100vh-72px)] overflow-auto pt-[72px] px-[60px] py-[60px]">
-        <div className="max-w-content-lg mx-auto">{children}</div>
-      </main>
+      <div className="h-screen overflow-hidden pt-[72px]">
+        <main className="bg-background ml-[240px] h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
+          {children}
+        </main>
+      </div>
     </CourseProvider>
   );
 }

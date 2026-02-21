@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Menu,
   RefreshCw,
   SkipBack,
   SkipForward,
@@ -20,8 +19,6 @@ interface TestAttempt {
 }
 
 interface StudyActionBarProps {
-  lessonNumber: number;
-  lessonTitle: string;
   currentWordIndex: number;
   totalWords: number;
   completedWords: number[];
@@ -40,8 +37,6 @@ interface StudyActionBarProps {
 }
 
 export function StudyActionBar({
-  lessonNumber,
-  lessonTitle,
   currentWordIndex,
   totalWords,
   completedWords,
@@ -68,27 +63,13 @@ export function StudyActionBar({
   const canRevealClue = isTestMode && clueLevel < 2;
 
   return (
-    <div className="border-t border-gray-100 px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Leading section */}
-        <div className="flex items-center gap-4">
-          {/* Lesson Details */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-regular-semibold text-foreground">
-              Lesson #{lessonNumber}
-            </span>
-            <span className="text-regular-semibold text-foreground/25">·</span>
-            <span className="text-regular-semibold text-foreground">
-              {lessonTitle}
-            </span>
-            <Menu className="ml-1 h-5 w-5 text-foreground" />
-          </div>
-
-          <span className="text-regular-semibold text-foreground/25">|</span>
-
+    <div className="px-4 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Leading section - wraps on small viewports */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           {/* Word counter and tracker */}
-          <div className="flex items-center gap-3">
-            <span className="text-regular-medium text-foreground">
+          <div className="flex min-w-0 max-w-full flex-1 basis-full items-center gap-3 sm:basis-auto sm:max-w-none">
+            <span className="shrink-0 text-small-semibold text-foreground">
               Word #{currentWordIndex + 1}
             </span>
             <WordTrackerDots
@@ -99,10 +80,33 @@ export function StudyActionBar({
             />
           </div>
 
-          <span className="text-regular-semibold text-foreground/25">|</span>
+          <span className="hidden shrink-0 text-small-semibold text-foreground/25 sm:inline">|</span>
+
+          {/* Word score with dots - after word dots */}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-small-semibold text-foreground">
+              Word score: {wordScorePercent}%
+            </span>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map((i) => {
+                const attempt = testHistory[i];
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      attempt?.isCorrect ? "bg-success" : "bg-gray-300"
+                    )}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <span className="hidden shrink-0 text-small-semibold text-foreground/25 sm:inline">|</span>
 
           {/* Navigation controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={onRestart}
               className="flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70"
@@ -144,29 +148,7 @@ export function StudyActionBar({
         </div>
 
         {/* Trailing section */}
-        <div className="flex items-center gap-4">
-          {/* Word score with dots */}
-          <div className="flex items-center gap-2">
-            <span className="text-regular-medium text-foreground">
-              Word score: {wordScorePercent}%
-            </span>
-            {/* Test history dots - always show 3 */}
-            <div className="flex items-center gap-1">
-              {[0, 1, 2].map((i) => {
-                const attempt = testHistory[i];
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      attempt?.isCorrect ? "bg-success" : "bg-gray-300"
-                    )}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           {/* Puzzle button for test mode - reveals clues */}
           {isTestMode && (
             <button

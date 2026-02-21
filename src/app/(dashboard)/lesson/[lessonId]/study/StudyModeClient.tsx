@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
-import { WordWithDetails } from "@/lib/queries/words";
+import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
 import { useAudio, AudioType } from "@/hooks/useAudio";
 import {
   StudyNavbar,
@@ -14,7 +14,6 @@ import {
   AnswerInput,
   LessonCompletedModal,
 } from "@/components/study";
-import { Sidebar } from "@/components/Sidebar";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import {
@@ -50,6 +49,7 @@ interface StudyModeClientProps {
   course: Course | null;
   words: WordWithDetails[];
   isGuest: boolean;
+  courseLessons?: AdjacentLesson[];
 }
 
 export function StudyModeClient({
@@ -58,6 +58,7 @@ export function StudyModeClient({
   course,
   words,
   isGuest,
+  courseLessons = [],
 }: StudyModeClientProps) {
   const router = useRouter();
   const { playAudio, stopAudio, currentAudioType } = useAudio();
@@ -66,6 +67,7 @@ export function StudyModeClient({
 
   // Set course context for the sidebar
   useSetCourseContext({
+    languageId: language?.id,
     languageFlag,
     languageName: language?.name,
     courseId: course?.id,
@@ -414,32 +416,28 @@ export function StudyModeClient({
   const sidebarEnabled = phase === "show-input" || phase === "show-feedback";
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar - Fixed on left */}
-      <Sidebar />
-
-      {/* Main content area - offset by sidebar */}
-      <div className="ml-[240px] flex min-h-screen flex-1 flex-col">
+    <div className="flex h-screen overflow-hidden">
+      {/* Main content area - no sidebar in study mode */}
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Custom navbar (replaces default header) */}
         <StudyNavbar
           languageFlag={languageFlag}
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitLesson}
+          lessonNumber={lesson.number}
+          lessonTitle={lesson.title}
         />
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-[160px] pt-6">
-          <div className="flex gap-6">
-            {/* Left column - Main content */}
-            <div className="flex w-[700px] flex-col gap-6">
-              {/* Word Card */}
+        {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
+          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
+            {/* Word Card - full width */}
+            <div className="w-full">
               <WordCard
                 partOfSpeech={currentWord.part_of_speech}
                 englishWord={currentWord.english}
                 foreignWord={currentWord.headword}
-                englishFlag="🇬🇧"
-                foreignFlag={languageFlag}
                 showForeign={showForeign}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -453,44 +451,46 @@ export function StudyModeClient({
                   }
                 }}
               />
-
-              {/* Memory Trigger Card */}
-              <MemoryTriggerCard
-                imageUrl={currentWord.memory_trigger_image_url}
-                triggerText={currentWord.memory_trigger_text}
-                englishWord={currentWord.english}
-                foreignWord={currentWord.headword}
-                isVisible={showTrigger}
-                playingAudioType={currentAudioType}
-                onPlayTriggerAudio={() => {
-                  if (currentWord.audio_url_trigger) {
-                    playAudio(currentWord.audio_url_trigger, "trigger");
-                  }
-                }}
-              />
             </div>
 
-            {/* Right column - Notes/Sentences Sidebar */}
-            <div className="flex-1">
-              <StudySidebar
-                systemNotes={currentWord.notes}
-                userNotes={currentUserNotes}
-                exampleSentences={currentWord.exampleSentences}
-                relatedWords={currentWord.relatedWords}
-                isEnabled={sidebarEnabled}
-                onUserNotesChange={handleUserNotesChange}
-              />
+            {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
+            <div className="flex gap-6">
+              <div className="flex w-[700px] flex-col gap-6">
+                <MemoryTriggerCard
+                  imageUrl={currentWord.memory_trigger_image_url}
+                  triggerText={currentWord.memory_trigger_text}
+                  englishWord={currentWord.english}
+                  foreignWord={currentWord.headword}
+                  isVisible={showTrigger}
+                  playingAudioType={currentAudioType}
+                  onPlayTriggerAudio={() => {
+                    if (currentWord.audio_url_trigger) {
+                      playAudio(currentWord.audio_url_trigger, "trigger");
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <StudySidebar
+                  systemNotes={currentWord.notes}
+                  userNotes={currentUserNotes}
+                  exampleSentences={currentWord.exampleSentences}
+                  relatedWords={currentWord.relatedWords}
+                  isEnabled={sidebarEnabled}
+                  onUserNotesChange={handleUserNotesChange}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Fixed bottom container - stacked input and action bar */}
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+        <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           {/* Answer Input Row */}
           <AnswerInput
             languageName={language?.name || "Italian"}
             languageFlag={languageFlag}
-            correctAnswer={currentWord.headword}
+            validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
             isVisible={showInput}
             isLastWord={isLastWord}
             onSubmit={handleSubmit}
@@ -499,8 +499,6 @@ export function StudyModeClient({
 
           {/* Action Bar Row */}
           <StudyActionBar
-            lessonNumber={lesson.number}
-            lessonTitle={lesson.title}
             currentWordIndex={currentWordIndex}
             totalWords={words.length}
             completedWords={completedWordIndices}

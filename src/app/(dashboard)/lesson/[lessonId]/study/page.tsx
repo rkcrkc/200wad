@@ -8,7 +8,7 @@ interface StudyPageProps {
 
 export default async function StudyPage({ params }: StudyPageProps) {
   const { lessonId } = await params;
-  const { language, course, lesson, words, isGuest } = await getWords(lessonId);
+  const { language, course, lesson, words, isGuest, courseLessons } = await getWords(lessonId);
 
   if (!lesson || words.length === 0) {
     notFound();
@@ -22,6 +22,7 @@ export default async function StudyPage({ params }: StudyPageProps) {
       course={course}
       words={words}
       isGuest={isGuest}
+      courseLessons={courseLessons}
     />
   );
 }

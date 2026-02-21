@@ -18,9 +18,9 @@ import {
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
 
-// Base nav items - lessons path is dynamic based on course context
+// Base nav items - paths are dynamic based on course context
 const getNavItems = (courseId?: string) => [
-  { path: "/schedule", icon: GraduationCap, label: "Schedule" },
+  { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: GraduationCap, label: "Schedule" },
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: "/dictionary", icon: BookMarked, label: "Dictionary" },
@@ -112,9 +112,14 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
     if (path === "/dashboard") {
       return pathname === "/dashboard";
     }
-    // For lessons, match various lesson-related routes
-    if (path.startsWith("/course/")) {
-      return pathname.includes("/lesson") || pathname.includes("/course/");
+    // For schedule, match /schedule or /course/[id]/schedule
+    if (path.includes("/schedule")) {
+      return pathname === "/schedule" || pathname.endsWith("/schedule");
+    }
+    // For lessons, match /course/[id] (but not /course/[id]/schedule) and /lesson routes
+    if (path.startsWith("/course/") && !path.includes("/schedule")) {
+      const isSchedulePage = pathname.endsWith("/schedule");
+      return !isSchedulePage && (pathname.includes("/lesson") || pathname.includes("/course/"));
     }
     return pathname === path || pathname.startsWith(path);
   };
