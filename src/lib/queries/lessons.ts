@@ -18,6 +18,7 @@ export interface GetLessonsResult {
   stats: {
     totalWords: number;
     totalTimeSeconds: number;
+    wordsStudied: number;
     wordsMastered: number;
   };
   isGuest: boolean;
@@ -38,11 +39,12 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
 
   const language = course?.languages as Language | null;
 
-  // Fetch lessons for this course
+  // Fetch published lessons for this course
   const { data: lessons, error: lessonsError } = await supabase
     .from("lessons")
     .select("*")
     .eq("course_id", courseId)
+    .eq("is_published", true)
     .order("sort_order")
     .order("number");
 
@@ -71,7 +73,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       language,
       course: courseWithoutRelations,
       lessons: [],
-      stats: { totalWords: 0, totalTimeSeconds: 0, wordsMastered: 0 },
+      stats: { totalWords: 0, totalTimeSeconds: 0, wordsStudied: 0, wordsMastered: 0 },
       isGuest: !user,
     };
   }
@@ -80,16 +82,16 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   let progressByLesson: Record<string, UserLessonProgress> = {};
   let totalTimeSeconds = 0;
   let wordsMastered = 0;
+  let wordsStudied = 0;
 
   if (user && lessons && lessons.length > 0) {
+    const lessonIds = lessons.map((l) => l.id);
+
     const { data: lessonProgress } = await supabase
       .from("user_lesson_progress")
       .select("*")
       .eq("user_id", user.id)
-      .in(
-        "lesson_id",
-        lessons.map((l) => l.id)
-      );
+      .in("lesson_id", lessonIds);
 
     lessonProgress?.forEach((lp) => {
       if (lp.lesson_id) {
@@ -98,6 +100,26 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       totalTimeSeconds += lp.total_study_time_seconds || 0;
       wordsMastered += lp.words_mastered || 0;
     });
+
+    // Get word IDs for this course's lessons via lesson_words
+    const { data: lessonWords } = await supabase
+      .from("lesson_words")
+      .select("word_id")
+      .in("lesson_id", lessonIds);
+
+    if (lessonWords && lessonWords.length > 0) {
+      const wordIds = lessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
+
+      // Count words with any progress (studying or mastered)
+      const { count } = await supabase
+        .from("user_word_progress")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("word_id", wordIds)
+        .in("status", ["studying", "mastered"]);
+
+      wordsStudied = count || 0;
+    }
   }
 
   // Calculate total words
@@ -146,6 +168,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     stats: {
       totalWords,
       totalTimeSeconds,
+      wordsStudied,
       wordsMastered,
     },
     isGuest: !user,
