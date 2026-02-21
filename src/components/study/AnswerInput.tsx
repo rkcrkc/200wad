@@ -9,6 +9,7 @@ import { isExactMatch } from "@/lib/utils/scoring";
 type FeedbackType = "correct" | "incorrect" | null;
 
 interface AnswerInputProps {
+  wordId: string;
   languageName: string;
   languageFlag: string;
   validAnswers: string[];
@@ -19,6 +20,7 @@ interface AnswerInputProps {
 }
 
 export function AnswerInput({
+  wordId,
   languageName,
   languageFlag,
   validAnswers,
@@ -39,14 +41,12 @@ export function AnswerInput({
     }
   }, [isVisible, feedback]);
 
-  // Reset state when word changes (isVisible becomes true again)
+  // Reset state when word changes
   useEffect(() => {
-    if (isVisible) {
-      setInput("");
-      setFeedback(null);
-      setSubmittedAnswer("");
-    }
-  }, [isVisible, validAnswers]);
+    setInput("");
+    setFeedback(null);
+    setSubmittedAnswer("");
+  }, [wordId]);
 
   // Global keydown listener for Enter when feedback is shown
   // (input is disabled so it can't receive key events directly)

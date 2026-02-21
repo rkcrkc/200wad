@@ -489,6 +489,7 @@ export function TestModeClient({
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           {/* Test Answer Input */}
           <TestAnswerInput
+            wordId={currentWord?.id || ""}
             languageName={language?.name || "Italian"}
             languageFlag={languageFlag}
             validAnswers={[currentWord?.headword || "", ...(currentWord?.alternate_answers || [])]}

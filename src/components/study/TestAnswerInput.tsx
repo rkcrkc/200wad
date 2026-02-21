@@ -27,6 +27,7 @@ export interface TestAnswerResult {
 }
 
 interface TestAnswerInputProps {
+  wordId: string;
   languageName: string;
   languageFlag: string;
   validAnswers: string[];
@@ -39,6 +40,7 @@ interface TestAnswerInputProps {
 }
 
 export function TestAnswerInput({
+  wordId,
   languageName,
   languageFlag,
   validAnswers,
@@ -64,14 +66,14 @@ export function TestAnswerInput({
     }
   }, [isVisible, result, isLocked]);
 
-  // Reset local state when word changes (validAnswers changes)
+  // Reset local state when word changes
   // Only reset if there's no existing result (word not already answered)
   useEffect(() => {
-    if (isVisible && !existingResult) {
+    if (!existingResult) {
       setInput("");
       setLocalResult(null);
     }
-  }, [isVisible, validAnswers, existingResult]);
+  }, [wordId, existingResult]);
 
   const handleSubmit = () => {
     if (!input.trim()) return;
