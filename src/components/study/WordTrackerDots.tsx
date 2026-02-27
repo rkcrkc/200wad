@@ -17,23 +17,28 @@ export function WordTrackerDots({
 
   return (
     <div className="flex min-w-0 max-w-full items-center overflow-x-auto">
-      <div className="flex shrink-0 items-center gap-1.5 py-0.5">
+      <div className="flex shrink-0 items-center gap-1 py-0.5">
         {Array.from({ length: totalWords }).map((_, index) => {
           const isCurrent = index === currentIndex;
-          const isCompleted = completedSet.has(index);
+          const isViewed = completedSet.has(index);
 
-          // Blue for current/completed, light blue for not yet studied
-          const fillColor = isCurrent || isCompleted ? "#0B6CFF" : "#E5F2FF";
+          // Three states: current (dark blue), viewed (medium blue), not viewed (light blue)
+          let fillColor = "#E5F2FF"; // Not viewed - lightest
+          if (isCurrent) {
+            fillColor = "#0B6CFF"; // Current - darkest
+          } else if (isViewed) {
+            fillColor = "#93C5FD"; // Viewed - medium
+          }
 
           return (
             <button
               key={index}
               onClick={() => onDotClick(index)}
-              className="flex h-3 w-3 shrink-0 cursor-pointer items-center justify-center transition-opacity hover:opacity-80"
+              className="flex h-2 w-2 shrink-0 cursor-pointer items-center justify-center transition-opacity hover:opacity-80"
               title={`Word ${index + 1}`}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="6" r="6" fill={fillColor} />
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                <circle cx="4" cy="4" r="4" fill={fillColor} />
               </svg>
             </button>
           );

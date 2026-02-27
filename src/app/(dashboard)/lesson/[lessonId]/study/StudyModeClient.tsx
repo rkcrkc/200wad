@@ -86,7 +86,7 @@ export function StudyModeClient({
   const [wordProgressMap, setWordProgressMap] = useState<Map<string, WordProgress>>(
     new Map()
   );
-  const [completedWordIndices, setCompletedWordIndices] = useState<number[]>([]);
+  const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
   
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -128,7 +128,9 @@ export function StudyModeClient({
           const completedIndices = words
             .map((w, i) => (storedProgress.wordProgress[w.id] ? i : -1))
             .filter((i) => i !== -1);
-          setCompletedWordIndices(completedIndices);
+          // Include current word index and all previously answered words as viewed
+          const viewedIndices = [...new Set([...completedIndices, storedProgress.currentWordIndex])];
+          setViewedWordIndices(viewedIndices);
           
           return;
         }
@@ -314,13 +316,15 @@ export function StudyModeClient({
     [currentWord.id, currentWordIndex, sessionId, wordProgressMap]
   );
 
+  // Track viewed words when navigating
+  useEffect(() => {
+    if (!viewedWordIndices.includes(currentWordIndex)) {
+      setViewedWordIndices((prev) => [...prev, currentWordIndex]);
+    }
+  }, [currentWordIndex, viewedWordIndices]);
+
   // Handle next word
   const handleNextWord = useCallback(() => {
-    // Mark current word as completed
-    if (!completedWordIndices.includes(currentWordIndex)) {
-      setCompletedWordIndices((prev) => [...prev, currentWordIndex]);
-    }
-
     if (isLastWord) {
       // Finish lesson
       handleFinishLesson();
@@ -331,7 +335,7 @@ export function StudyModeClient({
       // Scroll to top
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     }
-  }, [currentWordIndex, isLastWord, completedWordIndices]);
+  }, [isLastWord]);
 
   // Handle jump to word
   const handleJumpToWord = useCallback(
@@ -476,7 +480,7 @@ export function StudyModeClient({
           lessonTitle={lesson.title}
           currentWordIndex={currentWordIndex}
           totalWords={words.length}
-          completedWordIndices={completedWordIndices}
+          completedWordIndices={viewedWordIndices}
           onJumpToWord={handleJumpToWord}
         />
 
@@ -556,7 +560,7 @@ export function StudyModeClient({
             foreignWord={currentWord.headword}
             partOfSpeech={currentWord.part_of_speech}
             wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
-            completedWordIndices={completedWordIndices}
+            completedWordIndices={viewedWordIndices}
             testHistory={currentWord.testHistory}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}

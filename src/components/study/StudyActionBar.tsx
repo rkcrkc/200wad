@@ -135,12 +135,12 @@ export function StudyActionBar({
             <button
               onClick={() => setIsWordListOpen(!isWordListOpen)}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80",
-                isWordListOpen ? "bg-primary text-white" : "bg-foreground text-white"
+                "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
+                isWordListOpen ? "text-primary" : "text-foreground"
               )}
               title="Word list"
             >
-              {isWordListOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              {isWordListOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
             {/* Word list dropdown */}
@@ -227,40 +227,40 @@ export function StudyActionBar({
           <div className="flex items-center gap-2">
             <button
               onClick={onRestart}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-white transition-opacity hover:opacity-80"
+              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
               title="Restart"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-5 w-5" />
             </button>
             <button
               onClick={() => onJumpToWord(0)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-white transition-opacity hover:opacity-80"
+              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
               title="Go to first word"
             >
-              <SkipBack className="h-4 w-4" />
+              <SkipBack className="h-5 w-5" />
             </button>
             <button
               onClick={onPreviousWord}
               disabled={!canGoPrevious}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-white transition-opacity hover:opacity-80 disabled:opacity-30"
+              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30"
               title="Previous word"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               onClick={onNextWord}
               disabled={!canGoNext}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-white transition-opacity hover:opacity-80 disabled:opacity-30"
+              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30"
               title="Next word"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </button>
             <button
               onClick={() => onJumpToWord(totalWords - 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-white transition-opacity hover:opacity-80"
+              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
               title="Go to last word"
             >
-              <SkipForward className="h-4 w-4" />
+              <SkipForward className="h-5 w-5" />
             </button>
           </div>
 
