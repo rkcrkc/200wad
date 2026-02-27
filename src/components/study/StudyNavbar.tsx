@@ -71,7 +71,7 @@ export function StudyNavbar({
 
         {/* Word progress with dots */}
         {showWordProgress && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="w-[100px] text-small-semibold text-foreground">
               Word {currentWordIndex + 1} of {totalWords}
             </span>
