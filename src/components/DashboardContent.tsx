@@ -13,10 +13,16 @@ interface DefaultCourseContext {
   courseName: string;
 }
 
+export interface HeaderStats {
+  wordsPerDay: number;
+  courseProgressPercent: number;
+}
+
 interface DashboardContentProps {
   children: React.ReactNode;
   dueTestsCount?: number;
   defaultCourseContext?: DefaultCourseContext;
+  headerStats?: HeaderStats;
 }
 
 /**
@@ -47,6 +53,7 @@ export function DashboardContent({
   children,
   dueTestsCount,
   defaultCourseContext,
+  headerStats,
 }: DashboardContentProps) {
   const pathname = usePathname();
   
@@ -72,7 +79,7 @@ export function DashboardContent({
     return (
       <CourseProvider>
         <DefaultContextSetter context={defaultCourseContext} />
-        <Header showSidebar={false} />
+        <Header showSidebar={false} stats={headerStats} />
         <div className="h-screen overflow-hidden pt-[72px]">
           <main className="bg-background h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
             {children}
@@ -86,7 +93,7 @@ export function DashboardContent({
   return (
     <CourseProvider>
       <DefaultContextSetter context={defaultCourseContext} />
-      <Header showSidebar={true} />
+      <Header showSidebar={true} stats={headerStats} />
       <Sidebar dueTestsCount={dueTestsCount} />
       <div className="h-screen overflow-hidden pt-[72px]">
         <main className="bg-background ml-[240px] h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">

@@ -94,6 +94,7 @@ export function StudyModeClient({
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const currentWord = words[currentWordIndex];
   const isLastWord = currentWordIndex === words.length - 1;
@@ -183,6 +184,22 @@ export function StudyModeClient({
     };
   }, [stopAudio]);
 
+  // Warn user before leaving/refreshing the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers ignore custom messages, but this triggers the dialog
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Save progress to localStorage whenever word index changes
   useEffect(() => {
     if (!sessionId) return;
@@ -204,42 +221,68 @@ export function StudyModeClient({
 
   // Phase auto-advance with audio
   useEffect(() => {
+    let cancelled = false;
+    console.log(`[Phase Effect] Running for phase: ${phase}, word: ${currentWord.english}`);
+
     const advancePhase = async () => {
       if (phase === "reveal-first") {
-        // Play English audio, then advance after 1s delay
+        console.log(`[Phase] reveal-first - playing English audio`);
         if (currentWord.audio_url_english) {
           await playAudio(currentWord.audio_url_english, "english");
+          console.log(`[Phase] English audio finished`);
+        }
+        if (cancelled) {
+          console.log(`[Phase] Cancelled after English audio`);
+          return;
         }
         phaseTimeoutRef.current = setTimeout(() => {
+          console.log(`[Phase] Advancing to reveal-second`);
           setPhase("reveal-second");
-        }, 1000);
+        }, 500);
       } else if (phase === "reveal-second") {
-        // Play Foreign audio, then advance after 1s delay
+        console.log(`[Phase] reveal-second - playing Foreign audio`);
         if (currentWord.audio_url_foreign) {
           await playAudio(currentWord.audio_url_foreign, "foreign");
+          console.log(`[Phase] Foreign audio finished`);
+        }
+        if (cancelled) {
+          console.log(`[Phase] Cancelled after Foreign audio`);
+          return;
         }
         phaseTimeoutRef.current = setTimeout(() => {
+          console.log(`[Phase] Advancing to show-memory-trigger`);
           setPhase("show-memory-trigger");
-        }, 1000);
+        }, 500);
       } else if (phase === "show-memory-trigger") {
-        // Play Trigger audio, then advance after 1s delay
+        console.log(`[Phase] show-memory-trigger - playing Trigger audio`);
         if (currentWord.audio_url_trigger) {
           await playAudio(currentWord.audio_url_trigger, "trigger");
+          console.log(`[Phase] Trigger audio finished`);
+        }
+        if (cancelled) {
+          console.log(`[Phase] Cancelled after Trigger audio`);
+          return;
         }
         phaseTimeoutRef.current = setTimeout(() => {
+          console.log(`[Phase] Advancing to show-input`);
           setPhase("show-input");
-        }, 1000);
+        }, 500);
+      } else {
+        console.log(`[Phase] ${phase} - no audio action`);
       }
     };
 
     advancePhase();
 
     return () => {
+      console.log(`[Phase Effect] Cleanup for phase: ${phase}`);
+      cancelled = true;
+      stopAudio();
       if (phaseTimeoutRef.current) {
         clearTimeout(phaseTimeoutRef.current);
       }
     };
-  }, [phase, currentWord, playAudio]);
+  }, [phase, currentWord, playAudio, stopAudio]);
 
   // Handle answer submission
   const handleSubmit = useCallback(
@@ -285,6 +328,8 @@ export function StudyModeClient({
       // Move to next word
       setCurrentWordIndex((prev) => prev + 1);
       setPhase("reveal-first");
+      // Scroll to top
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [currentWordIndex, isLastWord, completedWordIndices]);
 
@@ -298,6 +343,8 @@ export function StudyModeClient({
         }
         setCurrentWordIndex(index);
         setPhase("reveal-first");
+        // Scroll to top
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
       }
     },
     [currentWordIndex, words.length, stopAudio]
@@ -412,7 +459,7 @@ export function StudyModeClient({
     phase === "show-memory-trigger" ||
     phase === "show-input" ||
     phase === "show-feedback";
-  const showInput = phase === "show-input" || phase === "show-feedback";
+  const showInput = true;
   const sidebarEnabled = phase === "show-input" || phase === "show-feedback";
 
   return (
@@ -427,15 +474,18 @@ export function StudyModeClient({
           onExitLesson={handleExitLesson}
           lessonNumber={lesson.number}
           lessonTitle={lesson.title}
+          currentWordIndex={currentWordIndex}
+          totalWords={words.length}
+          completedWordIndices={completedWordIndices}
+          onJumpToWord={handleJumpToWord}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
           <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
             {/* Word Card - full width */}
             <div className="w-full">
               <WordCard
-                partOfSpeech={currentWord.part_of_speech}
                 englishWord={currentWord.english}
                 foreignWord={currentWord.headword}
                 showForeign={showForeign}
@@ -502,7 +552,11 @@ export function StudyModeClient({
           <StudyActionBar
             currentWordIndex={currentWordIndex}
             totalWords={words.length}
-            completedWords={completedWordIndices}
+            englishWord={currentWord.english}
+            foreignWord={currentWord.headword}
+            partOfSpeech={currentWord.part_of_speech}
+            wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+            completedWordIndices={completedWordIndices}
             testHistory={currentWord.testHistory}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}

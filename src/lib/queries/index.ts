@@ -26,6 +26,9 @@ export type {
 } from "./settings";
 
 export { getScheduleData, getDueTestsCount, getCurrentCourse } from "./schedule";
+
+export { getUserLearningStats, getCourseProgress } from "./stats";
+export type { UserLearningStats, CourseProgressStats } from "./stats";
 export type {
   LessonForScheduler,
   ScheduleData,

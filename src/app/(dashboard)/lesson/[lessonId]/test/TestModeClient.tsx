@@ -88,6 +88,7 @@ export function TestModeClient({
 
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const currentWord = words[currentWordIndex];
   const isLastWord = currentWordIndex === words.length - 1;
@@ -202,6 +203,22 @@ export function TestModeClient({
     };
   }, [stopAudio]);
 
+  // Warn user before leaving/refreshing the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers ignore custom messages, but this triggers the dialog
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Save progress to localStorage whenever word index or progress changes
   useEffect(() => {
     if (!sessionId) return;
@@ -254,36 +271,7 @@ export function TestModeClient({
     [currentWord?.id, clueLevel]
   );
 
-  // Handle next word
-  const handleNextWord = useCallback(() => {
-    // Mark current word as completed
-    if (!completedWordIndices.includes(currentWordIndex)) {
-      setCompletedWordIndices((prev) => [...prev, currentWordIndex]);
-    }
-
-    if (isLastWord) {
-      handleFinishTest();
-    } else {
-      setCurrentWordIndex((prev) => prev + 1);
-      setClueLevel(0); // Reset clue level for new word
-    }
-  }, [currentWordIndex, isLastWord, completedWordIndices]);
-
-  // Handle jump to word
-  const handleJumpToWord = useCallback(
-    (index: number) => {
-      if (index !== currentWordIndex && index >= 0 && index < words.length) {
-        stopAudio();
-        setCurrentWordIndex(index);
-        // Restore clue level for this word if already answered
-        const progress = testProgressMap.get(words[index].id);
-        setClueLevel(progress?.clueLevel ?? 0);
-      }
-    },
-    [currentWordIndex, words, stopAudio, testProgressMap]
-  );
-
-  // Handle finish test
+  // Handle finish test (defined before handleNextWord to avoid stale reference)
   const handleFinishTest = useCallback(async () => {
     // Stop the timer
     if (timerRef.current) {
@@ -334,6 +322,39 @@ export function TestModeClient({
 
     setShowCompletionModal(true);
   }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds]);
+
+  // Handle next word
+  const handleNextWord = useCallback(() => {
+    // Mark current word as completed
+    if (!completedWordIndices.includes(currentWordIndex)) {
+      setCompletedWordIndices((prev) => [...prev, currentWordIndex]);
+    }
+
+    if (isLastWord) {
+      handleFinishTest();
+    } else {
+      setCurrentWordIndex((prev) => prev + 1);
+      setClueLevel(0); // Reset clue level for new word
+      // Scroll to top
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [currentWordIndex, isLastWord, completedWordIndices, handleFinishTest]);
+
+  // Handle jump to word
+  const handleJumpToWord = useCallback(
+    (index: number) => {
+      if (index !== currentWordIndex && index >= 0 && index < words.length) {
+        stopAudio();
+        setCurrentWordIndex(index);
+        // Restore clue level for this word if already answered
+        const progress = testProgressMap.get(words[index].id);
+        setClueLevel(progress?.clueLevel ?? 0);
+        // Scroll to top
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      }
+    },
+    [currentWordIndex, words, stopAudio, testProgressMap]
+  );
 
   // Handle exit test
   const handleExitTest = useCallback(() => {
@@ -425,17 +446,20 @@ export function TestModeClient({
           mode="test"
           lessonNumber={lesson.number}
           lessonTitle={lesson.title}
+          currentWordIndex={currentWordIndex}
+          totalWords={words.length}
+          completedWordIndices={completedWordIndices}
+          onJumpToWord={handleJumpToWord}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
           <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
             {/* Word Card - full width */}
             <div className="w-full">
               <WordCard
-                partOfSpeech={currentWord?.part_of_speech}
-                englishWord={currentWord?.english}
-                foreignWord={currentWord?.headword}
+                englishWord={currentWord?.english || ""}
+                foreignWord={currentWord?.headword || ""}
                 showForeign={hasSubmittedAnswer}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -505,7 +529,11 @@ export function TestModeClient({
           <StudyActionBar
             currentWordIndex={currentWordIndex}
             totalWords={words.length}
-            completedWords={completedWordIndices}
+            englishWord={currentWord?.english || ""}
+            foreignWord={currentWord?.headword || ""}
+            partOfSpeech={currentWord?.part_of_speech}
+            wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+            completedWordIndices={completedWordIndices}
             testHistory={currentWord?.testHistory}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}

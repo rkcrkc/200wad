@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, UserCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Search, TrendingUp } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
+import type { HeaderStats } from "./DashboardContent";
 
 interface HeaderProps {
   showSidebar?: boolean;
+  stats?: HeaderStats;
 }
 
-export function Header({ showSidebar = true }: HeaderProps) {
+export function Header({ showSidebar = true, stats }: HeaderProps) {
   const { user, isLoading, isGuest } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
@@ -94,6 +96,43 @@ export function Header({ showSidebar = true }: HeaderProps) {
               >
                 <ChevronRight className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
               </button>
+            </div>
+          )}
+
+          {/* Stats Indicators - Course Progress & Words/Day */}
+          {!isGuest && stats && hasContext && (
+            <div className="ml-4 flex shrink-0 items-center gap-5">
+              {/* Course Progress Indicator */}
+              <div className="flex flex-col">
+                <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
+                  {stats.courseProgressPercent}% complete
+                </span>
+                <div className="mt-1 h-1.5 w-[100px] overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="bg-success h-full rounded-full transition-all duration-300"
+                    style={{ width: `${stats.courseProgressPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Words Per Day Indicator */}
+              <div className="group relative flex flex-col items-center">
+                <div className="flex items-center gap-1">
+                  <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
+                    {stats.wordsPerDay}
+                  </span>
+                  <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
+                </div>
+                <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
+                  words/day
+                </span>
+                {/* Tooltip */}
+                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-medium">
+                    You are currently learning at a rate of {stats.wordsPerDay} words/day
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 

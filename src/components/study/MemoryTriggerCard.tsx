@@ -105,19 +105,25 @@ export function MemoryTriggerCard({
 }: MemoryTriggerCardProps) {
   const isPlayingTrigger = playingAudioType === "trigger";
 
+  // If there's no memory trigger content at all, hide the entire card
+  const hasNoContent = !triggerText && !imageUrl;
+  if (hasNoContent) {
+    return null;
+  }
+
   // Determine visibility based on clueLevel (test mode) or isVisible (study mode)
   const showImage = clueLevel !== undefined ? clueLevel >= 1 : isVisible;
   const showTrigger = clueLevel !== undefined ? clueLevel >= 2 : isVisible;
   const showNothing = clueLevel !== undefined ? clueLevel === 0 : !isVisible;
 
-  // Full skeleton when nothing visible (header/text above image)
+  // Full skeleton when nothing visible
   if (showNothing) {
     return (
       <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
         <div className="flex flex-col gap-5 p-6">
-          <div className="flex flex-col gap-3">
-            <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
-            <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
           </div>
           <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
         </div>
@@ -128,38 +134,30 @@ export function MemoryTriggerCard({
   return (
     <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
       <div className="flex flex-col gap-5 p-6">
-        {/* Header + trigger text - above image, gap 0.75rem */}
-        <div className="flex flex-col gap-3">
-          {/* Label and Audio - visible at clueLevel 2+ */}
-          {showTrigger ? (
-            <div className="flex items-center justify-between">
-              <span className="study-card-label uppercase tracking-wide text-foreground/50">
-                MEMORY TRIGGER
-              </span>
-              <AudioButton
-                onClick={onPlayTriggerAudio}
-                isPlaying={isPlayingTrigger}
-                playingColor="#0B6CFF"
-                idleColor="#141515"
-              />
-            </div>
-          ) : (
-            <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
-          )}
-
-          {/* Trigger Text with highlighting - visible at clueLevel 2+ */}
-          {showTrigger && triggerText ? (
+        {/* Trigger text row - audio button on left, matching word card layout */}
+        {showTrigger && triggerText ? (
+          <button
+            onClick={onPlayTriggerAudio}
+            className="flex cursor-pointer items-center gap-4 text-left"
+          >
+            <AudioButton isPlaying={isPlayingTrigger} />
             <p className="text-2xl font-medium leading-relaxed">
               {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger)}
             </p>
-          ) : (
-            <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
-          )}
-        </div>
+          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
+          </div>
+        )}
 
         {/* Trigger Image - visible at clueLevel 1+ */}
         {showImage && imageUrl ? (
-          <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
+          <button
+            onClick={onPlayTriggerAudio}
+            className="relative h-[400px] w-full cursor-pointer overflow-hidden rounded-lg"
+          >
             <Image
               src={imageUrl}
               alt="Memory trigger"
@@ -167,7 +165,7 @@ export function MemoryTriggerCard({
               className="object-contain"
               sizes="(max-width: 768px) 100vw, 730px"
             />
-          </div>
+          </button>
         ) : showImage && !imageUrl ? (
           // No image but should show - show placeholder
           <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">

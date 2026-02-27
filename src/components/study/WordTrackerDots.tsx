@@ -22,18 +22,14 @@ export function WordTrackerDots({
           const isCurrent = index === currentIndex;
           const isCompleted = completedSet.has(index);
 
-          let fillColor = "#E5F2FF";
-          if (isCurrent) {
-            fillColor = "#0B6CFF";
-          } else if (isCompleted) {
-            fillColor = "#00C950";
-          }
+          // Blue for current/completed, light blue for not yet studied
+          const fillColor = isCurrent || isCompleted ? "#0B6CFF" : "#E5F2FF";
 
           return (
             <button
               key={index}
               onClick={() => onDotClick(index)}
-              className="flex h-3 w-3 shrink-0 items-center justify-center transition-opacity hover:opacity-80"
+              className="flex h-3 w-3 shrink-0 cursor-pointer items-center justify-center transition-opacity hover:opacity-80"
               title={`Word ${index + 1}`}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
