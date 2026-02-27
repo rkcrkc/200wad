@@ -201,14 +201,14 @@ export function StudyActionBar({
 
           {/* Word score dots + percentage */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {[0, 1, 2].map((i) => {
                 const attempt = testHistory[i];
                 return (
                   <div
                     key={i}
                     className={cn(
-                      "h-2.5 w-2.5 rounded-full",
+                      "h-3 w-3 rounded-full",
                       attempt?.isCorrect ? "bg-success" : "bg-gray-300"
                     )}
                   />

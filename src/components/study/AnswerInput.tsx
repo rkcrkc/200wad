@@ -116,7 +116,7 @@ export function AnswerInput({
             placeholder={`Type the word in ${languageName} ${languageFlag}...`}
             disabled={!!feedback}
             className={cn(
-              "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-primary/60",
+              "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-black/50",
               feedback === "incorrect" && "text-red-500",
               feedback === "correct" && "text-foreground"
             )}
@@ -146,7 +146,12 @@ export function AnswerInput({
                 Submit
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            ) : null}
+            ) : (
+              <Button onClick={onNextWord} className="gap-1.5">
+                {isLastWord ? "Finish lesson" : "Next word"}
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
     </div>

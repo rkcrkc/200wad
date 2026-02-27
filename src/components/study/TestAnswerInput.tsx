@@ -171,7 +171,7 @@ export function TestAnswerInput({
           placeholder={`Type the word in ${languageName} ${languageFlag}...`}
           disabled={!!result}
           className={cn(
-            "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-primary/60",
+            "flex-1 bg-transparent text-xl font-medium outline-none placeholder:text-black/50",
             feedback?.inputTextColor || "text-foreground"
           )}
         />
@@ -195,7 +195,12 @@ export function TestAnswerInput({
               Submit
               <ChevronRight className="h-4 w-4" />
             </Button>
-          ) : null}
+          ) : (
+            <Button onClick={onNextWord} className="gap-1.5">
+              {isLastWord ? "Finish test" : "Next word"}
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
