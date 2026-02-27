@@ -22,12 +22,12 @@ export function WordTrackerDots({
           const isCurrent = index === currentIndex;
           const isViewed = completedSet.has(index);
 
-          // Three states: current (dark blue), viewed (medium blue), not viewed (light blue)
+          // Three states: current (darker blue), viewed (primary blue), not viewed (light blue)
           let fillColor = "#E5F2FF"; // Not viewed - lightest
           if (isCurrent) {
-            fillColor = "#0B6CFF"; // Current - darkest
+            fillColor = "#0954C4"; // Current - darker than primary
           } else if (isViewed) {
-            fillColor = "#93C5FD"; // Viewed - medium
+            fillColor = "#0B6CFF"; // Viewed - primary blue
           }
 
           return (
