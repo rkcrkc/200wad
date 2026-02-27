@@ -52,6 +52,10 @@ interface StudyActionBarProps {
   clueLevel?: 0 | 1 | 2;
   /** For test mode: callback when puzzle button clicked to reveal next clue */
   onRevealClue?: () => void;
+  /** Whether strict study mode is enabled */
+  strictMode?: boolean;
+  /** Callback when strict mode changes */
+  onStrictModeChange?: (enabled: boolean) => void;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -87,26 +91,33 @@ export function StudyActionBar({
   mode = "study",
   clueLevel = 0,
   onRevealClue,
+  strictMode = false,
+  onStrictModeChange,
 }: StudyActionBarProps) {
   const [isWordListOpen, setIsWordListOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const canGoPrevious = currentWordIndex > 0;
   const canGoNext = currentWordIndex < totalWords - 1;
   const isTestMode = mode === "test";
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsWordListOpen(false);
       }
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
     }
-    if (isWordListOpen) {
+    if (isWordListOpen || isSettingsOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [isWordListOpen]);
+  }, [isWordListOpen, isSettingsOpen]);
 
   // Compute word score from last 3 attempts
   const correctCount = testHistory.filter((t) => t.isCorrect).length;
@@ -281,12 +292,46 @@ export function StudyActionBar({
             >
               <Music className="h-5 w-5" />
             </button>
-            <button
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-              title="Settings"
-            >
-              <SlidersHorizontal className="h-5 w-5" />
-            </button>
+            {/* Settings button with dropdown */}
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
+                  isSettingsOpen ? "text-primary" : "text-foreground"
+                )}
+                title="Settings"
+              >
+                <SlidersHorizontal className="h-5 w-5" />
+              </button>
+
+              {/* Settings dropdown */}
+              {isSettingsOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-[280px] rounded-xl bg-white p-4 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                  <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
+                    Lesson Settings
+                  </div>
+
+                  {/* Strict Study Mode Toggle */}
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={strictMode}
+                      onChange={(e) => onStrictModeChange?.(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-foreground">
+                        Strict study mode
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Requires typing the correct answer before moving to the next word
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
 
             {/* Test mode clue button */}
             {isTestMode && (

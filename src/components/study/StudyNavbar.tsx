@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, X } from "lucide-react";
+import { Clock, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatTimerDisplay } from "@/lib/utils/helpers";
 import { WordTrackerDots } from "./WordTrackerDots";
@@ -23,6 +23,8 @@ interface StudyNavbarProps {
   completedWordIndices?: number[];
   /** Word progress - callback when dot is clicked */
   onJumpToWord?: (index: number) => void;
+  /** Whether the timer is paused due to inactivity */
+  isTimerPaused?: boolean;
 }
 
 export function StudyNavbar({
@@ -37,6 +39,7 @@ export function StudyNavbar({
   totalWords = 0,
   completedWordIndices = [],
   onJumpToWord,
+  isTimerPaused = false,
 }: StudyNavbarProps) {
   const isTestMode = mode === "test";
 
@@ -88,9 +91,16 @@ export function StudyNavbar({
         <span className="text-small-semibold text-foreground/25">|</span>
 
         {/* Timer */}
-        <div className="flex items-center gap-1.5 text-foreground">
-          <Clock className="h-4 w-4" />
-          <span className="text-regular-semibold">{formatTimerDisplay(elapsedSeconds)}</span>
+        <div className={`flex items-center gap-1.5 ${isTimerPaused ? "text-muted-foreground" : "text-foreground"}`}>
+          {isTimerPaused ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Clock className="h-4 w-4" />
+          )}
+          <span className="text-regular-semibold">
+            {formatTimerDisplay(elapsedSeconds)}
+            {isTimerPaused && " (paused)"}
+          </span>
         </div>
       </div>
 

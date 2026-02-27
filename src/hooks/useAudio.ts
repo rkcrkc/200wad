@@ -9,6 +9,8 @@ interface UseAudioReturn {
   playAudio: (url: string, type: AudioType) => Promise<void>;
   /** Stop current audio playback */
   stopAudio: () => void;
+  /** Preload audio URLs for faster playback */
+  preloadAudio: (urls: (string | null | undefined)[]) => void;
   /** Whether audio is currently playing */
   isPlaying: boolean;
   /** Which audio type is currently playing */
@@ -24,14 +26,19 @@ export function useAudio(): UseAudioReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAudioType, setCurrentAudioType] = useState<AudioType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const resolveRef = useRef<(() => void) | null>(null);
+  const requestIdRef = useRef<number>(0);
+  const preloadCacheRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
+        audioRef.current.oncanplaythrough = null;
+        audioRef.current.onended = null;
+        audioRef.current.onerror = null;
         audioRef.current.pause();
         audioRef.current = null;
       }
@@ -39,14 +46,22 @@ export function useAudio(): UseAudioReturn {
   }, []);
 
   const stopAudio = useCallback(() => {
+    // Increment request ID to invalidate any pending audio
+    requestIdRef.current++;
+
     if (audioRef.current) {
+      // Remove event handlers to prevent callbacks from firing
+      audioRef.current.oncanplaythrough = null;
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
     setIsPlaying(false);
     setCurrentAudioType(null);
     setIsLoading(false);
-    
+
     // Resolve any pending promise
     if (resolveRef.current) {
       resolveRef.current();
@@ -54,29 +69,55 @@ export function useAudio(): UseAudioReturn {
     }
   }, []);
 
+  // Preload audio URLs for faster playback
+  const preloadAudio = useCallback((urls: (string | null | undefined)[]) => {
+    urls.forEach((url) => {
+      if (!url || preloadCacheRef.current.has(url)) return;
+
+      const audio = new Audio();
+      audio.preload = "auto";
+      audio.src = url;
+      preloadCacheRef.current.set(url, audio);
+    });
+  }, []);
+
   const playAudio = useCallback(
     (url: string, type: AudioType): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        // Stop any currently playing audio
+      console.log(`[useAudio] playAudio called for type: ${type}`);
+      return new Promise((resolve) => {
+        // Stop any currently playing audio and get new request ID
         stopAudio();
+        const currentRequestId = requestIdRef.current;
 
         // Handle empty URL
         if (!url) {
+          console.log(`[useAudio] No URL for type: ${type}`);
           setError("No audio URL provided");
           resolve();
           return;
         }
 
         setError(null);
-        setIsLoading(true);
         setCurrentAudioType(type);
 
-        // Create new audio element
-        const audio = new Audio(url);
+        // Check if audio is preloaded
+        const cachedAudio = preloadCacheRef.current.get(url);
+        const audio = cachedAudio || new Audio(url);
         audioRef.current = audio;
         resolveRef.current = resolve;
 
-        audio.oncanplaythrough = () => {
+        // Reset to start if reusing cached audio
+        if (cachedAudio) {
+          audio.currentTime = 0;
+        }
+
+        const setupAndPlay = () => {
+          // Check if this request is still valid
+          if (requestIdRef.current !== currentRequestId) {
+            console.log(`[useAudio] Ignoring stale play for type: ${type}`);
+            return;
+          }
+          console.log(`[useAudio] Starting playback for type: ${type}`);
           setIsLoading(false);
           setIsPlaying(true);
           audio.play().catch((err) => {
@@ -89,6 +130,12 @@ export function useAudio(): UseAudioReturn {
         };
 
         audio.onended = () => {
+          // Check if this request is still valid
+          if (requestIdRef.current !== currentRequestId) {
+            console.log(`[useAudio] Ignoring stale onended for type: ${type}`);
+            return;
+          }
+          console.log(`[useAudio] Playback ended for type: ${type}`);
           setIsPlaying(false);
           setCurrentAudioType(null);
           resolve();
@@ -96,17 +143,32 @@ export function useAudio(): UseAudioReturn {
         };
 
         audio.onerror = () => {
+          // Check if this request is still valid
+          if (requestIdRef.current !== currentRequestId) {
+            return;
+          }
           console.error("Error loading audio:", url);
           setError("Failed to load audio");
           setIsLoading(false);
           setIsPlaying(false);
           setCurrentAudioType(null);
-          resolve(); // Resolve instead of reject to allow flow to continue
+          resolve();
           resolveRef.current = null;
         };
 
-        // Start loading
-        audio.load();
+        // If already loaded (cached or ready), play immediately
+        if (audio.readyState >= 3) {
+          setupAndPlay();
+        } else {
+          setIsLoading(true);
+          audio.oncanplaythrough = () => {
+            if (requestIdRef.current !== currentRequestId) return;
+            setupAndPlay();
+          };
+          if (!cachedAudio) {
+            audio.load();
+          }
+        }
       });
     },
     [stopAudio]
@@ -115,6 +177,7 @@ export function useAudio(): UseAudioReturn {
   return {
     playAudio,
     stopAudio,
+    preloadAudio,
     isPlaying,
     currentAudioType,
     isLoading,

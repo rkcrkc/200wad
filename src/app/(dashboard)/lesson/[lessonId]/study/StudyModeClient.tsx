@@ -15,6 +15,7 @@ import {
   LessonCompletedModal,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import {
   createStudySession,
@@ -61,7 +62,7 @@ export function StudyModeClient({
   courseLessons = [],
 }: StudyModeClientProps) {
   const router = useRouter();
-  const { playAudio, stopAudio, currentAudioType } = useAudio();
+  const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
 
   const languageFlag = getFlagFromCode(language?.code);
 
@@ -91,6 +92,17 @@ export function StudyModeClient({
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+  // Exit confirmation modal state
+  const [showExitModal, setShowExitModal] = useState(false);
+
+  // Strict study mode state
+  const [strictMode, setStrictMode] = useState(false);
+
+  // Idle/pause state
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIMEOUT_MS = 60 * 1000; // 1 minute
+
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -99,46 +111,18 @@ export function StudyModeClient({
   const currentWord = words[currentWordIndex];
   const isLastWord = currentWordIndex === words.length - 1;
 
-  // Initialize study session and check for incomplete sessions
+  // Initialize study session (always fresh - study mode is sandboxed)
   useEffect(() => {
     const initSession = async () => {
-      // Check for incomplete session in localStorage
+      // Clear any stale session data from previous incomplete sessions
       const existingSessionId = getIncompleteSessionId("study", lesson.id);
-      
       if (existingSessionId) {
-        // Restore from localStorage
-        const storedProgress = getSessionProgress("study", existingSessionId);
-        if (storedProgress) {
-          console.log("[Study] Restoring session from localStorage:", existingSessionId);
-          setSessionId(existingSessionId);
-          setCurrentWordIndex(storedProgress.currentWordIndex);
-          
-          // Restore word progress
-          const restoredMap = new Map<string, WordProgress>();
-          Object.entries(storedProgress.wordProgress).forEach(([wordId, entry]) => {
-            restoredMap.set(wordId, {
-              isCorrect: entry.isCorrect,
-              userNotes: entry.userNotes,
-              hasAnswered: true,
-            });
-          });
-          setWordProgressMap(restoredMap);
-          
-          // Restore completed indices
-          const completedIndices = words
-            .map((w, i) => (storedProgress.wordProgress[w.id] ? i : -1))
-            .filter((i) => i !== -1);
-          // Include current word index and all previously answered words as viewed
-          const viewedIndices = [...new Set([...completedIndices, storedProgress.currentWordIndex])];
-          setViewedWordIndices(viewedIndices);
-          
-          return;
-        }
+        clearSessionProgress("study", existingSessionId, lesson.id);
       }
 
-      // Create new session - always initialize localStorage first
+      // Create new session - always start fresh
       let newSessionId: string;
-      
+
       if (!isGuest) {
         // Try to create a DB session
         const result = await createStudySession(lesson.id);
@@ -155,16 +139,46 @@ export function StudyModeClient({
         newSessionId = `guest_${lesson.id}_${Date.now()}`;
         console.log("[Study] Guest session:", newSessionId);
       }
-      
+
       setSessionId(newSessionId);
       initSessionProgress("study", newSessionId, lesson.id);
     };
 
     initSession();
-  }, [lesson.id, isGuest, words]);
+  }, [lesson.id, isGuest]);
 
-  // Timer
+  // Preload audio for current word (and next word for smoother transitions)
   useEffect(() => {
+    const urlsToPreload = [
+      currentWord.audio_url_english,
+      currentWord.audio_url_foreign,
+      currentWord.audio_url_trigger,
+    ];
+
+    // Also preload next word's audio if available
+    const nextWord = words[currentWordIndex + 1];
+    if (nextWord) {
+      urlsToPreload.push(
+        nextWord.audio_url_english,
+        nextWord.audio_url_foreign,
+        nextWord.audio_url_trigger
+      );
+    }
+
+    preloadAudio(urlsToPreload);
+  }, [currentWord, currentWordIndex, words, preloadAudio]);
+
+  // Timer (pauses when idle or lesson complete)
+  useEffect(() => {
+    if (isTimerPaused || showCompletionModal) {
+      // Clear interval when paused or lesson complete
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
     timerRef.current = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
@@ -174,7 +188,49 @@ export function StudyModeClient({
         clearInterval(timerRef.current);
       }
     };
-  }, []);
+  }, [isTimerPaused, showCompletionModal]);
+
+  // Idle detection - pause timer after 1 minute of inactivity
+  useEffect(() => {
+    const startIdleTimer = () => {
+      // Clear existing idle timeout
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+
+      // Set new idle timeout
+      idleTimeoutRef.current = setTimeout(() => {
+        setIsTimerPaused(true);
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const handleActivity = () => {
+      // Resume timer if paused, then restart idle countdown
+      setIsTimerPaused(false);
+      startIdleTimer();
+    };
+
+    // Activity events to listen for
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+
+    // Add listeners
+    events.forEach((event) => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    // Start initial idle timer
+    startIdleTimer();
+
+    return () => {
+      // Cleanup listeners
+      events.forEach((event) => {
+        window.removeEventListener(event, handleActivity);
+      });
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+    };
+  }, []); // Empty deps - only run once on mount
 
   // Cleanup on unmount
   useEffect(() => {
@@ -240,7 +296,7 @@ export function StudyModeClient({
         phaseTimeoutRef.current = setTimeout(() => {
           console.log(`[Phase] Advancing to reveal-second`);
           setPhase("reveal-second");
-        }, 500);
+        }, 50);
       } else if (phase === "reveal-second") {
         console.log(`[Phase] reveal-second - playing Foreign audio`);
         if (currentWord.audio_url_foreign) {
@@ -254,7 +310,7 @@ export function StudyModeClient({
         phaseTimeoutRef.current = setTimeout(() => {
           console.log(`[Phase] Advancing to show-memory-trigger`);
           setPhase("show-memory-trigger");
-        }, 500);
+        }, 50);
       } else if (phase === "show-memory-trigger") {
         console.log(`[Phase] show-memory-trigger - playing Trigger audio`);
         if (currentWord.audio_url_trigger) {
@@ -265,10 +321,20 @@ export function StudyModeClient({
           console.log(`[Phase] Cancelled after Trigger audio`);
           return;
         }
+        // Play foreign audio again after trigger
+        console.log(`[Phase] Replaying Foreign audio`);
+        if (currentWord.audio_url_foreign) {
+          await playAudio(currentWord.audio_url_foreign, "foreign");
+          console.log(`[Phase] Foreign audio replay finished`);
+        }
+        if (cancelled) {
+          console.log(`[Phase] Cancelled after Foreign audio replay`);
+          return;
+        }
         phaseTimeoutRef.current = setTimeout(() => {
           console.log(`[Phase] Advancing to show-input`);
           setPhase("show-input");
-        }, 500);
+        }, 50);
       } else {
         console.log(`[Phase] ${phase} - no audio action`);
       }
@@ -285,6 +351,27 @@ export function StudyModeClient({
       }
     };
   }, [phase, currentWord, playAudio, stopAudio]);
+
+  // Handle Escape key to stop audio and skip reveal phases
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // Always stop audio
+        stopAudio();
+
+        // If in a reveal phase, also skip to show-input
+        if (phase === "reveal-first" || phase === "reveal-second" || phase === "show-memory-trigger") {
+          if (phaseTimeoutRef.current) {
+            clearTimeout(phaseTimeoutRef.current);
+          }
+          setPhase("show-input");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [phase, stopAudio]);
 
   // Handle answer submission
   const handleSubmit = useCallback(
@@ -434,15 +521,24 @@ export function StudyModeClient({
     router.push(`/lesson/${lesson.id}`);
   }, [router, lesson.id]);
 
-  // Handle exit lesson
+  // Handle exit lesson - show confirmation modal
   const handleExitLesson = useCallback(() => {
-    const confirmed = window.confirm(
-      "Are you sure you want to exit? Your progress will be saved."
-    );
-    if (confirmed) {
-      handleFinishLesson();
+    setShowExitModal(true);
+  }, []);
+
+  // Handle confirmed exit - discard progress (study mode is sandboxed)
+  const handleConfirmExit = useCallback(() => {
+    // Stop timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
-  }, [handleFinishLesson]);
+    // Clear localStorage (discard progress)
+    if (sessionId) {
+      clearSessionProgress("study", sessionId, lesson.id);
+    }
+    // Navigate back to lesson page
+    router.push(`/lesson/${lesson.id}`);
+  }, [sessionId, lesson.id, router]);
 
   // Handle restart current word
   const handleRestart = useCallback(() => {
@@ -482,6 +578,7 @@ export function StudyModeClient({
           totalWords={words.length}
           completedWordIndices={viewedWordIndices}
           onJumpToWord={handleJumpToWord}
+          isTimerPaused={isTimerPaused}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
@@ -544,12 +641,12 @@ export function StudyModeClient({
           <AnswerInput
             wordId={currentWord.id}
             languageName={language?.name || "Italian"}
-            languageFlag={languageFlag}
             validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
             isVisible={showInput}
             isLastWord={isLastWord}
             onSubmit={handleSubmit}
             onNextWord={handleNextWord}
+            strictMode={strictMode}
           />
 
           {/* Action Bar Row */}
@@ -566,6 +663,8 @@ export function StudyModeClient({
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
             onRestart={handleRestart}
+            strictMode={strictMode}
+            onStrictModeChange={setStrictMode}
           />
         </div>
       </div>
@@ -580,6 +679,32 @@ export function StudyModeClient({
           onStartTest={handleStartTest}
           onDismiss={handleDismissModal}
         />
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl-semibold text-foreground mb-2">Exit lesson?</h2>
+            <p className="text-regular text-muted-foreground mb-6">
+              Your progress will be lost. Are you sure you want to exit?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowExitModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmExit}
+              >
+                Exit lesson
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
