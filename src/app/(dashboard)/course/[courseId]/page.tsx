@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { getLessons } from "@/lib/queries";
+import { setCurrentCourse } from "@/lib/mutations";
 import { LessonsList } from "@/components/LessonsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,6 +20,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   if (!course) {
     notFound();
+  }
+
+  // Update the user's current course (fire-and-forget, don't block render)
+  if (!isGuest) {
+    setCurrentCourse(courseId);
   }
 
   // Calculate progress percentages

@@ -46,17 +46,46 @@ export function levenshteinDistance(a: string, b: string): number {
 // ANSWER NORMALIZATION
 // ============================================================================
 
+export interface NormalizeOptions {
+  /** Preserve punctuation (nerves of steel mode) */
+  strictPunctuation?: boolean;
+  /** Preserve case - true for nerves of steel mode or German language */
+  preserveCase?: boolean;
+}
+
+/** Languages that require case-sensitive comparison (e.g., German capitalizes nouns) */
+const CASE_SENSITIVE_LANGUAGES = ["de", "german"];
+
+/**
+ * Check if a language requires case-sensitive comparison
+ */
+export function languageRequiresCase(languageCode?: string | null): boolean {
+  if (!languageCode) return false;
+  return CASE_SENSITIVE_LANGUAGES.includes(languageCode.toLowerCase());
+}
+
 /**
  * Normalize an answer for comparison
- * - Lowercase
- * - Remove punctuation
+ * - Lowercase (unless preserveCase is true - for German or "nerves of steel")
+ * - Remove punctuation (unless strictPunctuation is true)
  * - Trim whitespace
  */
-export function normalizeAnswer(answer: string): string {
-  return answer
-    .toLowerCase()
-    .replace(/[!?.,'"¡¿]/g, "")
-    .trim();
+export function normalizeAnswer(answer: string, options: NormalizeOptions | boolean = {}): string {
+  // Handle legacy boolean parameter (strictMode = both punctuation and case)
+  if (typeof options === "boolean") {
+    options = { strictPunctuation: options, preserveCase: options };
+  }
+
+  const { strictPunctuation = false, preserveCase = false } = options;
+
+  let normalized = answer.trim();
+  if (!preserveCase) {
+    normalized = normalized.toLowerCase();
+  }
+  if (!strictPunctuation) {
+    normalized = normalized.replace(/[!?.,'"¡¿]/g, "");
+  }
+  return normalized;
 }
 
 // ============================================================================
@@ -67,9 +96,13 @@ export function normalizeAnswer(answer: string): string {
  * Calculate the number of mistakes in an answer
  * Returns 0 for correct, 1-2 for partial, 3+ for incorrect
  */
-export function getMistakeCount(userAnswer: string, correctAnswer: string): number {
-  const normalizedUser = normalizeAnswer(userAnswer);
-  const normalizedCorrect = normalizeAnswer(correctAnswer);
+export function getMistakeCount(
+  userAnswer: string,
+  correctAnswer: string,
+  options: NormalizeOptions | boolean = {}
+): number {
+  const normalizedUser = normalizeAnswer(userAnswer, options);
+  const normalizedCorrect = normalizeAnswer(correctAnswer, options);
 
   if (normalizedUser === normalizedCorrect) {
     return 0;
@@ -96,16 +129,18 @@ export function isExactMatch(userAnswer: string, validAnswers: string[]): boolea
 /**
  * Find the best matching answer from a list of valid answers (for Test Mode)
  * Returns the answer with the lowest mistake count
+ * @param options - Normalization options (strictPunctuation, preserveCase)
  */
 export function getBestMatch(
   userAnswer: string,
-  validAnswers: string[]
+  validAnswers: string[],
+  options: NormalizeOptions | boolean = {}
 ): { answer: string; mistakeCount: number } {
   let bestAnswer = validAnswers[0];
-  let lowestMistakeCount = getMistakeCount(userAnswer, validAnswers[0]);
+  let lowestMistakeCount = getMistakeCount(userAnswer, validAnswers[0], options);
 
   for (let i = 1; i < validAnswers.length; i++) {
-    const mistakeCount = getMistakeCount(userAnswer, validAnswers[i]);
+    const mistakeCount = getMistakeCount(userAnswer, validAnswers[i], options);
     if (mistakeCount < lowestMistakeCount) {
       lowestMistakeCount = mistakeCount;
       bestAnswer = validAnswers[i];

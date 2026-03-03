@@ -53,8 +53,18 @@ function extractLesson(lesson: Lesson & { courses?: unknown }): Lesson {
 export type WordStatus = "not-started" | "studying" | "mastered";
 
 export interface TestAttempt {
-  isCorrect: boolean;
+  pointsEarned: number;
+  maxPoints: number;
   answeredAt: string;
+}
+
+export interface WordScoreStats {
+  /** Total points earned across all test attempts */
+  totalPointsEarned: number;
+  /** Total max points available across all test attempts */
+  totalMaxPoints: number;
+  /** Historical score as percentage (0-100) */
+  scorePercent: number;
 }
 
 export interface WordWithDetails extends Word {
@@ -64,8 +74,10 @@ export interface WordWithDetails extends Word {
   relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[];
   progress: UserWordProgress | null;
   status: WordStatus;
-  /** Last 3 test attempts on this word (most recent first) */
+  /** Last 3 test attempts on this word (most recent first) - "traffic lights" */
   testHistory: TestAttempt[];
+  /** Historical score stats across all test attempts */
+  scoreStats: WordScoreStats;
 }
 
 /** Minimal lesson info for previous/next navigation */
@@ -238,31 +250,64 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     totalTimeSeconds = lessonProgress?.total_study_time_seconds || 0;
   }
 
-  // Get test history for all words in this lesson (last 3 attempts per word)
+  // Get test history for all words in this lesson
+  // - Last 3 attempts for "traffic lights" display
+  // - Total points for historical score percentage
   let testHistoryByWord: Record<string, TestAttempt[]> = {};
+  let scoreStatsByWord: Record<string, WordScoreStats> = {};
+
   if (user && words && words.length > 0) {
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("word_id, points_earned, answered_at")
+      .select("word_id, points_earned, max_points, answered_at")
       .in("word_id", words.map((w) => w.id))
       .order("answered_at", { ascending: false });
 
-    // Group by word_id and take last 3
+    // Process all test questions
     testQuestions?.forEach((tq) => {
       const wordId = tq.word_id;
       if (!wordId) return;
+
+      const pointsEarned = tq.points_earned ?? 0;
+      const maxPoints = tq.max_points ?? 3;
+
+      // Initialize structures if needed
       if (!testHistoryByWord[wordId]) {
         testHistoryByWord[wordId] = [];
       }
-      // Only keep last 3
+      if (!scoreStatsByWord[wordId]) {
+        scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+      }
+
+      // Accumulate total points for historical score
+      scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
+      scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
+
+      // Keep last 3 attempts for traffic lights
       if (testHistoryByWord[wordId].length < 3) {
         testHistoryByWord[wordId].push({
-          isCorrect: (tq.points_earned ?? 0) > 0,
+          pointsEarned,
+          maxPoints,
           answeredAt: tq.answered_at ?? new Date().toISOString(),
         });
       }
     });
+
+    // Calculate score percentages
+    Object.keys(scoreStatsByWord).forEach((wordId) => {
+      const stats = scoreStatsByWord[wordId];
+      stats.scorePercent = stats.totalMaxPoints > 0
+        ? Math.round((stats.totalPointsEarned / stats.totalMaxPoints) * 100)
+        : 0;
+    });
   }
+
+  // Default score stats for words with no test history
+  const defaultScoreStats: WordScoreStats = {
+    totalPointsEarned: 0,
+    totalMaxPoints: 0,
+    scorePercent: 0,
+  };
 
   // Combine data
   const wordsWithDetails: WordWithDetails[] = (words || []).map((word) => {
@@ -272,6 +317,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       .map((id: string) => relatedWordsMap[id])
       .filter(Boolean);
     const testHistory = testHistoryByWord[word.id] || [];
+    const scoreStats = scoreStatsByWord[word.id] || defaultScoreStats;
 
     return {
       ...word,
@@ -281,6 +327,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       progress: progress || null,
       status: (progress?.status as WordStatus) || "not-started",
       testHistory,
+      scoreStats,
     };
   });
 
@@ -342,6 +389,8 @@ export async function getWord(wordId: string): Promise<{
   // Get user's progress for this word
   let progress: UserWordProgress | null = null;
   let testHistory: TestAttempt[] = [];
+  let scoreStats: WordScoreStats = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+
   if (user) {
     const { data: wordProgress } = await supabase
       .from("user_word_progress")
@@ -352,18 +401,39 @@ export async function getWord(wordId: string): Promise<{
 
     progress = wordProgress || null;
 
-    // Get last 3 test attempts for this word
+    // Get ALL test attempts for this word to calculate historical score
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("points_earned, answered_at")
+      .select("points_earned, max_points, answered_at")
       .eq("word_id", wordId)
-      .order("answered_at", { ascending: false })
-      .limit(3);
+      .order("answered_at", { ascending: false });
 
-    testHistory = (testQuestions || []).map((tq) => ({
-      isCorrect: (tq.points_earned ?? 0) > 0,
-      answeredAt: tq.answered_at ?? new Date().toISOString(),
-    }));
+    // Calculate totals and build traffic lights (last 3 attempts)
+    let totalPointsEarned = 0;
+    let totalMaxPoints = 0;
+
+    (testQuestions || []).forEach((tq, index) => {
+      const pointsEarned = tq.points_earned ?? 0;
+      const maxPoints = tq.max_points ?? 3;
+
+      totalPointsEarned += pointsEarned;
+      totalMaxPoints += maxPoints;
+
+      // Keep last 3 for traffic lights
+      if (index < 3) {
+        testHistory.push({
+          pointsEarned,
+          maxPoints,
+          answeredAt: tq.answered_at ?? new Date().toISOString(),
+        });
+      }
+    });
+
+    scoreStats = {
+      totalPointsEarned,
+      totalMaxPoints,
+      scorePercent: totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0,
+    };
   }
 
   // Build word without nested relations
@@ -391,6 +461,7 @@ export async function getWord(wordId: string): Promise<{
     admin_notes: word.admin_notes,
     memory_trigger_text: word.memory_trigger_text,
     memory_trigger_image_url: word.memory_trigger_image_url,
+    flashcard_image_url: word.flashcard_image_url,
     audio_url_english: word.audio_url_english,
     audio_url_foreign: word.audio_url_foreign,
     audio_url_trigger: word.audio_url_trigger,
@@ -405,6 +476,7 @@ export async function getWord(wordId: string): Promise<{
     progress,
     status: (progress?.status as WordStatus) || "not-started",
     testHistory,
+    scoreStats,
   };
 
   return {

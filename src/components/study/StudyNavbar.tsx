@@ -3,7 +3,7 @@
 import { Clock, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatTimerDisplay } from "@/lib/utils/helpers";
-import { WordTrackerDots } from "./WordTrackerDots";
+import { WordTrackerDots, type TestResultGrade } from "./WordTrackerDots";
 
 interface StudyNavbarProps {
   languageFlag?: string;
@@ -25,6 +25,12 @@ interface StudyNavbarProps {
   onJumpToWord?: (index: number) => void;
   /** Whether the timer is paused due to inactivity */
   isTimerPaused?: boolean;
+  /** Test mode results: map of word index to grade */
+  testResults?: Map<number, TestResultGrade>;
+  /** Test mode: running score - points earned so far */
+  testPointsEarned?: number;
+  /** Test mode: running score - max possible points so far */
+  testMaxPoints?: number;
 }
 
 export function StudyNavbar({
@@ -40,8 +46,12 @@ export function StudyNavbar({
   completedWordIndices = [],
   onJumpToWord,
   isTimerPaused = false,
+  testResults,
+  testPointsEarned = 0,
+  testMaxPoints = 0,
 }: StudyNavbarProps) {
   const isTestMode = mode === "test";
+  const testScorePercent = testMaxPoints > 0 ? Math.round((testPointsEarned / testMaxPoints) * 100) : 0;
 
   // Badge styling differs by mode
   const badgeBgColor = isTestMode ? "bg-[rgba(255,149,0,0.3)]" : "bg-[rgba(65,207,30,0.3)]";
@@ -67,8 +77,8 @@ export function StudyNavbar({
           </span>
         )}
 
-        {/* Divider */}
-        {showWordProgress && (
+        {/* Divider between lesson title and word progress */}
+        {lessonNumber != null && lessonTitle && showWordProgress && (
           <span className="text-small-semibold text-foreground/25">|</span>
         )}
 
@@ -83,13 +93,25 @@ export function StudyNavbar({
               currentIndex={currentWordIndex}
               completedIndices={completedWordIndices}
               onDotClick={onJumpToWord}
+              disabled={isTestMode}
+              testResults={testResults}
             />
           </div>
         )}
 
-        {/* Divider */}
-        <span className="text-small-semibold text-foreground/25">|</span>
+        {/* Test score (test mode only) */}
+        {isTestMode && (
+          <>
+            <span className="text-small-semibold text-foreground/25">|</span>
+            <span className="text-small-semibold text-foreground">
+              Test score {testScorePercent}% ({testPointsEarned}/{testMaxPoints})
+            </span>
+          </>
+        )}
+      </div>
 
+      {/* Right side - Timer and Exit button */}
+      <div className="flex items-center gap-4">
         {/* Timer */}
         <div className={`flex items-center gap-1.5 ${isTimerPaused ? "text-muted-foreground" : "text-foreground"}`}>
           {isTimerPaused ? (
@@ -102,13 +124,12 @@ export function StudyNavbar({
             {isTimerPaused && " (paused)"}
           </span>
         </div>
-      </div>
 
-      {/* Right side - Exit button */}
-      <Button variant="outline" onClick={onExitLesson} className="gap-1.5">
-        {exitButtonText}
-        <X className="h-4 w-4" />
-      </Button>
+        <Button variant="outline" onClick={onExitLesson} className="gap-1.5">
+          {exitButtonText}
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

@@ -93,98 +93,8 @@ export async function endStudySession(
 }
 
 // ============================================================================
-// WORD PROGRESS ACTIONS
+// WORD NOTES ACTIONS
 // ============================================================================
-
-export interface UpdateWordProgressResult {
-  success: boolean;
-  newStatus: "not-started" | "studying" | "mastered" | null;
-  error: string | null;
-}
-
-/**
- * Update progress for a single word after answering
- */
-export async function updateWordProgress(
-  wordId: string,
-  isCorrect: boolean,
-  userNotes?: string | null
-): Promise<UpdateWordProgressResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, newStatus: null, error: "User not authenticated" };
-  }
-
-  // Get existing progress (may not exist for new words)
-  const { data: existingProgress } = await supabase
-    .from("user_word_progress")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("word_id", wordId)
-    .maybeSingle();
-
-  const currentStreak = existingProgress?.correct_streak || 0;
-  const newStreak = isCorrect ? currentStreak + 1 : 0;
-
-  // Determine new status based on streak
-  // Word is mastered after 3 correct answers in a row
-  let newStatus: "not-started" | "studying" | "mastered" = "studying";
-  if (newStreak >= 3) {
-    newStatus = "mastered";
-  }
-
-  // Calculate next review date (simple spaced repetition)
-  const now = new Date();
-  let nextReviewAt: Date | null = null;
-  if (newStatus === "mastered") {
-    // Review in 1 day for newly mastered words
-    nextReviewAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  } else if (isCorrect) {
-    // Review in 4 hours if correct but not mastered
-    nextReviewAt = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-  } else {
-    // Review in 1 hour if incorrect
-    nextReviewAt = new Date(now.getTime() + 60 * 60 * 1000);
-  }
-
-  const progressData = {
-    user_id: user.id,
-    word_id: wordId,
-    status: newStatus,
-    correct_streak: newStreak,
-    last_studied_at: now.toISOString(),
-    next_review_at: nextReviewAt.toISOString(),
-    mastered_at: newStatus === "mastered" ? now.toISOString() : existingProgress?.mastered_at || null,
-    user_notes: userNotes !== undefined ? userNotes : existingProgress?.user_notes || null,
-  };
-
-  let error;
-  if (existingProgress) {
-    // Update existing record
-    const result = await supabase
-      .from("user_word_progress")
-      .update(progressData)
-      .eq("id", existingProgress.id);
-    error = result.error;
-  } else {
-    // Insert new record
-    const result = await supabase
-      .from("user_word_progress")
-      .insert(progressData);
-    error = result.error;
-  }
-
-  if (error) {
-    console.error("Error updating word progress:", error);
-    return { success: false, newStatus: null, error: error.message };
-  }
-
-  return { success: true, newStatus, error: null };
-}
 
 /**
  * Save user notes for a word without affecting progress/streak
@@ -242,33 +152,31 @@ export async function saveUserNotes(
 }
 
 /**
- * Batch update word progress for multiple words
- * Used when exiting a lesson to save all pending progress
+ * Batch save user notes for multiple words
+ * Study mode only saves notes - progress/mastery is tracked in test mode only
  */
-export async function batchUpdateWordProgress(
+export async function batchSaveUserNotes(
   updates: Array<{
     wordId: string;
-    isCorrect: boolean;
     userNotes?: string | null;
-    hasAnswered?: boolean;
   }>
 ): Promise<{ success: boolean; error: string | null }> {
+  // Only save notes for words that have notes
+  const wordsWithNotes = updates.filter((u) => u.userNotes !== undefined && u.userNotes !== null);
+
+  if (wordsWithNotes.length === 0) {
+    return { success: true, error: null };
+  }
+
   const results = await Promise.all(
-    updates.map((update) => {
-      // If user hasn't answered but has notes, just save the notes
-      if (update.hasAnswered === false && update.userNotes !== undefined) {
-        return saveUserNotes(update.wordId, update.userNotes);
-      }
-      // Otherwise update full progress
-      return updateWordProgress(update.wordId, update.isCorrect, update.userNotes);
-    })
+    wordsWithNotes.map((update) => saveUserNotes(update.wordId, update.userNotes ?? null))
   );
 
   const failed = results.filter((r) => !r.success);
   if (failed.length > 0) {
     return {
       success: false,
-      error: `Failed to update ${failed.length} word(s)`,
+      error: `Failed to save notes for ${failed.length} word(s)`,
     };
   }
 
@@ -391,45 +299,46 @@ export async function updateLessonProgress(
 }
 
 /**
- * Complete a study session - ends the session and updates lesson progress
+ * Complete a study session - saves notes and records study time
+ * Note: Study mode does NOT affect word mastery/streaks - only test mode does
  */
 export async function completeStudySession(
   sessionId: string,
   lessonId: string,
   stats: {
     wordsStudied: number;
-    wordsMastered: number;
     durationSeconds: number;
   },
-  pendingUpdates: Array<{
+  pendingNotes: Array<{
     wordId: string;
-    isCorrect: boolean;
     userNotes?: string | null;
-    hasAnswered?: boolean;
   }>
 ): Promise<{ success: boolean; error: string | null }> {
-  // First, save all pending word progress
-  if (pendingUpdates.length > 0) {
-    const batchResult = await batchUpdateWordProgress(pendingUpdates);
+  // Save any user notes
+  if (pendingNotes.length > 0) {
+    const batchResult = await batchSaveUserNotes(pendingNotes);
     if (!batchResult.success) {
-      console.error("Failed to save word progress:", batchResult.error);
-      // Continue anyway - we still want to update lesson progress
+      console.error("Failed to save user notes:", batchResult.error);
+      // Continue anyway - we still want to record the session
     }
   }
 
   // Check if this is a real DB session (not a local/guest fallback)
   const isRealDbSession = !sessionId.startsWith("local_") && !sessionId.startsWith("guest_");
-  
+
   if (isRealDbSession) {
-    // End the study session in DB
-    const sessionResult = await endStudySession(sessionId, stats);
+    // End the study session in DB (just records time spent, no mastery stats)
+    const sessionResult = await endStudySession(sessionId, {
+      wordsStudied: stats.wordsStudied,
+      wordsMastered: 0, // Study mode doesn't track mastery
+      durationSeconds: stats.durationSeconds,
+    });
     if (!sessionResult.success) {
       console.error("Failed to end study session:", sessionResult.error);
-      // Continue anyway - we still want to update lesson progress
     }
   }
 
-  // Always update lesson progress (aggregates from word progress)
+  // Update lesson progress to record study time
   const lessonResult = await updateLessonProgress(lessonId, stats.durationSeconds);
   if (!lessonResult.success) {
     return lessonResult;

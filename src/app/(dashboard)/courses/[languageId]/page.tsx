@@ -24,8 +24,9 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
 
   // Update the user's current language preference when they navigate here
   // This is a "fire and forget" operation - we don't await or handle errors
+  // skipRevalidation is true since we're calling this during render
   if (!isGuest) {
-    setCurrentLanguage(languageId);
+    setCurrentLanguage(languageId, { skipRevalidation: true });
   }
 
   // Calculate total words across all courses

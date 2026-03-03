@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getScheduleData } from "@/lib/queries/schedule";
 import { getCourseById } from "@/lib/queries/courses";
+import { setCurrentCourse } from "@/lib/mutations";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { SchedulerSection, LessonGridSection } from "@/components/schedule";
 import { GuestCTA } from "@/components/GuestCTA";
@@ -37,6 +38,9 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
       .eq("id", user.id)
       .single();
     userName = userData?.name || null;
+
+    // Update the user's current course (fire-and-forget)
+    setCurrentCourse(courseId);
   }
 
   // Get schedule data for this specific course

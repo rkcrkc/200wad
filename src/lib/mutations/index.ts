@@ -1,9 +1,8 @@
 export {
   createStudySession,
   endStudySession,
-  updateWordProgress,
   saveUserNotes,
-  batchUpdateWordProgress,
+  batchSaveUserNotes,
   updateLessonProgress,
   completeStudySession,
 } from "./study";
@@ -11,7 +10,6 @@ export {
 export type {
   CreateStudySessionResult,
   EndStudySessionResult,
-  UpdateWordProgressResult,
   UpdateLessonProgressResult,
 } from "./study";
 
@@ -33,6 +31,7 @@ export {
   verifyCurrentPassword,
   toggleTwoFactor,
   setCurrentLanguage,
+  setCurrentCourse,
   removeLanguage,
   addLanguage,
 } from "./settings";

@@ -26,7 +26,7 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
 
   return (
     <Link
-      href={`/course/${course.id}`}
+      href={`/course/${course.id}/schedule`}
       className={cn(
         "relative block rounded-2xl border-2 bg-white p-5 transition-all hover:shadow-lg",
         isActive

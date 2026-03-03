@@ -10,9 +10,11 @@ import {
   StudyActionBar,
   WordCard,
   MemoryTriggerCard,
+  FlashcardCard,
   StudySidebar,
   AnswerInput,
   LessonCompletedModal,
+  type AnswerInputHandle,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ import { getFlagFromCode } from "@/lib/utils/flags";
 import {
   createStudySession,
   completeStudySession,
+  saveUserNotes,
 } from "@/lib/mutations/study";
 import {
   initSessionProgress,
@@ -98,6 +101,9 @@ export function StudyModeClient({
   // Strict study mode state
   const [strictMode, setStrictMode] = useState(false);
 
+  // Image display mode (memory trigger vs flashcard)
+  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+
   // Idle/pause state
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -107,6 +113,7 @@ export function StudyModeClient({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const answerInputRef = useRef<AnswerInputHandle>(null);
 
   const currentWord = words[currentWordIndex];
   const isLastWord = currentWordIndex === words.length - 1;
@@ -443,20 +450,23 @@ export function StudyModeClient({
 
   // Handle user notes change
   const handleUserNotesChange = useCallback(
-    (notes: string | null) => {
-      const existing = wordProgressMap.get(currentWord.id);
-      
+    async (notes: string | null) => {
+      let existingProgress: WordProgress | undefined;
+
       setWordProgressMap((prev) => {
+        // Read existing from prev inside the updater to avoid stale closures
+        existingProgress = prev.get(currentWord.id);
         const newMap = new Map(prev);
         newMap.set(currentWord.id, {
-          isCorrect: existing?.isCorrect || false,
+          isCorrect: existingProgress?.isCorrect || false,
           userNotes: notes,
-          hasAnswered: existing?.hasAnswered || false,
+          hasAnswered: existingProgress?.hasAnswered || false,
         });
         return newMap;
       });
-      
-      // Save notes to localStorage if session exists and word was answered
+
+      // Save notes to localStorage for session recovery
+      const existing = wordProgressMap.get(currentWord.id);
       if (sessionId && existing?.hasAnswered) {
         const progressEntry: WordProgressEntry = {
           isCorrect: existing.isCorrect,
@@ -465,39 +475,43 @@ export function StudyModeClient({
         };
         updateWordProgressStorage("study", sessionId, currentWord.id, progressEntry, currentWordIndex);
       }
+
+      // Save notes to database immediately (for authenticated users)
+      if (!isGuest) {
+        const result = await saveUserNotes(currentWord.id, notes);
+        if (!result.success) {
+          console.error("Failed to save notes to database:", result.error);
+        }
+      }
     },
-    [currentWord.id, currentWordIndex, sessionId, wordProgressMap]
+    [currentWord.id, currentWordIndex, sessionId, wordProgressMap, isGuest]
   );
 
-  // Handle finish lesson - save to DB and show completion modal
+  // Handle finish lesson - save notes and show completion modal
+  // Note: Study mode does NOT affect word mastery/streaks - only test mode does
   const handleFinishLesson = useCallback(async () => {
     // Stop the timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
+
     if (!isGuest && sessionId) {
-      // Prepare updates - include words that were answered OR have notes edited
-      const pendingUpdates = Array.from(wordProgressMap.entries())
-        .filter(([_, progress]) => progress.hasAnswered || progress.userNotes !== null)
+      // Only save user notes - study mode doesn't track progress/mastery
+      const pendingNotes = Array.from(wordProgressMap.entries())
+        .filter(([_, progress]) => progress.userNotes !== null)
         .map(([wordId, progress]) => ({
           wordId,
-          isCorrect: progress.isCorrect,
           userNotes: progress.userNotes,
-          hasAnswered: progress.hasAnswered,
         }));
 
-      // Only count answered words for stats
-      const answeredUpdates = pendingUpdates.filter((u) => u.hasAnswered);
-      const wordsStudied = answeredUpdates.length;
-      const wordsMastered = answeredUpdates.filter((u) => u.isCorrect).length;
+      // Count words that were viewed/practiced for session stats
+      const wordsStudied = viewedWordIndices.length;
 
       const result = await completeStudySession(sessionId, lesson.id, {
         wordsStudied,
-        wordsMastered,
         durationSeconds: elapsedSeconds,
-      }, pendingUpdates);
-      
+      }, pendingNotes);
+
       if (result.success) {
         // Clear localStorage after successful DB sync
         clearSessionProgress("study", sessionId, lesson.id);
@@ -508,12 +522,11 @@ export function StudyModeClient({
 
     // Show completion modal
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, wordProgressMap, elapsedSeconds]);
+  }, [isGuest, sessionId, lesson.id, wordProgressMap, viewedWordIndices, elapsedSeconds]);
 
   // Handle modal "Start Test" action
   const handleStartTest = useCallback(() => {
-    // TODO: Navigate to test mode when implemented
-    router.push(`/lesson/${lesson.id}`);
+    router.push(`/lesson/${lesson.id}/test`);
   }, [router, lesson.id]);
 
   // Handle modal "Not now" action
@@ -607,22 +620,31 @@ export function StudyModeClient({
             {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
             <div className="flex gap-6">
               <div className="flex w-[700px] flex-col gap-6">
-                <MemoryTriggerCard
-                  imageUrl={currentWord.memory_trigger_image_url}
-                  triggerText={currentWord.memory_trigger_text}
-                  englishWord={currentWord.english}
-                  foreignWord={currentWord.headword}
-                  isVisible={showTrigger}
-                  playingAudioType={currentAudioType}
-                  onPlayTriggerAudio={() => {
-                    if (currentWord.audio_url_trigger) {
-                      playAudio(currentWord.audio_url_trigger, "trigger");
-                    }
-                  }}
-                />
+                {imageMode === "memory-trigger" ? (
+                  <MemoryTriggerCard
+                    imageUrl={currentWord.memory_trigger_image_url}
+                    triggerText={currentWord.memory_trigger_text}
+                    englishWord={currentWord.english}
+                    foreignWord={currentWord.headword}
+                    isVisible={showTrigger}
+                    playingAudioType={currentAudioType}
+                    onPlayTriggerAudio={() => {
+                      if (currentWord.audio_url_trigger) {
+                        playAudio(currentWord.audio_url_trigger, "trigger");
+                      }
+                    }}
+                  />
+                ) : (
+                  <FlashcardCard
+                    imageUrl={currentWord.flashcard_image_url}
+                    englishWord={currentWord.english}
+                    isVisible={showTrigger}
+                  />
+                )}
               </div>
               <div className="flex-1">
                 <StudySidebar
+                  wordId={currentWord.id}
                   systemNotes={currentWord.notes}
                   userNotes={currentUserNotes}
                   exampleSentences={currentWord.exampleSentences}
@@ -639,6 +661,7 @@ export function StudyModeClient({
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           {/* Answer Input Row */}
           <AnswerInput
+            ref={answerInputRef}
             wordId={currentWord.id}
             languageName={language?.name || "Italian"}
             validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
@@ -659,12 +682,17 @@ export function StudyModeClient({
             wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
             testHistory={currentWord.testHistory}
+            scoreStats={currentWord.scoreStats}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
             onRestart={handleRestart}
             strictMode={strictMode}
             onStrictModeChange={setStrictMode}
+            languageCode={language?.code}
+            onInsertCharacter={(char) => answerInputRef.current?.insertCharacter(char)}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
           />
         </div>
       </div>

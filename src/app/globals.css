@@ -148,6 +148,24 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Ensure all clickable elements have pointer cursor */
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  a,
+  label[for],
+  select,
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family:

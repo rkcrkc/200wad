@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Pencil, X, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -103,7 +103,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
   // List view state
-  const [filterLanguageId, setFilterLanguageId] = useState<string>("");
+  const [expandedLanguages, setExpandedLanguages] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -188,28 +188,68 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     }
   };
 
-  // Filter courses by language
-  const filteredCourses = useMemo(() => {
-    if (!filterLanguageId) return courses;
-    return courses.filter((c) => c.language_id === filterLanguageId);
-  }, [courses, filterLanguageId]);
+  // Group courses by language
+  const coursesByLanguage = useMemo(() => {
+    const grouped = new Map<string, { language: Language; courses: Course[] }>();
+
+    // First, add all languages (even those without courses)
+    languages.forEach((lang) => {
+      grouped.set(lang.id, { language: lang, courses: [] });
+    });
+
+    // Then add courses to their respective language groups
+    courses.forEach((course) => {
+      if (course.language_id && grouped.has(course.language_id)) {
+        grouped.get(course.language_id)!.courses.push(course);
+      }
+    });
+
+    // Sort courses within each group by sort_order
+    grouped.forEach((group) => {
+      group.courses.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    });
+
+    return Array.from(grouped.values()).filter((g) => g.courses.length > 0);
+  }, [courses, languages]);
+
+  // Initialize all languages as expanded on first load
+  useEffect(() => {
+    if (expandedLanguages.size === 0 && coursesByLanguage.length > 0) {
+      setExpandedLanguages(new Set(coursesByLanguage.map((g) => g.language.id)));
+    }
+  }, [coursesByLanguage]);
+
+  // Toggle language accordion
+  const toggleLanguage = (languageId: string) => {
+    setExpandedLanguages((prev) => {
+      const next = new Set(prev);
+      if (next.has(languageId)) {
+        next.delete(languageId);
+      } else {
+        next.add(languageId);
+      }
+      return next;
+    });
+  };
 
   // Handle course reordering
-  const handleMoveCourse = async (courseId: string, direction: "up" | "down") => {
-    if (!filterLanguageId) return; // Only allow reordering when filtered by language
+  const handleMoveCourse = async (languageId: string, courseId: string, direction: "up" | "down") => {
+    const group = coursesByLanguage.find((g) => g.language.id === languageId);
+    if (!group) return;
 
-    const currentIndex = filteredCourses.findIndex((c) => c.id === courseId);
+    const languageCourses = group.courses;
+    const currentIndex = languageCourses.findIndex((c) => c.id === courseId);
     if (currentIndex === -1) return;
 
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= filteredCourses.length) return;
+    if (newIndex < 0 || newIndex >= languageCourses.length) return;
 
     // Create new order by swapping
-    const newOrder = [...filteredCourses];
+    const newOrder = [...languageCourses];
     [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
 
     // Persist the change
-    const result = await reorderCourses(filterLanguageId, newOrder.map((c) => c.id));
+    const result = await reorderCourses(languageId, newOrder.map((c) => c.id));
     if (!result.success) {
       alert(result.error || "Failed to reorder courses");
     } else {
@@ -260,7 +300,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
 
   const resetForm = () => {
     setFormData({
-      language_id: filterLanguageId || "",
+      language_id: "",
       name: "",
       description: "",
       level: "",
@@ -859,147 +899,152 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         </Button>
       </div>
 
-      {/* Filter */}
-      <div className="mb-6">
-        <label className="mr-3 text-sm font-medium text-gray-700">
-          Filter by language:
-        </label>
-        <select
-          value={filterLanguageId}
-          onChange={(e) => setFilterLanguageId(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">All languages</option>
-          {languages.map((lang) => (
-            <option key={lang.id} value={lang.id}>
-              {getFlagFromCode(lang.code)} {lang.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Courses grouped by language */}
+      {coursesByLanguage.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center text-gray-500">
+          {languages.length === 0
+            ? "Add a language first before creating courses."
+            : "No courses yet. Add your first course to get started."}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {coursesByLanguage.map(({ language, courses: languageCourses }) => {
+            const isExpanded = expandedLanguages.has(language.id);
+            const totalLessons = languageCourses.reduce((sum, c) => sum + c.lessonCount, 0);
+            const totalWords = languageCourses.reduce((sum, c) => sum + (c.word_count ?? 0), 0);
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              {filterLanguageId && (
-                <th className="w-20 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Order
-                </th>
-              )}
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Course
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Language
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Level
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Lessons
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Words
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                <span className="sr-only">View</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredCourses.length === 0 ? (
-              <tr>
-                <td colSpan={filterLanguageId ? 8 : 7} className="px-6 py-12 text-center text-gray-500">
-                  {languages.length === 0
-                    ? "Add a language first before creating courses."
-                    : "No courses yet. Add your first course to get started."}
-                </td>
-              </tr>
-            ) : (
-              filteredCourses.map((course, index) => (
-                <tr
-                  key={course.id}
-                  onClick={() => selectCourse(course)}
-                  className="cursor-pointer hover:bg-gray-50"
+            return (
+              <div key={language.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                {/* Accordion Header */}
+                <button
+                  onClick={() => toggleLanguage(language.id)}
+                  className="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
                 >
-                  {filterLanguageId && (
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <div className="flex items-center gap-1">
-                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
-                        <div className="flex flex-col">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveCourse(course.id, "up");
-                            }}
-                            disabled={index === 0}
-                            className={`rounded p-0.5 ${
-                              index === 0
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move up"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveCourse(course.id, "down");
-                            }}
-                            disabled={index === filteredCourses.length - 1}
-                            className={`rounded p-0.5 ${
-                              index === filteredCourses.length - 1
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  )}
-                  <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getFlagFromCode(language.code)}</span>
                     <div>
-                      <p className="font-medium text-gray-900">{course.name}</p>
-                      {course.description && (
-                        <p className="mt-1 text-sm text-gray-500 line-clamp-1">
-                          {course.description}
-                        </p>
-                      )}
+                      <h2 className="text-lg font-semibold text-gray-900">{language.name}</h2>
+                      <p className="text-sm text-gray-500">
+                        {languageCourses.length} course{languageCourses.length !== 1 ? "s" : ""} · {totalLessons} lessons · {totalWords} words
+                      </p>
                     </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {getFlagFromCode(course.language?.code)} {course.language?.name}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600 capitalize">
-                    {course.level || "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {course.lessonCount}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {course.word_count}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <AdminStatusBadge isPublished={course.is_published ?? false} />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                  <ChevronDownIcon
+                    className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Accordion Content */}
+                {isExpanded && (
+                  <div className="border-t border-gray-200">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="w-20 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Order
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Course
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Level
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Lessons
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Words
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <span className="sr-only">View</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {languageCourses.map((course, index) => (
+                          <tr
+                            key={course.id}
+                            onClick={() => selectCourse(course)}
+                            className="cursor-pointer hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-4 py-4">
+                              <div className="flex items-center gap-1">
+                                <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                                <div className="flex flex-col">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveCourse(language.id, course.id, "up");
+                                    }}
+                                    disabled={index === 0}
+                                    className={`rounded p-0.5 ${
+                                      index === 0
+                                        ? "text-gray-200 cursor-not-allowed"
+                                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                    }`}
+                                    title="Move up"
+                                  >
+                                    <ChevronUp className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveCourse(language.id, course.id, "down");
+                                    }}
+                                    disabled={index === languageCourses.length - 1}
+                                    className={`rounded p-0.5 ${
+                                      index === languageCourses.length - 1
+                                        ? "text-gray-200 cursor-not-allowed"
+                                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                    }`}
+                                    title="Move down"
+                                  >
+                                    <ChevronDown className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <p className="font-medium text-gray-900">{course.name}</p>
+                                {course.description && (
+                                  <p className="mt-1 text-sm text-gray-500 line-clamp-1">
+                                    {course.description}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-gray-600 capitalize">
+                              {course.level || "-"}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                              {course.lessonCount}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                              {course.word_count ?? 0}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <AdminStatusBadge isPublished={course.is_published ?? false} />
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right">
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Create Modal */}
       <AdminModal

@@ -151,7 +151,8 @@ export async function toggleTwoFactor(
 // ============================================
 
 export async function setCurrentLanguage(
-  languageId: string
+  languageId: string,
+  options?: { skipRevalidation?: boolean }
 ): Promise<MutationResult> {
   const supabase = await createClient();
 
@@ -197,8 +198,10 @@ export async function setCurrentLanguage(
     // Non-fatal, the user_languages table is the source of truth
   }
 
-  revalidatePath("/settings");
-  revalidatePath("/dashboard");
+  if (!options?.skipRevalidation) {
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+  }
   return { success: true, error: null };
 }
 
@@ -279,6 +282,38 @@ export async function removeLanguage(
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+  return { success: true, error: null };
+}
+
+// ============================================
+// Course Mutations
+// ============================================
+
+export async function setCurrentCourse(
+  courseId: string
+): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ current_course_id: courseId })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Error setting current course:", error);
+    return { success: false, error: error.message };
+  }
+
+  // Note: No revalidatePath here since this is called during page render
+  // The data will be fresh on subsequent navigations
   return { success: true, error: null };
 }
 

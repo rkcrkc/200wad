@@ -594,6 +594,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string | null
+          current_course_id: string | null
           current_language_id: string | null
           email: string
           hometown: string | null
@@ -612,6 +613,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          current_course_id?: string | null
           current_language_id?: string | null
           email: string
           hometown?: string | null
@@ -630,6 +632,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          current_course_id?: string | null
           current_language_id?: string | null
           email?: string
           hometown?: string | null
@@ -677,6 +680,7 @@ export type Database = {
           legacy_image_suffix: string | null
           legacy_refn: number | null
           lemma: string
+          flashcard_image_url: string | null
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
           notes: string | null
@@ -710,6 +714,7 @@ export type Database = {
           legacy_image_suffix?: string | null
           legacy_refn?: number | null
           lemma: string
+          flashcard_image_url?: string | null
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
@@ -743,6 +748,7 @@ export type Database = {
           legacy_image_suffix?: string | null
           legacy_refn?: number | null
           lemma?: string
+          flashcard_image_url?: string | null
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null

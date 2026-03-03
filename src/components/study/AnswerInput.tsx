@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isExactMatch } from "@/lib/utils/scoring";
 
 type FeedbackType = "correct" | "incorrect" | null;
+
+export interface AnswerInputHandle {
+  insertCharacter: (char: string) => void;
+}
 
 interface AnswerInputProps {
   wordId: string;
@@ -20,7 +24,7 @@ interface AnswerInputProps {
   strictMode?: boolean;
 }
 
-export function AnswerInput({
+export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(function AnswerInput({
   wordId,
   languageName,
   validAnswers,
@@ -29,12 +33,32 @@ export function AnswerInput({
   onSubmit,
   onNextWord,
   strictMode = false,
-}: AnswerInputProps) {
+}, ref) {
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<FeedbackType>(null);
   const [lastSubmitted, setLastSubmitted] = useState("");
   const [showWarning, setShowWarning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Expose insertCharacter method to parent
+  useImperativeHandle(ref, () => ({
+    insertCharacter: (char: string) => {
+      if (!inputRef.current) return;
+
+      const input = inputRef.current;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      const newValue = input.value.slice(0, start) + char + input.value.slice(end);
+
+      setInput(newValue);
+
+      // Set cursor position after inserted character
+      requestAnimationFrame(() => {
+        input.focus();
+        input.setSelectionRange(start + char.length, start + char.length);
+      });
+    },
+  }), []);
 
   // Focus input when it becomes visible
   useEffect(() => {
@@ -109,7 +133,7 @@ export function AnswerInput({
           "flex items-center gap-4 rounded-2xl border-2 bg-white px-5 py-3 transition-colors",
           feedback === "correct" && "border-green-200",
           feedback === "incorrect" && "border-red-200",
-          !feedback && "border-gray-200"
+          !feedback && "border-primary"
         )}
       >
           {/* Input field - always editable in study mode */}
@@ -162,4 +186,4 @@ export function AnswerInput({
         </div>
     </div>
   );
-}
+});

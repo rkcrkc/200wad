@@ -14,12 +14,19 @@ interface MemoryTriggerCardProps {
   playingAudioType: AudioType | null;
   onPlayTriggerAudio: () => void;
   /** For test mode: clue level determines what's visible
+   * Normal mode (pictureOnlyMode=false):
    * - 0: nothing visible (both image and trigger hidden)
    * - 1: image visible, trigger hidden
    * - 2: both visible
+   * Picture-only mode (pictureOnlyMode=true):
+   * - 0: image always visible, English word and trigger hidden
+   * - 1: image visible, English word visible, trigger hidden
+   * - 2: all visible
    * - undefined: use isVisible prop (study mode)
    */
   clueLevel?: 0 | 1 | 2;
+  /** Picture-only test mode: image is always visible, clues reveal English word then trigger text */
+  pictureOnlyMode?: boolean;
 }
 
 /**
@@ -102,6 +109,7 @@ export function MemoryTriggerCard({
   playingAudioType,
   onPlayTriggerAudio,
   clueLevel,
+  pictureOnlyMode = false,
 }: MemoryTriggerCardProps) {
   const isPlayingTrigger = playingAudioType === "trigger";
 
@@ -112,9 +120,17 @@ export function MemoryTriggerCard({
   }
 
   // Determine visibility based on clueLevel (test mode) or isVisible (study mode)
-  const showImage = clueLevel !== undefined ? clueLevel >= 1 : isVisible;
+  // In picture-only mode: image is always visible, clues reveal English word then trigger text
+  const showImage = pictureOnlyMode
+    ? true  // Always show image in picture-only mode
+    : (clueLevel !== undefined ? clueLevel >= 1 : isVisible);
+  const showEnglishLabel = pictureOnlyMode && clueLevel !== undefined
+    ? clueLevel >= 1  // Show English word at clue level 1 in picture-only mode
+    : false;
   const showTrigger = clueLevel !== undefined ? clueLevel >= 2 : isVisible;
-  const showNothing = clueLevel !== undefined ? clueLevel === 0 : !isVisible;
+  const showNothing = pictureOnlyMode
+    ? false  // Never show "nothing" skeleton in picture-only mode
+    : (clueLevel !== undefined ? clueLevel === 0 : !isVisible);
 
   // Full skeleton when nothing visible
   if (showNothing) {
@@ -134,6 +150,15 @@ export function MemoryTriggerCard({
   return (
     <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
       <div className="flex flex-col gap-5 p-6">
+        {/* Picture-only mode: Show English word as clue 1 */}
+        {pictureOnlyMode && showEnglishLabel && (
+          <div className="flex items-center gap-4">
+            <span className="text-[32px] font-semibold leading-tight tracking-tight text-primary">
+              {englishWord}
+            </span>
+          </div>
+        )}
+
         {/* Trigger text row - audio button on left, matching word card layout */}
         {showTrigger && triggerText ? (
           <button
@@ -145,14 +170,15 @@ export function MemoryTriggerCard({
               {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger)}
             </p>
           </button>
-        ) : (
+        ) : !pictureOnlyMode || showTrigger ? (
+          // Show skeleton only if not in picture-only mode or if trigger should be shown
           <div className="flex items-center gap-4">
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
             <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
           </div>
-        )}
+        ) : null}
 
-        {/* Trigger Image - visible at clueLevel 1+ */}
+        {/* Trigger Image - visible at clueLevel 1+ (always visible in picture-only mode) */}
         {showImage && imageUrl ? (
           <button
             onClick={onPlayTriggerAudio}

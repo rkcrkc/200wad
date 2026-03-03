@@ -7,13 +7,25 @@ interface WordCardProps {
   word: WordWithDetails;
   index?: number;
   languageFlag?: string;
+  onClick?: () => void;
 }
 
-export function WordCard({ word, index, languageFlag = "🇮🇹" }: WordCardProps) {
+export function WordCard({ word, index, languageFlag = "🇮🇹", onClick }: WordCardProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (
-    <div className="flex cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
+    <div
+      className="flex cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
       {/* Thumbnail */}
       <div className="relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-transparent">
         {hasImage ? (

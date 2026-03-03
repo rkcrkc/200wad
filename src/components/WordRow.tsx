@@ -8,13 +8,25 @@ interface WordRowProps {
   word: WordWithDetails;
   index: number;
   languageFlag?: string;
+  onClick?: () => void;
 }
 
-export function WordRow({ word, index, languageFlag = "🇮🇹" }: WordRowProps) {
+export function WordRow({ word, index, languageFlag = "🇮🇹", onClick }: WordRowProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (
-    <div className="grid cursor-pointer grid-cols-[40px_64px_1fr_1fr_140px_60px] items-center gap-4 px-6 py-4 transition-colors hover:bg-bone-50">
+    <div
+      className="grid cursor-pointer grid-cols-[40px_64px_1fr_1fr_140px_60px] items-center gap-4 px-6 py-4 transition-colors hover:bg-bone-50"
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
       {/* Word number */}
       <div className="text-regular-medium">
         {index + 1}

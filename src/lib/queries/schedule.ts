@@ -94,14 +94,31 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
     };
   }
 
-  // Get user info
+  // Get user info including current course
   const { data: userData } = await supabase
     .from("users")
-    .select("name, current_language_id")
+    .select("name, current_language_id, current_course_id")
     .eq("id", user.id)
     .single();
 
-  // Get user's current language from user_languages
+  // If user has a current course set, use that
+  if (userData?.current_course_id) {
+    const { data: course } = await supabase
+      .from("courses")
+      .select("*, languages(*)")
+      .eq("id", userData.current_course_id)
+      .single();
+
+    if (course) {
+      return {
+        course: extractCourse(course),
+        language: (course.languages as Language) || null,
+        userName: userData.name || null,
+      };
+    }
+  }
+
+  // Fall back to current language's first course
   const { data: currentUserLang } = await supabase
     .from("user_languages")
     .select("language_id")

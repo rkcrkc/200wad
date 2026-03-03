@@ -10,21 +10,23 @@ import {
   StudyActionBar,
   WordCard,
   MemoryTriggerCard,
+  FlashcardCard,
   StudySidebar,
   TestAnswerInput,
   TestCompletedModal,
   type TestAnswerResult,
   type TestWordResult,
+  type TestAnswerInputHandle,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
 import {
   initSessionProgress,
   saveSessionProgress,
-  getSessionProgress,
   clearSessionProgress,
-  getIncompleteSessionId,
+  clearAllLessonSessions,
   type WordProgressEntry,
 } from "@/lib/utils/sessionStorage";
 import { calculateScorePercent, getScoreLetter } from "@/lib/utils/scoring";
@@ -37,6 +39,7 @@ interface TestProgress {
   grade: "correct" | "half-correct" | "incorrect";
   mistakeCount: number;
   userAnswer: string;
+  correctAnswer: string;
   hasAnswered: boolean;
 }
 
@@ -46,6 +49,8 @@ interface TestModeClientProps {
   course: Course | null;
   words: WordWithDetails[];
   isGuest: boolean;
+  testType?: import("@/types/test").TestType;
+  testTwice?: boolean;
 }
 
 export function TestModeClient({
@@ -54,9 +59,11 @@ export function TestModeClient({
   course,
   words,
   isGuest,
+  testType = "english-to-foreign",
+  testTwice = false,
 }: TestModeClientProps) {
   const router = useRouter();
-  const { playAudio, stopAudio, currentAudioType } = useAudio();
+  const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
 
   const languageFlag = getFlagFromCode(language?.code);
 
@@ -86,13 +93,33 @@ export function TestModeClient({
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+  // Exit confirmation modal state
+  const [showExitModal, setShowExitModal] = useState(false);
+
+  // Nerves of steel mode (punctuation counts in scoring)
+  const [nervesOfSteelMode, setNervesOfSteelMode] = useState(false);
+
+  // Image display mode (memory trigger vs flashcard)
+  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const testAnswerInputRef = useRef<TestAnswerInputHandle>(null);
 
-  const currentWord = words[currentWordIndex];
-  const isLastWord = currentWordIndex === words.length - 1;
-  const currentProgress = testProgressMap.get(currentWord?.id);
+  // Build test sequence - in testTwice mode, test all words then test them all again
+  const testSequence = testTwice ? [...words, ...words] : words;
+  const totalQuestions = testSequence.length;
+
+  // Get current word from sequence
+  const currentWord = testSequence[currentWordIndex];
+  const isLastWord = currentWordIndex === totalQuestions - 1;
+
+  // For testTwice mode, we need to track progress per attempt (not just per word)
+  // Attempt 1 = first pass, Attempt 2 = second pass
+  const currentAttemptNumber = testTwice && currentWordIndex >= words.length ? 2 : 1;
+  const progressKey = testTwice ? `${currentWord?.id}_${currentAttemptNumber}` : currentWord?.id;
+  const currentProgress = testProgressMap.get(progressKey || "");
   const hasSubmittedAnswer = currentProgress?.hasAnswered ?? false;
 
   // Build existing result for locked/answered words
@@ -100,6 +127,7 @@ export function TestModeClient({
     ? {
         isCorrect: currentProgress.isCorrect,
         userAnswer: currentProgress.userAnswer,
+        correctAnswer: currentProgress.correctAnswer,
         mistakeCount: currentProgress.mistakeCount,
         pointsEarned: currentProgress.pointsEarned,
         maxPoints: currentProgress.maxPoints,
@@ -109,59 +137,52 @@ export function TestModeClient({
       }
     : null;
 
-  // Initialize test session
+  // Compute merged traffic lights and score stats including current session's answer
+  const mergedTestHistory = (() => {
+    const historicalHistory = currentWord?.testHistory || [];
+    if (currentProgress?.hasAnswered) {
+      // Prepend current session's result as most recent
+      const currentAttempt = {
+        pointsEarned: currentProgress.pointsEarned,
+        maxPoints: currentProgress.maxPoints,
+        answeredAt: new Date().toISOString(),
+      };
+      // Take first 2 from history + current = 3 total for traffic lights
+      return [currentAttempt, ...historicalHistory.slice(0, 2)];
+    }
+    return historicalHistory;
+  })();
+
+  const mergedScoreStats = (() => {
+    const historicalStats = currentWord?.scoreStats || { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+    if (currentProgress?.hasAnswered) {
+      const newTotalPoints = historicalStats.totalPointsEarned + currentProgress.pointsEarned;
+      const newTotalMax = historicalStats.totalMaxPoints + currentProgress.maxPoints;
+      return {
+        totalPointsEarned: newTotalPoints,
+        totalMaxPoints: newTotalMax,
+        scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
+      };
+    }
+    return historicalStats;
+  })();
+
+  // Initialize test session (always fresh - tests are sandboxed)
   useEffect(() => {
     const initSession = async () => {
-      // Check for incomplete session in localStorage
-      const existingSessionId = getIncompleteSessionId("test", lesson.id);
+      // Reset all component state to ensure fresh start
+      setCurrentWordIndex(0);
+      setClueLevel(0);
+      setTestProgressMap(new Map());
+      setViewedWordIndices([0]);
+      setShowCompletionModal(false);
+      setElapsedSeconds(0);
+      setNervesOfSteelMode(false);
 
-      if (existingSessionId) {
-        // Restore from localStorage
-        const storedProgress = getSessionProgress("test", existingSessionId);
-        if (storedProgress) {
-          console.log("[Test] Restoring session from localStorage:", existingSessionId);
-          setSessionId(existingSessionId);
-          setCurrentWordIndex(storedProgress.currentWordIndex);
+      // Aggressively clear ALL previous test sessions for this lesson
+      clearAllLessonSessions("test", lesson.id);
 
-          // Restore test progress
-          const restoredMap = new Map<string, TestProgress>();
-          Object.entries(storedProgress.wordProgress).forEach(([wordId, entry]) => {
-            // Reconstruct test progress from stored entry
-            restoredMap.set(wordId, {
-              clueLevel: (entry as any).clueLevel ?? 0,
-              pointsEarned: (entry as any).pointsEarned ?? 0,
-              maxPoints: (entry as any).maxPoints ?? 3,
-              isCorrect: entry.isCorrect,
-              grade: (entry as any).grade ?? "incorrect",
-              mistakeCount: (entry as any).mistakeCount ?? 3,
-              userAnswer: (entry as any).userAnswer ?? "",
-              hasAnswered: true,
-            });
-          });
-          setTestProgressMap(restoredMap);
-
-          // Restore completed indices
-          const completedIndices = words
-            .map((w, i) => (storedProgress.wordProgress[w.id] ? i : -1))
-            .filter((i) => i !== -1);
-          // Include current word index and all previously answered words as viewed
-          const viewedIndices = [...new Set([...completedIndices, storedProgress.currentWordIndex])];
-          setViewedWordIndices(viewedIndices);
-
-          // Restore clue level for the current word
-          const currentWordId = words[storedProgress.currentWordIndex]?.id;
-          if (currentWordId) {
-            const currentWordProgress = restoredMap.get(currentWordId);
-            if (currentWordProgress) {
-              setClueLevel(currentWordProgress.clueLevel);
-            }
-          }
-
-          return;
-        }
-      }
-
-      // Create new session
+      // Create new session - always start fresh
       let newSessionId: string;
 
       if (!isGuest) {
@@ -183,7 +204,7 @@ export function TestModeClient({
     };
 
     initSession();
-  }, [lesson.id, isGuest, words]);
+  }, [lesson.id, isGuest]);
 
   // Timer
   useEffect(() => {
@@ -198,11 +219,75 @@ export function TestModeClient({
     };
   }, []);
 
+  // Preload all English audio on mount for instant playback
+  useEffect(() => {
+    const englishUrls = words.map((w) => w.audio_url_english).filter(Boolean);
+    preloadAudio(englishUrls);
+  }, [words, preloadAudio]);
+
+  // Preload audio for current word (and next word for smoother transitions)
+  useEffect(() => {
+    if (!currentWord) return;
+
+    const urlsToPreload = [
+      currentWord.audio_url_english,
+      currentWord.audio_url_foreign,
+      currentWord.audio_url_trigger,
+    ];
+
+    // Also preload next word's audio if available
+    const nextWord = words[currentWordIndex + 1];
+    if (nextWord) {
+      urlsToPreload.push(
+        nextWord.audio_url_english,
+        nextWord.audio_url_foreign,
+        nextWord.audio_url_trigger
+      );
+    }
+
+    preloadAudio(urlsToPreload);
+  }, [currentWord, currentWordIndex, words, preloadAudio]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopAudio();
     };
+  }, [stopAudio]);
+
+  // Auto-play audio when word changes (based on test type)
+  useEffect(() => {
+    if (testType === "english-to-foreign") {
+      // Play English audio (user needs to type foreign)
+      if (currentWord?.audio_url_english) {
+        playAudio(currentWord.audio_url_english, "english");
+      }
+    } else if (testType === "foreign-to-english") {
+      // Play foreign audio (user needs to type English)
+      if (currentWord?.audio_url_foreign) {
+        playAudio(currentWord.audio_url_foreign, "foreign");
+      }
+    }
+    // For picture-only, no auto-play on load
+  }, [currentWordIndex, testType, currentWord?.audio_url_english, currentWord?.audio_url_foreign, playAudio]);
+
+  // Auto-play trigger audio when trigger text clue is revealed (clueLevel 2)
+  useEffect(() => {
+    if (clueLevel === 2 && currentWord?.audio_url_trigger) {
+      playAudio(currentWord.audio_url_trigger, "trigger");
+    }
+  }, [clueLevel, currentWord?.audio_url_trigger, playAudio]);
+
+  // Handle Escape key to stop audio
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        stopAudio();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
   }, [stopAudio]);
 
   // Warn user before leaving/refreshing the page
@@ -255,9 +340,10 @@ export function TestModeClient({
   // Handle answer submission
   const handleSubmit = useCallback(
     (result: TestAnswerResult) => {
+      if (!progressKey) return;
       setTestProgressMap((prev) => {
         const newMap = new Map(prev);
-        newMap.set(currentWord.id, {
+        newMap.set(progressKey, {
           clueLevel,
           pointsEarned: result.pointsEarned,
           maxPoints: result.maxPoints,
@@ -265,12 +351,18 @@ export function TestModeClient({
           grade: result.grade,
           mistakeCount: result.mistakeCount,
           userAnswer: result.userAnswer,
+          correctAnswer: result.correctAnswer,
           hasAnswered: true,
         });
         return newMap;
       });
+
+      // Play foreign word audio after answer is marked
+      if (currentWord.audio_url_foreign) {
+        playAudio(currentWord.audio_url_foreign, "foreign");
+      }
     },
-    [currentWord?.id, clueLevel]
+    [progressKey, currentWord?.audio_url_foreign, clueLevel, playAudio]
   );
 
   // Handle finish test (defined before handleNextWord to avoid stale reference)
@@ -284,10 +376,12 @@ export function TestModeClient({
       // Prepare question results
       const questionResults = Array.from(testProgressMap.entries())
         .filter(([_, progress]) => progress.hasAnswered)
-        .map(([wordId, progress]) => {
-          const word = words.find((w) => w.id === wordId);
+        .map(([progressKey, progress]) => {
+          // In testTwice mode, progressKey is "wordId_attemptNum", otherwise just "wordId"
+          const actualWordId = testTwice ? progressKey.split("_")[0] : progressKey;
+          const word = words.find((w) => w.id === actualWordId);
           return {
-            wordId,
+            wordId: actualWordId,
             userAnswer: progress.userAnswer,
             correctAnswer: word?.headword || "",
             clueLevel: progress.clueLevel,
@@ -299,11 +393,11 @@ export function TestModeClient({
 
       // Calculate stats
       const totalPoints = questionResults.reduce((sum, q) => sum + q.pointsEarned, 0);
-      const maxPoints = words.length * 3; // Max possible is 3 points per word
+      const maxPoints = totalQuestions * 3; // Max possible is 3 points per word
       const correctAnswers = questionResults.filter((q) => q.mistakeCount === 0).length;
 
       const stats = {
-        totalQuestions: words.length,
+        totalQuestions,
         correctAnswers,
         pointsEarned: totalPoints,
         maxPoints,
@@ -323,7 +417,7 @@ export function TestModeClient({
     }
 
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds]);
+  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions]);
 
   // Track viewed words when navigating
   useEffect(() => {
@@ -347,33 +441,53 @@ export function TestModeClient({
   // Handle jump to word
   const handleJumpToWord = useCallback(
     (index: number) => {
-      if (index !== currentWordIndex && index >= 0 && index < words.length) {
+      if (index !== currentWordIndex && index >= 0 && index < totalQuestions) {
         stopAudio();
         setCurrentWordIndex(index);
         // Restore clue level for this word if already answered
-        const progress = testProgressMap.get(words[index].id);
+        const word = testSequence[index];
+        const attemptNum = testTwice && index >= words.length ? 2 : 1;
+        const key = testTwice ? `${word.id}_${attemptNum}` : word.id;
+        const progress = testProgressMap.get(key);
         setClueLevel(progress?.clueLevel ?? 0);
         // Scroll to top
         scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
       }
     },
-    [currentWordIndex, words, stopAudio, testProgressMap]
+    [currentWordIndex, totalQuestions, testSequence, testTwice, words.length, stopAudio, testProgressMap]
   );
 
-  // Handle exit test
+  // Handle exit test - show confirmation modal
   const handleExitTest = useCallback(() => {
-    const confirmed = window.confirm(
-      "Are you sure you want to exit? Your progress will be saved."
-    );
-    if (confirmed) {
-      handleFinishTest();
-    }
-  }, [handleFinishTest]);
-
-  // Handle restart
-  const handleRestart = useCallback(() => {
-    setClueLevel(0);
+    setShowExitModal(true);
   }, []);
+
+  // Handle confirmed exit - discard progress (tests are sandboxed)
+  const handleConfirmExit = useCallback(() => {
+    // Stop timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    // Clear localStorage (discard progress)
+    if (sessionId) {
+      clearSessionProgress("test", sessionId, lesson.id);
+    }
+    // Navigate back to lesson page
+    router.push(`/lesson/${lesson.id}`);
+  }, [sessionId, lesson.id, router]);
+
+  // Handle restart/replay - replay all word audio (english, foreign, trigger)
+  const handleRestart = useCallback(async () => {
+    if (currentWord?.audio_url_english) {
+      await playAudio(currentWord.audio_url_english, "english");
+    }
+    if (currentWord?.audio_url_foreign) {
+      await playAudio(currentWord.audio_url_foreign, "foreign");
+    }
+    if (currentWord?.audio_url_trigger) {
+      await playAudio(currentWord.audio_url_trigger, "trigger");
+    }
+  }, [currentWord?.audio_url_english, currentWord?.audio_url_foreign, currentWord?.audio_url_trigger, playAudio]);
 
   // Modal callbacks
   const handleDone = useCallback(() => {
@@ -405,11 +519,16 @@ export function TestModeClient({
     router.push(`/lesson/${lesson.id}/study`);
   }, [router, lesson.id]);
 
+  // Handle inserting accented character into answer input
+  const handleInsertCharacter = useCallback((char: string) => {
+    testAnswerInputRef.current?.insertCharacter(char);
+  }, []);
+
   // Calculate test stats for modal
   const getTestStats = () => {
     const answeredWords = Array.from(testProgressMap.values()).filter((p) => p.hasAnswered);
     const totalPoints = answeredWords.reduce((sum, p) => sum + p.pointsEarned, 0);
-    const maxPoints = words.length * 3;
+    const maxPoints = totalQuestions * 3;
     const scorePercent = calculateScorePercent(totalPoints, maxPoints);
 
     return { totalPoints, maxPoints, scorePercent };
@@ -434,8 +553,73 @@ export function TestModeClient({
 
   const testStats = getTestStats();
 
+  // Calculate running score for header (points earned / max possible for answered words)
+  const runningScore = (() => {
+    const answeredWords = Array.from(testProgressMap.values()).filter((p) => p.hasAnswered);
+    const pointsEarned = answeredWords.reduce((sum, p) => sum + p.pointsEarned, 0);
+    const maxPoints = answeredWords.reduce((sum, p) => sum + p.maxPoints, 0);
+    return { pointsEarned, maxPoints };
+  })();
+
   // Sidebar is always enabled in test mode (no phase restrictions)
   const currentUserNotes = currentWord?.progress?.user_notes || null;
+
+  // Build testResults map for word tracker dots (sequence index -> grade)
+  const testResults = new Map<number, "correct" | "half-correct" | "incorrect">();
+  testSequence.forEach((word, index) => {
+    const attemptNum = testTwice && index >= words.length ? 2 : 1;
+    const key = testTwice ? `${word.id}_${attemptNum}` : word.id;
+    const progress = testProgressMap.get(key);
+    if (progress?.hasAnswered) {
+      testResults.set(index, progress.grade);
+    }
+  });
+
+  // Test-type-specific computed values
+  const testTypeConfig = (() => {
+    switch (testType) {
+      case "foreign-to-english":
+        return {
+          // WordCard: Show foreign, hide English until answered
+          showEnglishInWordCard: false,
+          showForeignInWordCard: true,
+          // Answer input
+          validAnswers: [currentWord?.english || ""],
+          inputLanguageName: "English",
+          inputPlaceholder: "Type the word in English...",
+          showAccentsPanel: false,
+          // Memory trigger clues work the same
+          // For picture-only mode in MemoryTriggerCard
+          pictureOnlyMode: false,
+        };
+      case "picture-only":
+        return {
+          // WordCard: Hide both words (picture is shown in MemoryTriggerCard)
+          showEnglishInWordCard: false,
+          showForeignInWordCard: false,
+          // Answer input
+          validAnswers: [currentWord?.headword || "", ...(currentWord?.alternate_answers || [])],
+          inputLanguageName: language?.name || "Foreign",
+          inputPlaceholder: `Type the word in ${language?.name || "the language"}...`,
+          showAccentsPanel: true,
+          // Picture is the question, clues reveal English word then text
+          pictureOnlyMode: true,
+        };
+      case "english-to-foreign":
+      default:
+        return {
+          // WordCard: Show English, hide foreign until answered (current behavior)
+          showEnglishInWordCard: true,
+          showForeignInWordCard: false,
+          // Answer input
+          validAnswers: [currentWord?.headword || "", ...(currentWord?.alternate_answers || [])],
+          inputLanguageName: language?.name || "Foreign",
+          inputPlaceholder: `Type the word in ${language?.name || "the language"}...`,
+          showAccentsPanel: true,
+          pictureOnlyMode: false,
+        };
+    }
+  })();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -451,56 +635,73 @@ export function TestModeClient({
           lessonNumber={lesson.number}
           lessonTitle={lesson.title}
           currentWordIndex={currentWordIndex}
-          totalWords={words.length}
+          totalWords={totalQuestions}
           completedWordIndices={viewedWordIndices}
           onJumpToWord={handleJumpToWord}
+          testResults={testResults}
+          testPointsEarned={runningScore.pointsEarned}
+          testMaxPoints={runningScore.maxPoints}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
           <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
-            {/* Word Card - full width */}
-            <div className="w-full">
-              <WordCard
-                englishWord={currentWord?.english || ""}
-                foreignWord={currentWord?.headword || ""}
-                showForeign={hasSubmittedAnswer}
-                playingAudioType={currentAudioType}
-                onPlayEnglishAudio={() => {
-                  if (currentWord?.audio_url_english) {
-                    playAudio(currentWord.audio_url_english, "english");
-                  }
-                }}
-                onPlayForeignAudio={() => {
-                  if (currentWord?.audio_url_foreign) {
-                    playAudio(currentWord.audio_url_foreign, "foreign");
-                  }
-                }}
-                mode="test"
-                hasSubmitted={hasSubmittedAnswer}
-              />
-            </div>
+            {/* Word Card - full width (hidden in picture-only mode) */}
+            {testType !== "picture-only" && (
+              <div className="w-full">
+                <WordCard
+                  englishWord={currentWord?.english || ""}
+                  foreignWord={currentWord?.headword || ""}
+                  showEnglish={testTypeConfig.showEnglishInWordCard || hasSubmittedAnswer}
+                  showForeign={testTypeConfig.showForeignInWordCard || hasSubmittedAnswer}
+                  playingAudioType={currentAudioType}
+                  onPlayEnglishAudio={() => {
+                    if (currentWord?.audio_url_english) {
+                      playAudio(currentWord.audio_url_english, "english");
+                    }
+                  }}
+                  onPlayForeignAudio={() => {
+                    if (currentWord?.audio_url_foreign) {
+                      playAudio(currentWord.audio_url_foreign, "foreign");
+                    }
+                  }}
+                  mode="test"
+                  hasSubmitted={hasSubmittedAnswer}
+                />
+              </div>
+            )}
 
             {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
             <div className="flex gap-6">
               <div className="flex w-[700px] flex-col gap-6">
-                <MemoryTriggerCard
-                  imageUrl={currentWord?.memory_trigger_image_url}
-                  triggerText={currentWord?.memory_trigger_text}
-                  englishWord={currentWord?.english}
-                  foreignWord={currentWord?.headword}
-                  isVisible={hasSubmittedAnswer}
-                  playingAudioType={currentAudioType}
-                  onPlayTriggerAudio={() => {
-                    if (currentWord?.audio_url_trigger) {
-                      playAudio(currentWord.audio_url_trigger, "trigger");
-                    }
-                  }}
-                  clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
-                />
+                {imageMode === "memory-trigger" ? (
+                  <MemoryTriggerCard
+                    imageUrl={currentWord?.memory_trigger_image_url}
+                    triggerText={currentWord?.memory_trigger_text}
+                    englishWord={currentWord?.english || ""}
+                    foreignWord={currentWord?.headword || ""}
+                    isVisible={hasSubmittedAnswer}
+                    playingAudioType={currentAudioType}
+                    onPlayTriggerAudio={() => {
+                      if (currentWord?.audio_url_trigger) {
+                        playAudio(currentWord.audio_url_trigger, "trigger");
+                      }
+                    }}
+                    clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
+                    pictureOnlyMode={testTypeConfig.pictureOnlyMode}
+                  />
+                ) : (
+                  <FlashcardCard
+                    imageUrl={currentWord?.flashcard_image_url || null}
+                    englishWord={currentWord?.english || ""}
+                    isVisible={hasSubmittedAnswer}
+                    clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
+                  />
+                )}
               </div>
               <div className="flex-1">
                 <StudySidebar
+                  wordId={currentWord?.id || ""}
                   systemNotes={currentWord?.notes}
                   userNotes={currentUserNotes}
                   exampleSentences={currentWord?.exampleSentences}
@@ -517,28 +718,32 @@ export function TestModeClient({
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           {/* Test Answer Input */}
           <TestAnswerInput
+            ref={testAnswerInputRef}
             wordId={currentWord?.id || ""}
-            languageName={language?.name || "Italian"}
-            languageFlag={languageFlag}
-            validAnswers={[currentWord?.headword || "", ...(currentWord?.alternate_answers || [])]}
+            languageName={testTypeConfig.inputLanguageName}
+            languageFlag={testType === "foreign-to-english" ? "🇬🇧" : languageFlag}
+            languageCode={testType === "foreign-to-english" ? "en" : language?.code}
+            validAnswers={testTypeConfig.validAnswers}
             isVisible={true}
             isLastWord={isLastWord}
             clueLevel={clueLevel}
             existingResult={existingResult}
             onSubmit={handleSubmit}
             onNextWord={handleNextWord}
+            nervesOfSteelMode={nervesOfSteelMode}
           />
 
           {/* Action Bar */}
           <StudyActionBar
             currentWordIndex={currentWordIndex}
-            totalWords={words.length}
+            totalWords={totalQuestions}
             englishWord={currentWord?.english || ""}
             foreignWord={currentWord?.headword || ""}
             partOfSpeech={currentWord?.part_of_speech}
-            wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+            wordList={testSequence.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
-            testHistory={currentWord?.testHistory}
+            testHistory={mergedTestHistory}
+            scoreStats={mergedScoreStats}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
@@ -546,6 +751,14 @@ export function TestModeClient({
             mode="test"
             clueLevel={clueLevel}
             onRevealClue={handleRevealClue}
+            hasSubmittedAnswer={hasSubmittedAnswer}
+            nervesOfSteelMode={nervesOfSteelMode}
+            onNervesOfSteelModeChange={setNervesOfSteelMode}
+            testTwice={testTwice}
+            languageCode={testTypeConfig.showAccentsPanel ? language?.code : undefined}
+            onInsertCharacter={testTypeConfig.showAccentsPanel ? handleInsertCharacter : undefined}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
           />
         </div>
       </div>
@@ -568,6 +781,32 @@ export function TestModeClient({
           onRetestIncorrect={handleRetestIncorrect}
           onStudyIncorrect={handleStudyIncorrect}
         />
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl-semibold text-foreground mb-2">Exit test?</h2>
+            <p className="text-regular text-muted-foreground mb-6">
+              Your test scores will be lost. Are you sure you want to exit?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowExitModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmExit}
+              >
+                Exit test
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

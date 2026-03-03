@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Clock, ChevronRight, Eye, EyeOff, Zap, Image as ImageIcon, ImageOff } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Lesson } from "@/types/database";
@@ -37,6 +37,7 @@ export function LessonCompletedModal({
   onDismiss,
 }: LessonCompletedModalProps) {
   const [showItalian, setShowItalian] = useState(true);
+  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
@@ -66,6 +67,18 @@ export function LessonCompletedModal({
                 <EyeOff className="h-4 w-4" />
               )}
             </button>
+            <span>·</span>
+            <button
+              onClick={() => setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
+              className="cursor-pointer"
+              title={imageMode === "memory-trigger" ? "Switch to flashcards" : "Switch to memory triggers"}
+            >
+              {imageMode === "memory-trigger" ? (
+                <Zap className="h-4 w-4" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -74,7 +87,10 @@ export function LessonCompletedModal({
           {/* Word Grid */}
           <div className="grid grid-cols-5 gap-4">
             {words.map((word) => {
-              const hasImage = !!word.memory_trigger_image_url;
+              const imageUrl = imageMode === "memory-trigger"
+                ? word.memory_trigger_image_url
+                : word.flashcard_image_url;
+              const hasImage = !!imageUrl;
 
               return (
                 <div
@@ -85,27 +101,34 @@ export function LessonCompletedModal({
                   <div className="relative h-28 w-full">
                     {hasImage ? (
                       <Image
-                        src={word.memory_trigger_image_url!}
+                        src={imageUrl!}
                         alt={word.english}
                         fill
                         className="object-contain"
                         sizes="200px"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl">
-                        🗣️
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+                        {imageMode === "flashcard" ? (
+                          <>
+                            <ImageOff className="h-8 w-8 text-gray-300" />
+                            <span className="text-xs text-muted-foreground">Coming soon</span>
+                          </>
+                        ) : (
+                          <span className="text-3xl">🗣️</span>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Word Info */}
+                  {/* Word Info - Foreign first, English beneath */}
                   <div className="p-3">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {word.english}
+                      {word.headword}
                     </p>
                     {showItalian && (
                       <p className="truncate text-xs text-muted-foreground">
-                        {word.headword}
+                        {word.english}
                       </p>
                     )}
                   </div>

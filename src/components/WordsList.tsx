@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { LayoutGrid, List, Zap } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
+import { WordDetailView } from "@/components/WordDetailView";
 import { WordWithDetails } from "@/lib/queries/words";
 
 interface WordsListProps {
@@ -14,6 +15,9 @@ interface WordsListProps {
   languageName?: string;
   wordsNotStudied: number;
   wordsNotMastered: number;
+  lessonTitle: string;
+  lessonNumber: number;
+  onWordSelected?: (isSelected: boolean) => void;
 }
 
 type FilterTab = "all" | "not-studied" | "not-mastered";
@@ -25,18 +29,29 @@ export function WordsList({
   languageName,
   wordsNotStudied,
   wordsNotMastered,
+  lessonTitle,
+  lessonNumber,
+  onWordSelected,
 }: WordsListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
 
-  const tabs: Tab[] = [
+  const allTabs: Tab[] = [
     { id: "all", label: "All words", count: words.length },
     { id: "not-studied", label: "Not yet studied", count: wordsNotStudied },
     { id: "not-mastered", label: "Not yet mastered", count: wordsNotMastered },
   ];
 
+  // Hide tabs with zero items (except "all" which always shows)
+  const tabs = allTabs.filter((tab) => tab.id === "all" || (tab.count ?? 0) > 0);
+
+  // If active tab is no longer visible, switch to "all"
+  const visibleTabIds = tabs.map((t) => t.id);
+  const effectiveActiveTab = visibleTabIds.includes(activeTab) ? activeTab : "all";
+
   const filteredWords = words.filter((word) => {
-    switch (activeTab) {
+    switch (effectiveActiveTab) {
       case "not-studied":
         return word.status === "not-started";
       case "not-mastered":
@@ -47,19 +62,78 @@ export function WordsList({
   });
 
   const emptyMessage =
-    activeTab === "not-studied"
+    effectiveActiveTab === "not-studied"
       ? "All words have been studied!"
-      : activeTab === "not-mastered"
+      : effectiveActiveTab === "not-mastered"
         ? "All words have been mastered!"
         : "No words found.";
 
+  // Navigation handlers - navigate within filtered list
+  const handleSelectWord = useCallback((index: number) => {
+    setSelectedWordIndex(index);
+    onWordSelected?.(true);
+  }, [onWordSelected]);
+
+  const handleBack = useCallback(() => {
+    setSelectedWordIndex(null);
+    onWordSelected?.(false);
+  }, [onWordSelected]);
+
+  const handlePreviousWord = useCallback(() => {
+    if (selectedWordIndex !== null && selectedWordIndex > 0) {
+      setSelectedWordIndex(selectedWordIndex - 1);
+    }
+  }, [selectedWordIndex]);
+
+  const handleNextWord = useCallback(() => {
+    if (selectedWordIndex !== null && selectedWordIndex < filteredWords.length - 1) {
+      setSelectedWordIndex(selectedWordIndex + 1);
+    }
+  }, [selectedWordIndex, filteredWords.length]);
+
+  const selectedWord = selectedWordIndex !== null ? filteredWords[selectedWordIndex] : null;
+
+  const handleJumpToWord = useCallback((index: number) => {
+    if (index >= 0 && index < filteredWords.length) {
+      setSelectedWordIndex(index);
+    }
+  }, [filteredWords.length]);
+
+  // Build word list for action bar dropdown
+  const wordListForActionBar = filteredWords.map((w) => ({
+    id: w.id,
+    english: w.english,
+    foreign: w.headword,
+  }));
+
+  // Show detail view when a word is selected
+  if (selectedWord && selectedWordIndex !== null) {
+    return (
+      <WordDetailView
+        word={selectedWord}
+        lessonTitle={lessonTitle}
+        lessonNumber={lessonNumber}
+        onBack={handleBack}
+        onPrevious={handlePreviousWord}
+        onNext={handleNextWord}
+        onJumpToWord={handleJumpToWord}
+        hasPrevious={selectedWordIndex > 0}
+        hasNext={selectedWordIndex < filteredWords.length - 1}
+        currentIndex={selectedWordIndex}
+        totalWords={filteredWords.length}
+        wordList={wordListForActionBar}
+      />
+    );
+  }
+
+  // Show list view
   return (
     <div>
       {/* Filter Tabs + Page controls */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <Tabs
           tabs={tabs}
-          activeTab={activeTab}
+          activeTab={effectiveActiveTab}
           onChange={(tabId) => setActiveTab(tabId as FilterTab)}
         />
         <div className="flex items-center gap-1">
@@ -124,6 +198,7 @@ export function WordsList({
                 word={word}
                 index={index}
                 languageFlag={languageFlag}
+                onClick={() => handleSelectWord(index)}
               />
             ))}
           </div>
@@ -136,6 +211,7 @@ export function WordsList({
               word={word}
               index={index}
               languageFlag={languageFlag}
+              onClick={() => handleSelectWord(index)}
             />
           ))}
         </div>

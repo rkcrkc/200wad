@@ -172,3 +172,48 @@ export function initSessionProgress(
 ): void {
   saveSessionProgress(sessionType, sessionId, lessonId, 0, {});
 }
+
+/**
+ * Clear ALL sessions of a given type for a lesson (aggressive cleanup)
+ * Searches localStorage for any matching session data
+ */
+export function clearAllLessonSessions(
+  sessionType: SessionType,
+  lessonId: string
+): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    // First, clear the lesson reference key
+    localStorage.removeItem(getLessonSessionKey(sessionType, lessonId));
+
+    // Then search all localStorage keys for matching sessions
+    const keysToRemove: string[] = [];
+    const prefix = `${STORAGE_KEY_PREFIX}_${sessionType}_session_`;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const parsed = JSON.parse(data) as StoredSessionProgress;
+            if (parsed.lessonId === lessonId) {
+              keysToRemove.push(key);
+            }
+          }
+        } catch {
+          // Invalid data, remove it
+          keysToRemove.push(key);
+        }
+      }
+    }
+
+    // Remove all matching keys
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    console.log(`[Session] Cleared ${keysToRemove.length} ${sessionType} session(s) for lesson ${lessonId}`);
+  } catch (error) {
+    console.error("Failed to clear all lesson sessions:", error);
+  }
+}

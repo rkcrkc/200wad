@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
-import { LessonWithProgress, LessonStatus } from "@/lib/queries";
+import { LessonWithProgress } from "@/lib/queries";
 
 type FilterType = "all" | "not-started" | "studying" | "mastered";
 
@@ -54,21 +54,14 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
       {/* Lessons Table */}
       <div>
         {/* Table Header */}
-        <div className="flex items-center justify-between gap-6 px-6 py-3">
-          <div className="text-small-medium text-black-50">Lesson</div>
-          <div className="flex items-center gap-6">
-            <div className="w-[160px] text-small-medium text-black-50">Status</div>
-            <div className="w-[100px] text-center text-small-medium text-black-50">
-              # Words
-            </div>
-            <div className="w-[100px] text-center text-small-medium text-black-50">
-              # Mastered
-            </div>
-            <div className="w-[140px] text-center text-small-medium text-black-50">
-              Completion
-            </div>
-            <div className="w-5"></div>
-          </div>
+        <div className="grid grid-cols-[50px_1fr_140px_90px_90px_110px_32px] items-center gap-4 px-6 py-3">
+          <div className="text-xs-medium text-muted-foreground">#</div>
+          <div className="text-xs-medium text-muted-foreground">Lesson</div>
+          <div className="text-xs-medium text-muted-foreground">Status</div>
+          <div className="text-center text-xs-medium text-muted-foreground"># Words</div>
+          <div className="text-center text-xs-medium text-muted-foreground"># Mastered</div>
+          <div className="text-center text-xs-medium text-muted-foreground">Completion</div>
+          <div></div>
         </div>
 
         {/* Table Body */}

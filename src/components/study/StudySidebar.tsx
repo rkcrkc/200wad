@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { ExampleSentence, Word } from "@/types/database";
 import { cn } from "@/lib/utils";
 
 interface StudySidebarProps {
+  /** Current word ID - used to detect word changes and reset local state */
+  wordId: string;
   systemNotes: string | null;
   userNotes: string | null;
   exampleSentences: ExampleSentence[];
@@ -16,6 +18,7 @@ interface StudySidebarProps {
 }
 
 export function StudySidebar({
+  wordId,
   systemNotes,
   userNotes,
   exampleSentences,
@@ -25,22 +28,34 @@ export function StudySidebar({
 }: StudySidebarProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesInput, setNotesInput] = useState(userNotes || "");
+  // Track locally saved notes to display immediately (before parent state updates)
+  const [savedNotes, setSavedNotes] = useState<string | null>(null);
+  const prevWordIdRef = useRef(wordId);
 
-  // Reset notes state when word changes (userNotes prop changes)
+  // Reset all local state when word changes
   useEffect(() => {
-    setNotesInput(userNotes || "");
-    setIsEditingNotes(false);
-  }, [userNotes]);
+    if (wordId !== prevWordIdRef.current) {
+      setNotesInput(userNotes || "");
+      setIsEditingNotes(false);
+      setSavedNotes(null);
+      prevWordIdRef.current = wordId;
+    }
+  }, [wordId, userNotes]);
 
   const handleSaveNotes = () => {
-    onUserNotesChange(notesInput.trim() || null);
+    const trimmedNotes = notesInput.trim() || null;
+    setSavedNotes(trimmedNotes); // Save locally for immediate display
+    onUserNotesChange(trimmedNotes); // Notify parent
     setIsEditingNotes(false);
   };
 
   const handleCancelNotes = () => {
-    setNotesInput(userNotes || "");
+    setNotesInput(savedNotes ?? userNotes ?? "");
     setIsEditingNotes(false);
   };
+
+  // Display notes: prefer locally saved (most recent), then prop from parent
+  const displayNotes = savedNotes ?? userNotes;
 
   const cardClasses = cn(
     "w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)] transition-opacity",
@@ -96,7 +111,7 @@ export function StudySidebar({
               <p className="text-small-regular text-foreground whitespace-pre-wrap">{systemNotes}</p>
             )}
 
-            {(systemNotes || userNotes || isEditingNotes) && (
+            {(systemNotes || displayNotes || isEditingNotes) && (
               <div className="h-px w-full bg-black/10" />
             )}
 
@@ -106,6 +121,12 @@ export function StudySidebar({
                 <textarea
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveNotes();
+                    }
+                  }}
                   placeholder="Add your notes here..."
                   className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-small-regular focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   autoFocus
@@ -125,16 +146,16 @@ export function StudySidebar({
                   </button>
                 </div>
               </div>
-            ) : userNotes ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-small-regular text-foreground whitespace-pre-wrap">{userNotes}</p>
-                <button
-                  onClick={() => setIsEditingNotes(true)}
-                  className="self-start text-small-medium text-foreground/50 transition-colors hover:text-foreground"
-                >
-                  Edit
-                </button>
-              </div>
+            ) : displayNotes ? (
+              <button
+                onClick={() => {
+                  setNotesInput(displayNotes);
+                  setIsEditingNotes(true);
+                }}
+                className="w-full cursor-pointer text-left text-small-regular text-foreground whitespace-pre-wrap transition-colors hover:text-foreground/70"
+              >
+                {displayNotes}
+              </button>
             ) : (
               <button
                 onClick={() => setIsEditingNotes(true)}
