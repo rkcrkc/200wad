@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_COURSE_ID } from "@/lib/constants";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -15,8 +16,11 @@ export default async function Home() {
     if (userData?.current_course_id) {
       redirect(`/course/${userData.current_course_id}/schedule`);
     }
+
+    // Logged in but no course set - go to My Languages
+    redirect("/dashboard");
   }
 
-  // No current course set - go to My Languages to pick one
-  redirect("/dashboard");
+  // Guest - go to default course schedule (onboarding modal will appear)
+  redirect(`/course/${DEFAULT_COURSE_ID}/schedule`);
 }
