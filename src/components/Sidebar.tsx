@@ -22,8 +22,8 @@ import { Button } from "@/components/ui/button";
 const getNavItems = (courseId?: string) => [
   { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: GraduationCap, label: "Schedule" },
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
-  { path: "/tests", icon: ClipboardCheck, label: "Tests" },
-  { path: "/dictionary", icon: BookMarked, label: "Dictionary" },
+  { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
+  { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
   { path: "/community", icon: Users, label: "Community" },
   { path: "/trophies", icon: Trophy, label: "Trophies" },
 ];
@@ -116,10 +116,20 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
     if (path.includes("/schedule")) {
       return pathname === "/schedule" || pathname.endsWith("/schedule");
     }
-    // For lessons, match /course/[id] (but not /course/[id]/schedule) and /lesson routes
-    if (path.startsWith("/course/") && !path.includes("/schedule")) {
+    // For tests, match /tests or /course/[id]/tests
+    if (path.includes("/tests")) {
+      return pathname === "/tests" || pathname.endsWith("/tests");
+    }
+    // For dictionary, match /dictionary or /course/[id]/dictionary
+    if (path.includes("/dictionary")) {
+      return pathname === "/dictionary" || pathname.endsWith("/dictionary");
+    }
+    // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, or /dictionary) and /lesson routes
+    if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary")) {
       const isSchedulePage = pathname.endsWith("/schedule");
-      return !isSchedulePage && (pathname.includes("/lesson") || pathname.includes("/course/"));
+      const isTestsPage = pathname.endsWith("/tests");
+      const isDictionaryPage = pathname.endsWith("/dictionary");
+      return !isSchedulePage && !isTestsPage && !isDictionaryPage && (pathname.includes("/lesson") || pathname.includes("/course/"));
     }
     return pathname === path || pathname.startsWith(path);
   };

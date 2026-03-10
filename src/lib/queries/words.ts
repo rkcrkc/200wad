@@ -7,6 +7,7 @@ import {
   UserWordProgress,
   Word,
 } from "@/types/database";
+import { isAutoLesson, parseAutoLessonId, AutoLessonType } from "./lessons";
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -24,6 +25,7 @@ function extractCourse(course: Course & { languages?: unknown }): Course {
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,
+    thumbnail_url: course.thumbnail_url,
     created_at: course.created_at,
     updated_at: course.updated_at,
     created_by: course.created_by,
@@ -108,6 +110,11 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Check if this is an auto-lesson
+  if (isAutoLesson(lessonId)) {
+    return getAutoLessonWords(supabase, lessonId, user?.id || null);
+  }
 
   // Fetch lesson with course and language
   const { data: lesson } = await supabase
@@ -483,5 +490,353 @@ export async function getWord(wordId: string): Promise<{
     word: wordWithDetails,
     language,
     isGuest: !user,
+  };
+}
+
+/**
+ * Get words for an auto-lesson (My Notes, Best Words, Worst Words)
+ */
+async function getAutoLessonWords(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lessonId: string,
+  userId: string | null
+): Promise<GetWordsResult> {
+  const parsed = parseAutoLessonId(lessonId);
+
+  if (!parsed || !userId) {
+    return {
+      language: null,
+      course: null,
+      lesson: null,
+      words: [],
+      previousLesson: null,
+      nextLesson: null,
+      courseLessons: [],
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      isGuest: !userId,
+    };
+  }
+
+  const { type, courseId } = parsed;
+
+  // Fetch course with language
+  const { data: course } = await supabase
+    .from("courses")
+    .select("*, languages(*)")
+    .eq("id", courseId)
+    .single();
+
+  if (!course) {
+    return {
+      language: null,
+      course: null,
+      lesson: null,
+      words: [],
+      previousLesson: null,
+      nextLesson: null,
+      courseLessons: [],
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      isGuest: false,
+    };
+  }
+
+  const language = course.languages as Language | null;
+
+  // Get all lessons for this course (for navigation)
+  const { data: courseLessons } = await supabase
+    .from("lessons")
+    .select("id, number, title")
+    .eq("course_id", courseId)
+    .eq("is_published", true)
+    .order("sort_order")
+    .order("number");
+
+  const orderedLessons = courseLessons ?? [];
+
+  // Get all word IDs for this course
+  const lessonIds = orderedLessons.map((l) => l.id);
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
+    .select("word_id")
+    .in("lesson_id", lessonIds);
+
+  const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
+
+  if (courseWordIds.length === 0) {
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+  }
+
+  // Get user's test score IDs for filtering test_questions
+  const { data: userTestScores } = await supabase
+    .from("user_test_scores")
+    .select("id")
+    .eq("user_id", userId);
+
+  const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
+
+  // Fetch word IDs based on auto-lesson type
+  let targetWordIds: string[] = [];
+
+  if (type === "notes") {
+    // Words with user notes
+    const { data: wordsWithNotes } = await supabase
+      .from("user_word_progress")
+      .select("word_id")
+      .eq("user_id", userId)
+      .in("word_id", courseWordIds)
+      .not("user_notes", "is", null);
+
+    targetWordIds = wordsWithNotes?.map((w) => w.word_id).filter((id): id is string => id !== null) || [];
+  } else {
+    // Best or Worst words - need to calculate scores
+    if (testScoreIds.length === 0) {
+      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+    }
+
+    const { data: testQuestions } = await supabase
+      .from("test_questions")
+      .select("word_id, points_earned, max_points")
+      .in("test_score_id", testScoreIds)
+      .in("word_id", courseWordIds);
+
+    // Calculate average score per word
+    const wordScores: Record<string, { totalEarned: number; totalMax: number; avgPercent: number }> = {};
+    testQuestions?.forEach((tq) => {
+      if (!tq.word_id) return;
+      if (!wordScores[tq.word_id]) {
+        wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0, avgPercent: 0 };
+      }
+      wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
+      wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+    });
+
+    // Calculate percentages and sort
+    const sortedWords = Object.entries(wordScores)
+      .map(([wordId, scores]) => ({
+        wordId,
+        avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
+      }))
+      .sort((a, b) => type === "best" ? b.avgPercent - a.avgPercent : a.avgPercent - b.avgPercent)
+      .slice(0, 20);
+
+    targetWordIds = sortedWords.map((w) => w.wordId);
+  }
+
+  if (targetWordIds.length === 0) {
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+  }
+
+  // Fetch full word data
+  const { data: words } = await supabase
+    .from("words")
+    .select("*, example_sentences(*)")
+    .in("id", targetWordIds);
+
+  if (!words || words.length === 0) {
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+  }
+
+  // Maintain the order from targetWordIds (important for best/worst)
+  const wordMap = new Map(words.map((w) => [w.id, w]));
+  const orderedWords = targetWordIds
+    .map((id) => wordMap.get(id))
+    .filter((w): w is NonNullable<typeof w> => w !== undefined);
+
+  // Collect related word IDs
+  const allRelatedWordIds = new Set<string>();
+  orderedWords.forEach((word) => {
+    word.related_word_ids?.forEach((id: string) => allRelatedWordIds.add(id));
+  });
+
+  // Fetch related words
+  let relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
+  if (allRelatedWordIds.size > 0) {
+    const { data: relatedWords } = await supabase
+      .from("words")
+      .select("id, english, headword, memory_trigger_image_url")
+      .in("id", Array.from(allRelatedWordIds));
+
+    relatedWords?.forEach((rw) => {
+      relatedWordsMap[rw.id] = rw;
+    });
+  }
+
+  // Get user progress for these words
+  const { data: wordProgress } = await supabase
+    .from("user_word_progress")
+    .select("*")
+    .eq("user_id", userId)
+    .in("word_id", targetWordIds);
+
+  const progressByWord: Record<string, UserWordProgress> = {};
+  let wordsStudied = 0;
+  let wordsMastered = 0;
+
+  wordProgress?.forEach((wp) => {
+    if (wp.word_id) {
+      progressByWord[wp.word_id] = wp;
+    }
+    if (wp.status === "studying" || wp.status === "mastered") {
+      wordsStudied++;
+    }
+    if (wp.status === "mastered") {
+      wordsMastered++;
+    }
+  });
+
+  // Get test history (using testScoreIds fetched earlier)
+  const { data: testQuestions } = testScoreIds.length > 0
+    ? await supabase
+        .from("test_questions")
+        .select("word_id, points_earned, max_points, answered_at")
+        .in("test_score_id", testScoreIds)
+        .in("word_id", targetWordIds)
+        .order("answered_at", { ascending: false })
+    : { data: [] };
+
+  const testHistoryByWord: Record<string, TestAttempt[]> = {};
+  const scoreStatsByWord: Record<string, WordScoreStats> = {};
+
+  testQuestions?.forEach((tq) => {
+    const wordId = tq.word_id;
+    if (!wordId) return;
+
+    const pointsEarned = tq.points_earned ?? 0;
+    const maxPoints = tq.max_points ?? 3;
+
+    if (!testHistoryByWord[wordId]) {
+      testHistoryByWord[wordId] = [];
+    }
+    if (!scoreStatsByWord[wordId]) {
+      scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+    }
+
+    scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
+    scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
+
+    if (testHistoryByWord[wordId].length < 3) {
+      testHistoryByWord[wordId].push({
+        pointsEarned,
+        maxPoints,
+        answeredAt: tq.answered_at ?? new Date().toISOString(),
+      });
+    }
+  });
+
+  // Calculate score percentages
+  Object.keys(scoreStatsByWord).forEach((wordId) => {
+    const stats = scoreStatsByWord[wordId];
+    stats.scorePercent = stats.totalMaxPoints > 0
+      ? Math.round((stats.totalPointsEarned / stats.totalMaxPoints) * 100)
+      : 0;
+  });
+
+  const defaultScoreStats: WordScoreStats = {
+    totalPointsEarned: 0,
+    totalMaxPoints: 0,
+    scorePercent: 0,
+  };
+
+  // Build words with details
+  const wordsWithDetails: WordWithDetails[] = orderedWords.map((word, index) => {
+    const progress = progressByWord[word.id];
+    const exampleSentences = (word.example_sentences || []) as ExampleSentence[];
+    const relatedWords = (word.related_word_ids || [])
+      .map((id: string) => relatedWordsMap[id])
+      .filter(Boolean);
+    const testHistory = testHistoryByWord[word.id] || [];
+    const scoreStats = scoreStatsByWord[word.id] || defaultScoreStats;
+
+    return {
+      ...word,
+      sort_order: index,
+      example_sentences: undefined,
+      exampleSentences,
+      relatedWords,
+      progress: progress || null,
+      status: (progress?.status as WordStatus) || "not-started",
+      testHistory,
+      scoreStats,
+    };
+  });
+
+  return buildAutoLessonResult(type, courseId, course, language, orderedLessons, wordsWithDetails, {
+    totalWords: wordsWithDetails.length,
+    wordsStudied,
+    wordsMastered,
+    totalTimeSeconds: 0,
+  });
+}
+
+/**
+ * Helper to build the result object for auto-lessons
+ */
+function buildAutoLessonResult(
+  type: AutoLessonType,
+  courseId: string,
+  course: Course & { languages?: unknown },
+  language: Language | null,
+  courseLessons: AdjacentLesson[],
+  words: WordWithDetails[],
+  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number }
+): GetWordsResult {
+  const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
+    notes: { number: 800, title: "My Notes", emoji: "📝" },
+    best: { number: 801, title: "Best Words", emoji: "🏆" },
+    worst: { number: 802, title: "Worst Words", emoji: "🎯" },
+  };
+
+  const def = lessonTitles[type];
+  const now = new Date().toISOString();
+
+  // Create virtual lesson object
+  const virtualLesson: Lesson = {
+    id: `auto-${type}-${courseId}`,
+    course_id: courseId,
+    number: def.number,
+    title: def.title,
+    emoji: def.emoji,
+    word_count: words.length,
+    is_published: true,
+    sort_order: def.number,
+    legacy_lesson_id: null,
+    created_at: now,
+    updated_at: now,
+    created_by: null,
+    updated_by: null,
+  };
+
+  // Extract course without nested relations
+  const courseWithoutRelations: Course = {
+    id: course.id,
+    name: course.name,
+    description: course.description,
+    language_id: course.language_id,
+    legacy_ref: course.legacy_ref,
+    level: course.level,
+    cefr_range: course.cefr_range,
+    total_lessons: course.total_lessons,
+    word_count: course.word_count,
+    price_cents: course.price_cents,
+    free_lessons: course.free_lessons,
+    is_published: course.is_published,
+    sort_order: course.sort_order,
+    thumbnail_url: course.thumbnail_url,
+    created_at: course.created_at,
+    updated_at: course.updated_at,
+    created_by: course.created_by,
+    updated_by: course.updated_by,
+  };
+
+  return {
+    language,
+    course: courseWithoutRelations,
+    lesson: virtualLesson,
+    words,
+    previousLesson: null, // Auto-lessons don't have prev/next
+    nextLesson: null,
+    courseLessons,
+    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+    isGuest: false,
   };
 }

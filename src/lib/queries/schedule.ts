@@ -17,6 +17,7 @@ function extractCourse(course: Course & { languages?: unknown }): Course {
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,
+    thumbnail_url: course.thumbnail_url,
     created_at: course.created_at,
     updated_at: course.updated_at,
     created_by: course.created_by,
@@ -39,8 +40,10 @@ export interface LessonForScheduler extends Lesson {
   sampleWords: string[];
   /** URL for lesson thumbnail/image */
   imageUrl: string | null;
-  /** Total due words count for this lesson (only for tests) */
-  dueWordsCount?: number;
+  /** The milestone this test is for (only for due tests) */
+  nextMilestone?: string;
+  /** When this test became due */
+  nextTestDueAt?: string;
 }
 
 export interface ScheduleData {
@@ -234,13 +237,14 @@ function transformToSchedulerFormat(
   lessons: Lesson[],
   sampleWords: Record<string, string[]>,
   images: Record<string, string | null>,
-  dueWordsCounts?: Record<string, number>
+  milestoneInfo?: Record<string, { nextMilestone: string; nextTestDueAt: string }>
 ): LessonForScheduler[] {
   return lessons.map((lesson) => ({
     ...lesson,
     sampleWords: sampleWords[lesson.id] || [],
     imageUrl: images[lesson.id] || null,
-    dueWordsCount: dueWordsCounts?.[lesson.id],
+    nextMilestone: milestoneInfo?.[lesson.id]?.nextMilestone,
+    nextTestDueAt: milestoneInfo?.[lesson.id]?.nextTestDueAt,
   }));
 }
 
@@ -250,6 +254,7 @@ function transformToSchedulerFormat(
 
 /**
  * Get the count of lessons with due tests (for sidebar badge)
+ * Uses lesson-level milestone scheduling
  */
 export async function getDueTestsCount(courseId?: string): Promise<number> {
   const supabase = await createClient();
@@ -259,56 +264,29 @@ export async function getDueTestsCount(courseId?: string): Promise<number> {
 
   if (!user) return 0;
 
-  // Get lesson IDs for the course if specified
-  let lessonFilter: string[] | null = null;
-  if (courseId) {
-    const { data: lessons } = await supabase
-      .from("lessons")
-      .select("id")
-      .eq("course_id", courseId);
-    lessonFilter = lessons?.map((l) => l.id) || [];
-    if (lessonFilter.length === 0) return 0;
-  }
-
-  // Count distinct lessons with due words (only mastered words count as due for review)
   const now = new Date().toISOString();
 
-  const { data: dueProgress } = await supabase
-    .from("user_word_progress")
-    .select("word_id")
+  // Build query for due lesson tests
+  let query = supabase
+    .from("user_lesson_progress")
+    .select("lesson_id, lessons!inner(course_id)")
     .eq("user_id", user.id)
-    .eq("status", "mastered")
-    .lte("next_review_at", now)
-    .limit(500); // Limit for performance
-
-  if (!dueProgress || dueProgress.length === 0) return 0;
-
-  // Get lesson IDs for these words
-  const validWordIds = dueProgress
-    .map((p) => p.word_id)
-    .filter((id): id is string => id !== null);
-  
-  if (validWordIds.length === 0) return 0;
-
-  const { data: lessonWords } = await supabase
-    .from("lesson_words")
-    .select("lesson_id")
-    .in("word_id", validWordIds);
-
-  if (!lessonWords) return 0;
+    .not("next_milestone", "is", null)
+    .lte("next_test_due_at", now);
 
   // Filter by course if specified
-  const lessonIds = new Set<string>(
-    lessonWords.map((lw) => lw.lesson_id)
-  );
-  if (lessonFilter) {
-    const filtered = Array.from(lessonIds).filter((id) =>
-      lessonFilter!.includes(id)
-    );
-    return filtered.length;
+  if (courseId) {
+    query = query.eq("lessons.course_id", courseId);
   }
 
-  return lessonIds.size;
+  const { data: dueProgress, error } = await query;
+
+  if (error) {
+    console.error("Error fetching due tests count:", error);
+    return 0;
+  }
+
+  return dueProgress?.length || 0;
 }
 
 /**
@@ -402,64 +380,54 @@ export async function getScheduleData(
   // Determine if this is the first lesson (no progress records)
   const isFirstLesson = !lessonProgress || lessonProgress.length === 0;
 
-  // Get due tests - lessons with mastered words where next_review_at <= now
+  // Get due tests - lessons with milestone tests due (lesson-level scheduling)
   const now = new Date().toISOString();
-  const { data: dueWordProgress } = await supabase
-    .from("user_word_progress")
-    .select("word_id")
-    .eq("user_id", user.id)
-    .eq("status", "mastered")
-    .lte("next_review_at", now)
-    .limit(500); // Limit for performance
+
+  // Filter progress records to find due tests
+  const dueProgressRecords = (lessonProgress || []).filter(
+    (p) => p.next_milestone && p.next_test_due_at && p.next_test_due_at <= now
+  );
 
   let dueTests: LessonForScheduler[] = [];
-  let dueTestsCount = 0;
-  const dueWordsByLesson: Record<string, number> = {};
+  const dueTestsCount = dueProgressRecords.length;
 
-  if (dueWordProgress && dueWordProgress.length > 0) {
-    // Get lesson IDs for due words via lesson_words join table
-    const validDueWordIds = dueWordProgress
-      .map((p) => p.word_id)
+  if (dueProgressRecords.length > 0) {
+    // Get lesson IDs and milestone info for due tests
+    const dueLessonIds = dueProgressRecords
+      .map((p) => p.lesson_id)
       .filter((id): id is string => id !== null);
-    
-    const { data: dueWordLessons } = validDueWordIds.length > 0 
-      ? await supabase
-        .from("lesson_words")
-        .select("word_id, lesson_id")
-        .in("word_id", validDueWordIds)
-      : { data: null };
 
-    if (dueWordLessons) {
-      // Count due words per lesson and filter to current course
-      const dueLessonIds = new Set<string>();
-      dueWordLessons.forEach((lw) => {
-        const wLessonId = lw.lesson_id;
-        if (wLessonId && lessonIds.includes(wLessonId)) {
-          dueLessonIds.add(wLessonId);
-          dueWordsByLesson[wLessonId] =
-            (dueWordsByLesson[wLessonId] || 0) + 1;
-        }
+    const milestoneInfo: Record<string, { nextMilestone: string; nextTestDueAt: string }> = {};
+    dueProgressRecords.forEach((p) => {
+      if (p.lesson_id && p.next_milestone && p.next_test_due_at) {
+        milestoneInfo[p.lesson_id] = {
+          nextMilestone: p.next_milestone,
+          nextTestDueAt: p.next_test_due_at,
+        };
+      }
+    });
+
+    // Get full lesson data for due lessons, sorted by due date (oldest first)
+    const dueLessons = allLessons
+      .filter((l) => dueLessonIds.includes(l.id))
+      .sort((a, b) => {
+        const aDate = milestoneInfo[a.id]?.nextTestDueAt || "";
+        const bDate = milestoneInfo[b.id]?.nextTestDueAt || "";
+        return aDate.localeCompare(bDate);
       });
 
-      dueTestsCount = dueLessonIds.size;
+    if (dueLessons.length > 0) {
+      const [sampleWords, images] = await Promise.all([
+        getLessonSampleWords(supabase, dueLessonIds),
+        getLessonImages(supabase, dueLessonIds),
+      ]);
 
-      // Get full lesson data for due lessons
-      const dueLessons = allLessons.filter((l) => dueLessonIds.has(l.id));
-
-      if (dueLessons.length > 0) {
-        const dueLessonIds = dueLessons.map((l) => l.id);
-        const [sampleWords, images] = await Promise.all([
-          getLessonSampleWords(supabase, dueLessonIds),
-          getLessonImages(supabase, dueLessonIds),
-        ]);
-
-        dueTests = transformToSchedulerFormat(
-          dueLessons,
-          sampleWords,
-          images,
-          dueWordsByLesson
-        );
-      }
+      dueTests = transformToSchedulerFormat(
+        dueLessons,
+        sampleWords,
+        images,
+        milestoneInfo
+      );
     }
   }
 

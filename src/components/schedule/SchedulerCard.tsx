@@ -69,7 +69,7 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
               <Link
                 href={
                   isTest
-                    ? `/lesson/${lesson.id}/test`
+                    ? `/lesson/${lesson.id}/test${lesson.nextMilestone ? `?milestone=${lesson.nextMilestone}` : ""}`
                     : `/lesson/${lesson.id}/study`
                 }
               >

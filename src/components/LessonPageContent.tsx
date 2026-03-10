@@ -61,24 +61,15 @@ export function LessonPageContent({
 
   return (
     <>
-      {/* Breadcrumbs - always visible */}
-      {!isWordSelected && (
-        <nav className="mb-8 flex items-center gap-2 text-xs-medium text-black-50" aria-label="Breadcrumb">
-          {courseId ? (
-            <Link
-              href={`/course/${courseId}`}
-              className="transition-colors hover:text-foreground"
-            >
-              All Lessons
-            </Link>
-          ) : (
-            <span>All Lessons</span>
-          )}
-          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="truncate" aria-current="page">
-            #{lesson.number} {lesson.title}
-          </span>
-        </nav>
+      {/* Back button - always visible */}
+      {!isWordSelected && courseId && (
+        <Link
+          href={`/course/${courseId}`}
+          className="mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          All Lessons
+        </Link>
       )}
 
       {/* Header - hidden when word selected */}
@@ -88,8 +79,8 @@ export function LessonPageContent({
             <p className="mb-2 text-regular-semibold text-black-80">
               Lesson #{lesson.number}
             </p>
-            <h1 className="text-xxl-semibold">
-              {lesson.emoji && <span className="mr-2">{lesson.emoji}</span>}
+            <h1 className="flex items-center gap-4 text-xxl-semibold">
+              {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
               {lesson.title}
             </h1>
           </div>

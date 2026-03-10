@@ -1,15 +1,19 @@
-import { ComingSoon } from "@/components/ComingSoon";
-import { PageContainer } from "@/components/PageContainer";
-import { ClipboardCheck } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getCurrentCourse } from "@/lib/queries";
 
-export default function TestsPage() {
-  return (
-    <PageContainer size="lg">
-      <ComingSoon
-        title="Tests Coming Soon"
-        description="Test your knowledge with quizzes and track your progress. Coming very soon!"
-        icon={<ClipboardCheck className="h-10 w-10 text-warning" />}
-      />
-    </PageContainer>
-  );
+/**
+ * Redirect to the user's default course tests.
+ * The actual tests page is now at /course/[courseId]/tests
+ */
+export default async function TestsPage() {
+  // Get the user's current course
+  const { course } = await getCurrentCourse();
+
+  // If no course available, redirect to dashboard to select one
+  if (!course) {
+    redirect("/dashboard");
+  }
+
+  // Redirect to the course-specific tests
+  redirect(`/course/${course.id}/tests`);
 }

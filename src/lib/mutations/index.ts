@@ -2,6 +2,7 @@ export {
   createStudySession,
   endStudySession,
   saveUserNotes,
+  saveSystemNotes,
   batchSaveUserNotes,
   updateLessonProgress,
   completeStudySession,
@@ -37,3 +38,7 @@ export {
 } from "./settings";
 
 export type { UpdateProfileData, MutationResult } from "./settings";
+
+export { addLanguageWithCourse } from "./onboarding";
+
+export type { AddLanguageWithCourseResult } from "./onboarding";

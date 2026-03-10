@@ -5,12 +5,12 @@ import { TestType, DEFAULT_TEST_TYPE } from "@/types/test";
 
 interface TestPageProps {
   params: Promise<{ lessonId: string }>;
-  searchParams: Promise<{ type?: string; twice?: string }>;
+  searchParams: Promise<{ type?: string; twice?: string; milestone?: string }>;
 }
 
 export default async function TestPage({ params, searchParams }: TestPageProps) {
   const { lessonId } = await params;
-  const { type, twice } = await searchParams;
+  const { type, twice, milestone } = await searchParams;
   const testTwice = twice === "true";
   const { language, course, lesson, words, isGuest } = await getWords(lessonId);
 
@@ -44,6 +44,7 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       isGuest={isGuest}
       testType={testType}
       testTwice={testTwice}
+      milestone={milestone || null}
     />
   );
 }

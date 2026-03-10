@@ -29,6 +29,7 @@ export type Database = {
           name: string
           price_cents: number | null
           sort_order: number | null
+          thumbnail_url: string | null
           total_lessons: number | null
           updated_at: string | null
           updated_by: string | null
@@ -48,6 +49,7 @@ export type Database = {
           name: string
           price_cents?: number | null
           sort_order?: number | null
+          thumbnail_url?: string | null
           total_lessons?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           name?: string
           price_cents?: number | null
           sort_order?: number | null
+          thumbnail_url?: string | null
           total_lessons?: number | null
           updated_at?: string | null
           updated_by?: string | null
@@ -256,6 +259,54 @@ export type Database = {
           },
         ]
       }
+      study_music_tracks: {
+        Row: {
+          author: string | null
+          bpm: number | null
+          category: string | null
+          created_at: string
+          description: string | null
+          duration_seconds: number
+          file_path: string
+          file_size: number | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          author?: string | null
+          bpm?: number | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds: number
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          author?: string | null
+          bpm?: number | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       study_sessions: {
         Row: {
           duration_seconds: number | null
@@ -410,6 +461,8 @@ export type Database = {
           id: string
           last_studied_at: string | null
           lesson_id: string | null
+          next_milestone: string | null
+          next_test_due_at: string | null
           status: string | null
           total_study_time_seconds: number | null
           updated_at: string | null
@@ -422,6 +475,8 @@ export type Database = {
           id?: string
           last_studied_at?: string | null
           lesson_id?: string | null
+          next_milestone?: string | null
+          next_test_due_at?: string | null
           status?: string | null
           total_study_time_seconds?: number | null
           updated_at?: string | null
@@ -434,6 +489,8 @@ export type Database = {
           id?: string
           last_studied_at?: string | null
           lesson_id?: string | null
+          next_milestone?: string | null
+          next_test_due_at?: string | null
           status?: string | null
           total_study_time_seconds?: number | null
           updated_at?: string | null
@@ -1003,6 +1060,7 @@ export type StudySession = Database["public"]["Tables"]["study_sessions"]["Row"]
 export type UserTestScore = Database["public"]["Tables"]["user_test_scores"]["Row"];
 export type TestQuestion = Database["public"]["Tables"]["test_questions"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type StudyMusicTrack = Database["public"]["Tables"]["study_music_tracks"]["Row"];
 
 // Insert types
 export type LanguageInsert = Database["public"]["Tables"]["languages"]["Insert"];
@@ -1013,6 +1071,8 @@ export type LessonWordInsert = Database["public"]["Tables"]["lesson_words"]["Ins
 export type UserWordProgressInsert = Database["public"]["Tables"]["user_word_progress"]["Insert"];
 export type UserTestScoreInsert = Database["public"]["Tables"]["user_test_scores"]["Insert"];
 export type TestQuestionInsert = Database["public"]["Tables"]["test_questions"]["Insert"];
+export type StudyMusicTrackInsert = Database["public"]["Tables"]["study_music_tracks"]["Insert"];
+export type StudyMusicTrackUpdate = Database["public"]["Tables"]["study_music_tracks"]["Update"];
 
 // Update types
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];

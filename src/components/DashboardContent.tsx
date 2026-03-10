@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
 import { CourseProvider, useSetCourseContext } from "@/context/CourseContext";
 
 interface DefaultCourseContext {
@@ -16,6 +17,8 @@ interface DefaultCourseContext {
 export interface HeaderStats {
   wordsPerDay: number;
   courseProgressPercent: number;
+  wordsMastered?: number;
+  totalWords?: number;
 }
 
 interface DashboardContentProps {
@@ -23,6 +26,8 @@ interface DashboardContentProps {
   dueTestsCount?: number;
   defaultCourseContext?: DefaultCourseContext;
   headerStats?: HeaderStats;
+  /** Show logged-in UI preview for guests during onboarding */
+  showPreviewMode?: boolean;
 }
 
 /**
@@ -54,12 +59,14 @@ export function DashboardContent({
   dueTestsCount,
   defaultCourseContext,
   headerStats,
+  showPreviewMode,
 }: DashboardContentProps) {
   const pathname = usePathname();
   
   // Study and Test modes have their own layout with Sidebar and custom Navbar
+  // Note: /test matches the test-taking mode at /lesson/[id]/test, not /tests or /course/[id]/tests
   const isStudyMode = pathname.includes("/study");
-  const isTestMode = pathname.includes("/test");
+  const isTestMode = pathname.endsWith("/test");
   if (isStudyMode || isTestMode) {
     // Study/Test mode handles its own header and sidebar via their Client component
     // Still wrap in CourseProvider for consistency
@@ -79,12 +86,13 @@ export function DashboardContent({
     return (
       <CourseProvider>
         <DefaultContextSetter context={defaultCourseContext} />
-        <Header showSidebar={false} stats={headerStats} />
+        <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
         <div className="h-screen overflow-hidden pt-[72px]">
           <main className="bg-background h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
             {children}
           </main>
         </div>
+        {!showPreviewMode && <EmailVerificationReminder />}
       </CourseProvider>
     );
   }
@@ -93,13 +101,14 @@ export function DashboardContent({
   return (
     <CourseProvider>
       <DefaultContextSetter context={defaultCourseContext} />
-      <Header showSidebar={true} stats={headerStats} />
+      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} />
       <Sidebar dueTestsCount={dueTestsCount} />
       <div className="h-screen overflow-hidden pt-[72px]">
         <main className="bg-background ml-[240px] h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
           {children}
         </main>
       </div>
+      {!showPreviewMode && <EmailVerificationReminder />}
     </CourseProvider>
   );
 }

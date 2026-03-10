@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Zap } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
 import { WordDetailView } from "@/components/WordDetailView";
 import { WordWithDetails } from "@/lib/queries/words";
+import { useUser } from "@/context/UserContext";
 
 interface WordsListProps {
   words: WordWithDetails[];
@@ -33,9 +35,31 @@ export function WordsList({
   lessonNumber,
   onWordSelected,
 }: WordsListProps) {
+  const { isAdmin } = useUser();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [initialWordHandled, setInitialWordHandled] = useState(false);
+
+  // Detect if accessed from dictionary
+  const fromDictionary = searchParams.get("from") === "dictionary";
+
+  // Handle ?word= query parameter to auto-select a word
+  useEffect(() => {
+    if (initialWordHandled) return;
+
+    const wordId = searchParams.get("word");
+    if (wordId) {
+      const wordIndex = words.findIndex((w) => w.id === wordId);
+      if (wordIndex !== -1) {
+        setSelectedWordIndex(wordIndex);
+        onWordSelected?.(true);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+      setInitialWordHandled(true);
+    }
+  }, [searchParams, words, onWordSelected, initialWordHandled]);
 
   const allTabs: Tab[] = [
     { id: "all", label: "All words", count: words.length },
@@ -72,6 +96,8 @@ export function WordsList({
   const handleSelectWord = useCallback((index: number) => {
     setSelectedWordIndex(index);
     onWordSelected?.(true);
+    // Scroll to top when selecting a word
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [onWordSelected]);
 
   const handleBack = useCallback(() => {
@@ -82,12 +108,16 @@ export function WordsList({
   const handlePreviousWord = useCallback(() => {
     if (selectedWordIndex !== null && selectedWordIndex > 0) {
       setSelectedWordIndex(selectedWordIndex - 1);
+      // Scroll to top when navigating
+      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [selectedWordIndex]);
 
   const handleNextWord = useCallback(() => {
     if (selectedWordIndex !== null && selectedWordIndex < filteredWords.length - 1) {
       setSelectedWordIndex(selectedWordIndex + 1);
+      // Scroll to top when navigating
+      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [selectedWordIndex, filteredWords.length]);
 
@@ -96,6 +126,8 @@ export function WordsList({
   const handleJumpToWord = useCallback((index: number) => {
     if (index >= 0 && index < filteredWords.length) {
       setSelectedWordIndex(index);
+      // Scroll to top when jumping to a word
+      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [filteredWords.length]);
 
@@ -114,14 +146,16 @@ export function WordsList({
         lessonTitle={lessonTitle}
         lessonNumber={lessonNumber}
         onBack={handleBack}
-        onPrevious={handlePreviousWord}
-        onNext={handleNextWord}
-        onJumpToWord={handleJumpToWord}
-        hasPrevious={selectedWordIndex > 0}
-        hasNext={selectedWordIndex < filteredWords.length - 1}
+        onPrevious={fromDictionary ? undefined : handlePreviousWord}
+        onNext={fromDictionary ? undefined : handleNextWord}
+        onJumpToWord={fromDictionary ? undefined : handleJumpToWord}
+        hasPrevious={fromDictionary ? false : selectedWordIndex > 0}
+        hasNext={fromDictionary ? false : selectedWordIndex < filteredWords.length - 1}
         currentIndex={selectedWordIndex}
-        totalWords={filteredWords.length}
-        wordList={wordListForActionBar}
+        totalWords={fromDictionary ? 1 : filteredWords.length}
+        wordList={fromDictionary ? [] : wordListForActionBar}
+        isAdmin={isAdmin}
+        fromDictionary={fromDictionary}
       />
     );
   }
@@ -177,31 +211,37 @@ export function WordsList({
           </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="flex flex-col gap-2">
-          {/* Table Header */}
-          <div className="grid grid-cols-[40px_64px_1fr_1fr_140px_60px] items-center gap-4 px-6 py-3">
-            <div className="text-small-medium text-black-50">#</div>
-            <div></div>
-            <div className="text-small-medium text-black-50">English</div>
-            <div className="text-small-medium text-black-50">
-              {languageName ?? "Translation"}
-            </div>
-            <div className="text-small-medium text-black-50">Status</div>
-            <div></div>
-          </div>
+        <div className="overflow-x-auto rounded-xl">
+          <table className="min-w-[600px] w-full border-collapse">
+            {/* Table Header */}
+            <thead>
+              <tr className="whitespace-nowrap text-small-medium text-black-50">
+                <th className="w-[40px] px-6 py-3 text-left font-medium">#</th>
+                <th className="w-12 px-2 py-3"></th>
+                <th className="min-w-[120px] px-2 py-3 text-left font-medium">English</th>
+                <th className="min-w-[120px] px-2 py-3 text-left font-medium">
+                  {languageName ?? "Translation"}
+                </th>
+                <th className="w-[140px] px-2 py-3 text-left font-medium">Status</th>
+                <th className="sticky right-0 w-[60px] bg-background px-2 py-3"></th>
+              </tr>
+            </thead>
 
-          {/* Table Body */}
-          <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
-            {filteredWords.map((word, index) => (
-              <WordRow
-                key={word.id}
-                word={word}
-                index={index}
-                languageFlag={languageFlag}
-                onClick={() => handleSelectWord(index)}
-              />
-            ))}
-          </div>
+            {/* Table Body */}
+            <tbody>
+              {filteredWords.map((word, index) => (
+                <WordRow
+                  key={word.id}
+                  word={word}
+                  index={index}
+                  languageFlag={languageFlag}
+                  onClick={() => handleSelectWord(index)}
+                  isFirst={index === 0}
+                  isLast={index === filteredWords.length - 1}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

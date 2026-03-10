@@ -69,6 +69,10 @@ export interface CourseProgressStats {
   totalLessons: number;
   /** Progress percentage (0-100) */
   progressPercent: number;
+  /** Number of words mastered */
+  wordsMastered: number;
+  /** Total words in the course */
+  totalWords: number;
 }
 
 /**
@@ -93,6 +97,8 @@ export async function getCourseProgress(
       lessonsCompleted: 0,
       totalLessons: 0,
       progressPercent: 0,
+      wordsMastered: 0,
+      totalWords: 0,
     };
   }
 
@@ -101,6 +107,8 @@ export async function getCourseProgress(
       lessonsCompleted: 0,
       totalLessons,
       progressPercent: 0,
+      wordsMastered: 0,
+      totalWords: 0,
     };
   }
 
@@ -115,25 +123,52 @@ export async function getCourseProgress(
       lessonsCompleted: 0,
       totalLessons,
       progressPercent: 0,
+      wordsMastered: 0,
+      totalWords: 0,
     };
   }
 
   const lessonIds = lessons.map((l) => l.id);
 
-  // Count mastered lessons
-  const { count: lessonsCompleted } = await supabase
-    .from("user_lesson_progress")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("lesson_id", lessonIds)
-    .eq("status", "mastered");
+  // Fetch mastered lessons, lesson_words, and user progress in parallel
+  const [lessonsCompletedResult, lessonWordsResult, userProgressResult] = await Promise.all([
+    supabase
+      .from("user_lesson_progress")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("lesson_id", lessonIds)
+      .eq("status", "mastered"),
+    supabase
+      .from("lesson_words")
+      .select("word_id")
+      .in("lesson_id", lessonIds)
+      .limit(10000),
+    supabase
+      .from("user_word_progress")
+      .select("word_id, status")
+      .eq("user_id", user.id)
+      .eq("status", "mastered"),
+  ]);
 
-  const completed = lessonsCompleted || 0;
-  const progressPercent = Math.round((completed / totalLessons) * 100);
+  const completed = lessonsCompletedResult.count || 0;
+
+  // Calculate word stats
+  const courseWordIds = new Set(
+    (lessonWordsResult.data || []).map((lw) => lw.word_id).filter((id): id is string => id !== null)
+  );
+  const totalWords = courseWordIds.size;
+  const wordsMastered = (userProgressResult.data || []).filter(
+    (p) => p.word_id && courseWordIds.has(p.word_id)
+  ).length;
+
+  // Progress is based on words mastered percentage
+  const progressPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
 
   return {
     lessonsCompleted: completed,
     totalLessons,
     progressPercent,
+    wordsMastered,
+    totalWords,
   };
 }

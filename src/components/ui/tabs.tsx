@@ -20,7 +20,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
   return (
     <div
       role="tablist"
-      className={cn("flex gap-2", className)}
+      className={cn("flex gap-2 overflow-x-auto", className)}
       data-tabs=""
     >
       {tabs.map((tab) => {
@@ -35,7 +35,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
             data-state={isActive ? "active" : "inactive"}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "rounded-full px-4 py-1.5 transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 transition-colors",
               isActive
                 ? "bg-[#F2EAD9] text-foreground"
                 : "text-foreground/50 hover:text-foreground/75"

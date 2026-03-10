@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
 import { useAudio, AudioType } from "@/hooks/useAudio";
+import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
   StudyNavbar,
   StudyActionBar,
@@ -17,12 +18,14 @@ import {
   type AnswerInputHandle,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import {
   createStudySession,
   completeStudySession,
   saveUserNotes,
+  saveSystemNotes,
 } from "@/lib/mutations/study";
 import {
   initSessionProgress,
@@ -65,7 +68,18 @@ export function StudyModeClient({
   courseLessons = [],
 }: StudyModeClientProps) {
   const router = useRouter();
+  const { isAdmin } = useUser();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
+  const {
+    isEnabled: musicEnabled,
+    setEnabled: setMusicEnabled,
+    selectedTrack,
+    setSelectedTrack,
+    volume: musicVolume,
+    setVolume: setMusicVolume,
+    hasError: musicHasError,
+    stop: stopMusic,
+  } = useStudyMusic();
 
   const languageFlag = getFlagFromCode(language?.code);
 
@@ -243,11 +257,12 @@ export function StudyModeClient({
   useEffect(() => {
     return () => {
       stopAudio();
+      stopMusic();
       if (phaseTimeoutRef.current) {
         clearTimeout(phaseTimeoutRef.current);
       }
     };
-  }, [stopAudio]);
+  }, [stopAudio, stopMusic]);
 
   // Warn user before leaving/refreshing the page
   useEffect(() => {
@@ -487,9 +502,26 @@ export function StudyModeClient({
     [currentWord.id, currentWordIndex, sessionId, wordProgressMap, isGuest]
   );
 
+  // Handle system notes change (admin only)
+  const handleSystemNotesChange = useCallback(
+    async (notes: string | null) => {
+      const result = await saveSystemNotes(currentWord.id, notes);
+      if (!result.success) {
+        console.error("Failed to save system notes:", result.error);
+      }
+    },
+    [currentWord.id]
+  );
+
   // Handle finish lesson - save notes and show completion modal
   // Note: Study mode does NOT affect word mastery/streaks - only test mode does
   const handleFinishLesson = useCallback(async () => {
+    // Stop any playing audio immediately
+    stopAudio();
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+    }
+
     // Stop the timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -522,11 +554,11 @@ export function StudyModeClient({
 
     // Show completion modal
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, wordProgressMap, viewedWordIndices, elapsedSeconds]);
+  }, [isGuest, sessionId, lesson.id, wordProgressMap, viewedWordIndices, elapsedSeconds, stopAudio]);
 
-  // Handle modal "Start Test" action
+  // Handle modal "Start Test" action - passes initial milestone since this is right after lesson completion
   const handleStartTest = useCallback(() => {
-    router.push(`/lesson/${lesson.id}/test`);
+    router.push(`/lesson/${lesson.id}/test?milestone=initial`);
   }, [router, lesson.id]);
 
   // Handle modal "Not now" action
@@ -651,6 +683,8 @@ export function StudyModeClient({
                   relatedWords={currentWord.relatedWords}
                   isEnabled={sidebarEnabled}
                   onUserNotesChange={handleUserNotesChange}
+                  isAdmin={isAdmin}
+                  onSystemNotesChange={handleSystemNotesChange}
                 />
               </div>
             </div>
@@ -693,6 +727,13 @@ export function StudyModeClient({
             onInsertCharacter={(char) => answerInputRef.current?.insertCharacter(char)}
             imageMode={imageMode}
             onImageModeChange={setImageMode}
+            musicEnabled={musicEnabled}
+            onMusicEnabledChange={setMusicEnabled}
+            selectedTrack={selectedTrack}
+            onTrackChange={setSelectedTrack}
+            musicHasError={musicHasError}
+            musicVolume={musicVolume}
+            onMusicVolumeChange={setMusicVolume}
           />
         </div>
       </div>

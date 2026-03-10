@@ -1,0 +1,281 @@
+import { createClient } from "@/lib/supabase/server";
+import { Word, Language } from "@/types/database";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type WordStatus = "not-started" | "studying" | "mastered";
+
+export interface DictionaryWord {
+  id: string;
+  english: string;
+  headword: string;
+  partOfSpeech: string | null;
+  category: string | null;
+  imageUrl: string | null;
+  status: WordStatus;
+  lessonId: string | null;
+  lessonTitle: string | null;
+  lessonNumber: number | null;
+}
+
+export interface GetDictionaryResult {
+  words: DictionaryWord[];
+  language: Language | null;
+  stats: {
+    totalWords: number;
+    wordsStudied: number;
+    wordsMastered: number;
+  };
+  isGuest: boolean;
+}
+
+// ============================================================================
+// Main Query
+// ============================================================================
+
+/**
+ * Get dictionary words based on filter type
+ * @param courseId - The current course ID
+ * @param filter - "my-words" | "course" | "all"
+ */
+export async function getDictionaryWords(
+  courseId: string,
+  filter: "my-words" | "course" | "all" = "all"
+): Promise<GetDictionaryResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      words: [],
+      language: null,
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0 },
+      isGuest: true,
+    };
+  }
+
+  // Get course info to determine language
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, language_id, languages(*)")
+    .eq("id", courseId)
+    .single();
+
+  if (!course) {
+    return {
+      words: [],
+      language: null,
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0 },
+      isGuest: false,
+    };
+  }
+
+  const language = course.languages as Language | null;
+  const languageId = course.language_id;
+
+  if (!languageId) {
+    return {
+      words: [],
+      language: null,
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0 },
+      isGuest: false,
+    };
+  }
+
+  let words: DictionaryWord[] = [];
+
+  if (filter === "my-words") {
+    // Get words user has progress on
+    const { data: progressWords } = await supabase
+      .from("user_word_progress")
+      .select(`
+        word_id,
+        status,
+        words!inner(
+          id,
+          english,
+          headword,
+          part_of_speech,
+          category,
+          memory_trigger_image_url,
+          language_id
+        )
+      `)
+      .eq("user_id", user.id)
+      .not("status", "is", null)
+      .limit(10000);
+
+    if (progressWords) {
+      // Get lesson info for these words
+      const wordIds = progressWords.map((p) => (p.words as any).id);
+      const { data: lessonWords } = await supabase
+        .from("lesson_words")
+        .select("word_id, lesson_id, lessons(id, title, number)")
+        .in("word_id", wordIds)
+        .limit(10000);
+
+      const lessonMap = new Map(
+        (lessonWords || []).map((lw) => [
+          lw.word_id,
+          lw.lessons as { id: string; title: string; number: number } | null,
+        ])
+      );
+
+      words = progressWords
+        .filter((p) => (p.words as any).language_id === languageId)
+        .map((p) => {
+          const word = p.words as any;
+          const lesson = lessonMap.get(word.id);
+          return {
+            id: word.id,
+            english: word.english,
+            headword: word.headword,
+            partOfSpeech: word.part_of_speech,
+            category: word.category,
+            imageUrl: word.memory_trigger_image_url,
+            status: (p.status as WordStatus) || "not-started",
+            lessonId: lesson?.id || null,
+            lessonTitle: lesson?.title || null,
+            lessonNumber: lesson?.number || null,
+          };
+        });
+    }
+  } else if (filter === "course") {
+    // First get lesson IDs for this course (small set, safe to use .in())
+    const { data: courseLessons } = await supabase
+      .from("lessons")
+      .select("id")
+      .eq("course_id", courseId)
+      .eq("is_published", true);
+
+    if (courseLessons && courseLessons.length > 0) {
+      const lessonIds = courseLessons.map((l) => l.id);
+
+      // Get all words in those lessons
+      const { data: lessonWords } = await supabase
+        .from("lesson_words")
+        .select(`
+          word_id,
+          lesson_id,
+          lessons(id, title, number),
+          words!inner(
+            id,
+            english,
+            headword,
+            part_of_speech,
+            category,
+            memory_trigger_image_url
+          )
+        `)
+        .in("lesson_id", lessonIds)
+        .order("sort_order")
+        .limit(10000);
+
+      if (lessonWords && lessonWords.length > 0) {
+        // Get ALL user progress for this user (avoids .in() with many IDs)
+        const { data: allProgress } = await supabase
+          .from("user_word_progress")
+          .select("word_id, status")
+          .eq("user_id", user.id);
+
+        const progressMap = new Map(
+          (allProgress || []).map((p) => [p.word_id, p.status as WordStatus])
+        );
+
+        // De-duplicate words (a word may appear in multiple lessons)
+        const seenWordIds = new Set<string>();
+        words = lessonWords
+          .filter((lw) => {
+            const wordId = (lw.words as any).id;
+            if (seenWordIds.has(wordId)) return false;
+            seenWordIds.add(wordId);
+            return true;
+          })
+          .map((lw) => {
+            const word = lw.words as any;
+            const lesson = lw.lessons as { id: string; title: string; number: number } | null;
+            return {
+              id: word.id,
+              english: word.english,
+              headword: word.headword,
+              partOfSpeech: word.part_of_speech,
+              category: word.category,
+              imageUrl: word.memory_trigger_image_url,
+              status: progressMap.get(word.id) || "not-started",
+              lessonId: lesson?.id || null,
+              lessonTitle: lesson?.title || null,
+              lessonNumber: lesson?.number || null,
+            };
+          });
+      }
+    }
+  } else {
+    // Get all words in the language (only items with category 'word')
+    const { data: allWords } = await supabase
+      .from("words")
+      .select("id, english, headword, part_of_speech, category, memory_trigger_image_url")
+      .eq("language_id", languageId)
+      .eq("category", "word")
+      .order("english")
+      .limit(10000);
+
+    if (allWords) {
+      // Get ALL user progress (avoids .in() with many IDs)
+      const { data: allProgress } = await supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id);
+
+      const progressMap = new Map(
+        (allProgress || []).map((p) => [p.word_id, p.status as WordStatus])
+      );
+
+      // Get ALL lesson_words for this language's words
+      const { data: allLessonWords } = await supabase
+        .from("lesson_words")
+        .select("word_id, lesson_id, lessons(id, title, number)")
+        .limit(20000);
+
+      const lessonMap = new Map(
+        (allLessonWords || []).map((lw) => [
+          lw.word_id,
+          lw.lessons as { id: string; title: string; number: number } | null,
+        ])
+      );
+
+      words = allWords.map((word) => {
+        const lesson = lessonMap.get(word.id);
+        return {
+          id: word.id,
+          english: word.english,
+          headword: word.headword,
+          partOfSpeech: word.part_of_speech,
+          category: word.category,
+          imageUrl: word.memory_trigger_image_url,
+          status: progressMap.get(word.id) || "not-started",
+          lessonId: lesson?.id || null,
+          lessonTitle: lesson?.title || null,
+          lessonNumber: lesson?.number || null,
+        };
+      });
+    }
+  }
+
+  // Calculate stats
+  const stats = {
+    totalWords: words.length,
+    wordsStudied: words.filter((w) => w.status !== "not-started").length,
+    wordsMastered: words.filter((w) => w.status === "mastered").length,
+  };
+
+  return {
+    words,
+    language,
+    stats,
+    isGuest: false,
+  };
+}

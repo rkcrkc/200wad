@@ -1,19 +1,77 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
 import { LessonWithProgress } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "not-started" | "studying" | "mastered";
+type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent";
+type SortDirection = "asc" | "desc";
 
 interface LessonsListProps {
   lessons: LessonWithProgress[];
   languageFlag?: string;
 }
 
+interface SortableHeaderProps {
+  label: string;
+  column: SortColumn;
+  currentColumn: SortColumn;
+  direction: SortDirection;
+  onSort: (column: SortColumn) => void;
+  centered?: boolean;
+}
+
+function SortableHeader({
+  label,
+  column,
+  currentColumn,
+  direction,
+  onSort,
+  centered = false,
+}: SortableHeaderProps) {
+  const isActive = currentColumn === column;
+
+  return (
+    <button
+      onClick={() => onSort(column)}
+      className={cn(
+        "flex items-center gap-0.5 whitespace-nowrap transition-colors hover:text-foreground",
+        centered && "justify-center",
+        isActive ? "text-foreground" : "text-muted-foreground"
+      )}
+      style={{ fontSize: "13px", fontWeight: 500 }}
+    >
+      <span>{label}</span>
+      {isActive && (
+        direction === "asc" ? (
+          <ChevronUp className="h-3 w-3 shrink-0" />
+        ) : (
+          <ChevronDown className="h-3 w-3 shrink-0" />
+        )
+      )}
+    </button>
+  );
+}
+
 export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
   const [filter, setFilter] = useState<FilterType>("all");
+  const [sortColumn, setSortColumn] = useState<SortColumn>("number");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
 
   // Count lessons by status
   const counts = useMemo(() => {
@@ -25,11 +83,40 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
     };
   }, [lessons]);
 
-  // Filter lessons
-  const filteredLessons = useMemo(() => {
-    if (filter === "all") return lessons;
-    return lessons.filter((lesson) => lesson.status === filter);
-  }, [lessons, filter]);
+  // Filter and sort lessons
+  const filteredAndSortedLessons = useMemo(() => {
+    // First filter
+    const filtered = filter === "all"
+      ? [...lessons]
+      : lessons.filter((lesson) => lesson.status === filter);
+
+    // Then sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortColumn) {
+        case "number":
+          comparison = a.number - b.number;
+          break;
+        case "title":
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case "word_count":
+          comparison = (a.word_count || 0) - (b.word_count || 0);
+          break;
+        case "wordsMastered":
+          comparison = (a.wordsMastered || 0) - (b.wordsMastered || 0);
+          break;
+        case "completionPercent":
+          comparison = (a.completionPercent || 0) - (b.completionPercent || 0);
+          break;
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [lessons, filter, sortColumn, sortDirection]);
 
   const tabs: Tab[] = [
     { id: "all", label: "All lessons", count: counts.all },
@@ -52,38 +139,92 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
       </div>
 
       {/* Lessons Table */}
-      <div>
-        {/* Table Header */}
-        <div className="grid grid-cols-[50px_1fr_140px_90px_90px_110px_32px] items-center gap-4 px-6 py-3">
-          <div className="text-xs-medium text-muted-foreground">#</div>
-          <div className="text-xs-medium text-muted-foreground">Lesson</div>
-          <div className="text-xs-medium text-muted-foreground">Status</div>
-          <div className="text-center text-xs-medium text-muted-foreground"># Words</div>
-          <div className="text-center text-xs-medium text-muted-foreground"># Mastered</div>
-          <div className="text-center text-xs-medium text-muted-foreground">Completion</div>
-          <div></div>
-        </div>
+      <div className="overflow-x-auto rounded-xl">
+        <table className="min-w-[700px] w-full border-collapse">
+          {/* Table Header */}
+          <thead>
+            <tr className="whitespace-nowrap">
+              <th className="w-[50px] px-6 py-3 text-left">
+                <SortableHeader
+                  label="#"
+                  column="number"
+                  currentColumn={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                />
+              </th>
+              <th className="min-w-[200px] px-2 py-3 text-left">
+                <SortableHeader
+                  label="Lesson"
+                  column="title"
+                  currentColumn={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                />
+              </th>
+              <th className="w-[140px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Status</th>
+              <th className="w-[90px] px-2 py-3 text-center">
+                <SortableHeader
+                  label="# Words"
+                  column="word_count"
+                  currentColumn={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  centered
+                />
+              </th>
+              <th className="w-[90px] px-2 py-3 text-center">
+                <SortableHeader
+                  label="# Mastered"
+                  column="wordsMastered"
+                  currentColumn={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  centered
+                />
+              </th>
+              <th className="w-[110px] px-2 py-3 text-center">
+                <SortableHeader
+                  label="Completion"
+                  column="completionPercent"
+                  currentColumn={sortColumn}
+                  direction={sortDirection}
+                  onSort={handleSort}
+                  centered
+                />
+              </th>
+              <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
+            </tr>
+          </thead>
 
-        {/* Table Body */}
-        <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
-          {filteredLessons.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-muted-foreground">
-                No lessons match this filter.
-              </p>
-              <button
-                onClick={() => setFilter("all")}
-                className="mt-2 text-sm text-primary hover:underline"
-              >
-                Show all lessons
-              </button>
-            </div>
-          ) : (
-            filteredLessons.map((lesson) => (
-              <LessonRow key={lesson.id} lesson={lesson} />
-            ))
-          )}
-        </div>
+          {/* Table Body */}
+          <tbody>
+            {filteredAndSortedLessons.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center">
+                  <p className="text-muted-foreground">
+                    No lessons match this filter.
+                  </p>
+                  <button
+                    onClick={() => setFilter("all")}
+                    className="mt-2 text-sm text-primary hover:underline"
+                  >
+                    Show all lessons
+                  </button>
+                </td>
+              </tr>
+            ) : (
+              filteredAndSortedLessons.map((lesson, index) => (
+                <LessonRow
+                  key={lesson.id}
+                  lesson={lesson}
+                  isFirst={index === 0}
+                  isLast={index === filteredAndSortedLessons.length - 1}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </>
   );

@@ -6,12 +6,18 @@ import {
   getCourseProgress,
 } from "@/lib/queries";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Check if user is a guest (for preview mode)
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isGuest = !user;
+
   // Fetch current language and course for header display
   const { course, language } = await getCurrentCourse();
 
@@ -37,6 +43,8 @@ export default async function DashboardLayout({
   const headerStats = {
     wordsPerDay: learningStats.wordsPerDay,
     courseProgressPercent: courseProgress?.progressPercent ?? 0,
+    wordsMastered: courseProgress?.wordsMastered ?? 0,
+    totalWords: courseProgress?.totalWords ?? 0,
   };
 
   return (
@@ -45,6 +53,7 @@ export default async function DashboardLayout({
         dueTestsCount={dueTestsCount}
         defaultCourseContext={defaultCourseContext}
         headerStats={headerStats}
+        showPreviewMode={isGuest}
       >
         {children}
       </DashboardContent>

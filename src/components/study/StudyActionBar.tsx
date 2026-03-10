@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   Languages,
   Zap,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,26 @@ const MAC_SHORTCUTS: Record<string, string> = {
   "æ": "Option+'", "œ": "Option+q",
   "¿": "Option+?", "¡": "Option+1",
 };
+
+import { STUDY_MUSIC_TRACKS, type StudyMusicTrackId } from "@/hooks/useStudyMusic";
+
+/** Animated audiowave icon for playing state */
+function AudioWaveIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center gap-[2px]", className)}>
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className="w-[3px] rounded-full bg-primary animate-audiowave"
+          style={{
+            animationDelay: `${(i - 1) * 0.15}s`,
+            height: i === 2 ? "12px" : "8px",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 /** Keyboard shortcuts for each accented character (Windows - US International) */
 const WIN_SHORTCUTS: Record<string, string> = {
@@ -140,6 +161,20 @@ interface StudyActionBarProps {
   imageMode?: "memory-trigger" | "flashcard";
   /** Callback when image mode changes */
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
+  /** Whether background music is enabled */
+  musicEnabled?: boolean;
+  /** Callback when music enabled changes */
+  onMusicEnabledChange?: (enabled: boolean) => void;
+  /** Currently selected music track */
+  selectedTrack?: StudyMusicTrackId;
+  /** Callback when track changes */
+  onTrackChange?: (track: StudyMusicTrackId) => void;
+  /** Whether music playback has an error */
+  musicHasError?: boolean;
+  /** Current volume (0-1) */
+  musicVolume?: number;
+  /** Callback when volume changes */
+  onMusicVolumeChange?: (volume: number) => void;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -186,13 +221,22 @@ export function StudyActionBar({
   onInsertCharacter,
   imageMode = "memory-trigger",
   onImageModeChange,
+  musicEnabled = false,
+  onMusicEnabledChange,
+  selectedTrack = "focus-flow",
+  onTrackChange,
+  musicHasError = false,
+  musicVolume = 0.5,
+  onMusicVolumeChange,
 }: StudyActionBarProps) {
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccentsOpen, setIsAccentsOpen] = useState(false);
+  const [isMusicOpen, setIsMusicOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const accentsRef = useRef<HTMLDivElement>(null);
+  const musicRef = useRef<HTMLDivElement>(null);
 
   // Detect platform for keyboard shortcuts
   const isMac = typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac");
@@ -227,12 +271,15 @@ export function StudyActionBar({
       if (accentsRef.current && !accentsRef.current.contains(event.target as Node)) {
         setIsAccentsOpen(false);
       }
+      if (musicRef.current && !musicRef.current.contains(event.target as Node)) {
+        setIsMusicOpen(false);
+      }
     }
-    if (isWordListOpen || isSettingsOpen || isAccentsOpen) {
+    if (isWordListOpen || isSettingsOpen || isAccentsOpen || isMusicOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [isWordListOpen, isSettingsOpen, isAccentsOpen]);
+  }, [isWordListOpen, isSettingsOpen, isAccentsOpen, isMusicOpen]);
 
   // Use historical score percentage from scoreStats
   const wordScorePercent = scoreStats?.scorePercent ?? 0;
@@ -501,12 +548,126 @@ export function StudyActionBar({
                 <ImageIcon className="h-5 w-5" />
               )}
             </button>
-            <button
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
-              title="Toggle audio"
-            >
-              <Music className="h-5 w-5" />
-            </button>
+            {/* Music button with dropdown */}
+            <div className="relative" ref={musicRef}>
+              <button
+                onClick={() => setIsMusicOpen(!isMusicOpen)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  isMusicOpen || musicEnabled ? "text-primary" : "text-foreground"
+                )}
+                title="Background music"
+              >
+                {musicEnabled && !musicHasError ? (
+                  <AudioWaveIcon />
+                ) : (
+                  <Music className="h-5 w-5" />
+                )}
+              </button>
+
+              {/* Music dropdown */}
+              {isMusicOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-[320px] rounded-xl bg-white p-4 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                  <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
+                    Study Music
+                  </div>
+
+                  {/* Enable/disable toggle */}
+                  <label className="mb-4 flex cursor-pointer items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">
+                      Enable background music
+                    </span>
+                    <div
+                      className={cn(
+                        "relative h-6 w-11 cursor-pointer rounded-full transition-colors",
+                        musicEnabled ? "bg-primary" : "bg-gray-200"
+                      )}
+                      onClick={() => onMusicEnabledChange?.(!musicEnabled)}
+                    >
+                      <div
+                        className={cn(
+                          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                          musicEnabled ? "translate-x-5" : "translate-x-0.5"
+                        )}
+                      />
+                    </div>
+                  </label>
+
+                  {/* Volume slider */}
+                  <div className="mb-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">Volume</span>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round(musicVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={Math.round(musicVolume * 100)}
+                      onChange={(e) => onMusicVolumeChange?.(Number(e.target.value) / 100)}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
+                    />
+                  </div>
+
+                  {/* Track list */}
+                  <div className="mb-4 space-y-1">
+                    {STUDY_MUSIC_TRACKS.map((track) => {
+                      const isSelected = selectedTrack === track.id;
+                      const isPlaying = isSelected && musicEnabled && !musicHasError;
+                      return (
+                        <button
+                          key={track.id}
+                          onClick={() => onTrackChange?.(track.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                            isSelected
+                              ? "bg-primary/10 text-primary"
+                              : "hover:bg-gray-50"
+                          )}
+                        >
+                          {/* Play button / Audiowave */}
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                            {isPlaying ? (
+                              <AudioWaveIcon />
+                            ) : (
+                              <Play
+                                className={cn(
+                                  "h-4 w-4",
+                                  isSelected ? "text-primary" : "text-muted-foreground"
+                                )}
+                              />
+                            )}
+                          </div>
+                          <span className="flex-1 text-sm font-medium">{track.name}</span>
+                          <span className="text-xs text-muted-foreground">{track.duration}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Error message */}
+                  {musicHasError && (
+                    <div className="mb-4 rounded-lg bg-destructive/10 p-3">
+                      <p className="text-xs leading-relaxed text-destructive">
+                        <span className="font-medium">Unable to play music.</span> The audio file may not be available yet.
+                        Please try again later.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Explainer */}
+                  <div className="rounded-lg bg-[#FAF8F3] p-3">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-medium text-foreground">Alpha wave music</span> is tuned to
+                      frequencies (around 432-528 Hz) that help induce alpha brainwaves — the optimal
+                      state for learning, focus, and memory retention.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Settings button with dropdown */}
             <div className="relative" ref={settingsRef}>
               <button

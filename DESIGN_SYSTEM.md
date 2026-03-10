@@ -41,11 +41,11 @@ Larger styles (20px+) use **Inter Display** via `font-variation-settings: "opsz"
 
 ## Max Widths
 
-| Variable | Value | Usage |
-|----------|-------|-------|
-| `--max-width-s` | 840px | Narrow content |
-| `--max-width-m` | 1080px | Default content |
-| `--max-width-l` | 1280px | Wide content |
+| Variable | Class | Value | Usage |
+|----------|-------|-------|-------|
+| `--max-width-s` | `.max-w-content-sm` | 840px | Modals, narrow content |
+| `--max-width-m` | `.max-w-content-md` | 1080px | Default content containers |
+| `--max-width-l` | `.max-w-content-lg` | 1280px | Wide content, dashboards |
 
 ## Status Colors
 

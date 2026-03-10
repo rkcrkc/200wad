@@ -6,7 +6,6 @@ import {
   X,
   Check,
   Image as ImageIcon,
-  Music,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -54,6 +53,8 @@ interface WordDetailActionBarProps {
   imageMode?: "memory-trigger" | "flashcard";
   /** Callback when image mode changes */
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
+  /** Whether accessed from dictionary (hides word navigation) */
+  fromDictionary?: boolean;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -89,6 +90,7 @@ export function WordDetailActionBar({
   hasNext = false,
   imageMode = "memory-trigger",
   onImageModeChange,
+  fromDictionary = false,
 }: WordDetailActionBarProps) {
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -120,58 +122,60 @@ export function WordDetailActionBar({
         <div className="flex items-center justify-between gap-4">
           {/* Left section - Menu, word info, score */}
           <div className="flex items-center gap-4">
-            {/* Menu button with word list dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsWordListOpen(!isWordListOpen)}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
-                  isWordListOpen ? "text-primary" : "text-foreground"
-                )}
-                title="Word list"
-              >
-                {isWordListOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
+            {/* Menu button with word list dropdown - hidden when from dictionary */}
+            {!fromDictionary && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsWordListOpen(!isWordListOpen)}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
+                    isWordListOpen ? "text-primary" : "text-foreground"
+                  )}
+                  title="Word list"
+                >
+                  {isWordListOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
 
-              {/* Word list dropdown */}
-              {isWordListOpen && (
-                <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
-                  <div className="p-2">
-                    <div className="mb-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                      Words in lesson ({wordList.length})
+                {/* Word list dropdown */}
+                {isWordListOpen && (
+                  <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                    <div className="p-2">
+                      <div className="mb-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
+                        Words in lesson ({wordList.length})
+                      </div>
+                      {wordList.map((word, index) => {
+                        const isCurrent = index === currentWordIndex;
+                        return (
+                          <button
+                            key={word.id}
+                            onClick={() => handleWordSelect(index)}
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+                              isCurrent
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-gray-50"
+                            )}
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-medium text-foreground/50">
+                              {index + 1}
+                            </span>
+                            <span className={cn(
+                              "flex-1 text-sm font-medium",
+                              isCurrent ? "text-primary" : "text-foreground"
+                            )}>
+                              {word.english} · {word.foreign}
+                            </span>
+                            {isCurrent && (
+                              <Check className="h-4 w-4 shrink-0 text-primary" />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                    {wordList.map((word, index) => {
-                      const isCurrent = index === currentWordIndex;
-                      return (
-                        <button
-                          key={word.id}
-                          onClick={() => handleWordSelect(index)}
-                          className={cn(
-                            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                            isCurrent
-                              ? "bg-primary/10 text-primary"
-                              : "hover:bg-gray-50"
-                          )}
-                        >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-medium text-foreground/50">
-                            {index + 1}
-                          </span>
-                          <span className={cn(
-                            "flex-1 text-sm font-medium",
-                            isCurrent ? "text-primary" : "text-foreground"
-                          )}>
-                            {word.english} · {word.foreign}
-                          </span>
-                          {isCurrent && (
-                            <Check className="h-4 w-4 shrink-0 text-primary" />
-                          )}
-                        </button>
-                      );
-                    })}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Word text: english · foreign + part of speech */}
             <div className="flex items-center gap-2">
@@ -214,8 +218,56 @@ export function WordDetailActionBar({
 
           {/* Right section - Navigation controls, divider, toggle icons */}
           <div className="flex items-center gap-4">
-            {/* Navigation controls */}
-            <div className="flex items-center gap-2">
+            {/* Navigation controls - hidden when from dictionary */}
+            {!fromDictionary && (
+              <>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onReplay}
+                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    title="Replay audio"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => onJumpToWord(0)}
+                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    title="Go to first word"
+                  >
+                    <SkipBack className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={onPreviousWord}
+                    disabled={!hasPrevious}
+                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Previous word"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={onNextWord}
+                    disabled={!hasNext}
+                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Next word"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => onJumpToWord(totalWords - 1)}
+                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    title="Go to last word"
+                  >
+                    <SkipForward className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <span className="text-foreground/25">|</span>
+              </>
+            )}
+
+            {/* Replay button - always show */}
+            {fromDictionary && (
               <button
                 onClick={onReplay}
                 className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
@@ -223,40 +275,7 @@ export function WordDetailActionBar({
               >
                 <RefreshCw className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => onJumpToWord(0)}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                title="Go to first word"
-              >
-                <SkipBack className="h-5 w-5" />
-              </button>
-              <button
-                onClick={onPreviousWord}
-                disabled={!hasPrevious}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Previous word"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                onClick={onNextWord}
-                disabled={!hasNext}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Next word"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => onJumpToWord(totalWords - 1)}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                title="Go to last word"
-              >
-                <SkipForward className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Divider */}
-            <span className="text-foreground/25">|</span>
+            )}
 
             {/* Toggle icons */}
             <div className="flex items-center gap-3">
@@ -273,12 +292,6 @@ export function WordDetailActionBar({
                 ) : (
                   <ImageIcon className="h-5 w-5" />
                 )}
-              </button>
-              <button
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                title="Toggle audio"
-              >
-                <Music className="h-5 w-5" />
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,7 +43,18 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-2">Sign in to continue learning</p>
         </div>
 
-        <form onSubmit={handleLogin} className="mt-8 space-y-6">
+        <SocialLoginButtons mode="signin" />
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
           )}

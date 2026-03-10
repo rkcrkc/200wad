@@ -67,7 +67,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground">Words studied</span>
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-success" />
+              <span className="h-2.5 w-2.5 rounded-full bg-warning" />
               <span className="text-regular-semibold">
                 {stats.wordsStudied} ({studiedPercentage}%)
               </span>
@@ -75,10 +75,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
 
           {/* Words mastered */}
-          <div className="flex flex-col items-start">
+          <div
+            className="group relative flex flex-col items-start"
+            title={`${stats.wordsMastered} of ${stats.totalWords} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
+          >
             <span className="text-xs text-muted-foreground">Words mastered</span>
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+              <span className="h-2.5 w-2.5 rounded-full bg-success" />
               <span className="text-regular-semibold">
                 {stats.wordsMastered} ({masteredPercentage}%)
               </span>

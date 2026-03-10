@@ -9,8 +9,10 @@ interface SchedulerSectionProps {
   nextLesson: LessonForScheduler | null;
   isFirstLesson: boolean;
   dueTestsCount: number;
-  /** True if user just completed a test and there are more due */
+  /** True if user just completed a test */
   justCompletedTest?: boolean;
+  /** True if user just completed a lesson */
+  justCompletedLesson?: boolean;
 }
 
 export function SchedulerSection({
@@ -19,14 +21,32 @@ export function SchedulerSection({
   isFirstLesson,
   dueTestsCount,
   justCompletedTest = false,
+  justCompletedLesson = false,
 }: SchedulerSectionProps) {
-  // Determine what to show and the heading
   const hasDueTests = dueTests.length > 0;
   const hasMultipleTests = dueTestsCount > 1;
-
-  // Get the primary item to display
   const primaryTest = dueTests[0];
-  const displayLesson = hasDueTests ? primaryTest : nextLesson;
+
+  // Alternating logic:
+  // - After completing a test → show next lesson (even if more tests are due)
+  // - After completing a lesson → show due test (if any)
+  // - Otherwise → show test if due, else lesson
+  let showTest: boolean;
+  let displayLesson: LessonForScheduler | null;
+
+  if (justCompletedTest && nextLesson) {
+    // Just finished a test - show next lesson for variety
+    showTest = false;
+    displayLesson = nextLesson;
+  } else if (justCompletedLesson && hasDueTests) {
+    // Just finished a lesson - show due test
+    showTest = true;
+    displayLesson = primaryTest;
+  } else {
+    // Default: show test if due, otherwise lesson
+    showTest = hasDueTests;
+    displayLesson = hasDueTests ? primaryTest : nextLesson;
+  }
 
   if (!displayLesson) {
     return null;
@@ -37,8 +57,8 @@ export function SchedulerSection({
   let linkText: string;
   let linkHref: string;
 
-  if (hasDueTests) {
-    // Test mode - show "another test" if user just completed one or has multiple
+  if (showTest) {
+    // Test mode - show "another test" if user just completed one and has multiple
     if (justCompletedTest && hasMultipleTests) {
       heading = "You have another test due";
     } else {
@@ -72,7 +92,7 @@ export function SchedulerSection({
       {/* Scheduler Card */}
       <SchedulerCard
         lesson={displayLesson}
-        mode={hasDueTests ? "test" : "lesson"}
+        mode={showTest ? "test" : "lesson"}
       />
     </section>
   );

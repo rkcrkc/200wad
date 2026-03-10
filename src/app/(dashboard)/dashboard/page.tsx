@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getLanguages } from "@/lib/queries";
 import { LanguageCard } from "@/components/LanguageCard";
 import { AddLanguageCard } from "@/components/AddLanguageCard";
@@ -6,6 +8,23 @@ import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 
 export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Redirect to current course schedule if user has one set
+  if (user) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("current_course_id")
+      .eq("id", user.id)
+      .single();
+
+    if (userData?.current_course_id) {
+      redirect(`/course/${userData.current_course_id}/schedule`);
+    }
+  }
+
+  // No current course - show My Languages to pick one
   const { languages, isGuest } = await getLanguages();
 
   return (

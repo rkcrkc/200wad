@@ -4,11 +4,12 @@ export type { LanguageWithProgress, GetLanguagesResult } from "./languages";
 export { getCourses, getCourseById } from "./courses";
 export type { CourseWithProgress, GetCoursesResult, GetCourseByIdResult } from "./courses";
 
-export { getLessons } from "./lessons";
+export { getLessons, isAutoLesson, parseAutoLessonId, createAutoLessonId } from "./lessons";
 export type {
   LessonStatus,
   LessonWithProgress,
   GetLessonsResult,
+  AutoLessonType,
 } from "./lessons";
 
 export { getWords, getWord } from "./words";
@@ -35,3 +36,9 @@ export type {
   GetScheduleDataResult,
   CurrentCourseInfo,
 } from "./schedule";
+
+export { getTests } from "./tests";
+export type { TestForList, GetTestsResult } from "./tests";
+
+export { getDictionaryWords } from "./dictionary";
+export type { DictionaryWord, GetDictionaryResult } from "./dictionary";

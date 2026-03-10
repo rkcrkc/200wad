@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useAudio } from "@/hooks/useAudio";
+import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
   StudyNavbar,
   StudyActionBar,
@@ -19,9 +20,11 @@ import {
   type TestAnswerInputHandle,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
+import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
+import { saveSystemNotes } from "@/lib/mutations/study";
 import {
   initSessionProgress,
   saveSessionProgress,
@@ -51,6 +54,8 @@ interface TestModeClientProps {
   isGuest: boolean;
   testType?: import("@/types/test").TestType;
   testTwice?: boolean;
+  /** The intended milestone for this test (from URL), or null for self-initiated */
+  milestone?: string | null;
 }
 
 export function TestModeClient({
@@ -61,9 +66,21 @@ export function TestModeClient({
   isGuest,
   testType = "english-to-foreign",
   testTwice = false,
+  milestone = null,
 }: TestModeClientProps) {
   const router = useRouter();
+  const { isAdmin } = useUser();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
+  const {
+    isEnabled: musicEnabled,
+    setEnabled: setMusicEnabled,
+    selectedTrack,
+    setSelectedTrack,
+    volume: musicVolume,
+    setVolume: setMusicVolume,
+    hasError: musicHasError,
+    stop: stopMusic,
+  } = useStudyMusic();
 
   const languageFlag = getFlagFromCode(language?.code);
 
@@ -252,8 +269,9 @@ export function TestModeClient({
   useEffect(() => {
     return () => {
       stopAudio();
+      stopMusic();
     };
-  }, [stopAudio]);
+  }, [stopAudio, stopMusic]);
 
   // Auto-play audio when word changes (based on test type)
   useEffect(() => {
@@ -367,6 +385,9 @@ export function TestModeClient({
 
   // Handle finish test (defined before handleNextWord to avoid stale reference)
   const handleFinishTest = useCallback(async () => {
+    // Stop any playing audio immediately
+    stopAudio();
+
     // Stop the timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -407,7 +428,7 @@ export function TestModeClient({
         masteredWordsCount: 0, // TODO: Calculate based on mastery
       };
 
-      const result = await completeTestSession(sessionId, lesson.id, stats, questionResults);
+      const result = await completeTestSession(sessionId, lesson.id, stats, questionResults, milestone);
 
       if (result.success) {
         clearSessionProgress("test", sessionId, lesson.id);
@@ -417,7 +438,7 @@ export function TestModeClient({
     }
 
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions]);
+  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone]);
 
   // Track viewed words when navigating
   useEffect(() => {
@@ -491,8 +512,13 @@ export function TestModeClient({
 
   // Modal callbacks
   const handleDone = useCallback(() => {
-    router.push(`/lesson/${lesson.id}`);
-  }, [router, lesson.id]);
+    // Redirect to schedule with completed=test for alternating logic
+    if (course?.id) {
+      router.push(`/course/${course.id}/schedule?completed=test`);
+    } else {
+      router.push(`/lesson/${lesson.id}`);
+    }
+  }, [router, lesson.id, course?.id]);
 
   const handleTestAgain = useCallback(() => {
     // Reset all state and start fresh
@@ -563,6 +589,18 @@ export function TestModeClient({
 
   // Sidebar is always enabled in test mode (no phase restrictions)
   const currentUserNotes = currentWord?.progress?.user_notes || null;
+
+  // Handle system notes change (admin only)
+  const handleSystemNotesChange = useCallback(
+    async (notes: string | null) => {
+      if (!currentWord) return;
+      const result = await saveSystemNotes(currentWord.id, notes);
+      if (!result.success) {
+        console.error("Failed to save system notes:", result.error);
+      }
+    },
+    [currentWord]
+  );
 
   // Build testResults map for word tracker dots (sequence index -> grade)
   const testResults = new Map<number, "correct" | "half-correct" | "incorrect">();
@@ -707,7 +745,9 @@ export function TestModeClient({
                   exampleSentences={currentWord?.exampleSentences}
                   relatedWords={currentWord?.relatedWords}
                   isEnabled={hasSubmittedAnswer}
-                  onUserNotesChange={() => {}} // Notes editing not supported in test mode
+                  onUserNotesChange={() => {}} // User notes editing not supported in test mode
+                  isAdmin={isAdmin}
+                  onSystemNotesChange={handleSystemNotesChange}
                 />
               </div>
             </div>
@@ -759,6 +799,13 @@ export function TestModeClient({
             onInsertCharacter={testTypeConfig.showAccentsPanel ? handleInsertCharacter : undefined}
             imageMode={imageMode}
             onImageModeChange={setImageMode}
+            musicEnabled={musicEnabled}
+            onMusicEnabledChange={setMusicEnabled}
+            selectedTrack={selectedTrack}
+            onTrackChange={setSelectedTrack}
+            musicHasError={musicHasError}
+            musicVolume={musicVolume}
+            onMusicVolumeChange={setMusicVolume}
           />
         </div>
       </div>

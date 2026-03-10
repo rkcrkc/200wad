@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { getScheduleData } from "@/lib/queries/schedule";
 import { getCourseById } from "@/lib/queries/courses";
-import { setCurrentCourse } from "@/lib/mutations";
+import { getLanguagesWithCourses } from "@/lib/queries/onboarding";
+import { setCurrentCourse, addLanguageWithCourse } from "@/lib/mutations";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { SchedulerSection, LessonGridSection } from "@/components/schedule";
-import { GuestCTA } from "@/components/GuestCTA";
+import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/PageContainer";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -12,10 +13,16 @@ import { createClient } from "@/lib/supabase/server";
 
 interface SchedulePageProps {
   params: Promise<{ courseId: string }>;
+  searchParams: Promise<{ completed?: string }>;
 }
 
-export default async function CourseSchedulePage({ params }: SchedulePageProps) {
+export default async function CourseSchedulePage({ params, searchParams }: SchedulePageProps) {
   const { courseId } = await params;
+  const { completed } = await searchParams;
+
+  // Track what user just completed for alternating test/lesson logic
+  const justCompletedTest = completed === "test";
+  const justCompletedLesson = completed === "lesson";
 
   // Get course and language info
   const { course, language } = await getCourseById(courseId);
@@ -34,13 +41,19 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
   if (user) {
     const { data: userData } = await supabase
       .from("users")
-      .select("name")
+      .select("name, current_language_id")
       .eq("id", user.id)
       .single();
     userName = userData?.name || null;
 
-    // Update the user's current course (fire-and-forget)
-    setCurrentCourse(courseId);
+    // For new users (no language set), set up their first language/course
+    if (!userData?.current_language_id && language?.id) {
+      // This is a new user - persist their language and course selection
+      await addLanguageWithCourse(language.id);
+    } else {
+      // Existing user - just update the current course (fire-and-forget)
+      setCurrentCourse(courseId);
+    }
   }
 
   // Get schedule data for this specific course
@@ -67,6 +80,9 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
     isGuest,
   } = scheduleData;
 
+  // Fetch languages for onboarding modal (only for guests)
+  const languages = isGuest ? await getLanguagesWithCourses() : [];
+
   // Generate greeting based on language and time
   const greeting = getGreeting(language?.name || "your language", userName);
 
@@ -77,8 +93,18 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
     newLessons.length > 0 ||
     recentLessons.length > 0;
 
-  // Exclude the lesson shown in the scheduler from the grid (avoid duplicate)
-  const schedulerLessonId = dueTests[0]?.id ?? nextLesson?.id;
+  // Determine which lesson is shown in the scheduler (same alternating logic as SchedulerSection)
+  let schedulerLessonId: string | undefined;
+  if (justCompletedTest && nextLesson) {
+    // Just finished a test - scheduler shows next lesson
+    schedulerLessonId = nextLesson.id;
+  } else if (justCompletedLesson && dueTests.length > 0) {
+    // Just finished a lesson - scheduler shows due test
+    schedulerLessonId = dueTests[0].id;
+  } else {
+    // Default: test if due, otherwise lesson
+    schedulerLessonId = dueTests[0]?.id ?? nextLesson?.id;
+  }
   const filteredNewLessons = schedulerLessonId
     ? newLessons.filter((l) => l.id !== schedulerLessonId)
     : newLessons;
@@ -114,6 +140,8 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
               nextLesson={nextLesson}
               isFirstLesson={isFirstLesson}
               dueTestsCount={dueTestsCount}
+              justCompletedTest={justCompletedTest}
+              justCompletedLesson={justCompletedLesson}
             />
 
             {/* Lesson Grid Section */}
@@ -131,12 +159,12 @@ export default async function CourseSchedulePage({ params }: SchedulePageProps) 
           />
         )}
 
-        {/* Guest CTA */}
-        {isGuest && hasContent && (
-          <div className="mt-8">
-            <GuestCTA description="Sign up to save your learning progress and access it from any device." />
-          </div>
-        )}
+        {/* Onboarding modal for guests */}
+        <OnboardingSignupGate
+          courseId={course.id}
+          isGuest={isGuest}
+          languages={languages}
+        />
       </PageContainer>
     </SetCourseContext>
   );

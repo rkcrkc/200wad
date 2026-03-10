@@ -7,6 +7,7 @@ import {
   BookOpen,
   GraduationCap,
   Type,
+  Music,
   LayoutDashboard,
   Settings,
   ChevronLeft,
@@ -44,6 +45,11 @@ const navItems: NavItem[] = [
     label: "Words",
     href: "/admin/words",
     icon: <Type className="h-5 w-5" />,
+  },
+  {
+    label: "Music",
+    href: "/admin/music",
+    icon: <Music className="h-5 w-5" />,
   },
 ];
 

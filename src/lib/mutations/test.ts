@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  type Milestone,
+  isValidMilestone,
+  shouldCountAsMilestone,
+  getNextMilestone,
+  calculateNextTestDueAt,
+} from "@/lib/utils/milestones";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -82,12 +89,14 @@ export interface CompleteTestSessionResult {
 
 /**
  * Complete a test session - saves test scores and updates word progress
+ * @param intendedMilestone - The milestone this test was started for (from URL param), or null for self-initiated
  */
 export async function completeTestSession(
   sessionId: string,
   lessonId: string,
   stats: TestStats,
-  questionResults: TestQuestionResult[]
+  questionResults: TestQuestionResult[],
+  intendedMilestone?: string | null
 ): Promise<CompleteTestSessionResult> {
   const supabase = await createClient();
   const {
@@ -120,13 +129,20 @@ export async function completeTestSession(
     }
   }
 
-  // 2. Create test score record
+  // 2. Determine the milestone for this test
+  const milestoneResult = await determineMilestone(
+    user.id,
+    lessonId,
+    intendedMilestone
+  );
+
+  // 3. Create test score record
   const { data: testScore, error: testScoreError } = await supabase
     .from("user_test_scores")
     .insert({
       user_id: user.id,
       lesson_id: lessonId,
-      milestone: "other",
+      milestone: milestoneResult.recordedMilestone,
       total_questions: stats.totalQuestions,
       correct_answers: stats.correctAnswers,
       points_earned: stats.pointsEarned,
@@ -145,7 +161,7 @@ export async function completeTestSession(
     return { success: false, testScoreId: null, error: testScoreError.message };
   }
 
-  // 3. Save individual test question results
+  // 4. Save individual test question results
   if (questionResults.length > 0) {
     const questionsToInsert = questionResults.map((q) => ({
       test_score_id: testScore.id,
@@ -170,7 +186,7 @@ export async function completeTestSession(
     }
   }
 
-  // 4. Update word progress for each tested word
+  // 5. Update word progress for each tested word
   for (const question of questionResults) {
     await updateWordTestProgress(
       user.id,
@@ -181,10 +197,114 @@ export async function completeTestSession(
     );
   }
 
+  // 6. Advance milestone schedule if this counted as a milestone test
+  if (milestoneResult.shouldAdvance && milestoneResult.completedMilestone) {
+    await advanceMilestoneSchedule(
+      user.id,
+      lessonId,
+      milestoneResult.completedMilestone
+    );
+  }
+
   // Revalidate lesson pages
   revalidatePath(`/lesson/${lessonId}`);
 
   return { success: true, testScoreId: testScore.id, error: null };
+}
+
+/**
+ * Determine what milestone this test should be recorded as
+ */
+async function determineMilestone(
+  userId: string,
+  lessonId: string,
+  intendedMilestone?: string | null
+): Promise<{
+  recordedMilestone: string;
+  shouldAdvance: boolean;
+  completedMilestone: Milestone | null;
+}> {
+  const supabase = await createClient();
+
+  // Get the lesson's current milestone schedule
+  const { data: progress } = await supabase
+    .from("user_lesson_progress")
+    .select("next_milestone, next_test_due_at")
+    .eq("user_id", userId)
+    .eq("lesson_id", lessonId)
+    .maybeSingle();
+
+  const nextMilestone = progress?.next_milestone;
+  const nextTestDueAt = progress?.next_test_due_at
+    ? new Date(progress.next_test_due_at)
+    : null;
+  const now = new Date();
+
+  // Case 1: Intended milestone was explicitly passed (from scheduler or lesson completion modal)
+  if (intendedMilestone && isValidMilestone(intendedMilestone)) {
+    // If the intended milestone matches the scheduled next milestone, advance the schedule
+    if (intendedMilestone === nextMilestone) {
+      return {
+        recordedMilestone: intendedMilestone,
+        shouldAdvance: true,
+        completedMilestone: intendedMilestone,
+      };
+    }
+    // Otherwise record as the intended milestone but don't advance (e.g., retaking a past test)
+    return {
+      recordedMilestone: intendedMilestone,
+      shouldAdvance: false,
+      completedMilestone: null,
+    };
+  }
+
+  // Case 2: Self-initiated test (no intended milestone) - check if close enough to count
+  if (
+    nextMilestone &&
+    isValidMilestone(nextMilestone) &&
+    shouldCountAsMilestone(nextMilestone, nextTestDueAt, now)
+  ) {
+    return {
+      recordedMilestone: nextMilestone,
+      shouldAdvance: true,
+      completedMilestone: nextMilestone,
+    };
+  }
+
+  // Case 3: Self-initiated test that doesn't count as milestone
+  return {
+    recordedMilestone: "other",
+    shouldAdvance: false,
+    completedMilestone: null,
+  };
+}
+
+/**
+ * Advance the milestone schedule after completing a milestone test
+ * Uses upsert to create the record if it doesn't exist (e.g., user went directly to test)
+ */
+async function advanceMilestoneSchedule(
+  userId: string,
+  lessonId: string,
+  completedMilestone: Milestone
+): Promise<void> {
+  const supabase = await createClient();
+  const now = new Date();
+
+  const nextMilestone = getNextMilestone(completedMilestone);
+  const nextTestDueAt = calculateNextTestDueAt(completedMilestone, now);
+
+  await supabase
+    .from("user_lesson_progress")
+    .upsert({
+      user_id: userId,
+      lesson_id: lessonId,
+      next_milestone: nextMilestone,
+      next_test_due_at: nextTestDueAt?.toISOString() || null,
+      status: "studying",
+    }, {
+      onConflict: "user_id,lesson_id",
+    });
 }
 
 // ============================================================================

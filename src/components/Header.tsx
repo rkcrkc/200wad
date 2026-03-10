@@ -11,12 +11,26 @@ import type { HeaderStats } from "./DashboardContent";
 interface HeaderProps {
   showSidebar?: boolean;
   stats?: HeaderStats;
+  /** Show full logged-in UI for guests during onboarding (with placeholder values) */
+  showPreviewMode?: boolean;
 }
 
-export function Header({ showSidebar = true, stats }: HeaderProps) {
+// Placeholder stats for onboarding preview
+const PREVIEW_STATS: HeaderStats = {
+  courseProgressPercent: 12,
+  wordsPerDay: 24,
+  wordsMastered: 24,
+  totalWords: 200,
+};
+
+export function Header({ showSidebar = true, stats, showPreviewMode = false }: HeaderProps) {
   const { user, isLoading, isGuest } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
+
+  // In preview mode, treat guest as logged in for UI purposes
+  const showAsLoggedIn = !isGuest || showPreviewMode;
+  const effectiveStats = showPreviewMode && isGuest ? PREVIEW_STATS : stats;
 
   // Determine if we have a course context to show
   const hasContext = languageFlag && courseId && courseName;
@@ -69,7 +83,7 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
                 {/* Title */}
                 <div className="flex min-w-0 flex-col">
                   <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-                    {isGuest ? "Welcome to" : "Learning"}
+                    {showAsLoggedIn ? "Learning" : "Welcome to"}
                   </span>
                   <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
                     {hasContext ? courseName : "200 Words a Day"}
@@ -79,8 +93,8 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
             </Link>
           </div>
 
-          {/* Back/Forward Navigation - Only when logged in */}
-          {!isGuest && (
+          {/* Back/Forward Navigation - Show when logged in or in preview mode */}
+          {showAsLoggedIn && (
             <div className="flex h-9 w-20 shrink-0 items-center gap-2">
               <button
                 onClick={() => window.history.back()}
@@ -100,18 +114,24 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
           )}
 
           {/* Stats Indicators - Course Progress & Words/Day */}
-          {!isGuest && stats && hasContext && (
+          {showAsLoggedIn && effectiveStats && hasContext && (
             <div className="ml-4 flex shrink-0 items-center gap-5">
               {/* Course Progress Indicator */}
-              <div className="flex flex-col">
+              <div className="group relative flex flex-col cursor-default">
                 <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
-                  {stats.courseProgressPercent}% complete
+                  {effectiveStats.courseProgressPercent}% complete
                 </span>
                 <div className="mt-1 h-1.5 w-[100px] overflow-hidden rounded-full bg-gray-200">
                   <div
                     className="bg-success h-full rounded-full transition-all duration-300"
-                    style={{ width: `${stats.courseProgressPercent}%` }}
+                    style={{ width: `${effectiveStats.courseProgressPercent}%` }}
                   />
+                </div>
+                {/* Tooltip */}
+                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-medium">
+                    {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
+                  </span>
                 </div>
               </div>
 
@@ -119,7 +139,7 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
               <div className="group relative flex flex-col items-center">
                 <div className="flex items-center gap-1">
                   <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
-                    {stats.wordsPerDay}
+                    {effectiveStats.wordsPerDay}
                   </span>
                   <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
                 </div>
@@ -129,15 +149,15 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
                 {/* Tooltip */}
                 <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                   <span className="text-foreground text-[14px] leading-[1.4] font-medium">
-                    You are currently learning at a rate of {stats.wordsPerDay} words/day
+                    You are currently learning at a rate of {effectiveStats.wordsPerDay} words/day
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Search Bar - Only when sidebar is shown and logged in */}
-          {showSidebar && !isGuest && (
+          {/* Search Bar - Show when sidebar is shown and logged in (or preview mode) */}
+          {showSidebar && showAsLoggedIn && (
             <div className="relative ml-5 h-[42px] w-[400px] shrink-0">
               <div className="border-secondary bg-input-background absolute top-0 left-0 h-[42px] w-full rounded-[10px] border">
                 <input
@@ -158,8 +178,8 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
           {isLoading ? (
             // Loading skeleton
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
-          ) : isGuest ? (
-            // Guest state - Sign In / Sign Up buttons
+          ) : isGuest && !showPreviewMode ? (
+            // Guest state (no preview) - Sign In / Sign Up buttons
             <>
               <Link href="/login">
                 <Button variant="ghost" size="sm">
@@ -171,7 +191,7 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
               </Link>
             </>
           ) : (
-            // Logged in state
+            // Logged in state (or preview mode)
             <>
               {/* Notification Bell */}
               <button className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50">
@@ -182,8 +202,9 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
 
               {/* User Account Button */}
               <Link
-                href="/settings"
+                href={isGuest ? "#" : "/settings"}
                 className="flex h-12 shrink-0 items-center gap-2 rounded-[10px] px-3 transition-all hover:bg-gray-50"
+                onClick={isGuest ? (e) => e.preventDefault() : undefined}
               >
                 {/* Avatar with gradient */}
                 <div
@@ -193,7 +214,7 @@ export function Header({ showSidebar = true, stats }: HeaderProps) {
                   }}
                 >
                   <span className="text-sm leading-5 font-normal tracking-[-0.15px] text-white">
-                    {getUserInitial()}
+                    {isGuest ? "?" : getUserInitial()}
                   </span>
                 </div>
               </Link>

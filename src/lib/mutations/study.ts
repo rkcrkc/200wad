@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { Milestone } from "@/lib/utils/milestones";
 
 // ============================================================================
 // STUDY SESSION ACTIONS
@@ -95,6 +96,42 @@ export async function endStudySession(
 // ============================================================================
 // WORD NOTES ACTIONS
 // ============================================================================
+
+/**
+ * Save system notes for a word (admin only)
+ * Updates the word's notes field directly
+ */
+export async function saveSystemNotes(
+  wordId: string,
+  notes: string | null
+): Promise<{ success: boolean; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "User not authenticated" };
+  }
+
+  // Check if user is admin
+  const isAdmin = user.user_metadata?.role === "admin";
+  if (!isAdmin) {
+    return { success: false, error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("words")
+    .update({ notes })
+    .eq("id", wordId);
+
+  if (error) {
+    console.error("Error saving system notes:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+}
 
 /**
  * Save user notes for a word without affecting progress/streak
@@ -301,6 +338,7 @@ export async function updateLessonProgress(
 /**
  * Complete a study session - saves notes and records study time
  * Note: Study mode does NOT affect word mastery/streaks - only test mode does
+ * Also sets the initial test milestone if this is the first time completing this lesson
  */
 export async function completeStudySession(
   sessionId: string,
@@ -314,6 +352,15 @@ export async function completeStudySession(
     userNotes?: string | null;
   }>
 ): Promise<{ success: boolean; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "User not authenticated" };
+  }
+
   // Save any user notes
   if (pendingNotes.length > 0) {
     const batchResult = await batchSaveUserNotes(pendingNotes);
@@ -344,5 +391,41 @@ export async function completeStudySession(
     return lessonResult;
   }
 
+  // Set initial test milestone if this is the first time completing this lesson
+  await setInitialMilestoneIfNeeded(user.id, lessonId);
+
   return { success: true, error: null };
+}
+
+/**
+ * Set the initial test milestone for a lesson if not already set
+ * Called when a user completes studying a lesson for the first time
+ */
+async function setInitialMilestoneIfNeeded(
+  userId: string,
+  lessonId: string
+): Promise<void> {
+  const supabase = await createClient();
+
+  // Get existing lesson progress
+  const { data: progress } = await supabase
+    .from("user_lesson_progress")
+    .select("id, next_milestone")
+    .eq("user_id", userId)
+    .eq("lesson_id", lessonId)
+    .maybeSingle();
+
+  // Only set milestone if it's not already set
+  if (progress && !progress.next_milestone) {
+    const now = new Date().toISOString();
+    const initialMilestone: Milestone = "initial";
+
+    await supabase
+      .from("user_lesson_progress")
+      .update({
+        next_milestone: initialMilestone,
+        next_test_due_at: now, // Initial test is due immediately
+      })
+      .eq("id", progress.id);
+  }
 }

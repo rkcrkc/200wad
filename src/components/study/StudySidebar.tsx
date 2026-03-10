@@ -15,6 +15,10 @@ interface StudySidebarProps {
   relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[];
   isEnabled: boolean;
   onUserNotesChange: (notes: string | null) => void;
+  /** Whether current user is an admin (can edit system notes) */
+  isAdmin?: boolean;
+  /** Callback when admin edits system notes */
+  onSystemNotesChange?: (notes: string | null) => void;
 }
 
 export function StudySidebar({
@@ -25,37 +29,63 @@ export function StudySidebar({
   relatedWords,
   isEnabled,
   onUserNotesChange,
+  isAdmin = false,
+  onSystemNotesChange,
 }: StudySidebarProps) {
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesInput, setNotesInput] = useState(userNotes || "");
-  // Track locally saved notes to display immediately (before parent state updates)
-  const [savedNotes, setSavedNotes] = useState<string | null>(null);
+  // User notes state
+  const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
+  const [userNotesInput, setUserNotesInput] = useState(userNotes || "");
+  const [savedUserNotes, setSavedUserNotes] = useState<string | null>(null);
+
+  // System notes state (admin only)
+  const [isEditingSystemNotes, setIsEditingSystemNotes] = useState(false);
+  const [systemNotesInput, setSystemNotesInput] = useState(systemNotes || "");
+  const [savedSystemNotes, setSavedSystemNotes] = useState<string | null>(null);
+
   const prevWordIdRef = useRef(wordId);
 
   // Reset all local state when word changes
   useEffect(() => {
     if (wordId !== prevWordIdRef.current) {
-      setNotesInput(userNotes || "");
-      setIsEditingNotes(false);
-      setSavedNotes(null);
+      setUserNotesInput(userNotes || "");
+      setIsEditingUserNotes(false);
+      setSavedUserNotes(null);
+      setSystemNotesInput(systemNotes || "");
+      setIsEditingSystemNotes(false);
+      setSavedSystemNotes(null);
       prevWordIdRef.current = wordId;
     }
-  }, [wordId, userNotes]);
+  }, [wordId, userNotes, systemNotes]);
 
-  const handleSaveNotes = () => {
-    const trimmedNotes = notesInput.trim() || null;
-    setSavedNotes(trimmedNotes); // Save locally for immediate display
-    onUserNotesChange(trimmedNotes); // Notify parent
-    setIsEditingNotes(false);
+  // User notes handlers
+  const handleSaveUserNotes = () => {
+    const trimmedNotes = userNotesInput.trim() || null;
+    setSavedUserNotes(trimmedNotes);
+    onUserNotesChange(trimmedNotes);
+    setIsEditingUserNotes(false);
   };
 
-  const handleCancelNotes = () => {
-    setNotesInput(savedNotes ?? userNotes ?? "");
-    setIsEditingNotes(false);
+  const handleCancelUserNotes = () => {
+    setUserNotesInput(savedUserNotes ?? userNotes ?? "");
+    setIsEditingUserNotes(false);
+  };
+
+  // System notes handlers (admin only)
+  const handleSaveSystemNotes = () => {
+    const trimmedNotes = systemNotesInput.trim() || null;
+    setSavedSystemNotes(trimmedNotes);
+    onSystemNotesChange?.(trimmedNotes);
+    setIsEditingSystemNotes(false);
+  };
+
+  const handleCancelSystemNotes = () => {
+    setSystemNotesInput(savedSystemNotes ?? systemNotes ?? "");
+    setIsEditingSystemNotes(false);
   };
 
   // Display notes: prefer locally saved (most recent), then prop from parent
-  const displayNotes = savedNotes ?? userNotes;
+  const displayUserNotes = savedUserNotes ?? userNotes;
+  const displaySystemNotes = savedSystemNotes ?? systemNotes;
 
   const cardClasses = cn(
     "w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)] transition-opacity",
@@ -107,24 +137,74 @@ export function StudySidebar({
 
           <div className="flex flex-col gap-5">
             {/* System notes */}
-            {systemNotes && (
-              <p className="text-small-regular text-foreground whitespace-pre-wrap">{systemNotes}</p>
-            )}
+            {isEditingSystemNotes ? (
+              <div className="flex flex-col gap-3">
+                <textarea
+                  value={systemNotesInput}
+                  onChange={(e) => setSystemNotesInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveSystemNotes();
+                    }
+                  }}
+                  placeholder="Add system notes..."
+                  className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-small-regular focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveSystemNotes}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-small-semibold text-white transition-colors hover:bg-primary/90"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelSystemNotes}
+                    className="rounded-lg px-3 py-1.5 text-small-semibold text-foreground/50 transition-colors hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : displaySystemNotes ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-small-regular text-foreground whitespace-pre-wrap">{displaySystemNotes}</p>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setSystemNotesInput(displaySystemNotes);
+                      setIsEditingSystemNotes(true);
+                    }}
+                    className="self-start text-small-semibold text-foreground/50 transition-colors hover:text-foreground"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            ) : isAdmin ? (
+              <button
+                onClick={() => setIsEditingSystemNotes(true)}
+                className="self-start text-small-regular text-foreground/50 transition-colors hover:text-foreground"
+              >
+                + Add system notes
+              </button>
+            ) : null}
 
-            {(systemNotes || displayNotes || isEditingNotes) && (
+            {(displaySystemNotes || displayUserNotes || isEditingUserNotes || isEditingSystemNotes) && (
               <div className="h-px w-full bg-black/10" />
             )}
 
             {/* User notes section */}
-            {isEditingNotes ? (
+            {isEditingUserNotes ? (
               <div className="flex flex-col gap-3">
                 <textarea
-                  value={notesInput}
-                  onChange={(e) => setNotesInput(e.target.value)}
+                  value={userNotesInput}
+                  onChange={(e) => setUserNotesInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && e.shiftKey) {
                       e.preventDefault();
-                      handleSaveNotes();
+                      handleSaveUserNotes();
                     }
                   }}
                   placeholder="Add your notes here..."
@@ -133,32 +213,32 @@ export function StudySidebar({
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={handleSaveNotes}
+                    onClick={handleSaveUserNotes}
                     className="rounded-lg bg-primary px-3 py-1.5 text-small-semibold text-white transition-colors hover:bg-primary/90"
                   >
                     Save
                   </button>
                   <button
-                    onClick={handleCancelNotes}
+                    onClick={handleCancelUserNotes}
                     className="rounded-lg px-3 py-1.5 text-small-semibold text-foreground/50 transition-colors hover:text-foreground"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
-            ) : displayNotes ? (
+            ) : displayUserNotes ? (
               <button
                 onClick={() => {
-                  setNotesInput(displayNotes);
-                  setIsEditingNotes(true);
+                  setUserNotesInput(displayUserNotes);
+                  setIsEditingUserNotes(true);
                 }}
                 className="w-full cursor-pointer text-left text-small-regular text-foreground whitespace-pre-wrap transition-colors hover:text-foreground/70"
               >
-                {displayNotes}
+                {displayUserNotes}
               </button>
             ) : (
               <button
-                onClick={() => setIsEditingNotes(true)}
+                onClick={() => setIsEditingUserNotes(true)}
                 className="self-start text-small-regular text-foreground/50 transition-colors hover:text-foreground"
               >
                 + Add notes

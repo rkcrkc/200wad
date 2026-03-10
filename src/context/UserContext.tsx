@@ -8,6 +8,7 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   isGuest: boolean;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -60,6 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isGuest: !user,
+    isAdmin: user?.user_metadata?.role === "admin",
     signOut,
     refreshUser,
   };

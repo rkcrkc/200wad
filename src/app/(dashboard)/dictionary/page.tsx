@@ -1,15 +1,19 @@
-import { ComingSoon } from "@/components/ComingSoon";
-import { PageContainer } from "@/components/PageContainer";
-import { BookMarked } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getCurrentCourse } from "@/lib/queries";
 
-export default function DictionaryPage() {
-  return (
-    <PageContainer size="md">
-      <ComingSoon
-        title="Dictionary Coming Soon"
-        description="Browse all the words you've learned and look up new ones. We're building your personal dictionary!"
-        icon={<BookMarked className="h-10 w-10 text-warning" />}
-      />
-    </PageContainer>
-  );
+/**
+ * Redirect to the user's default course dictionary.
+ * The actual dictionary page is now at /course/[courseId]/dictionary
+ */
+export default async function DictionaryPage() {
+  // Get the user's current course
+  const { course } = await getCurrentCourse();
+
+  // If no course available, redirect to dashboard to select one
+  if (!course) {
+    redirect("/dashboard");
+  }
+
+  // Redirect to the course-specific dictionary
+  redirect(`/course/${course.id}/dictionary`);
 }

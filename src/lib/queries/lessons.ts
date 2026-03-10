@@ -9,6 +9,26 @@ export interface LessonWithProgress extends Lesson {
   wordsMastered: number;
   totalStudyTimeSeconds: number;
   lastStudiedAt: string | null;
+  /** Whether this is a virtual auto-lesson */
+  isAutoLesson?: boolean;
+}
+
+// Auto-lesson types
+export type AutoLessonType = "notes" | "best" | "worst";
+
+// Auto-lesson ID helpers
+export function createAutoLessonId(type: AutoLessonType, courseId: string): string {
+  return `auto-${type}-${courseId}`;
+}
+
+export function parseAutoLessonId(lessonId: string): { type: AutoLessonType; courseId: string } | null {
+  const match = lessonId.match(/^auto-(notes|best|worst)-(.+)$/);
+  if (!match) return null;
+  return { type: match[1] as AutoLessonType, courseId: match[2] };
+}
+
+export function isAutoLesson(lessonId: string): boolean {
+  return lessonId.startsWith("auto-");
 }
 
 export interface GetLessonsResult {
@@ -22,6 +42,114 @@ export interface GetLessonsResult {
     wordsMastered: number;
   };
   isGuest: boolean;
+}
+
+// Auto-lesson definitions
+const AUTO_LESSON_DEFINITIONS: {
+  type: AutoLessonType;
+  number: number;
+  title: string;
+  emoji: string;
+}[] = [
+  { type: "notes", number: 800, title: "My Notes", emoji: "📝" },
+  { type: "best", number: 801, title: "Best Words", emoji: "🏆" },
+  { type: "worst", number: 802, title: "Worst Words", emoji: "🎯" },
+];
+
+/**
+ * Generate virtual auto-lessons for a course based on user data
+ */
+async function generateAutoLessons(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  courseId: string,
+  userId: string,
+  lessonIds: string[]
+): Promise<LessonWithProgress[]> {
+  // Get all word IDs for this course
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
+    .select("word_id")
+    .in("lesson_id", lessonIds);
+
+  const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
+
+  if (courseWordIds.length === 0) {
+    return [];
+  }
+
+  // Get user's test score IDs first
+  const { data: userTestScores } = await supabase
+    .from("user_test_scores")
+    .select("id")
+    .eq("user_id", userId);
+
+  const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
+
+  // Get word counts for each auto-lesson type in parallel
+  const [notesCount, bestWorstData] = await Promise.all([
+    // Count words with user notes
+    supabase
+      .from("user_word_progress")
+      .select("word_id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .in("word_id", courseWordIds)
+      .not("user_notes", "is", null),
+
+    // Get test data for best/worst calculation (via test_score_id)
+    testScoreIds.length > 0
+      ? supabase
+          .from("test_questions")
+          .select("word_id, points_earned, max_points")
+          .in("test_score_id", testScoreIds)
+          .in("word_id", courseWordIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  // Calculate best/worst word counts
+  const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
+  bestWorstData.data?.forEach((tq) => {
+    if (!tq.word_id) return;
+    if (!wordScores[tq.word_id]) {
+      wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
+    }
+    wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
+    wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+  });
+
+  const testedWordCount = Object.keys(wordScores).length;
+  const bestCount = Math.min(20, testedWordCount);
+  const worstCount = Math.min(20, testedWordCount);
+
+  const wordCounts: Record<AutoLessonType, number> = {
+    notes: notesCount.count || 0,
+    best: bestCount,
+    worst: worstCount,
+  };
+
+  // Generate auto-lesson objects
+  const now = new Date().toISOString();
+  return AUTO_LESSON_DEFINITIONS.map((def) => ({
+    id: createAutoLessonId(def.type, courseId),
+    course_id: courseId,
+    number: def.number,
+    title: def.title,
+    emoji: def.emoji,
+    word_count: wordCounts[def.type],
+    is_published: true,
+    sort_order: def.number,
+    legacy_lesson_id: null,
+    created_at: now,
+    updated_at: now,
+    created_by: null,
+    updated_by: null,
+    // Progress fields - auto-lessons don't track progress traditionally
+    status: "not-started" as LessonStatus,
+    completionPercent: 0,
+    wordsMastered: 0,
+    totalStudyTimeSeconds: 0,
+    lastStudiedAt: null,
+    isAutoLesson: true,
+  }));
 }
 
 export async function getLessons(courseId: string): Promise<GetLessonsResult> {
@@ -98,27 +226,35 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         progressByLesson[lp.lesson_id] = lp;
       }
       totalTimeSeconds += lp.total_study_time_seconds || 0;
-      wordsMastered += lp.words_mastered || 0;
+      // Note: wordsMastered is now calculated from user_word_progress below
     });
 
-    // Get word IDs for this course's lessons via lesson_words
-    const { data: lessonWords } = await supabase
-      .from("lesson_words")
-      .select("word_id")
-      .in("lesson_id", lessonIds);
-
-    if (lessonWords && lessonWords.length > 0) {
-      const wordIds = lessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
-
-      // Count words with any progress (studying or mastered)
-      const { count } = await supabase
+    // Get all user's word progress and lesson_words, then compute intersection
+    const [userProgressResult, lessonWordsResult] = await Promise.all([
+      supabase
         .from("user_word_progress")
-        .select("*", { count: "exact", head: true })
+        .select("word_id, status")
         .eq("user_id", user.id)
-        .in("word_id", wordIds)
-        .in("status", ["studying", "mastered"]);
+        .in("status", ["studying", "mastered"]),
+      supabase
+        .from("lesson_words")
+        .select("word_id")
+        .in("lesson_id", lessonIds),
+    ]);
 
-      wordsStudied = count || 0;
+    if (lessonWordsResult.data && userProgressResult.data) {
+      // Create a set of course word IDs for fast lookup
+      const courseWordIds = new Set(
+        lessonWordsResult.data.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+      );
+
+      // Count user progress that matches course words
+      wordsStudied = userProgressResult.data.filter((p) => p.word_id && courseWordIds.has(p.word_id)).length;
+
+      // Also count mastered words from user_word_progress (more accurate than lesson progress)
+      wordsMastered = userProgressResult.data.filter(
+        (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "mastered"
+      ).length;
     }
   }
 
@@ -140,6 +276,13 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       };
     }
   );
+
+  // Generate auto-lessons for authenticated users
+  if (user && lessons && lessons.length > 0) {
+    const lessonIds = lessons.map((l) => l.id);
+    const autoLessons = await generateAutoLessons(supabase, courseId, user.id, lessonIds);
+    lessonsWithProgress.push(...autoLessons);
+  }
 
   // Extract course without nested languages relation
   const courseWithoutRelations = course ? {
