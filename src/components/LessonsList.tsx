@@ -164,33 +164,40 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
               {showStats ? (
                 <>
                   {/* Stats View Header */}
-                  <th className="min-w-[250px] px-6 py-3 text-left text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[50px] px-6 py-3 text-left">
+                    <SortableHeader
+                      label="#"
+                      column="number"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    />
+                  </th>
+                  <th className="min-w-[200px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">
                     Lesson
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Initial
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Day
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Week
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Month
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Qtr
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Year
                   </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Other
-                  </th>
-                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
                     Overall
                   </th>
+                  <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
                 </>
               ) : (
                 <>
@@ -254,7 +261,7 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
           <tbody>
             {filteredAndSortedLessons.length === 0 ? (
               <tr>
-                <td colSpan={showStats ? 9 : 7} className="px-6 py-12 text-center">
+                <td colSpan={showStats ? 10 : 7} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     No lessons match this filter.
                   </p>

@@ -1,5 +1,5 @@
 import { Clock } from "lucide-react";
-import { getLessons } from "@/lib/queries";
+import { getLessons, getLessonMilestoneScores } from "@/lib/queries";
 import { setCurrentCourse } from "@/lib/mutations";
 import { LessonsList } from "@/components/LessonsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
@@ -16,7 +16,14 @@ interface CoursePageProps {
 
 export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
-  const { language, course, lessons, stats, isGuest } = await getLessons(courseId);
+
+  // Fetch lessons and milestone scores in parallel
+  const [lessonsResult, milestoneScores] = await Promise.all([
+    getLessons(courseId),
+    getLessonMilestoneScores(courseId),
+  ]);
+
+  const { language, course, lessons, stats, isGuest } = lessonsResult;
 
   if (!course) {
     notFound();
@@ -94,7 +101,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
       {lessons.length === 0 ? (
         <EmptyState title="No lessons available yet for this course." />
       ) : (
-        <LessonsList lessons={lessons} languageFlag={languageFlag} />
+        <LessonsList
+          lessons={lessons}
+          languageFlag={languageFlag}
+          milestoneScores={milestoneScores}
+        />
       )}
 
       {/* Guest CTA */}

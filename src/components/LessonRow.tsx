@@ -40,12 +40,17 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores 
           !isFirst && "border-t border-gray-200"
         )}
       >
-        {/* Lesson: emoji + title */}
+        {/* Lesson number */}
         <td className={cn(
-          "bg-white px-6 py-4 transition-colors group-hover:bg-bone-hover",
+          "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
           isFirst && "rounded-tl-xl",
           isLast && "rounded-bl-xl"
         )}>
+          {lesson.number}
+        </td>
+
+        {/* Lesson: emoji + title */}
+        <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
               {lesson.emoji || "📚"}
@@ -86,18 +91,20 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores 
           {formatScore(milestoneScores?.year)}
         </td>
 
-        {/* Other */}
+        {/* Overall */}
         <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-          {formatScore(milestoneScores?.other)}
+          {formatScore(milestoneScores?.overall)}
         </td>
 
-        {/* Overall */}
+        {/* Chevron - sticky on horizontal scroll */}
         <td className={cn(
-          "bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+          "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
           isFirst && "rounded-tr-xl",
           isLast && "rounded-br-xl"
         )}>
-          {formatScore(milestoneScores?.overall)}
+          <div className="flex justify-end">
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </div>
         </td>
       </tr>
     );
