@@ -217,6 +217,7 @@ export interface LessonMilestoneScores {
   month: number | null;
   qtr: number | null;
   year: number | null;
+  other: number | null;
   overall: number | null;
 }
 
@@ -292,9 +293,10 @@ export async function getLessonMilestoneScores(
     const month = scores?.get("month") ?? null;
     const qtr = scores?.get("qtr") ?? null;
     const year = scores?.get("year") ?? null;
+    const other = scores?.get("other") ?? null;
 
-    // Calculate overall average (only from non-null scores)
-    const allScores = [initial, day, week, month, qtr, year].filter(
+    // Calculate overall average (only from non-null scores, including other)
+    const allScores = [initial, day, week, month, qtr, year, other].filter(
       (s): s is number => s !== null
     );
     const overall = allScores.length > 0
@@ -309,6 +311,7 @@ export async function getLessonMilestoneScores(
       month,
       qtr,
       year,
+      other,
       overall,
     });
   });

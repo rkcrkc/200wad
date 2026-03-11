@@ -91,6 +91,11 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores 
           {formatScore(milestoneScores?.year)}
         </td>
 
+        {/* Other */}
+        <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+          {formatScore(milestoneScores?.other)}
+        </td>
+
         {/* Overall */}
         <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
           {formatScore(milestoneScores?.overall)}
