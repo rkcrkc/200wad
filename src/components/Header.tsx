@@ -136,7 +136,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                   />
                 </div>
                 {/* Tooltip */}
-                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
                   <span className="text-foreground text-[14px] leading-[1.4] font-medium">
                     {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
                   </span>
@@ -155,7 +155,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                   words/day
                 </span>
                 {/* Tooltip */}
-                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
                   {(() => {
                     const words = effectiveStats.totalWordsStudied ?? 0;
                     const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
