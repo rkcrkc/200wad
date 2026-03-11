@@ -136,7 +136,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                   />
                 </div>
                 {/* Tooltip */}
-                <div className="pointer-events-none absolute top-full left-0 z-50 mt-2 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+                <div className="pointer-events-none absolute top-full left-0 z-50 mt-4 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
                   <span className="text-foreground text-[14px] leading-[1.4] font-medium">
                     {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
                   </span>

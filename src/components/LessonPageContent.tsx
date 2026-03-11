@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, ClipboardCheck } from "lucide-react";
 import { WordsList } from "@/components/WordsList";
 import { LessonActivityHistory } from "@/components/LessonActivityHistory";
 import { Button } from "@/components/ui/button";
@@ -109,20 +109,6 @@ export function LessonPageContent({
                 <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
               </div>
             </div>
-
-            {/* History toggle button */}
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-                showHistory
-                  ? "bg-primary text-white"
-                  : "bg-white text-muted-foreground hover:bg-gray-50 hover:text-foreground"
-              )}
-              title={showHistory ? "Show words" : "Show activity history"}
-            >
-              <History className="h-5 w-5" />
-            </button>
           </div>
         </div>
       )}
@@ -134,6 +120,15 @@ export function LessonPageContent({
             activities={activityHistory.activities}
             counts={activityHistory.counts}
             lessonId={lesson.id}
+            rightContent={
+              <button
+                onClick={() => setShowHistory(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
+                title="Show words"
+              >
+                <ClipboardCheck className="h-5 w-5" />
+              </button>
+            }
           />
         ) : (
           <WordsList
