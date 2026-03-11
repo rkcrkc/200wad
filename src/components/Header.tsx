@@ -11,7 +11,7 @@ import type { HeaderStats } from "./DashboardContent";
 /** Format seconds as hours with 1 decimal place */
 function formatHours(seconds: number): string {
   const hours = seconds / 3600;
-  return hours < 0.1 ? "0hr" : `${hours.toFixed(1)}hr`;
+  return hours < 0.1 ? "0 hours" : `${hours.toFixed(1)} hours`;
 }
 
 interface HeaderProps {
@@ -164,10 +164,10 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                     return (
                       <div className="flex flex-col gap-0.5">
                         <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay}/hr</span>
+                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
                         </span>
                         <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {perHourDisplay}/hr × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
+                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
                         </span>
                       </div>
                     );
