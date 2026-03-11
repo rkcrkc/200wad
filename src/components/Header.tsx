@@ -156,14 +156,22 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                 </span>
                 {/* Tooltip */}
                 <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-lg bg-white px-3 py-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                  <div className="flex flex-col items-center">
-                    <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
-                      {effectiveStats.totalWordsStudied ?? 0} ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} × 8 = {effectiveStats.wordsPerDay}
-                    </span>
-                    <span className="text-muted-foreground text-[11px] leading-[1.4] whitespace-nowrap">
-                      words ÷ time × day = rate
-                    </span>
-                  </div>
+                  {(() => {
+                    const words = effectiveStats.totalWordsStudied ?? 0;
+                    const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
+                    const perHour = hours > 0 ? (words / hours) : 0;
+                    const perHourDisplay = perHour.toFixed(1);
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay}/hr</span>
+                        </span>
+                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                          {perHourDisplay}/hr × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

@@ -3,14 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { WordsList } from "@/components/WordsList";
+import { LessonActivityHistory } from "@/components/LessonActivityHistory";
 import { Button } from "@/components/ui/button";
 import { StartTestModal } from "@/components/study";
 import { formatTime } from "@/lib/utils/helpers";
 import { WordWithDetails } from "@/lib/queries/words";
+import { LessonActivityHistoryResult } from "@/lib/queries";
 import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
+import { cn } from "@/lib/utils";
 
 interface AdjacentLesson {
   id: string;
@@ -30,6 +33,7 @@ interface LessonPageContentProps {
   totalTimeSeconds: number;
   previousLesson: AdjacentLesson | null;
   nextLesson: AdjacentLesson | null;
+  activityHistory?: LessonActivityHistoryResult;
 }
 
 export function LessonPageContent({
@@ -44,10 +48,12 @@ export function LessonPageContent({
   totalTimeSeconds,
   previousLesson,
   nextLesson,
+  activityHistory,
 }: LessonPageContentProps) {
   const router = useRouter();
   const [isWordSelected, setIsWordSelected] = useState(false);
   const [showStartTestModal, setShowStartTestModal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Count words with memory trigger images (for picture-only mode)
   const wordsWithImages = words.filter((w) => w.memory_trigger_image_url).length;
@@ -103,26 +109,48 @@ export function LessonPageContent({
                 <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
               </div>
             </div>
+
+            {/* History toggle button */}
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                showHistory
+                  ? "bg-primary text-white"
+                  : "bg-white text-muted-foreground hover:bg-gray-50 hover:text-foreground"
+              )}
+              title={showHistory ? "Show words" : "Show activity history"}
+            >
+              <History className="h-5 w-5" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Words List */}
-      <div className={!isWordSelected && words.length > 0 ? "pb-24" : ""}>
-        <WordsList
-          words={words}
-          languageFlag={languageFlag}
-          languageName={languageName}
-          wordsNotStudied={wordsNotStudied}
-          wordsNotMastered={wordsNotMastered}
-          lessonTitle={lesson.title}
-          lessonNumber={lesson.number}
-          onWordSelected={setIsWordSelected}
-        />
+      {/* Content - Words List or Activity History */}
+      <div className={!isWordSelected && words.length > 0 && !showHistory ? "pb-24" : ""}>
+        {showHistory && activityHistory ? (
+          <LessonActivityHistory
+            activities={activityHistory.activities}
+            counts={activityHistory.counts}
+            lessonId={lesson.id}
+          />
+        ) : (
+          <WordsList
+            words={words}
+            languageFlag={languageFlag}
+            languageName={languageName}
+            wordsNotStudied={wordsNotStudied}
+            wordsNotMastered={wordsNotMastered}
+            lessonTitle={lesson.title}
+            lessonNumber={lesson.number}
+            onWordSelected={setIsWordSelected}
+          />
+        )}
       </div>
 
-      {/* Fixed footer bar - hidden when word selected */}
-      {!isWordSelected && words.length > 0 && (
+      {/* Fixed footer bar - hidden when word selected or showing history */}
+      {!isWordSelected && !showHistory && words.length > 0 && (
         <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
           <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
             {previousLesson ? (

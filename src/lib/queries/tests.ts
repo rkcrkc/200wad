@@ -318,3 +318,107 @@ export async function getLessonMilestoneScores(
 
   return result;
 }
+
+// ============================================================================
+// Lesson Activity History Query
+// ============================================================================
+
+export type ActivityType = "study" | "test";
+
+export interface LessonActivity {
+  id: string;
+  type: ActivityType;
+  date: string;
+  durationSeconds: number;
+  // Study-specific
+  wordsStudied?: number;
+  // Test-specific
+  milestone?: string;
+  scorePercent?: number;
+  wordsMastered?: number;
+}
+
+export interface LessonActivityHistoryResult {
+  activities: LessonActivity[];
+  counts: {
+    all: number;
+    study: number;
+    test: number;
+  };
+}
+
+/**
+ * Get activity history (study sessions + tests) for a specific lesson
+ */
+export async function getLessonActivityHistory(
+  lessonId: string
+): Promise<LessonActivityHistoryResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      activities: [],
+      counts: { all: 0, study: 0, test: 0 },
+    };
+  }
+
+  // Fetch study sessions and test scores in parallel
+  const [studyResult, testResult] = await Promise.all([
+    supabase
+      .from("study_sessions")
+      .select("id, started_at, duration_seconds, words_studied, words_mastered")
+      .eq("user_id", user.id)
+      .eq("lesson_id", lessonId)
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("user_test_scores")
+      .select("id, taken_at, duration_seconds, milestone, score_percent, mastered_words_count")
+      .eq("user_id", user.id)
+      .eq("lesson_id", lessonId)
+      .order("taken_at", { ascending: false }),
+  ]);
+
+  const activities: LessonActivity[] = [];
+
+  // Add study sessions
+  (studyResult.data || []).forEach((session) => {
+    activities.push({
+      id: session.id,
+      type: "study",
+      date: session.started_at || "",
+      durationSeconds: session.duration_seconds || 0,
+      wordsStudied: session.words_studied || 0,
+    });
+  });
+
+  // Add test scores
+  (testResult.data || []).forEach((test) => {
+    activities.push({
+      id: test.id,
+      type: "test",
+      date: test.taken_at || "",
+      durationSeconds: test.duration_seconds || 0,
+      milestone: test.milestone || undefined,
+      scorePercent: test.score_percent || 0,
+      wordsMastered: test.mastered_words_count || 0,
+    });
+  });
+
+  // Sort by date (newest first)
+  activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const studyCount = activities.filter((a) => a.type === "study").length;
+  const testCount = activities.filter((a) => a.type === "test").length;
+
+  return {
+    activities,
+    counts: {
+      all: activities.length,
+      study: studyCount,
+      test: testCount,
+    },
+  };
+}

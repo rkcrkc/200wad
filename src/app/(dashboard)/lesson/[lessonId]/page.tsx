@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { getWords, isAutoLesson, parseAutoLessonId } from "@/lib/queries";
+import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
@@ -15,7 +15,14 @@ interface LessonPageProps {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { lessonId } = await params;
-  const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson } = await getWords(lessonId);
+
+  // Fetch words and activity history in parallel
+  const [wordsResult, activityHistory] = await Promise.all([
+    getWords(lessonId),
+    getLessonActivityHistory(lessonId),
+  ]);
+
+  const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson } = wordsResult;
 
   if (!lesson) {
     notFound();
@@ -87,6 +94,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             totalTimeSeconds={stats.totalTimeSeconds}
             previousLesson={previousLesson}
             nextLesson={nextLesson}
+            activityHistory={activityHistory}
           />
         )}
 
