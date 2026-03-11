@@ -10,8 +10,9 @@ export interface UserLearningStats {
 }
 
 /**
- * Get user learning stats from study sessions
+ * Get user learning stats from study sessions and tests
  * Words per day is calculated as: (total_words_studied / total_time_hours) * 8
+ * Total time includes both study and test time
  */
 export async function getUserLearningStats(): Promise<UserLearningStats> {
   const supabase = await createClient();
@@ -27,13 +28,22 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
     };
   }
 
-  // Query study_sessions for current user
-  const { data: sessions } = await supabase
-    .from("study_sessions")
-    .select("words_studied, duration_seconds")
-    .eq("user_id", user.id);
+  // Query study_sessions and test_scores in parallel
+  const [sessionsResult, testsResult] = await Promise.all([
+    supabase
+      .from("study_sessions")
+      .select("words_studied, duration_seconds")
+      .eq("user_id", user.id),
+    supabase
+      .from("user_test_scores")
+      .select("duration_seconds")
+      .eq("user_id", user.id),
+  ]);
 
-  if (!sessions || sessions.length === 0) {
+  const sessions = sessionsResult.data || [];
+  const tests = testsResult.data || [];
+
+  if (sessions.length === 0 && tests.length === 0) {
     return {
       totalWordsStudied: 0,
       totalTimeSeconds: 0,
@@ -45,10 +55,15 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
     (sum, s) => sum + (s.words_studied || 0),
     0
   );
-  const totalTimeSeconds = sessions.reduce(
+  const studyTimeSeconds = sessions.reduce(
     (sum, s) => sum + (s.duration_seconds || 0),
     0
   );
+  const testTimeSeconds = tests.reduce(
+    (sum, t) => sum + (t.duration_seconds || 0),
+    0
+  );
+  const totalTimeSeconds = studyTimeSeconds + testTimeSeconds;
   const totalHours = totalTimeSeconds / 3600;
 
   // Calculate words per 8-hour day

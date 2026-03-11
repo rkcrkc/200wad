@@ -208,25 +208,40 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
 
   // Get user's lesson progress if authenticated
   let progressByLesson: Record<string, UserLessonProgress> = {};
-  let totalTimeSeconds = 0;
+  let totalStudyTimeSeconds = 0;
+  let totalTestTimeSeconds = 0;
   let wordsMastered = 0;
   let wordsStudied = 0;
 
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
 
-    const { data: lessonProgress } = await supabase
-      .from("user_lesson_progress")
-      .select("*")
-      .eq("user_id", user.id)
-      .in("lesson_id", lessonIds);
+    // Fetch lesson progress and test scores in parallel
+    const [lessonProgressResult, testScoresResult] = await Promise.all([
+      supabase
+        .from("user_lesson_progress")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("lesson_id", lessonIds),
+      supabase
+        .from("user_test_scores")
+        .select("duration_seconds")
+        .eq("user_id", user.id)
+        .in("lesson_id", lessonIds),
+    ]);
 
+    const lessonProgress = lessonProgressResult.data;
     lessonProgress?.forEach((lp) => {
       if (lp.lesson_id) {
         progressByLesson[lp.lesson_id] = lp;
       }
-      totalTimeSeconds += lp.total_study_time_seconds || 0;
+      totalStudyTimeSeconds += lp.total_study_time_seconds || 0;
       // Note: wordsMastered is now calculated from user_word_progress below
+    });
+
+    // Sum up test time
+    testScoresResult.data?.forEach((ts) => {
+      totalTestTimeSeconds += ts.duration_seconds || 0;
     });
 
     // Get all user's word progress and lesson_words, then compute intersection
@@ -303,6 +318,9 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     created_by: course.created_by,
     updated_by: course.updated_by,
   } as Course : null;
+
+  // Combine study + test time
+  const totalTimeSeconds = totalStudyTimeSeconds + totalTestTimeSeconds;
 
   return {
     language,

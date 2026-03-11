@@ -244,17 +244,29 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     });
   }
 
-  // Get lesson progress for total study time (may not exist for new lessons)
+  // Get lesson progress for study time and test scores for test time
   let totalTimeSeconds = 0;
   if (user) {
-    const { data: lessonProgress } = await supabase
-      .from("user_lesson_progress")
-      .select("total_study_time_seconds")
-      .eq("user_id", user.id)
-      .eq("lesson_id", lessonId)
-      .maybeSingle();
+    const [lessonProgressResult, testScoresResult] = await Promise.all([
+      supabase
+        .from("user_lesson_progress")
+        .select("total_study_time_seconds")
+        .eq("user_id", user.id)
+        .eq("lesson_id", lessonId)
+        .maybeSingle(),
+      supabase
+        .from("user_test_scores")
+        .select("duration_seconds")
+        .eq("user_id", user.id)
+        .eq("lesson_id", lessonId),
+    ]);
 
-    totalTimeSeconds = lessonProgress?.total_study_time_seconds || 0;
+    const studyTimeSeconds = lessonProgressResult.data?.total_study_time_seconds || 0;
+    const testTimeSeconds = (testScoresResult.data || []).reduce(
+      (sum, ts) => sum + (ts.duration_seconds || 0),
+      0
+    );
+    totalTimeSeconds = studyTimeSeconds + testTimeSeconds;
   }
 
   // Get test history for all words in this lesson
