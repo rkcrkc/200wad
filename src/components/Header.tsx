@@ -8,6 +8,12 @@ import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
 import type { HeaderStats } from "./DashboardContent";
 
+/** Format seconds as hours with 1 decimal place */
+function formatHours(seconds: number): string {
+  const hours = seconds / 3600;
+  return hours < 0.1 ? "0hr" : `${hours.toFixed(1)}hr`;
+}
+
 interface HeaderProps {
   showSidebar?: boolean;
   stats?: HeaderStats;
@@ -21,6 +27,8 @@ const PREVIEW_STATS: HeaderStats = {
   wordsPerDay: 24,
   wordsMastered: 24,
   totalWords: 200,
+  totalWordsStudied: 48,
+  totalTimeSeconds: 3600, // 1 hour
 };
 
 export function Header({ showSidebar = true, stats, showPreviewMode = false }: HeaderProps) {
@@ -153,7 +161,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                       Learning rate: {effectiveStats.wordsPerDay} words/day
                     </span>
                     <span className="text-muted-foreground text-[12px] leading-[1.4] whitespace-nowrap">
-                      (words studied ÷ hours) × 8hr day
+                      ({effectiveStats.totalWordsStudied ?? 0} words ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)}) × 8hr day
                     </span>
                   </div>
                 </div>
