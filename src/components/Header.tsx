@@ -162,13 +162,18 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
                     const perHour = hours > 0 ? (words / hours) : 0;
                     const perHourDisplay = perHour.toFixed(1);
                     return (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                          Words per day rate
                         </span>
-                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                            {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                          </span>
+                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                            {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
+                          </span>
+                        </div>
                       </div>
                     );
                   })()}
