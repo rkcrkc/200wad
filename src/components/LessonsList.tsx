@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, BarChart3 } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
-import { LessonWithProgress } from "@/lib/queries";
+import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "not-started" | "studying" | "mastered";
@@ -14,6 +14,7 @@ type SortDirection = "asc" | "desc";
 interface LessonsListProps {
   lessons: LessonWithProgress[];
   languageFlag?: string;
+  milestoneScores?: Map<string, LessonMilestoneScores>;
 }
 
 interface SortableHeaderProps {
@@ -57,10 +58,11 @@ function SortableHeader({
   );
 }
 
-export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
+export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsListProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>("number");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [showStats, setShowStats] = useState(false);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -135,65 +137,116 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
           onChange={(tabId) => setFilter(tabId as FilterType)}
         />
 
-        {languageFlag && <div className="text-2xl">{languageFlag}</div>}
+        <div className="flex items-center gap-3">
+          {/* Stats toggle button */}
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+              showStats
+                ? "bg-primary text-white"
+                : "bg-white text-muted-foreground hover:bg-gray-50 hover:text-foreground"
+            )}
+            title={showStats ? "Show progress view" : "Show test scores"}
+          >
+            <BarChart3 className="h-5 w-5" />
+          </button>
+          {languageFlag && <div className="text-2xl">{languageFlag}</div>}
+        </div>
       </div>
 
       {/* Lessons Table */}
       <div className="overflow-x-auto rounded-xl">
-        <table className="min-w-[700px] w-full border-collapse">
+        <table className={cn("w-full border-collapse", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
           {/* Table Header */}
           <thead>
             <tr className="whitespace-nowrap">
-              <th className="w-[50px] px-6 py-3 text-left">
-                <SortableHeader
-                  label="#"
-                  column="number"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                />
-              </th>
-              <th className="min-w-[200px] px-2 py-3 text-left">
-                <SortableHeader
-                  label="Lesson"
-                  column="title"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                />
-              </th>
-              <th className="w-[140px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Status</th>
-              <th className="w-[90px] px-2 py-3 text-center">
-                <SortableHeader
-                  label="# Words"
-                  column="word_count"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  centered
-                />
-              </th>
-              <th className="w-[90px] px-2 py-3 text-center">
-                <SortableHeader
-                  label="# Mastered"
-                  column="wordsMastered"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  centered
-                />
-              </th>
-              <th className="w-[110px] px-2 py-3 text-center">
-                <SortableHeader
-                  label="Completion"
-                  column="completionPercent"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  centered
-                />
-              </th>
-              <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
+              {showStats ? (
+                <>
+                  {/* Stats View Header */}
+                  <th className="min-w-[250px] px-6 py-3 text-left text-xs-medium font-medium text-muted-foreground">
+                    Lesson
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Initial
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Day
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Week
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Month
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Qtr
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Year
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Other
+                  </th>
+                  <th className="w-[80px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
+                    Overall
+                  </th>
+                </>
+              ) : (
+                <>
+                  {/* Default View Header */}
+                  <th className="w-[50px] px-6 py-3 text-left">
+                    <SortableHeader
+                      label="#"
+                      column="number"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    />
+                  </th>
+                  <th className="min-w-[200px] px-2 py-3 text-left">
+                    <SortableHeader
+                      label="Lesson"
+                      column="title"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    />
+                  </th>
+                  <th className="w-[140px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Status</th>
+                  <th className="w-[90px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="# Words"
+                      column="word_count"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
+                  </th>
+                  <th className="w-[90px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="# Mastered"
+                      column="wordsMastered"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
+                  </th>
+                  <th className="w-[110px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Completion"
+                      column="completionPercent"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
+                  </th>
+                  <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
+                </>
+              )}
             </tr>
           </thead>
 
@@ -201,7 +254,7 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
           <tbody>
             {filteredAndSortedLessons.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center">
+                <td colSpan={showStats ? 9 : 7} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     No lessons match this filter.
                   </p>
@@ -220,6 +273,8 @@ export function LessonsList({ lessons, languageFlag }: LessonsListProps) {
                   lesson={lesson}
                   isFirst={index === 0}
                   isLast={index === filteredAndSortedLessons.length - 1}
+                  showStats={showStats}
+                  milestoneScores={milestoneScores?.get(lesson.id)}
                 />
               ))
             )}

@@ -244,16 +244,15 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     });
   }
 
-  // Get lesson progress for study time and test scores for test time
+  // Get study time from study_sessions and test time from test_scores
   let totalTimeSeconds = 0;
   if (user) {
-    const [lessonProgressResult, testScoresResult] = await Promise.all([
+    const [studySessionsResult, testScoresResult] = await Promise.all([
       supabase
-        .from("user_lesson_progress")
-        .select("total_study_time_seconds")
+        .from("study_sessions")
+        .select("duration_seconds")
         .eq("user_id", user.id)
-        .eq("lesson_id", lessonId)
-        .maybeSingle(),
+        .eq("lesson_id", lessonId),
       supabase
         .from("user_test_scores")
         .select("duration_seconds")
@@ -261,7 +260,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         .eq("lesson_id", lessonId),
     ]);
 
-    const studyTimeSeconds = lessonProgressResult.data?.total_study_time_seconds || 0;
+    const studyTimeSeconds = (studySessionsResult.data || []).reduce(
+      (sum, ss) => sum + (ss.duration_seconds || 0),
+      0
+    );
     const testTimeSeconds = (testScoresResult.data || []).reduce(
       (sum, ts) => sum + (ts.duration_seconds || 0),
       0

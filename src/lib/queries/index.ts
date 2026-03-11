@@ -37,8 +37,8 @@ export type {
   CurrentCourseInfo,
 } from "./schedule";
 
-export { getTests } from "./tests";
-export type { TestForList, GetTestsResult } from "./tests";
+export { getTests, getLessonMilestoneScores } from "./tests";
+export type { TestForList, GetTestsResult, LessonMilestoneScores } from "./tests";
 
 export { getDictionaryWords } from "./dictionary";
 export type { DictionaryWord, GetDictionaryResult } from "./dictionary";

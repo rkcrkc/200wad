@@ -204,3 +204,117 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     isGuest: false,
   };
 }
+
+// ============================================================================
+// Lesson Milestone Scores Query
+// ============================================================================
+
+export interface LessonMilestoneScores {
+  lessonId: string;
+  initial: number | null;
+  day: number | null;
+  week: number | null;
+  month: number | null;
+  qtr: number | null;
+  year: number | null;
+  other: number | null;
+  overall: number | null;
+}
+
+/**
+ * Get milestone test scores for all lessons in a course
+ * Returns a map of lesson ID -> milestone scores
+ */
+export async function getLessonMilestoneScores(
+  courseId: string
+): Promise<Map<string, LessonMilestoneScores>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const result = new Map<string, LessonMilestoneScores>();
+
+  if (!user) {
+    return result;
+  }
+
+  // Get all lesson IDs for this course
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .eq("course_id", courseId)
+    .eq("is_published", true);
+
+  if (!lessons || lessons.length === 0) {
+    return result;
+  }
+
+  const lessonIds = lessons.map((l) => l.id);
+
+  // Get all test scores for these lessons
+  const { data: testScores } = await supabase
+    .from("user_test_scores")
+    .select("lesson_id, milestone, score_percent")
+    .eq("user_id", user.id)
+    .in("lesson_id", lessonIds);
+
+  if (!testScores) {
+    return result;
+  }
+
+  // Group scores by lesson and milestone (taking best score per milestone)
+  const scoresByLesson = new Map<string, Map<string, number>>();
+
+  testScores.forEach((ts) => {
+    if (!ts.lesson_id || !ts.milestone) return;
+
+    if (!scoresByLesson.has(ts.lesson_id)) {
+      scoresByLesson.set(ts.lesson_id, new Map());
+    }
+
+    const lessonScores = scoresByLesson.get(ts.lesson_id)!;
+    const existingScore = lessonScores.get(ts.milestone);
+    const newScore = ts.score_percent || 0;
+
+    // Keep the best score for each milestone
+    if (existingScore === undefined || newScore > existingScore) {
+      lessonScores.set(ts.milestone, newScore);
+    }
+  });
+
+  // Build the result map with all lessons (including ones without scores)
+  lessonIds.forEach((lessonId) => {
+    const scores = scoresByLesson.get(lessonId);
+
+    const initial = scores?.get("initial") ?? null;
+    const day = scores?.get("day") ?? null;
+    const week = scores?.get("week") ?? null;
+    const month = scores?.get("month") ?? null;
+    const qtr = scores?.get("qtr") ?? null;
+    const year = scores?.get("year") ?? null;
+    const other = scores?.get("other") ?? null;
+
+    // Calculate overall average (only from non-null scores)
+    const allScores = [initial, day, week, month, qtr, year, other].filter(
+      (s): s is number => s !== null
+    );
+    const overall = allScores.length > 0
+      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+      : null;
+
+    result.set(lessonId, {
+      lessonId,
+      initial,
+      day,
+      week,
+      month,
+      qtr,
+      year,
+      other,
+      overall,
+    });
+  });
+
+  return result;
+}

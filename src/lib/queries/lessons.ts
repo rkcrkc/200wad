@@ -216,11 +216,16 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
 
-    // Fetch lesson progress and test scores in parallel
-    const [lessonProgressResult, testScoresResult] = await Promise.all([
+    // Fetch lesson progress, study sessions, and test scores in parallel
+    const [lessonProgressResult, studySessionsResult, testScoresResult] = await Promise.all([
       supabase
         .from("user_lesson_progress")
         .select("*")
+        .eq("user_id", user.id)
+        .in("lesson_id", lessonIds),
+      supabase
+        .from("study_sessions")
+        .select("duration_seconds")
         .eq("user_id", user.id)
         .in("lesson_id", lessonIds),
       supabase
@@ -235,8 +240,11 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       if (lp.lesson_id) {
         progressByLesson[lp.lesson_id] = lp;
       }
-      totalStudyTimeSeconds += lp.total_study_time_seconds || 0;
-      // Note: wordsMastered is now calculated from user_word_progress below
+    });
+
+    // Sum up study time from study_sessions
+    studySessionsResult.data?.forEach((ss) => {
+      totalStudyTimeSeconds += ss.duration_seconds || 0;
     });
 
     // Sum up test time
