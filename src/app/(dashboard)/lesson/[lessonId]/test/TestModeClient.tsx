@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
 import { saveSystemNotes } from "@/lib/mutations/study";
+import { updateWord } from "@/lib/mutations/admin/words";
+import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
   initSessionProgress,
   saveSessionProgress,
@@ -118,6 +120,9 @@ export function TestModeClient({
 
   // Image display mode (memory trigger vs flashcard)
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+
+  // Admin edit mode
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -602,6 +607,54 @@ export function TestModeClient({
     [currentWord]
   );
 
+  // Handle admin field save
+  const handleFieldSave = useCallback(
+    async (field: string, value: string): Promise<boolean> => {
+      if (!currentWord) return false;
+      const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
+      if (result.success) {
+        return true;
+      }
+      console.error("Failed to update word field:", result.error);
+      return false;
+    },
+    [currentWord, lesson.id]
+  );
+
+  // Handle admin image upload
+  const handleImageUpload = useCallback(
+    async (field: string, file: File): Promise<boolean> => {
+      if (!currentWord) return false;
+      // Upload file to storage
+      const uploadResult = await uploadFileClient(
+        "images",
+        file,
+        "words",
+        currentWord.id,
+        field === "memory_trigger_image_url" ? "trigger" : "flashcard"
+      );
+
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload image:", uploadResult.error);
+        return false;
+      }
+
+      // Update word with new image URL
+      const result = await updateWord(
+        currentWord.id,
+        { [field]: uploadResult.url },
+        lesson.id
+      );
+
+      if (result.success) {
+        return true;
+      }
+      console.error("Failed to update word image:", result.error);
+      return false;
+    },
+    [currentWord, lesson.id]
+  );
+
   // Build testResults map for word tracker dots (sequence index -> grade)
   const testResults = new Map<number, "correct" | "half-correct" | "incorrect">();
   testSequence.forEach((word, index) => {
@@ -705,6 +758,9 @@ export function TestModeClient({
                   }}
                   mode="test"
                   hasSubmitted={hasSubmittedAnswer}
+                  wordId={currentWord?.id}
+                  isEditMode={isEditMode}
+                  onFieldSave={handleFieldSave}
                 />
               </div>
             )}
@@ -718,6 +774,8 @@ export function TestModeClient({
                     triggerText={currentWord?.memory_trigger_text}
                     englishWord={currentWord?.english || ""}
                     foreignWord={currentWord?.headword || ""}
+                    gender={currentWord?.gender}
+                    partOfSpeech={currentWord?.part_of_speech}
                     isVisible={hasSubmittedAnswer}
                     playingAudioType={currentAudioType}
                     onPlayTriggerAudio={() => {
@@ -727,6 +785,10 @@ export function TestModeClient({
                     }}
                     clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
                     pictureOnlyMode={testTypeConfig.pictureOnlyMode}
+                    wordId={currentWord?.id}
+                    isEditMode={isEditMode}
+                    onFieldSave={handleFieldSave}
+                    onImageUpload={handleImageUpload}
                   />
                 ) : (
                   <FlashcardCard
@@ -748,6 +810,11 @@ export function TestModeClient({
                   onUserNotesChange={() => {}} // User notes editing not supported in test mode
                   isAdmin={isAdmin}
                   onSystemNotesChange={handleSystemNotesChange}
+                  developerNotes={currentWord?.developer_notes}
+                  pictureWrong={currentWord?.picture_wrong}
+                  pictureWrongNotes={currentWord?.picture_wrong_notes}
+                  pictureMissing={currentWord?.picture_missing}
+                  pictureBadSvg={currentWord?.picture_bad_svg}
                 />
               </div>
             </div>
@@ -806,6 +873,9 @@ export function TestModeClient({
             musicHasError={musicHasError}
             musicVolume={musicVolume}
             onMusicVolumeChange={setMusicVolume}
+            isAdmin={isAdmin}
+            isEditMode={isEditMode}
+            onEditModeToggle={() => setIsEditMode(!isEditMode)}
           />
         </div>
       </div>

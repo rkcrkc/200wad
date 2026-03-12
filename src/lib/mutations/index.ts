@@ -3,6 +3,7 @@ export {
   endStudySession,
   saveUserNotes,
   saveSystemNotes,
+  saveDeveloperData,
   batchSaveUserNotes,
   updateLessonProgress,
   completeStudySession,
@@ -12,6 +13,7 @@ export type {
   CreateStudySessionResult,
   EndStudySessionResult,
   UpdateLessonProgressResult,
+  DeveloperData,
 } from "./study";
 
 export {

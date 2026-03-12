@@ -8,3 +8,5 @@ export { AdminFormField, AdminInput, AdminTextarea, AdminSelect } from "./AdminF
 export { AdminStatusBadge } from "./AdminStatusBadge";
 export { AdminFileUpload } from "./AdminFileUpload";
 export { AdminPagination } from "./AdminPagination";
+export { EditableText } from "./EditableText";
+export { EditableImage } from "./EditableImage";

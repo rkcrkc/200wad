@@ -10,8 +10,10 @@ export { LessonCompletedModal } from "./LessonCompletedModal";
 export { TestAnswerInput } from "./TestAnswerInput";
 export { TestCompletedModal } from "./TestCompletedModal";
 export { StartTestModal } from "./StartTestModal";
+export { BreathingIndicator } from "./BreathingIndicator";
 
 // Type exports
 export type { AnswerInputHandle } from "./AnswerInput";
 export type { TestAnswerResult, TestAnswerInputHandle } from "./TestAnswerInput";
 export type { TestWordResult } from "./TestCompletedModal";
+export type { BreathingPhase } from "./BreathingIndicator";

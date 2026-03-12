@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown, BarChart3 } from "lucide-react";
+import { ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "not-started" | "studying" | "mastered";
-type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent";
+type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
 type SortDirection = "asc" | "desc";
 
 interface LessonsListProps {
@@ -85,6 +85,13 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
     };
   }, [lessons]);
 
+  // Helper to get milestone score value (excludes lessonId which is a string)
+  type MilestoneKey = Exclude<keyof LessonMilestoneScores, "lessonId">;
+  const getMilestoneScore = (lessonId: string, milestone: MilestoneKey): number | null => {
+    const scores = milestoneScores?.get(lessonId);
+    return scores?.[milestone] ?? null;
+  };
+
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
     // First filter
@@ -112,13 +119,26 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
         case "completionPercent":
           comparison = (a.completionPercent || 0) - (b.completionPercent || 0);
           break;
+        case "initial":
+        case "day":
+        case "week":
+        case "month":
+        case "qtr":
+        case "year":
+        case "other":
+        case "overall":
+          const aScore = getMilestoneScore(a.id, sortColumn);
+          const bScore = getMilestoneScore(b.id, sortColumn);
+          // Treat null as -1 so they sort to the end
+          comparison = (aScore ?? -1) - (bScore ?? -1);
+          break;
       }
 
       return sortDirection === "asc" ? comparison : -comparison;
     });
 
     return filtered;
-  }, [lessons, filter, sortColumn, sortDirection]);
+  }, [lessons, filter, sortColumn, sortDirection, milestoneScores]);
 
   const tabs: Tab[] = [
     { id: "all", label: "All lessons", count: counts.all },
@@ -145,11 +165,11 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
               "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
               showStats
                 ? "bg-primary text-white"
-                : "bg-white text-muted-foreground hover:bg-gray-50 hover:text-foreground"
+                : "text-foreground hover:bg-[#FAF8F3]"
             )}
             title={showStats ? "Show progress view" : "Show test scores"}
           >
-            <BarChart3 className="h-5 w-5" />
+            <ClipboardCheck className="h-5 w-5" />
           </button>
           {languageFlag && <div className="text-2xl">{languageFlag}</div>}
         </div>
@@ -173,34 +193,96 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
                       onSort={handleSort}
                     />
                   </th>
-                  <th className="min-w-[200px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">
-                    Lesson
+                  <th className="min-w-[160px] px-2 py-3 text-left">
+                    <SortableHeader
+                      label="Lesson"
+                      column="title"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Initial
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Initial"
+                      column="initial"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Day
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Day"
+                      column="day"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Week
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Week"
+                      column="week"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Month
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Month"
+                      column="month"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Qtr
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Qtr"
+                      column="qtr"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Year
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Year"
+                      column="year"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Other
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Other"
+                      column="other"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="w-[70px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground">
-                    Overall
+                  <th className="w-[70px] px-2 py-3 text-center">
+                    <SortableHeader
+                      label="Overall"
+                      column="overall"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                      centered
+                    />
                   </th>
-                  <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
+                  <th className="sticky right-0 w-[90px] bg-background px-2 py-3"></th>
                 </>
               ) : (
                 <>

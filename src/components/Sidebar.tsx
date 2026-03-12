@@ -135,7 +135,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
   };
 
   return (
-    <div className="fixed top-[72px] bottom-0 left-0 flex w-[240px] flex-col bg-white">
+    <div className="fixed top-[72px] bottom-0 left-0 hidden w-[240px] flex-col bg-white lg:flex">
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 px-4 pt-4">
         {getNavItems(courseId).map((item) => (

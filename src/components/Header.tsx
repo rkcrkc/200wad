@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronLeft, ChevronRight, Search, TrendingUp } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Menu, Search, TrendingUp } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
+import { MobileMenu } from "./MobileMenu";
 import type { HeaderStats } from "./DashboardContent";
 
 /** Format seconds as hours with 1 decimal place */
@@ -19,6 +21,8 @@ interface HeaderProps {
   stats?: HeaderStats;
   /** Show full logged-in UI for guests during onboarding (with placeholder values) */
   showPreviewMode?: boolean;
+  /** Due tests count for mobile menu badge */
+  dueTestsCount?: number;
 }
 
 // Placeholder stats for onboarding preview
@@ -31,10 +35,15 @@ const PREVIEW_STATS: HeaderStats = {
   totalTimeSeconds: 3600, // 1 hour
 };
 
-export function Header({ showSidebar = true, stats, showPreviewMode = false }: HeaderProps) {
-  const { user, isLoading, isGuest } = useUser();
+export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount }: HeaderProps) {
+  const { user, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleCloseMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+  }, []);
 
   // In preview mode, treat guest as logged in for UI purposes
   const showAsLoggedIn = !isGuest || showPreviewMode;
@@ -67,12 +76,24 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
   const headerClasses = "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
 
   return (
-    <header className={headerClasses}>
-      <div className="flex h-full w-full items-center justify-between">
-        {/* Left side - Logo + Navigation */}
-        <div className="flex shrink-0 items-center pr-4">
-          {/* Logo / Course Selector - matches sidebar width and button alignment */}
-          <div className="-ml-4 flex w-[240px] shrink-0 px-4">
+    <>
+      <header className={headerClasses}>
+        <div className="flex h-full w-full items-center justify-between">
+          {/* Left side - Logo + Navigation */}
+          <div className="flex shrink-0 items-center pr-4">
+            {/* Hamburger menu - show on small/md when sidebar would be shown */}
+            {showSidebar && showAsLoggedIn && (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50 lg:hidden"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5 text-muted-foreground" />
+              </button>
+            )}
+
+            {/* Logo / Course Selector - smaller on mobile, full width on lg */}
+            <div className="-ml-4 flex w-auto shrink-0 px-4 lg:w-[240px]">
             <Link
               href={courseSelectorHref}
               className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
@@ -101,9 +122,9 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
             </Link>
           </div>
 
-          {/* Back/Forward Navigation - Show when logged in or in preview mode */}
+          {/* Back/Forward Navigation - Show when logged in, hide on small screens */}
           {showAsLoggedIn && (
-            <div className="flex h-9 w-20 shrink-0 items-center gap-2">
+            <div className="hidden h-9 w-20 shrink-0 items-center gap-2 md:flex">
               <button
                 onClick={() => window.history.back()}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50"
@@ -121,9 +142,9 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
             </div>
           )}
 
-          {/* Stats Indicators - Course Progress & Words/Day */}
+          {/* Stats Indicators - Course Progress & Words/Day - hide on small screens */}
           {showAsLoggedIn && effectiveStats && hasContext && (
-            <div className="ml-4 flex shrink-0 items-center gap-5">
+            <div className="ml-4 hidden shrink-0 items-center gap-5 md:flex">
               {/* Course Progress Indicator */}
               <div className="group relative flex flex-col cursor-default">
                 <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
@@ -182,9 +203,9 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
             </div>
           )}
 
-          {/* Search Bar - Show when sidebar is shown and logged in (or preview mode) */}
+          {/* Search Bar - Show when sidebar is shown and logged in, hide on small/md */}
           {showSidebar && showAsLoggedIn && (
-            <div className="relative ml-5 h-[42px] w-[400px] shrink-0">
+            <div className="relative ml-5 hidden h-[42px] w-[400px] shrink-0 lg:block">
               <div className="border-secondary bg-input-background absolute top-0 left-0 h-[42px] w-full rounded-[10px] border">
                 <input
                   type="text"
@@ -219,6 +240,15 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
           ) : (
             // Logged in state (or preview mode)
             <>
+              {/* Admin Button - Only show for admins */}
+              {isAdmin && (
+                <Link href="/admin">
+                  <Button size="sm">
+                    Admin →
+                  </Button>
+                </Link>
+              )}
+
               {/* Notification Bell */}
               <button className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50">
                 <Bell className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
@@ -249,5 +279,15 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false }: H
         </div>
       </div>
     </header>
+
+    {/* Mobile Menu */}
+    {showSidebar && (
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={handleCloseMobileMenu}
+        dueTestsCount={dueTestsCount}
+      />
+    )}
+    </>
   );
 }

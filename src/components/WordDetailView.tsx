@@ -7,7 +7,7 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useAudio } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
-import { saveUserNotes, saveSystemNotes } from "@/lib/mutations";
+import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
 
@@ -38,19 +38,81 @@ interface WordDetailViewProps {
 }
 
 /**
+ * Determine the highlight color based on word's gender and part of speech
+ * - Red (#fb2c36): feminine nouns
+ * - Blue (#0B6CFF): masculine nouns
+ * - Green (#00C950): verbs, adjectives, adverbs
+ */
+function getHighlightColor(
+  gender?: string | null,
+  partOfSpeech?: string | null
+): string {
+  if (partOfSpeech) {
+    const pos = partOfSpeech.toLowerCase();
+    if (pos === "verb" || pos === "adjective" || pos === "adverb") {
+      return "#00C950";
+    }
+  }
+  if (gender) {
+    const g = gender.toLowerCase();
+    if (g === "feminine") return "#fb2c36";
+    if (g === "masculine") return "#0B6CFF";
+  }
+  return "#00C950";
+}
+
+/**
  * Parse trigger text and highlight:
- * - English word: italic blue
- * - Foreign word or ALL CAPS phonetic match: green bold
+ * - If text contains {{...}} markers: highlight marked text with color based on gender/partOfSpeech
+ * - Otherwise: use legacy auto-detection (ALL CAPS = green, English word = blue italic)
  */
 function parseAndHighlightText(
   text: string,
   englishWord: string,
   foreignWord: string,
-  isPlaying: boolean
+  isPlaying: boolean,
+  gender?: string | null,
+  partOfSpeech?: string | null
 ): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const words = text.split(/(\s+)/);
+  const highlightColor = getHighlightColor(gender, partOfSpeech);
 
+  // Check if text uses {{...}} marker syntax
+  if (text.includes("{{")) {
+    const regex = /\{\{([^}]+)\}\}/g;
+    let lastIndex = 0;
+    let match;
+    let keyIndex = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        const beforeText = text.slice(lastIndex, match.index);
+        parts.push(
+          <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+            {beforeText}
+          </span>
+        );
+      }
+      parts.push(
+        <span key={keyIndex++} className="font-bold" style={{ color: highlightColor }}>
+          {match[1]}
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(
+        <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+          {text.slice(lastIndex)}
+        </span>
+      );
+    }
+    return parts;
+  }
+
+  // Legacy auto-detection mode
+  const words = text.split(/(\s+)/);
   const cleanEnglish = englishWord.toLowerCase().replace(/[!?.,'"]/g, "");
   const cleanForeign = foreignWord.toLowerCase().replace(/[!?.,'"]/g, "");
 
@@ -59,13 +121,13 @@ function parseAndHighlightText(
 
     if (cleanWord === cleanForeign || cleanWord.includes(cleanForeign)) {
       parts.push(
-        <span key={index} className="font-bold" style={{ color: "#00C950" }}>
+        <span key={index} className="font-bold" style={{ color: highlightColor }}>
           {word}
         </span>
       );
     } else if (word.match(/^[A-Z]{2,}[!?.,'"]*$/) && word.trim().length > 1) {
       parts.push(
-        <span key={index} className="font-bold" style={{ color: "#00C950" }}>
+        <span key={index} className="font-bold" style={{ color: highlightColor }}>
           {word}
         </span>
       );
@@ -129,6 +191,17 @@ export function WordDetailView({
   const [systemNotesInput, setSystemNotesInput] = useState(word.notes || "");
   const [systemNotes, setSystemNotes] = useState(word.notes || null);
 
+  // Developer section state (admin only)
+  const [isEditingDeveloperNotes, setIsEditingDeveloperNotes] = useState(false);
+  const [developerNotesInput, setDeveloperNotesInput] = useState(word.developer_notes || "");
+  const [developerNotes, setDeveloperNotes] = useState(word.developer_notes || null);
+  const [pictureWrong, setPictureWrong] = useState(word.picture_wrong || false);
+  const [pictureWrongNotesInput, setPictureWrongNotesInput] = useState(word.picture_wrong_notes || "");
+  const [pictureWrongNotes, setPictureWrongNotes] = useState(word.picture_wrong_notes || null);
+  const [pictureMissing, setPictureMissing] = useState(word.picture_missing || false);
+  const [pictureBadSvg, setPictureBadSvg] = useState(word.picture_bad_svg || false);
+  const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
+
   // Image display mode state
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
@@ -144,7 +217,16 @@ export function WordDetailView({
     setSystemNotesInput(word.notes || "");
     setSystemNotes(word.notes || null);
     setIsEditingSystemNotes(false);
-  }, [word.id, word.progress?.user_notes, word.notes]);
+    // Reset developer section state
+    setDeveloperNotesInput(word.developer_notes || "");
+    setDeveloperNotes(word.developer_notes || null);
+    setIsEditingDeveloperNotes(false);
+    setPictureWrong(word.picture_wrong || false);
+    setPictureWrongNotesInput(word.picture_wrong_notes || "");
+    setPictureWrongNotes(word.picture_wrong_notes || null);
+    setPictureMissing(word.picture_missing || false);
+    setPictureBadSvg(word.picture_bad_svg || false);
+  }, [word.id, word.progress?.user_notes, word.notes, word.developer_notes, word.picture_wrong, word.picture_wrong_notes, word.picture_missing, word.picture_bad_svg]);
 
   // User notes handlers
   const handleSaveUserNotes = async () => {
@@ -170,6 +252,74 @@ export function WordDetailView({
   const handleCancelSystemNotes = () => {
     setSystemNotesInput(systemNotes || "");
     setIsEditingSystemNotes(false);
+  };
+
+  // Developer notes handlers (admin only)
+  const handleSaveDeveloperNotes = async () => {
+    const trimmedNotes = developerNotesInput.trim() || null;
+    setDeveloperNotes(trimmedNotes);
+    setIsEditingDeveloperNotes(false);
+    setIsSavingDeveloperData(true);
+    const data: DeveloperData = {
+      developer_notes: trimmedNotes,
+      picture_wrong: pictureWrong,
+      picture_wrong_notes: pictureWrongNotes,
+      picture_missing: pictureMissing,
+      picture_bad_svg: pictureBadSvg,
+    };
+    await saveDeveloperData(word.id, data);
+    setIsSavingDeveloperData(false);
+  };
+
+  const handleCancelDeveloperNotes = () => {
+    setDeveloperNotesInput(developerNotes || "");
+    setIsEditingDeveloperNotes(false);
+  };
+
+  // Picture checkbox handlers
+  const handlePictureCheckboxChange = async (
+    field: "wrong" | "missing" | "bad_svg",
+    checked: boolean
+  ) => {
+    // Update local state immediately
+    if (field === "wrong") {
+      setPictureWrong(checked);
+      if (!checked) {
+        setPictureWrongNotes(null);
+        setPictureWrongNotesInput("");
+      }
+    } else if (field === "missing") {
+      setPictureMissing(checked);
+    } else if (field === "bad_svg") {
+      setPictureBadSvg(checked);
+    }
+
+    // Save immediately
+    setIsSavingDeveloperData(true);
+    const data: DeveloperData = {
+      developer_notes: developerNotes,
+      picture_wrong: field === "wrong" ? checked : pictureWrong,
+      picture_wrong_notes: field === "wrong" && !checked ? null : pictureWrongNotes,
+      picture_missing: field === "missing" ? checked : pictureMissing,
+      picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
+    };
+    await saveDeveloperData(word.id, data);
+    setIsSavingDeveloperData(false);
+  };
+
+  const handleSavePictureWrongNotes = async () => {
+    const trimmedNotes = pictureWrongNotesInput.trim() || null;
+    setPictureWrongNotes(trimmedNotes);
+    setIsSavingDeveloperData(true);
+    const data: DeveloperData = {
+      developer_notes: developerNotes,
+      picture_wrong: pictureWrong,
+      picture_wrong_notes: trimmedNotes,
+      picture_missing: pictureMissing,
+      picture_bad_svg: pictureBadSvg,
+    };
+    await saveDeveloperData(word.id, data);
+    setIsSavingDeveloperData(false);
   };
 
   // Preload audio on mount
@@ -459,7 +609,9 @@ export function WordDetailView({
                           word.memory_trigger_text,
                           word.english,
                           word.headword,
-                          isPlayingTrigger
+                          isPlayingTrigger,
+                          word.gender,
+                          word.part_of_speech
                         )}
                       </p>
                     </button>
@@ -602,6 +754,124 @@ export function WordDetailView({
               )}
             </div>
           </div>
+
+          {/* Developer Section - Admin only */}
+          {isAdmin && (
+            <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+              <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
+                DEVELOPER
+              </span>
+              <div className="flex flex-col gap-4">
+                {/* Developer Notes */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-foreground/70">Notes</span>
+                  {isEditingDeveloperNotes ? (
+                    <div className="flex flex-col gap-3">
+                      <textarea
+                        value={developerNotesInput}
+                        onChange={(e) => setDeveloperNotesInput(e.target.value)}
+                        placeholder="Add developer notes..."
+                        className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveDeveloperNotes}
+                          disabled={isSavingDeveloperData}
+                          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelDeveloperNotes}
+                          className="rounded-lg px-3 py-1.5 text-sm font-medium text-foreground/50 transition-colors hover:text-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : developerNotes ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{developerNotes}</p>
+                      <button
+                        onClick={() => {
+                          setDeveloperNotesInput(developerNotes);
+                          setIsEditingDeveloperNotes(true);
+                        }}
+                        className="self-start text-sm font-medium text-foreground/50 transition-colors hover:text-foreground"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditingDeveloperNotes(true)}
+                      className="self-start text-sm text-foreground/50 transition-colors hover:text-foreground"
+                    >
+                      + Add developer notes
+                    </button>
+                  )}
+                </div>
+
+                <div className="h-px w-full bg-black/10" />
+
+                {/* Picture Section */}
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs font-medium text-foreground/70">Picture</span>
+
+                  {/* Wrong Picture Checkbox */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pictureWrong}
+                      onChange={(e) => handlePictureCheckboxChange("wrong", e.target.checked)}
+                      disabled={isSavingDeveloperData}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-foreground">Wrong picture</span>
+                  </label>
+
+                  {/* Wrong Picture Notes - Only show when wrong picture is checked */}
+                  {pictureWrong && (
+                    <div className="ml-6 flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={pictureWrongNotesInput}
+                        onChange={(e) => setPictureWrongNotesInput(e.target.value)}
+                        onBlur={handleSavePictureWrongNotes}
+                        placeholder="Add notes about the issue..."
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  )}
+
+                  {/* Missing Picture Checkbox */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pictureMissing}
+                      onChange={(e) => handlePictureCheckboxChange("missing", e.target.checked)}
+                      disabled={isSavingDeveloperData}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-foreground">Missing picture</span>
+                  </label>
+
+                  {/* Bad SVG Checkbox */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pictureBadSvg}
+                      onChange={(e) => handlePictureCheckboxChange("bad_svg", e.target.checked)}
+                      disabled={isSavingDeveloperData}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-foreground">Bad SVG</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Example Sentences */}
           {word.exampleSentences && word.exampleSentences.length > 0 && (

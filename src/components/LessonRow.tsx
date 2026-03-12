@@ -101,14 +101,22 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores 
           {formatScore(milestoneScores?.overall)}
         </td>
 
-        {/* Chevron - sticky on horizontal scroll */}
+        {/* Take test button - sticky on horizontal scroll */}
         <td className={cn(
           "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
           isFirst && "rounded-tr-xl",
           isLast && "rounded-br-xl"
         )}>
           <div className="flex justify-end">
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/lesson/${lesson.id}/test`);
+              }}
+              className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+            >
+              Take test
+            </button>
           </div>
         </td>
       </tr>

@@ -16,6 +16,7 @@ import {
   AnswerInput,
   LessonCompletedModal,
   type AnswerInputHandle,
+  type BreathingPhase,
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { useUser } from "@/context/UserContext";
@@ -27,6 +28,8 @@ import {
   saveUserNotes,
   saveSystemNotes,
 } from "@/lib/mutations/study";
+import { updateWord } from "@/lib/mutations/admin/words";
+import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
   initSessionProgress,
   updateWordProgress as updateWordProgressStorage,
@@ -117,6 +120,23 @@ export function StudyModeClient({
 
   // Image display mode (memory trigger vs flashcard)
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+
+  // Admin edit mode
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Breathing mode state (persisted to localStorage)
+  const [breathingModeEnabled, setBreathingModeEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("study-breathing-mode") === "true";
+  });
+  const [breathingPhase, setBreathingPhase] = useState<BreathingPhase | null>(null);
+  const [breathingSecond, setBreathingSecond] = useState(0);
+  const [breathingCycleTrigger, setBreathingCycleTrigger] = useState(0); // Incremented on restart
+
+  // Persist breathing mode preference
+  useEffect(() => {
+    localStorage.setItem("study-breathing-mode", breathingModeEnabled.toString());
+  }, [breathingModeEnabled]);
 
   // Idle/pause state
   const [isTimerPaused, setIsTimerPaused] = useState(false);
@@ -299,8 +319,11 @@ export function StudyModeClient({
     saveSessionProgress("study", sessionId, lesson.id, currentWordIndex, wordProgressRecord);
   }, [sessionId, lesson.id, currentWordIndex, wordProgressMap]);
 
-  // Phase auto-advance with audio
+  // Phase auto-advance with audio (only when breathing mode is OFF)
   useEffect(() => {
+    // Skip if breathing mode is enabled - it has its own timing
+    if (breathingModeEnabled) return;
+
     let cancelled = false;
     console.log(`[Phase Effect] Running for phase: ${phase}, word: ${currentWord.english}`);
 
@@ -372,7 +395,114 @@ export function StudyModeClient({
         clearTimeout(phaseTimeoutRef.current);
       }
     };
-  }, [phase, currentWord, playAudio, stopAudio]);
+  }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled]);
+
+  // Breathing mode phase control (only when breathing mode is ON)
+  // Uses a ref for cancellation to persist across effect re-runs
+  const breathingCancelledRef = useRef(false);
+
+  // Trigger breathing cycle when word changes or restart is pressed
+  useEffect(() => {
+    // Skip if breathing mode is disabled
+    if (!breathingModeEnabled) {
+      return;
+    }
+
+    // Cancel previous and start new
+    breathingCancelledRef.current = true;
+
+    // Small delay to ensure cancellation is processed
+    const startTimeout = setTimeout(() => {
+      breathingCancelledRef.current = false;
+
+      const runBreathingCycle = async () => {
+        const isCancelled = () => breathingCancelledRef.current;
+
+        // INHALE phase (4 seconds) - play English + Foreign audio
+        setBreathingPhase("inhale");
+        setBreathingSecond(0);
+        setPhase("reveal-second"); // Show foreign word immediately
+
+        // Play English audio and wait for it
+        if (currentWord.audio_url_english) {
+          await playAudio(currentWord.audio_url_english, "english");
+        }
+        if (isCancelled()) return;
+
+        // Play foreign audio
+        if (currentWord.audio_url_foreign) {
+          await playAudio(currentWord.audio_url_foreign, "foreign");
+        }
+        if (isCancelled()) return;
+
+        // Count remaining seconds for inhale
+        setBreathingSecond(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(2);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(3);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+
+        // HOLD phase (4 seconds) - play memory trigger
+        setBreathingPhase("hold");
+        setBreathingSecond(0);
+        setPhase("show-memory-trigger");
+
+        // Play trigger audio
+        if (currentWord.audio_url_trigger) {
+          await playAudio(currentWord.audio_url_trigger, "trigger");
+        }
+        if (isCancelled()) return;
+
+        // Count seconds for hold
+        setBreathingSecond(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(2);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(3);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+
+        // EXHALE phase (4 seconds) - replay foreign audio
+        setBreathingPhase("exhale");
+        setBreathingSecond(0);
+
+        // Play foreign audio again
+        if (currentWord.audio_url_foreign) {
+          await playAudio(currentWord.audio_url_foreign, "foreign");
+        }
+        if (isCancelled()) return;
+
+        // Count seconds for exhale
+        setBreathingSecond(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(2);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+        setBreathingSecond(3);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isCancelled()) return;
+
+        // Transition to input phase
+        setBreathingPhase(null);
+        setBreathingSecond(0);
+        setPhase("show-input");
+      };
+
+      runBreathingCycle();
+    }, 50);
+
+    return () => {
+      clearTimeout(startTimeout);
+      breathingCancelledRef.current = true;
+    };
+  }, [currentWordIndex, breathingCycleTrigger, breathingModeEnabled, currentWord, playAudio]);
 
   // Handle Escape key to stop audio and skip reveal phases
   useEffect(() => {
@@ -591,8 +721,64 @@ export function StudyModeClient({
     if (phaseTimeoutRef.current) {
       clearTimeout(phaseTimeoutRef.current);
     }
+    // Cancel any running breathing cycle
+    breathingCancelledRef.current = true;
+    setBreathingPhase(null);
+    setBreathingSecond(0);
     setPhase("reveal-first");
-  }, [stopAudio]);
+    // Trigger new breathing cycle if enabled
+    if (breathingModeEnabled) {
+      setBreathingCycleTrigger(prev => prev + 1);
+    }
+  }, [stopAudio, breathingModeEnabled]);
+
+  // Handle admin field save
+  const handleFieldSave = useCallback(
+    async (field: string, value: string): Promise<boolean> => {
+      const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
+      if (result.success) {
+        // Update local word data optimistically
+        // Note: The page will revalidate on next navigation
+        return true;
+      }
+      console.error("Failed to update word field:", result.error);
+      return false;
+    },
+    [currentWord.id, lesson.id]
+  );
+
+  // Handle admin image upload
+  const handleImageUpload = useCallback(
+    async (field: string, file: File): Promise<boolean> => {
+      // Upload file to storage
+      const uploadResult = await uploadFileClient(
+        "images",
+        file,
+        "words",
+        currentWord.id,
+        field === "memory_trigger_image_url" ? "trigger" : "flashcard"
+      );
+
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload image:", uploadResult.error);
+        return false;
+      }
+
+      // Update word with new image URL
+      const result = await updateWord(
+        currentWord.id,
+        { [field]: uploadResult.url },
+        lesson.id
+      );
+
+      if (result.success) {
+        return true;
+      }
+      console.error("Failed to update word image:", result.error);
+      return false;
+    },
+    [currentWord.id, lesson.id]
+  );
 
   // Get current word's user notes from progress map
   const currentWordProgress = wordProgressMap.get(currentWord.id);
@@ -646,6 +832,9 @@ export function StudyModeClient({
                     playAudio(currentWord.audio_url_foreign, "foreign");
                   }
                 }}
+                wordId={currentWord.id}
+                isEditMode={isEditMode}
+                onFieldSave={handleFieldSave}
               />
             </div>
 
@@ -658,13 +847,20 @@ export function StudyModeClient({
                     triggerText={currentWord.memory_trigger_text}
                     englishWord={currentWord.english}
                     foreignWord={currentWord.headword}
-                    isVisible={showTrigger}
+                    gender={currentWord.gender}
+                    partOfSpeech={currentWord.part_of_speech}
+                    showImage={true}
+                    showTriggerText={showTrigger}
                     playingAudioType={currentAudioType}
                     onPlayTriggerAudio={() => {
                       if (currentWord.audio_url_trigger) {
                         playAudio(currentWord.audio_url_trigger, "trigger");
                       }
                     }}
+                    wordId={currentWord.id}
+                    isEditMode={isEditMode}
+                    onFieldSave={handleFieldSave}
+                    onImageUpload={handleImageUpload}
                   />
                 ) : (
                   <FlashcardCard
@@ -685,6 +881,11 @@ export function StudyModeClient({
                   onUserNotesChange={handleUserNotesChange}
                   isAdmin={isAdmin}
                   onSystemNotesChange={handleSystemNotesChange}
+                  developerNotes={currentWord.developer_notes}
+                  pictureWrong={currentWord.picture_wrong}
+                  pictureWrongNotes={currentWord.picture_wrong_notes}
+                  pictureMissing={currentWord.picture_missing}
+                  pictureBadSvg={currentWord.picture_bad_svg}
                 />
               </div>
             </div>
@@ -734,6 +935,14 @@ export function StudyModeClient({
             musicHasError={musicHasError}
             musicVolume={musicVolume}
             onMusicVolumeChange={setMusicVolume}
+            isAdmin={isAdmin}
+            isEditMode={isEditMode}
+            onEditModeToggle={() => setIsEditMode(!isEditMode)}
+            breathingModeEnabled={breathingModeEnabled}
+            onBreathingModeChange={setBreathingModeEnabled}
+            breathingPhase={breathingPhase}
+            breathingSecond={breathingSecond}
+            breathingActive={breathingModeEnabled && breathingPhase !== null}
           />
         </div>
       </div>

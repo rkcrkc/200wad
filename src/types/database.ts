@@ -724,7 +724,9 @@ export type Database = {
           category: string | null
           created_at: string | null
           created_by: string | null
+          developer_notes: string | null
           english: string
+          flashcard_image_url: string | null
           gender: string | null
           grammatical_number: string | null
           headword: string
@@ -737,12 +739,15 @@ export type Database = {
           legacy_image_suffix: string | null
           legacy_refn: number | null
           lemma: string
-          flashcard_image_url: string | null
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
           notes: string | null
           part_of_speech: string | null
           phrase_type: string | null
+          picture_bad_svg: boolean | null
+          picture_missing: boolean | null
+          picture_wrong: boolean | null
+          picture_wrong_notes: string | null
           related_word_ids: string[] | null
           tags: string[] | null
           transitivity: string | null
@@ -758,7 +763,9 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          developer_notes?: string | null
           english: string
+          flashcard_image_url?: string | null
           gender?: string | null
           grammatical_number?: string | null
           headword: string
@@ -771,12 +778,15 @@ export type Database = {
           legacy_image_suffix?: string | null
           legacy_refn?: number | null
           lemma: string
-          flashcard_image_url?: string | null
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
           phrase_type?: string | null
+          picture_bad_svg?: boolean | null
+          picture_missing?: boolean | null
+          picture_wrong?: boolean | null
+          picture_wrong_notes?: string | null
           related_word_ids?: string[] | null
           tags?: string[] | null
           transitivity?: string | null
@@ -792,7 +802,9 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          developer_notes?: string | null
           english?: string
+          flashcard_image_url?: string | null
           gender?: string | null
           grammatical_number?: string | null
           headword?: string
@@ -805,12 +817,15 @@ export type Database = {
           legacy_image_suffix?: string | null
           legacy_refn?: number | null
           lemma?: string
-          flashcard_image_url?: string | null
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
           part_of_speech?: string | null
           phrase_type?: string | null
+          picture_bad_svg?: boolean | null
+          picture_missing?: boolean | null
+          picture_wrong?: boolean | null
+          picture_wrong_notes?: string | null
           related_word_ids?: string[] | null
           tags?: string[] | null
           transitivity?: string | null

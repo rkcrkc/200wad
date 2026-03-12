@@ -134,6 +134,59 @@ export async function saveSystemNotes(
 }
 
 /**
+ * Developer data for debugging word content issues
+ */
+export interface DeveloperData {
+  developer_notes: string | null;
+  picture_wrong: boolean;
+  picture_wrong_notes: string | null;
+  picture_missing: boolean;
+  picture_bad_svg: boolean;
+}
+
+/**
+ * Save developer data for a word (admin only)
+ * Used for debugging course content issues
+ */
+export async function saveDeveloperData(
+  wordId: string,
+  data: DeveloperData
+): Promise<{ success: boolean; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "User not authenticated" };
+  }
+
+  // Check if user is admin
+  const isAdmin = user.user_metadata?.role === "admin";
+  if (!isAdmin) {
+    return { success: false, error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("words")
+    .update({
+      developer_notes: data.developer_notes,
+      picture_wrong: data.picture_wrong,
+      picture_wrong_notes: data.picture_wrong ? data.picture_wrong_notes : null,
+      picture_missing: data.picture_missing,
+      picture_bad_svg: data.picture_bad_svg,
+    })
+    .eq("id", wordId);
+
+  if (error) {
+    console.error("Error saving developer data:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+}
+
+/**
  * Save user notes for a word without affecting progress/streak
  * Used when user edits notes but hasn't answered yet
  */

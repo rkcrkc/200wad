@@ -113,7 +113,7 @@ export function LessonPageContent({
                 <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
               </div>
               {/* Tooltip */}
-              <div className="pointer-events-none absolute top-full right-0 z-50 mt-4 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute top-full right-0 z-50 mt-1 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
                 <div className="flex flex-col gap-1">
                   <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
                     Time breakdown
@@ -163,7 +163,7 @@ export function LessonPageContent({
               activityHistory && (
                 <button
                   onClick={() => setShowHistory(true)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-muted-foreground transition-colors hover:bg-gray-50 hover:text-foreground"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
                   title="Show test history"
                 >
                   <ClipboardCheck className="h-5 w-5" />

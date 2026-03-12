@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Zap } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
 import { WordDetailView } from "@/components/WordDetailView";
@@ -20,6 +19,7 @@ interface WordsListProps {
   lessonTitle: string;
   lessonNumber: number;
   onWordSelected?: (isSelected: boolean) => void;
+  rightContent?: ReactNode;
 }
 
 type FilterTab = "all" | "not-studied" | "not-mastered";
@@ -34,6 +34,7 @@ export function WordsList({
   lessonTitle,
   lessonNumber,
   onWordSelected,
+  rightContent,
 }: WordsListProps) {
   const { isAdmin } = useUser();
   const searchParams = useSearchParams();
@@ -171,27 +172,24 @@ export function WordsList({
           onChange={(tabId) => setActiveTab(tabId as FilterTab)}
         />
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
+          <button
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
             aria-label="Flashcard mode (coming soon)"
           >
-            <Zap className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
+            <Zap className="h-5 w-5" />
+          </button>
+          <button
             onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
             aria-label={viewMode === "list" ? "Switch to grid view" : "Switch to list view"}
           >
             {viewMode === "list" ? (
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-5 w-5" />
             ) : (
-              <List className="h-4 w-4" />
+              <List className="h-5 w-5" />
             )}
-          </Button>
+          </button>
+          {rightContent}
         </div>
       </div>
 
@@ -215,7 +213,7 @@ export function WordsList({
           <table className="min-w-[600px] w-full border-collapse">
             {/* Table Header */}
             <thead>
-              <tr className="whitespace-nowrap text-small-medium text-black-50">
+              <tr className="whitespace-nowrap text-xs-medium text-muted-foreground">
                 <th className="w-[40px] px-6 py-3 text-left font-medium">#</th>
                 <th className="w-12 px-2 py-3"></th>
                 <th className="min-w-[120px] px-2 py-3 text-left font-medium">English</th>

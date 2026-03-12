@@ -2,6 +2,7 @@
 
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
+import { EditableText } from "@/components/admin";
 
 interface WordCardProps {
   englishWord: string;
@@ -17,6 +18,10 @@ interface WordCardProps {
   mode?: "study" | "test";
   /** For test mode: whether the user has submitted their answer */
   hasSubmitted?: boolean;
+  /** Admin edit mode props */
+  wordId?: string;
+  isEditMode?: boolean;
+  onFieldSave?: (field: string, value: string) => Promise<boolean>;
 }
 
 export function WordCard({
@@ -29,6 +34,9 @@ export function WordCard({
   onPlayForeignAudio,
   mode = "study",
   hasSubmitted = false,
+  wordId,
+  isEditMode = false,
+  onFieldSave,
 }: WordCardProps) {
   const isPlayingEnglish = playingAudioType === "english";
   const isPlayingForeign = playingAudioType === "foreign";
@@ -64,16 +72,28 @@ export function WordCard({
         {/* English word row */}
         {showEnglish ? (
           <button
-            onClick={onPlayEnglishAudio}
+            onClick={isEditMode ? undefined : onPlayEnglishAudio}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingEnglish} />
-            <span
-              className="text-[32px] font-semibold leading-tight tracking-tight"
-              style={{ color: getEnglishWordColor() }}
-            >
-              {englishWord}
-            </span>
+            {isEditMode && wordId && onFieldSave ? (
+              <EditableText
+                value={englishWord}
+                field="english"
+                wordId={wordId}
+                isEditMode={isEditMode}
+                onSave={onFieldSave}
+                className="text-[32px] font-semibold leading-tight tracking-tight"
+                inputClassName="text-[32px] font-semibold leading-tight tracking-tight"
+              />
+            ) : (
+              <span
+                className="text-[32px] font-semibold leading-tight tracking-tight"
+                style={{ color: getEnglishWordColor() }}
+              >
+                {englishWord}
+              </span>
+            )}
           </button>
         ) : (
           <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />
@@ -89,16 +109,28 @@ export function WordCard({
         {/* Foreign word row or skeleton */}
         {showForeign ? (
           <button
-            onClick={onPlayForeignAudio}
+            onClick={isEditMode ? undefined : onPlayForeignAudio}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingForeign} />
-            <span
-              className="text-[32px] font-semibold leading-tight tracking-tight"
-              style={{ color: getForeignWordColor() }}
-            >
-              {foreignWord}
-            </span>
+            {isEditMode && wordId && onFieldSave ? (
+              <EditableText
+                value={foreignWord}
+                field="headword"
+                wordId={wordId}
+                isEditMode={isEditMode}
+                onSave={onFieldSave}
+                className="text-[32px] font-semibold leading-tight tracking-tight"
+                inputClassName="text-[32px] font-semibold leading-tight tracking-tight"
+              />
+            ) : (
+              <span
+                className="text-[32px] font-semibold leading-tight tracking-tight"
+                style={{ color: getForeignWordColor() }}
+              >
+                {foreignWord}
+              </span>
+            )}
           </button>
         ) : (
           <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />

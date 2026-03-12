@@ -17,8 +17,10 @@ import {
   Languages,
   Zap,
   Play,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BreathingIndicator, type BreathingPhase } from "./BreathingIndicator";
 
 /** Accented characters for European languages */
 const ACCENTED_CHARACTERS: Record<string, string[]> = {
@@ -175,6 +177,22 @@ interface StudyActionBarProps {
   musicVolume?: number;
   /** Callback when volume changes */
   onMusicVolumeChange?: (volume: number) => void;
+  /** Whether user is an admin */
+  isAdmin?: boolean;
+  /** Whether admin edit mode is active */
+  isEditMode?: boolean;
+  /** Callback when edit mode is toggled */
+  onEditModeToggle?: () => void;
+  /** Whether breathing mode is enabled */
+  breathingModeEnabled?: boolean;
+  /** Callback when breathing mode changes */
+  onBreathingModeChange?: (enabled: boolean) => void;
+  /** Current breathing phase (only set when breathing mode is active) */
+  breathingPhase?: BreathingPhase | null;
+  /** Current second within breathing phase (0-3) */
+  breathingSecond?: number;
+  /** Whether breathing indicator should be visible */
+  breathingActive?: boolean;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -228,6 +246,14 @@ export function StudyActionBar({
   musicHasError = false,
   musicVolume = 0.5,
   onMusicVolumeChange,
+  isAdmin = false,
+  isEditMode = false,
+  onEditModeToggle,
+  breathingModeEnabled = false,
+  onBreathingModeChange,
+  breathingPhase = null,
+  breathingSecond = 0,
+  breathingActive = false,
 }: StudyActionBarProps) {
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -402,8 +428,20 @@ export function StudyActionBar({
           </div>
         </div>
 
-        {/* Right section - Accents + Clue button (grouped), Navigation controls, divider, toggle icons */}
+        {/* Right section - Breathing indicator, Accents + Clue button (grouped), Navigation controls, divider, toggle icons */}
         <div className="flex items-center gap-4">
+          {/* Breathing indicator (study mode only) */}
+          {!isTestMode && breathingActive && breathingPhase && (
+            <>
+              <BreathingIndicator
+                phase={breathingPhase}
+                second={breathingSecond}
+                isActive={true}
+              />
+              <span className="text-foreground/25">|</span>
+            </>
+          )}
+
           {/* Accents + Clue button group */}
           {(showAccentsButton || isTestMode) && (
             <>
@@ -537,6 +575,21 @@ export function StudyActionBar({
 
           {/* Toggle icons */}
           <div className="flex items-center gap-3">
+            {/* Admin edit mode toggle */}
+            {isAdmin && onEditModeToggle && (
+              <button
+                onClick={onEditModeToggle}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  isEditMode
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground hover:text-primary"
+                )}
+                title={isEditMode ? "Exit edit mode" : "Edit word"}
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+            )}
             <button
               onClick={() => onImageModeChange?.(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
               className="flex h-6 w-6 items-center justify-center text-foreground transition-colors hover:text-primary"
@@ -733,23 +786,44 @@ export function StudyActionBar({
                       </div>
                     </div>
                   ) : (
-                    /* Strict Study Mode Toggle - Study mode */
-                    <label className="flex cursor-pointer items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={strictMode}
-                        onChange={(e) => onStrictModeChange?.(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-foreground">
-                          Strict study mode
+                    /* Study mode settings */
+                    <div className="space-y-4">
+                      {/* Strict Study Mode Toggle */}
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={strictMode}
+                          onChange={(e) => onStrictModeChange?.(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            Strict study mode
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Requires typing the correct answer before moving to the next word
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Requires typing the correct answer before moving to the next word
+                      </label>
+
+                      {/* Breathing Mode Toggle */}
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={breathingModeEnabled}
+                          onChange={(e) => onBreathingModeChange?.(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            Breathing mode
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Guides your breathing rhythm during word reveals for deeper focus
+                          </div>
                         </div>
-                      </div>
-                    </label>
+                      </label>
+                    </div>
                   )}
                 </div>
               )}

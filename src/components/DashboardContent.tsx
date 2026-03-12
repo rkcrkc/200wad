@@ -90,7 +90,7 @@ export function DashboardContent({
         <DefaultContextSetter context={defaultCourseContext} />
         <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
         <div className="h-screen overflow-hidden pt-[72px]">
-          <main className="bg-background h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
+          <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
             {children}
           </main>
         </div>
@@ -103,10 +103,10 @@ export function DashboardContent({
   return (
     <CourseProvider>
       <DefaultContextSetter context={defaultCourseContext} />
-      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} />
+      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} />
       <Sidebar dueTestsCount={dueTestsCount} />
       <div className="h-screen overflow-hidden pt-[72px]">
-        <main className="bg-background ml-[240px] h-full overflow-auto px-6 pt-[8px] pb-6 md:px-10 md:pt-[8px] md:pb-10 lg:px-[60px] lg:pt-[8px] lg:pb-[60px]">
+        <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
           {children}
         </main>
       </div>

@@ -1,16 +1,14 @@
 "use client";
 
 import { useState, useMemo, ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { LessonActivity } from "@/lib/queries";
 import { formatTime } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "study" | "test";
-type SortColumn = "index" | "date" | "type" | "wordsMastered" | "duration";
+type SortColumn = "index" | "date" | "score" | "duration";
 type SortDirection = "asc" | "desc";
 
 interface LessonActivityHistoryProps {
@@ -20,7 +18,6 @@ interface LessonActivityHistoryProps {
     study: number;
     test: number;
   };
-  lessonId: string;
   rightContent?: ReactNode;
 }
 
@@ -75,8 +72,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-function formatMilestone(milestone?: string): string {
-  if (!milestone) return "";
+function formatMilestone(milestone?: string): string | null {
+  if (!milestone || milestone === "other") return null;
   // Capitalize first letter
   return milestone.charAt(0).toUpperCase() + milestone.slice(1) + " test";
 }
@@ -84,10 +81,8 @@ function formatMilestone(milestone?: string): string {
 export function LessonActivityHistory({
   activities,
   counts,
-  lessonId,
   rightContent,
 }: LessonActivityHistoryProps) {
-  const router = useRouter();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -113,25 +108,32 @@ export function LessonActivityHistory({
       ? [...activities]
       : activities.filter((a) => a.type === filter);
 
-    // Then sort
-    filtered.sort((a, b) => {
+    // Sort by date ascending to assign chronological index within this filtered set
+    filtered.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // Assign index based on chronological order within the filtered set
+    const withIndex = filtered.map((activity, idx) => ({
+      ...activity,
+      chronologicalIndex: idx + 1,
+    }));
+
+    // Then apply user's sort preference
+    withIndex.sort((a, b) => {
       let comparison = 0;
 
       switch (sortColumn) {
         case "index":
-          // Index is just the original order, so we compare by date descending as default
-          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+          comparison = a.chronologicalIndex - b.chronologicalIndex;
           break;
         case "date":
           comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
           break;
-        case "type":
-          comparison = a.type.localeCompare(b.type);
-          break;
-        case "wordsMastered":
-          const aMastered = a.type === "test" ? (a.wordsMastered || 0) : -1;
-          const bMastered = b.type === "test" ? (b.wordsMastered || 0) : -1;
-          comparison = aMastered - bMastered;
+        case "score":
+          const aScore = a.type === "test" ? (a.scorePercent || 0) : -1;
+          const bScore = b.type === "test" ? (b.scorePercent || 0) : -1;
+          comparison = aScore - bScore;
           break;
         case "duration":
           comparison = a.durationSeconds - b.durationSeconds;
@@ -141,12 +143,8 @@ export function LessonActivityHistory({
       return sortDirection === "asc" ? comparison : -comparison;
     });
 
-    return filtered;
+    return withIndex;
   }, [activities, filter, sortColumn, sortDirection]);
-
-  const handleTakeTest = () => {
-    router.push(`/lesson/${lessonId}/test`);
-  };
 
   return (
     <>
@@ -184,36 +182,29 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[160px] px-2 py-3 text-left">
-                <SortableHeader
-                  label="Session Type"
-                  column="type"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                />
+              <th className="w-[160px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">
+                Session Type
               </th>
-              <th className="w-[120px] px-2 py-3 text-center">
-                <SortableHeader
-                  label="Words Mastered"
-                  column="wordsMastered"
-                  currentColumn={sortColumn}
-                  direction={sortDirection}
-                  onSort={handleSort}
-                  centered
-                />
-              </th>
-              <th className="w-[100px] px-2 py-3 text-center">
+              {filter !== "study" && (
+                <th className="w-[100px] px-2 py-3 text-left">
+                  <SortableHeader
+                    label="Score"
+                    column="score"
+                    currentColumn={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                </th>
+              )}
+              <th className="w-[100px] px-2 py-3 text-left">
                 <SortableHeader
                   label="Duration"
                   column="duration"
                   currentColumn={sortColumn}
                   direction={sortDirection}
                   onSort={handleSort}
-                  centered
                 />
               </th>
-              <th className="w-[120px] px-2 py-3"></th>
             </tr>
           </thead>
 
@@ -221,7 +212,7 @@ export function LessonActivityHistory({
           <tbody>
             {filteredAndSortedActivities.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center">
+                <td colSpan={filter === "study" ? 4 : 5} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     {filter === "all"
                       ? "No activity yet for this lesson."
@@ -240,7 +231,7 @@ export function LessonActivityHistory({
                     index !== 0 && "border-t border-gray-200"
                   )}
                 >
-                  {/* Index */}
+                  {/* Index (chronological order) */}
                   <td
                     className={cn(
                       "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
@@ -248,7 +239,7 @@ export function LessonActivityHistory({
                       index === filteredAndSortedActivities.length - 1 && "rounded-bl-xl"
                     )}
                   >
-                    {index + 1}
+                    {activity.chronologicalIndex}
                   </td>
 
                   {/* Date */}
@@ -269,7 +260,7 @@ export function LessonActivityHistory({
                         <span className="text-regular-medium text-foreground">
                           {activity.type === "study" ? "Study" : "Test"}
                         </span>
-                        {activity.type === "test" && activity.milestone && (
+                        {activity.type === "test" && formatMilestone(activity.milestone) && (
                           <span className="text-xs text-muted-foreground">
                             {formatMilestone(activity.milestone)}
                           </span>
@@ -278,35 +269,22 @@ export function LessonActivityHistory({
                     </div>
                   </td>
 
-                  {/* Words Mastered */}
-                  <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-                    {activity.type === "test" ? activity.wordsMastered : "-"}
-                  </td>
+                  {/* Score - only shown when not filtering to study sessions */}
+                  {filter !== "study" && (
+                    <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+                      {activity.type === "test" ? `${activity.scorePercent}%` : "-"}
+                    </td>
+                  )}
 
                   {/* Duration */}
-                  <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-                    {formatTime(activity.durationSeconds)}
-                  </td>
-
-                  {/* Action */}
                   <td
                     className={cn(
-                      "bg-white px-2 py-4 pr-6 text-right transition-colors group-hover:bg-bone-hover",
+                      "bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
                       index === 0 && "rounded-tr-xl",
                       index === filteredAndSortedActivities.length - 1 && "rounded-br-xl"
                     )}
                   >
-                    {activity.type === "test" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleTakeTest}
-                        className="border-primary text-primary hover:bg-primary/5"
-                      >
-                        Take test
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    )}
+                    {formatTime(activity.durationSeconds)}
                   </td>
                 </tr>
               ))
