@@ -92,6 +92,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
             wordsNotMastered={wordsNotMastered}
             masteredPercentage={masteredPercentage}
             totalTimeSeconds={stats.totalTimeSeconds}
+            studyTimeSeconds={stats.studyTimeSeconds}
+            testTimeSeconds={stats.testTimeSeconds}
             previousLesson={previousLesson}
             nextLesson={nextLesson}
             activityHistory={activityHistory}

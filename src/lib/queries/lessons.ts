@@ -38,6 +38,8 @@ export interface GetLessonsResult {
   stats: {
     totalWords: number;
     totalTimeSeconds: number;
+    studyTimeSeconds: number;
+    testTimeSeconds: number;
     wordsStudied: number;
     wordsMastered: number;
   };
@@ -201,7 +203,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       language,
       course: courseWithoutRelations,
       lessons: [],
-      stats: { totalWords: 0, totalTimeSeconds: 0, wordsStudied: 0, wordsMastered: 0 },
+      stats: { totalWords: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, wordsStudied: 0, wordsMastered: 0 },
       isGuest: !user,
     };
   }
@@ -337,6 +339,8 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     stats: {
       totalWords,
       totalTimeSeconds,
+      studyTimeSeconds: totalStudyTimeSeconds,
+      testTimeSeconds: totalTestTimeSeconds,
       wordsStudied,
       wordsMastered,
     },

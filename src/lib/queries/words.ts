@@ -101,6 +101,8 @@ export interface GetWordsResult {
     wordsStudied: number;
     wordsMastered: number;
     totalTimeSeconds: number;
+    studyTimeSeconds: number;
+    testTimeSeconds: number;
   };
   isGuest: boolean;
 }
@@ -132,7 +134,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !user,
     };
   }
@@ -185,7 +187,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       previousLesson,
       nextLesson,
       courseLessons: orderedLessons,
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !user,
     };
   }
@@ -246,6 +248,8 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
 
   // Get study time from study_sessions and test time from test_scores
   let totalTimeSeconds = 0;
+  let studyTimeSeconds = 0;
+  let testTimeSeconds = 0;
   if (user) {
     const [studySessionsResult, testScoresResult] = await Promise.all([
       supabase
@@ -260,11 +264,11 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         .eq("lesson_id", lessonId),
     ]);
 
-    const studyTimeSeconds = (studySessionsResult.data || []).reduce(
+    studyTimeSeconds = (studySessionsResult.data || []).reduce(
       (sum, ss) => sum + (ss.duration_seconds || 0),
       0
     );
-    const testTimeSeconds = (testScoresResult.data || []).reduce(
+    testTimeSeconds = (testScoresResult.data || []).reduce(
       (sum, ts) => sum + (ts.duration_seconds || 0),
       0
     );
@@ -365,6 +369,8 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       wordsStudied,
       wordsMastered,
       totalTimeSeconds,
+      studyTimeSeconds,
+      testTimeSeconds,
     },
     isGuest: !user,
   };
@@ -526,7 +532,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !userId,
     };
   }
@@ -549,7 +555,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: false,
     };
   }
@@ -779,6 +785,8 @@ async function getAutoLessonWords(
     wordsStudied,
     wordsMastered,
     totalTimeSeconds: 0,
+    studyTimeSeconds: 0,
+    testTimeSeconds: 0,
   });
 }
 
@@ -792,7 +800,7 @@ function buildAutoLessonResult(
   language: Language | null,
   courseLessons: AdjacentLesson[],
   words: WordWithDetails[],
-  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number }
+  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number }
 ): GetWordsResult {
   const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
     notes: { number: 800, title: "My Notes", emoji: "📝" },
@@ -850,7 +858,7 @@ function buildAutoLessonResult(
     previousLesson: null, // Auto-lessons don't have prev/next
     nextLesson: null,
     courseLessons,
-    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0 },
+    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
     isGuest: false,
   };
 }

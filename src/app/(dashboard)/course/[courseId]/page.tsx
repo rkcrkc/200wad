@@ -62,11 +62,27 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
 
           {/* Total time */}
-          <div className="flex flex-col items-start">
+          <div className="group relative flex flex-col items-start cursor-default">
             <span className="text-xs text-muted-foreground">Total Time</span>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
+            </div>
+            {/* Tooltip */}
+            <div className="pointer-events-none absolute top-full left-0 z-50 mt-4 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+              <div className="flex flex-col gap-1">
+                <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
+                  Time breakdown
+                </span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    Study time: <span className="font-semibold">{formatTime(stats.studyTimeSeconds)}</span>
+                  </span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    Test time: <span className="font-semibold">{formatTime(stats.testTimeSeconds)}</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
