@@ -28,6 +28,26 @@ export async function createStudySession(
     return { sessionId: null, error: "User not authenticated" };
   }
 
+  // Rate limiting: max 20 sessions per hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentSessions } = await supabase
+    .from("study_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("started_at", oneHourAgo);
+
+  if (recentSessions && recentSessions > 20) {
+    return { sessionId: null, error: "Rate limit exceeded. Please wait before starting another session." };
+  }
+
+  // Auto-end orphaned sessions for this lesson
+  await supabase
+    .from("study_sessions")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("lesson_id", lessonId)
+    .is("ended_at", null);
+
   const { data, error } = await supabase
     .from("study_sessions")
     .insert({
@@ -414,6 +434,41 @@ export async function completeStudySession(
     return { success: false, error: "User not authenticated" };
   }
 
+  // Validate lesson exists and word count
+  const { data: lessonData } = await supabase
+    .from("lessons")
+    .select("word_count")
+    .eq("id", lessonId)
+    .single();
+
+  if (!lessonData) {
+    return { success: false, error: "Lesson not found" };
+  }
+
+  if (stats.wordsStudied > (lessonData.word_count || 0)) {
+    // Log anomaly but don't reject - could be legitimate edge case
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "word_count_exceeded",
+        severity: "low",
+        details: { lessonId, claimed: stats.wordsStudied, lessonWordCount: lessonData.word_count },
+      });
+    } catch { /* non-critical */ }
+  }
+
+  // Validate duration is reasonable (at least 1 second per word studied)
+  if (stats.wordsStudied > 0 && stats.durationSeconds < stats.wordsStudied * 1) {
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "impossible_speed",
+        severity: "medium",
+        details: { lessonId, wordsStudied: stats.wordsStudied, durationSeconds: stats.durationSeconds, secondsPerWord: stats.durationSeconds / stats.wordsStudied },
+      });
+    } catch { /* non-critical */ }
+  }
+
   // Save any user notes
   if (pendingNotes.length > 0) {
     const batchResult = await batchSaveUserNotes(pendingNotes);
@@ -446,6 +501,35 @@ export async function completeStudySession(
 
   // Set initial test milestone if this is the first time completing this lesson
   await setInitialMilestoneIfNeeded(user.id, lessonId);
+
+  // Complete any pending referral (triggers credit on first lesson completion)
+  try {
+    const { completeReferralIfPending } = await import("./referrals");
+    await completeReferralIfPending();
+  } catch {
+    // Non-critical — don't fail the session completion
+  }
+
+  // Record daily activity for leaderboard/streak tracking
+  try {
+    const { data: lesson } = await supabase
+      .from("lessons")
+      .select("course_id, courses(language_id)")
+      .eq("id", lessonId)
+      .single();
+
+    const languageId = (lesson?.courses as { language_id: string } | null)?.language_id;
+    if (languageId) {
+      const { recordActivity } = await import("./activity");
+      await recordActivity({
+        languageId,
+        wordsStudied: stats.wordsStudied,
+        studyTimeSeconds: stats.durationSeconds,
+      });
+    }
+  } catch {
+    // Non-critical — don't fail the session completion
+  }
 
   return { success: true, error: null };
 }

@@ -10,7 +10,9 @@ import {
   Music,
   LayoutDashboard,
   Settings,
+  CreditCard,
   ChevronLeft,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +52,16 @@ const navItems: NavItem[] = [
     label: "Music",
     href: "/admin/music",
     icon: <Music className="h-5 w-5" />,
+  },
+  {
+    label: "Leaderboard",
+    href: "/admin/leaderboard",
+    icon: <Trophy className="h-5 w-5" />,
+  },
+  {
+    label: "Billing",
+    href: "/admin/settings",
+    icon: <CreditCard className="h-5 w-5" />,
   },
 ];
 

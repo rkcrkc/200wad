@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
+import { canAccessLesson } from "@/lib/utils/accessControl";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
@@ -22,10 +23,22 @@ export default async function LessonPage({ params }: LessonPageProps) {
     getLessonActivityHistory(lessonId),
   ]);
 
-  const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson } = wordsResult;
+  const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson, userId } = wordsResult;
 
   if (!lesson) {
     notFound();
+  }
+
+  // Access gate: redirect to course page if lesson is locked
+  if (course && !isAutoLesson(lessonId)) {
+    const access = await canAccessLesson(
+      userId,
+      { lessonNumber: lesson.number },
+      { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
+    );
+    if (!access.hasAccess) {
+      redirect(`/course/${course.id}`);
+    }
   }
 
   // Calculate progress stats

@@ -54,3 +54,18 @@ export type { CreateLessonResult } from "./lessons";
 export type { CreateWordResult } from "./words";
 
 export type { CreateSentenceResult } from "./sentences";
+
+export { syncPricingToStripe } from "./stripe";
+
+export {
+  createPricingPlan,
+  updatePricingPlan,
+  deletePricingPlan,
+  togglePricingPlanActive,
+} from "./pricing";
+
+export type { CreatePricingPlanResult } from "./pricing";
+
+export { updatePlatformConfig } from "./config";
+
+export { adjustUserCredit } from "./credits";

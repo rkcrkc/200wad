@@ -4,8 +4,11 @@ import { useState, useMemo } from "react";
 import { ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
+import { InlineSearch } from "@/components/InlineSearch";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import type { PricingPlan } from "@/types/database";
 
 type FilterType = "all" | "not-started" | "studying" | "mastered";
 type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
@@ -14,7 +17,11 @@ type SortDirection = "asc" | "desc";
 interface LessonsListProps {
   lessons: LessonWithProgress[];
   languageFlag?: string;
+  languageName?: string;
+  languageId?: string;
   milestoneScores?: Map<string, LessonMilestoneScores>;
+  plans?: PricingPlan[];
+  enabledTiers?: string[];
 }
 
 interface SortableHeaderProps {
@@ -58,11 +65,13 @@ function SortableHeader({
   );
 }
 
-export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsListProps) {
+export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers }: LessonsListProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>("number");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showStats, setShowStats] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [lockedLesson, setLockedLesson] = useState<LessonWithProgress | null>(null);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -94,10 +103,18 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
 
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
-    // First filter
-    const filtered = filter === "all"
+    // First filter by status
+    let filtered = filter === "all"
       ? [...lessons]
       : lessons.filter((lesson) => lesson.status === filter);
+
+    // Then filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((lesson) =>
+        lesson.title.toLowerCase().includes(query)
+      );
+    }
 
     // Then sort
     filtered.sort((a, b) => {
@@ -138,7 +155,7 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
     });
 
     return filtered;
-  }, [lessons, filter, sortColumn, sortDirection, milestoneScores]);
+  }, [lessons, filter, searchQuery, sortColumn, sortDirection, milestoneScores]);
 
   const tabs: Tab[] = [
     { id: "all", label: "All lessons", count: counts.all },
@@ -158,6 +175,11 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
         />
 
         <div className="flex items-center gap-3">
+          <InlineSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Filter lessons..."
+          />
           {/* Stats toggle button */}
           <button
             onClick={() => setShowStats(!showStats)}
@@ -367,12 +389,25 @@ export function LessonsList({ lessons, languageFlag, milestoneScores }: LessonsL
                   isLast={index === filteredAndSortedLessons.length - 1}
                   showStats={showStats}
                   milestoneScores={milestoneScores?.get(lesson.id)}
+                  onLockedClick={setLockedLesson}
                 />
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Upgrade Modal for locked lessons */}
+      <UpgradeModal
+        isOpen={lockedLesson !== null}
+        onClose={() => setLockedLesson(null)}
+        lessonTitle={lockedLesson?.title}
+        languageName={languageName}
+        languageFlag={languageFlag}
+        languageId={languageId}
+        plans={plans || []}
+        enabledTiers={enabledTiers || []}
+      />
     </>
   );
 }

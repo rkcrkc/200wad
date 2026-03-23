@@ -345,7 +345,7 @@ export function StudyActionBar({
                 <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
                   <div className="p-2">
                     <div className="mb-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                      Words in lesson ({wordList.length})
+                      Words in lesson ({wordList.length.toLocaleString("en-US")})
                     </div>
                     {wordList.map((word, index) => {
                       const isCurrent = index === currentWordIndex;

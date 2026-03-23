@@ -12,9 +12,10 @@ interface DictionaryRowProps {
   word: DictionaryWord;
   isFirst?: boolean;
   isLast?: boolean;
+  isHighlighted?: boolean;
 }
 
-export function DictionaryRow({ word, isFirst, isLast }: DictionaryRowProps) {
+export function DictionaryRow({ word, isFirst, isLast, isHighlighted }: DictionaryRowProps) {
   const router = useRouter();
   const statusType = mapStatus(word.status);
 
@@ -29,10 +30,12 @@ export function DictionaryRow({ word, isFirst, isLast }: DictionaryRowProps) {
 
   return (
     <tr
+      data-word-id={word.id}
       onClick={handleClick}
       className={cn(
         "group cursor-pointer transition-colors hover:bg-bone-hover",
-        !isFirst && "border-t border-gray-200"
+        !isFirst && "border-t border-gray-200",
+        isHighlighted && "ring-2 ring-primary ring-inset"
       )}
     >
       {/* Thumbnail */}

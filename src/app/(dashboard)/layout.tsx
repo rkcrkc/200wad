@@ -4,7 +4,10 @@ import {
   getCurrentCourse,
   getUserLearningStats,
   getCourseProgress,
+  getActivePricingPlans,
+  getLeaderboard,
 } from "@/lib/queries";
+import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,11 +24,14 @@ export default async function DashboardLayout({
   // Fetch current language and course for header display
   const { course, language } = await getCurrentCourse();
 
-  // Fetch stats in parallel
-  const [dueTestsCount, learningStats, courseProgress] = await Promise.all([
+  // Fetch stats and pricing in parallel
+  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardData] = await Promise.all([
     course ? getDueTestsCount(course.id) : Promise.resolve(0),
     getUserLearningStats(),
     course ? getCourseProgress(course.id) : Promise.resolve(null),
+    getActivePricingPlans(),
+    getEnabledTiers(),
+    language ? getLeaderboard(language.id, "avg_words_per_day", "week") : Promise.resolve(null),
   ]);
 
   // Prepare default course context for header
@@ -47,6 +53,7 @@ export default async function DashboardLayout({
     totalWords: courseProgress?.totalWords ?? 0,
     totalWordsStudied: learningStats.totalWordsStudied,
     totalTimeSeconds: learningStats.totalTimeSeconds,
+    leaderboardRank: leaderboardData?.userPosition?.rank ?? null,
   };
 
   return (
@@ -56,6 +63,8 @@ export default async function DashboardLayout({
         defaultCourseContext={defaultCourseContext}
         headerStats={headerStats}
         showPreviewMode={isGuest}
+        plans={plansResult.plans}
+        enabledTiers={enabledTiers}
       >
         {children}
       </DashboardContent>

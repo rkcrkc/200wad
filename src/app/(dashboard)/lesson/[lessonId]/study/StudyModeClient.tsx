@@ -747,6 +747,19 @@ export function StudyModeClient({
     [currentWord.id, lesson.id]
   );
 
+  // Handle admin array field save (alternate answers)
+  const handleArrayFieldSave = useCallback(
+    async (field: string, value: string[]): Promise<boolean> => {
+      const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
+      if (result.success) {
+        return true;
+      }
+      console.error("Failed to update word array field:", result.error);
+      return false;
+    },
+    [currentWord.id, lesson.id]
+  );
+
   // Handle admin image upload
   const handleImageUpload = useCallback(
     async (field: string, file: File): Promise<boolean> => {
@@ -835,6 +848,9 @@ export function StudyModeClient({
                 wordId={currentWord.id}
                 isEditMode={isEditMode}
                 onFieldSave={handleFieldSave}
+                onArrayFieldSave={handleArrayFieldSave}
+                alternateAnswers={currentWord.alternate_answers || []}
+                alternateEnglishAnswers={currentWord.alternate_english_answers || []}
               />
             </div>
 

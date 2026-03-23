@@ -80,8 +80,9 @@ export function SignupModal({ courseId }: SignupModalProps) {
 
   if (success) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="bg-card w-full max-w-md space-y-6 rounded-2xl p-8 text-center shadow-2xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+        <div className="bg-card relative mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-6 rounded-xl p-8 text-center shadow-xl">
           <div className="bg-success/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
             <svg
               className="text-success h-8 w-8"
@@ -108,8 +109,9 @@ export function SignupModal({ courseId }: SignupModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-md space-y-6 rounded-2xl p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+      <div className="bg-card relative mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-6 rounded-xl p-8 shadow-xl">
         <div className="text-center">
           <h2 className="text-xl-semibold text-foreground">
             {mode === "signup" ? "Create your account" : "Welcome back"}

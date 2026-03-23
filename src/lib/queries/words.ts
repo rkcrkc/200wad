@@ -21,7 +21,7 @@ function extractCourse(course: Course & { languages?: unknown }): Course {
     cefr_range: course.cefr_range,
     total_lessons: course.total_lessons,
     word_count: course.word_count,
-    price_cents: course.price_cents,
+    price_override_cents: course.price_override_cents,
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,
@@ -105,6 +105,7 @@ export interface GetWordsResult {
     testTimeSeconds: number;
   };
   isGuest: boolean;
+  userId: string | null;
 }
 
 export async function getWords(lessonId: string): Promise<GetWordsResult> {
@@ -136,6 +137,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       courseLessons: [],
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !user,
+      userId: user?.id ?? null,
     };
   }
 
@@ -189,6 +191,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       courseLessons: orderedLessons,
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !user,
+      userId: user?.id ?? null,
     };
   }
 
@@ -373,6 +376,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       testTimeSeconds,
     },
     isGuest: !user,
+    userId: user?.id ?? null,
   };
 }
 
@@ -471,6 +475,7 @@ export async function getWord(wordId: string): Promise<{
     lemma: word.lemma,
     english: word.english,
     alternate_answers: word.alternate_answers,
+    alternate_english_answers: word.alternate_english_answers,
     part_of_speech: word.part_of_speech,
     gender: word.gender,
     transitivity: word.transitivity,
@@ -539,6 +544,7 @@ async function getAutoLessonWords(
       courseLessons: [],
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: !userId,
+      userId,
     };
   }
 
@@ -562,6 +568,7 @@ async function getAutoLessonWords(
       courseLessons: [],
       stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
       isGuest: false,
+      userId,
     };
   }
 
@@ -588,7 +595,7 @@ async function getAutoLessonWords(
   const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
 
   if (courseWordIds.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
   }
 
   // Get user's test score IDs for filtering test_questions
@@ -615,7 +622,7 @@ async function getAutoLessonWords(
   } else {
     // Best or Worst words - need to calculate scores
     if (testScoreIds.length === 0) {
-      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
     }
 
     const { data: testQuestions } = await supabase
@@ -648,7 +655,7 @@ async function getAutoLessonWords(
   }
 
   if (targetWordIds.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
   }
 
   // Fetch full word data
@@ -658,7 +665,7 @@ async function getAutoLessonWords(
     .in("id", targetWordIds);
 
   if (!words || words.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, []);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
   }
 
   // Maintain the order from targetWordIds (important for best/worst)
@@ -785,7 +792,7 @@ async function getAutoLessonWords(
     };
   });
 
-  return buildAutoLessonResult(type, courseId, course, language, orderedLessons, wordsWithDetails, {
+  return buildAutoLessonResult(type, courseId, course, language, orderedLessons, wordsWithDetails, userId, {
     totalWords: wordsWithDetails.length,
     wordsStudied,
     wordsMastered,
@@ -805,6 +812,7 @@ function buildAutoLessonResult(
   language: Language | null,
   courseLessons: AdjacentLesson[],
   words: WordWithDetails[],
+  userId: string | null,
   stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number }
 ): GetWordsResult {
   const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
@@ -844,7 +852,7 @@ function buildAutoLessonResult(
     cefr_range: course.cefr_range,
     total_lessons: course.total_lessons,
     word_count: course.word_count,
-    price_cents: course.price_cents,
+    price_override_cents: course.price_override_cents,
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,
@@ -865,5 +873,6 @@ function buildAutoLessonResult(
     courseLessons,
     stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
     isGuest: false,
+    userId,
   };
 }

@@ -1,13 +1,14 @@
 import { Clock } from "lucide-react";
-import { getLessons, getLessonMilestoneScores } from "@/lib/queries";
+import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
 import { setCurrentCourse } from "@/lib/mutations";
+import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { LessonsList } from "@/components/LessonsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 import { notFound } from "next/navigation";
-import { formatTime } from "@/lib/utils/helpers";
+import { formatTime, formatNumber } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface CoursePageProps {
@@ -17,10 +18,12 @@ interface CoursePageProps {
 export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
 
-  // Fetch lessons and milestone scores in parallel
-  const [lessonsResult, milestoneScores] = await Promise.all([
+  // Fetch lessons, milestone scores, and pricing data in parallel
+  const [lessonsResult, milestoneScores, plansResult, enabledTiers] = await Promise.all([
     getLessons(courseId),
     getLessonMilestoneScores(courseId),
+    getActivePricingPlans(),
+    getEnabledTiers(),
   ]);
 
   const { language, course, lessons, stats, isGuest } = lessonsResult;
@@ -58,7 +61,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           {/* Total words */}
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground">Total words</span>
-            <span className="text-regular-semibold">{stats.totalWords}</span>
+            <span className="text-regular-semibold">{formatNumber(stats.totalWords)}</span>
           </div>
 
           {/* Total time */}
@@ -92,7 +95,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-warning" />
               <span className="text-regular-semibold">
-                {stats.wordsStudied} ({studiedPercentage}%)
+                {formatNumber(stats.wordsStudied)} ({studiedPercentage}%)
               </span>
             </div>
           </div>
@@ -100,13 +103,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
           {/* Words mastered */}
           <div
             className="group relative flex flex-col items-start"
-            title={`${stats.wordsMastered} of ${stats.totalWords} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
+            title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
           >
             <span className="text-xs text-muted-foreground">Words mastered</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-success" />
               <span className="text-regular-semibold">
-                {stats.wordsMastered} ({masteredPercentage}%)
+                {formatNumber(stats.wordsMastered)} ({masteredPercentage}%)
               </span>
             </div>
           </div>
@@ -120,7 +123,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <LessonsList
           lessons={lessons}
           languageFlag={languageFlag}
+          languageName={language?.name}
+          languageId={language?.id}
           milestoneScores={milestoneScores}
+          plans={plansResult.plans}
+          enabledTiers={enabledTiers}
         />
       )}
 

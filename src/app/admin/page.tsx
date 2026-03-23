@@ -55,14 +55,14 @@ export default async function AdminDashboard() {
       count: stats.courses,
       icon: <BookOpen className="h-6 w-6" />,
       href: "/admin/courses",
-      description: `${stats.publishedCourses} published`,
+      description: `${stats.publishedCourses.toLocaleString("en-US")} published`,
     },
     {
       label: "Lessons",
       count: stats.lessons,
       icon: <GraduationCap className="h-6 w-6" />,
       href: "/admin/lessons",
-      description: `${stats.publishedLessons} published`,
+      description: `${stats.publishedLessons.toLocaleString("en-US")} published`,
     },
     {
       label: "Words",
@@ -98,7 +98,7 @@ export default async function AdminDashboard() {
               <ArrowRight className="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
             </div>
             <div className="mt-4">
-              <p className="text-3xl font-bold text-gray-900">{card.count}</p>
+              <p className="text-3xl font-bold text-gray-900">{card.count.toLocaleString("en-US")}</p>
               <p className="text-sm font-medium text-gray-900">{card.label}</p>
               <p className="mt-1 text-xs text-gray-500">{card.description}</p>
             </div>

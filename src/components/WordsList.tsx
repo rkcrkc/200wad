@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Zap } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
+import { InlineSearch } from "@/components/InlineSearch";
 import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
 import { WordDetailView } from "@/components/WordDetailView";
@@ -42,6 +43,7 @@ export function WordsList({
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const [initialWordHandled, setInitialWordHandled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Detect if accessed from dictionary
   const fromDictionary = searchParams.get("from") === "dictionary";
@@ -76,14 +78,26 @@ export function WordsList({
   const effectiveActiveTab = visibleTabIds.includes(activeTab) ? activeTab : "all";
 
   const filteredWords = words.filter((word) => {
+    // Status filter
     switch (effectiveActiveTab) {
       case "not-studied":
-        return word.status === "not-started";
+        if (word.status !== "not-started") return false;
+        break;
       case "not-mastered":
-        return word.status !== "mastered";
-      default:
-        return true;
+        if (word.status === "mastered") return false;
+        break;
     }
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (
+        !word.english.toLowerCase().includes(query) &&
+        !word.headword.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const emptyMessage =
@@ -172,6 +186,11 @@ export function WordsList({
           onChange={(tabId) => setActiveTab(tabId as FilterTab)}
         />
         <div className="flex items-center gap-1">
+          <InlineSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Filter words..."
+          />
           <button
             className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
             aria-label="Flashcard mode (coming soon)"

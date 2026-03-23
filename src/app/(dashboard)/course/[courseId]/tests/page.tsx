@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 import { TestsList } from "@/components/TestsList";
-import { formatTime } from "@/lib/utils/helpers";
+import { formatTime, formatNumber } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { notFound } from "next/navigation";
 
@@ -59,7 +59,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
             {/* Tests taken */}
             <div className="flex flex-col items-start">
               <span className="text-xs text-muted-foreground"># Tests Taken</span>
-              <span className="text-regular-semibold">{stats.testsTaken}</span>
+              <span className="text-regular-semibold">{formatNumber(stats.testsTaken)}</span>
             </div>
 
             {/* Average score */}

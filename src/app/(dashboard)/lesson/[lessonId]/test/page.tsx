@@ -1,5 +1,6 @@
-import { getWords } from "@/lib/queries";
-import { notFound } from "next/navigation";
+import { getWords, isAutoLesson } from "@/lib/queries";
+import { notFound, redirect } from "next/navigation";
+import { canAccessLesson } from "@/lib/utils/accessControl";
 import { TestModeClient } from "./TestModeClient";
 import { TestType, DEFAULT_TEST_TYPE } from "@/types/test";
 
@@ -12,10 +13,22 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
   const { lessonId } = await params;
   const { type, twice, milestone } = await searchParams;
   const testTwice = twice === "true";
-  const { language, course, lesson, words, isGuest } = await getWords(lessonId);
+  const { language, course, lesson, words, isGuest, userId } = await getWords(lessonId);
 
   if (!lesson || words.length === 0) {
     notFound();
+  }
+
+  // Access gate: redirect to course page if lesson is locked
+  if (course && !isAutoLesson(lessonId)) {
+    const access = await canAccessLesson(
+      userId,
+      { lessonNumber: lesson.number },
+      { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
+    );
+    if (!access.hasAccess) {
+      redirect(`/course/${course.id}`);
+    }
   }
 
   // Validate test type from URL, default to english-to-foreign

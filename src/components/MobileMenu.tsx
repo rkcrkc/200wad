@@ -9,8 +9,6 @@ import {
   BookOpen,
   ClipboardCheck,
   BookMarked,
-  Users,
-  Trophy,
   Lock,
   Gift,
   Settings,
@@ -25,8 +23,6 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
-  { path: "/community", icon: Users, label: "Community" },
-  { path: "/trophies", icon: Trophy, label: "Trophies" },
 ];
 
 const bottomNavItems = [
@@ -85,9 +81,10 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   dueTestsCount?: number;
+  onViewPlans?: () => void;
 }
 
-export function MobileMenu({ isOpen, onClose, dueTestsCount }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans }: MobileMenuProps) {
   const pathname = usePathname();
   const { courseId } = useCourseContext();
 
@@ -195,6 +192,10 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount }: MobileMenuProps) 
           <Button
             className="w-full bg-warning hover:bg-warning/90 text-white"
             size="sm"
+            onClick={() => {
+              onClose();
+              onViewPlans?.();
+            }}
           >
             View Plans
           </Button>

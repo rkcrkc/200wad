@@ -42,3 +42,12 @@ export type { TestForList, GetTestsResult, LessonMilestoneScores, LessonActivity
 
 export { getDictionaryWords } from "./dictionary";
 export type { DictionaryWord, GetDictionaryResult } from "./dictionary";
+
+export { getUserSubscriptions, hasActiveSubscription, getActivePricingPlans, getAllPricingPlans, getSubscriptionPageData } from "./subscriptions";
+export type { UserSubscription, GetUserSubscriptionsResult, GetPricingPlansResult, SubscriptionPageData, SubscriptionLanguage, GetSubscriptionPageDataResult } from "./subscriptions";
+
+export { getCreditBalance, getReferralStats } from "./credits";
+export type { CreditBalance, GetCreditBalanceResult, GetReferralStatsResult } from "./credits";
+
+export { getLeaderboard, getLeaderboardRewards, getLeagueConfig, getPersonalBests } from "./leaderboard";
+export type { LeaderboardEntry, LeaderboardMetric, LeaderboardPeriod, LeaderboardData, LeaderboardReward } from "./leaderboard";

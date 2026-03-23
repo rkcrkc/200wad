@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { recordReferralSignup } from "@/lib/mutations/referrals";
 import type { LanguageWithCourses, CoursePreview } from "@/lib/queries/onboarding";
 
 // Flag emoji mapping by language code
@@ -54,6 +55,19 @@ export function OnboardingClient({ languages }: OnboardingClientProps) {
   const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const referralRecorded = useRef(false);
+
+  // Record referral signup if a referral code was stored during signup
+  useEffect(() => {
+    if (referralRecorded.current) return;
+    const code = localStorage.getItem("referral_code");
+    if (code) {
+      referralRecorded.current = true;
+      recordReferralSignup(code).then(() => {
+        localStorage.removeItem("referral_code");
+      });
+    }
+  }, []);
 
   const selectedLanguage = languages.find((l) => l.id === selectedLanguageId);
 

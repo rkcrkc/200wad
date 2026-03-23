@@ -33,7 +33,7 @@ export const createCourseSchema = z.object({
   level: z.enum(["beginner", "intermediate", "advanced"]).optional().nullable(),
   cefr_range: z.string().max(20).optional().nullable(),
   free_lessons: z.number().int().min(0).optional().default(10),
-  price_cents: z.number().int().min(0).optional().default(5000),
+  price_override_cents: z.number().int().min(0).optional().nullable(),
   sort_order: z.number().int().min(0).optional().default(0),
   is_published: z.boolean().optional().default(false),
 });
@@ -71,6 +71,7 @@ export const createWordSchema = z.object({
   lemma: z.string().max(200).optional().nullable(), // Defaults to headword if not provided
   english: z.string().min(1, "English translation is required").max(200),
   alternate_answers: z.array(z.string().max(200)).optional().default([]),
+  alternate_english_answers: z.array(z.string().max(200)).optional().default([]),
   category: z.enum(["word", "phrase", "sentence", "fact", "information"]).optional().nullable(),
   part_of_speech: z.string().max(50).optional().nullable(),
   gender: z.enum(["m", "f", "n", "mf"]).optional().nullable(),
@@ -78,7 +79,7 @@ export const createWordSchema = z.object({
   is_irregular: z.boolean().optional().default(false),
   grammatical_number: z.enum(["sg", "pl"]).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
-  admin_notes: z.string().max(2000).optional().nullable(),
+  developer_notes: z.string().max(2000).optional().nullable(),
   memory_trigger_text: z.string().max(2000).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),
   audio_url_english: z.string().url().optional().nullable(),
@@ -131,3 +132,49 @@ export const publishSchema = z.object({
 });
 
 export type PublishInput = z.infer<typeof publishSchema>;
+
+// ============================================================================
+// PRICING PLAN SCHEMAS
+// ============================================================================
+
+export const createPricingPlanSchema = z.object({
+  tier: z.enum(["course", "language", "all-languages"]),
+  billing_model: z.enum(["monthly", "annual", "lifetime"]),
+  amount_cents: z.number().int().min(0),
+  currency: z.string().min(3).max(3).default("usd"),
+  is_active: z.boolean().default(false),
+});
+
+export const updatePricingPlanSchema = createPricingPlanSchema.partial();
+
+export type CreatePricingPlanInput = z.input<typeof createPricingPlanSchema>;
+export type UpdatePricingPlanInput = z.input<typeof updatePricingPlanSchema>;
+
+// ============================================================================
+// PLATFORM CONFIG SCHEMA
+// ============================================================================
+
+export const updatePlatformConfigSchema = z.object({
+  key: z.string().min(1),
+  value: z.unknown(),
+});
+
+export type UpdatePlatformConfigInput = z.input<typeof updatePlatformConfigSchema>;
+
+// ============================================================================
+// CHECKOUT SCHEMA
+// ============================================================================
+
+export const createCheckoutSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        pricingPlanId: z.string().uuid(),
+        targetId: z.string().uuid().nullable(),
+        tier: z.enum(["language", "all-languages"]),
+      })
+    )
+    .min(1, "At least one item is required"),
+});
+
+export type CreateCheckoutInput = z.infer<typeof createCheckoutSchema>;

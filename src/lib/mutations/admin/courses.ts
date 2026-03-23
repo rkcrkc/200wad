@@ -47,7 +47,7 @@ export async function createCourse(
         level: validated.level,
         cefr_range: validated.cefr_range,
         free_lessons: validated.free_lessons ?? 10,
-        price_cents: validated.price_cents ?? 5000,
+        price_override_cents: validated.price_override_cents ?? null,
         sort_order: validated.sort_order ?? 0,
         is_published: validated.is_published ?? false,
         created_by: admin.userId,

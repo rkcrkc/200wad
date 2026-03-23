@@ -9,4 +9,5 @@ export { AdminStatusBadge } from "./AdminStatusBadge";
 export { AdminFileUpload } from "./AdminFileUpload";
 export { AdminPagination } from "./AdminPagination";
 export { EditableText } from "./EditableText";
+export { EditableArrayField } from "./EditableArrayField";
 export { EditableImage } from "./EditableImage";

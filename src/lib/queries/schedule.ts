@@ -13,7 +13,7 @@ function extractCourse(course: Course & { languages?: unknown }): Course {
     cefr_range: course.cefr_range,
     total_lessons: course.total_lessons,
     word_count: course.word_count,
-    price_cents: course.price_cents,
+    price_override_cents: course.price_override_cents,
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,

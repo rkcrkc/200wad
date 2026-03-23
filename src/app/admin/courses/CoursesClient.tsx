@@ -46,7 +46,7 @@ interface Course {
   level: string | null;
   cefr_range: string | null;
   free_lessons: number | null;
-  price_cents: number | null;
+  price_override_cents: number | null;
   total_lessons: number | null;
   word_count: number | null;
   sort_order: number | null;
@@ -80,7 +80,7 @@ interface FormData {
   level: string;
   cefr_range: string;
   free_lessons: number;
-  price_cents: number;
+  price_override_cents: number;
 }
 
 interface FormErrors {
@@ -116,7 +116,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     level: "",
     cefr_range: "",
     free_lessons: 10,
-    price_cents: 5000,
+    price_override_cents: 0,
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -306,7 +306,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
       level: "",
       cefr_range: "",
       free_lessons: 10,
-      price_cents: 5000,
+      price_override_cents: 0,
     });
     setErrors({});
     setEditingCourse(null);
@@ -449,7 +449,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           level: (formData.level as "beginner" | "intermediate" | "advanced") || null,
           cefr_range: formData.cefr_range || null,
           free_lessons: formData.free_lessons,
-          price_cents: formData.price_cents,
+          price_override_cents: formData.price_override_cents,
         });
         if (!result.success) {
           setErrors({ name: result.error || "Failed to update course" });
@@ -463,7 +463,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
           level: (formData.level as "beginner" | "intermediate" | "advanced") || null,
           cefr_range: formData.cefr_range || null,
           free_lessons: formData.free_lessons,
-          price_cents: formData.price_cents,
+          price_override_cents: formData.price_override_cents,
         });
         if (!result.success) {
           setErrors({ name: result.error || "Failed to create course" });
@@ -648,9 +648,9 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                       {selectedCourse.cefr_range && ` (${selectedCourse.cefr_range})`}
                     </span>
                     <span className="text-gray-300">|</span>
-                    <span>{courseLessons.length} lesson{courseLessons.length !== 1 ? "s" : ""}</span>
+                    <span>{courseLessons.length.toLocaleString("en-US")} lesson{courseLessons.length !== 1 ? "s" : ""}</span>
                     <span className="text-gray-300">|</span>
-                    <span>{totalWords} word{totalWords !== 1 ? "s" : ""}</span>
+                    <span>{totalWords.toLocaleString("en-US")} word{totalWords !== 1 ? "s" : ""}</span>
                     <span className="text-gray-300">|</span>
                     <AdminStatusBadge isPublished={selectedCourse.is_published ?? false} />
                   </div>
@@ -925,7 +925,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">{language.name}</h2>
                       <p className="text-sm text-gray-500">
-                        {languageCourses.length} course{languageCourses.length !== 1 ? "s" : ""} · {totalLessons} lessons · {totalWords} words
+                        {languageCourses.length} course{languageCourses.length !== 1 ? "s" : ""} · {totalLessons.toLocaleString("en-US")} lessons · {totalWords.toLocaleString("en-US")} words
                       </p>
                     </div>
                   </div>
@@ -1167,17 +1167,17 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
               />
             </AdminFormField>
 
-            <AdminFormField label="Price (cents)" name="price_cents">
+            <AdminFormField label="Price Override (cents)" name="price_override_cents">
               <AdminInput
-                id="price_cents"
-                name="price_cents"
+                id="price_override_cents"
+                name="price_override_cents"
                 type="number"
                 min={0}
-                value={formData.price_cents}
+                value={formData.price_override_cents}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    price_cents: parseInt(e.target.value) || 0,
+                    price_override_cents: parseInt(e.target.value) || 0,
                   })
                 }
               />

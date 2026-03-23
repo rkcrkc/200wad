@@ -1227,7 +1227,7 @@ export function LessonsClient({
                       })()}
                     </span>
                     <span className="text-gray-300">|</span>
-                    <span>{words.length} word{words.length !== 1 ? "s" : ""}</span>
+                    <span>{words.length.toLocaleString("en-US")} word{words.length !== 1 ? "s" : ""}</span>
                     <span className="text-gray-300">|</span>
                     <AdminStatusBadge isPublished={selectedLesson.is_published ?? false} />
                   </div>

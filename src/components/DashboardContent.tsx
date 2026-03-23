@@ -1,10 +1,13 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { UpgradeModal } from "./UpgradeModal";
 import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
-import { CourseProvider, useSetCourseContext } from "@/context/CourseContext";
+import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context/CourseContext";
+import type { PricingPlan } from "@/types/database";
 
 interface DefaultCourseContext {
   languageId: string;
@@ -21,6 +24,7 @@ export interface HeaderStats {
   totalWords?: number;
   totalWordsStudied?: number;
   totalTimeSeconds?: number;
+  leaderboardRank?: number | null;
 }
 
 interface DashboardContentProps {
@@ -30,6 +34,8 @@ interface DashboardContentProps {
   headerStats?: HeaderStats;
   /** Show logged-in UI preview for guests during onboarding */
   showPreviewMode?: boolean;
+  plans?: PricingPlan[];
+  enabledTiers?: string[];
 }
 
 /**
@@ -49,11 +55,40 @@ function DefaultContextSetter({ context }: { context?: DefaultCourseContext }) {
 }
 
 /**
+ * Renders the UpgradeModal inside CourseProvider so it can read language context.
+ */
+function UpgradeModalWithContext({
+  isOpen,
+  onClose,
+  plans,
+  enabledTiers,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  plans: PricingPlan[];
+  enabledTiers: string[];
+}) {
+  const { languageName, languageFlag, languageId } = useCourseContext();
+
+  return (
+    <UpgradeModal
+      isOpen={isOpen}
+      onClose={onClose}
+      languageName={languageName}
+      languageFlag={languageFlag}
+      languageId={languageId}
+      plans={plans}
+      enabledTiers={enabledTiers}
+    />
+  );
+}
+
+/**
  * Dashboard content wrapper that conditionally shows header and sidebar.
  * - /dashboard, /courses: Header full width, no sidebar
  * - /study, /test routes: No header (StudyNavbar instead), sidebar handled by page
  * - Other routes: Header full width at top, sidebar + content below
- * 
+ *
  * Wraps everything in CourseProvider so pages can set context that Header consumes.
  */
 export function DashboardContent({
@@ -62,9 +97,20 @@ export function DashboardContent({
   defaultCourseContext,
   headerStats,
   showPreviewMode,
+  plans = [],
+  enabledTiers = [],
 }: DashboardContentProps) {
   const pathname = usePathname();
-  
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  const handleViewPlans = useCallback(() => {
+    setUpgradeModalOpen(true);
+  }, []);
+
+  const handleCloseUpgradeModal = useCallback(() => {
+    setUpgradeModalOpen(false);
+  }, []);
+
   // Study and Test modes have their own layout with Sidebar and custom Navbar
   // Note: /test matches the test-taking mode at /lesson/[id]/test, not /tests or /course/[id]/tests
   const isStudyMode = pathname.includes("/study");
@@ -79,10 +125,10 @@ export function DashboardContent({
       </CourseProvider>
     );
   }
-  
+
   // At top-level dashboard and courses page, no sidebar
   const showSidebar = pathname !== "/dashboard" && !pathname.startsWith("/courses/");
-  
+
   if (!showSidebar) {
     // No sidebar - full width content with fixed header; only main scrolls
     return (
@@ -103,13 +149,19 @@ export function DashboardContent({
   return (
     <CourseProvider>
       <DefaultContextSetter context={defaultCourseContext} />
-      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} />
-      <Sidebar dueTestsCount={dueTestsCount} />
+      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
+      <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
       <div className="h-screen overflow-hidden pt-[72px]">
         <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
           {children}
         </main>
       </div>
+      <UpgradeModalWithContext
+        isOpen={upgradeModalOpen}
+        onClose={handleCloseUpgradeModal}
+        plans={plans}
+        enabledTiers={enabledTiers}
+      />
       {!showPreviewMode && <EmailVerificationReminder />}
     </CourseProvider>
   );

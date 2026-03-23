@@ -27,7 +27,7 @@ export type Database = {
           legacy_ref: number | null
           level: string | null
           name: string
-          price_cents: number | null
+          price_override_cents: number | null
           sort_order: number | null
           thumbnail_url: string | null
           total_lessons: number | null
@@ -47,7 +47,7 @@ export type Database = {
           legacy_ref?: number | null
           level?: string | null
           name: string
-          price_cents?: number | null
+          price_override_cents?: number | null
           sort_order?: number | null
           thumbnail_url?: string | null
           total_lessons?: number | null
@@ -67,7 +67,7 @@ export type Database = {
           legacy_ref?: number | null
           level?: string | null
           name?: string
-          price_cents?: number | null
+          price_override_cents?: number | null
           sort_order?: number | null
           thumbnail_url?: string | null
           total_lessons?: number | null
@@ -81,6 +81,47 @@ export type Database = {
             columns: ["language_id"]
             isOneToOne: false
             referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount_cents: number
+          created_at: string | null
+          description: string | null
+          id: string
+          reference_id: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -259,6 +300,120 @@ export type Database = {
           },
         ]
       }
+      platform_config: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      pricing_plans: {
+        Row: {
+          amount_cents: number
+          billing_model: string
+          created_at: string | null
+          currency: string
+          id: string
+          is_active: boolean
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_cents: number
+          billing_model: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          billing_model?: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string | null
+          credit_amount_cents: number
+          credited_at: string | null
+          id: string
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          credit_amount_cents?: number
+          credited_at?: string | null
+          id?: string
+          referral_code: string
+          referred_user_id: string
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          credit_amount_cents?: number
+          credited_at?: string | null
+          id?: string
+          referral_code?: string
+          referred_user_id?: string
+          referrer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_music_tracks: {
         Row: {
           author: string | null
@@ -351,6 +506,68 @@ export type Database = {
           },
           {
             foreignKeyName: "study_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount_cents: number
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          target_id: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          target_id?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          target_id?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -650,15 +867,23 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cohort: string | null
           created_at: string | null
           current_course_id: string | null
           current_language_id: string | null
+          current_streak: number | null
           email: string
           hometown: string | null
           id: string
+          last_activity_date: string | null
+          league: string | null
+          league_points: number | null
           location: string | null
+          longest_streak: number | null
           name: string | null
           nationalities: string[] | null
+          referral_code: string | null
+          stripe_customer_id: string | null
           total_vocabulary_count: number | null
           two_factor_enabled: boolean | null
           updated_at: string | null
@@ -669,15 +894,23 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cohort?: string | null
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
+          current_streak?: number | null
           email: string
           hometown?: string | null
           id: string
+          last_activity_date?: string | null
+          league?: string | null
+          league_points?: number | null
           location?: string | null
+          longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
+          referral_code?: string | null
+          stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
@@ -688,15 +921,23 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cohort?: string | null
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
+          current_streak?: number | null
           email?: string
           hometown?: string | null
           id?: string
+          last_activity_date?: string | null
+          league?: string | null
+          league_points?: number | null
           location?: string | null
+          longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
+          referral_code?: string | null
+          stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
@@ -718,6 +959,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           alternate_answers: string[] | null
+          alternate_english_answers: string[] | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -757,6 +999,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           alternate_answers?: string[] | null
+          alternate_english_answers?: string[] | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -796,6 +1039,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           alternate_answers?: string[] | null
+          alternate_english_answers?: string[] | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -917,12 +1161,260 @@ export type Database = {
           },
         ]
       }
+      user_daily_activity: {
+        Row: {
+          id: string
+          user_id: string
+          activity_date: string
+          language_id: string
+          words_studied: number
+          words_mastered: number
+          test_points_earned: number
+          test_max_points: number
+          study_time_seconds: number
+          sessions_count: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          activity_date: string
+          language_id: string
+          words_studied?: number
+          words_mastered?: number
+          test_points_earned?: number
+          test_max_points?: number
+          study_time_seconds?: number
+          sessions_count?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          activity_date?: string
+          language_id?: string
+          words_studied?: number
+          words_mastered?: number
+          test_points_earned?: number
+          test_max_points?: number
+          study_time_seconds?: number
+          sessions_count?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_daily_activity_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_leaderboard_snapshots: {
+        Row: {
+          id: string
+          user_id: string
+          language_id: string
+          week_start: string
+          week_end: string
+          league: string
+          rank: number
+          league_points: number
+          words_mastered: number
+          words_studied: number
+          avg_words_per_day: number
+          streak_days: number
+          avg_accuracy: number
+          reward_cents: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          language_id: string
+          week_start: string
+          week_end: string
+          league: string
+          rank: number
+          league_points?: number
+          words_mastered?: number
+          words_studied?: number
+          avg_words_per_day?: number
+          streak_days?: number
+          avg_accuracy?: number
+          reward_cents?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          language_id?: string
+          week_start?: string
+          week_end?: string
+          league?: string
+          rank?: number
+          league_points?: number
+          words_mastered?: number
+          words_studied?: number
+          avg_words_per_day?: number
+          streak_days?: number
+          avg_accuracy?: number
+          reward_cents?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_leaderboard_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_leaderboard_snapshots_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leaderboard_rewards: {
+        Row: {
+          id: string
+          league: string
+          rank_min: number
+          rank_max: number
+          reward_cents: number
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          league: string
+          rank_min: number
+          rank_max: number
+          reward_cents?: number
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          league?: string
+          rank_min?: number
+          rank_max?: number
+          reward_cents?: number
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      activity_flags: {
+        Row: {
+          id: string
+          user_id: string
+          flag_type: string
+          severity: string
+          details: Record<string, unknown>
+          session_id: string | null
+          resolved: boolean
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          flag_type: string
+          severity?: string
+          details?: Record<string, unknown>
+          session_id?: string | null
+          resolved?: boolean
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          flag_type?: string
+          severity?: string
+          details?: Record<string, unknown>
+          session_id?: string | null
+          resolved?: boolean
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_referral_code: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      update_daily_activity: {
+        Args: {
+          p_user_id: string
+          p_language_id: string
+          p_words_studied?: number
+          p_words_mastered?: number
+          p_test_points_earned?: number
+          p_test_max_points?: number
+          p_study_time_seconds?: number
+        }
+        Returns: undefined
+      }
+      get_leaderboard: {
+        Args: {
+          p_language_id: string
+          p_metric?: string
+          p_period?: string
+          p_limit?: number
+        }
+        Returns: {
+          rank: number
+          user_id: string
+          username: string | null
+          name: string | null
+          avatar_url: string | null
+          nationalities: string[]
+          league: string
+          current_streak: number
+          metric_value: number
+        }[]
+      }
+      get_user_leaderboard_position: {
+        Args: {
+          p_user_id: string
+          p_language_id: string
+          p_metric?: string
+          p_period?: string
+        }
+        Returns: {
+          rank: number
+          metric_value: number
+          total_users: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1093,3 +1585,21 @@ export type StudyMusicTrackUpdate = Database["public"]["Tables"]["study_music_tr
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 export type UserWordProgressUpdate = Database["public"]["Tables"]["user_word_progress"]["Update"];
 export type UserLessonProgressUpdate = Database["public"]["Tables"]["user_lesson_progress"]["Update"];
+
+// Billing types
+export type PlatformConfig = Database["public"]["Tables"]["platform_config"]["Row"];
+export type PricingPlan = Database["public"]["Tables"]["pricing_plans"]["Row"];
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"];
+export type CreditTransaction = Database["public"]["Tables"]["credit_transactions"]["Row"];
+export type CreditTransactionInsert = Database["public"]["Tables"]["credit_transactions"]["Insert"];
+export type Referral = Database["public"]["Tables"]["referrals"]["Row"];
+export type ReferralInsert = Database["public"]["Tables"]["referrals"]["Insert"];
+
+// Leaderboard types
+export type UserDailyActivity = Database["public"]["Tables"]["user_daily_activity"]["Row"];
+export type UserDailyActivityInsert = Database["public"]["Tables"]["user_daily_activity"]["Insert"];
+export type WeeklyLeaderboardSnapshot = Database["public"]["Tables"]["weekly_leaderboard_snapshots"]["Row"];
+export type LeaderboardRewardRow = Database["public"]["Tables"]["leaderboard_rewards"]["Row"];
+export type ActivityFlag = Database["public"]["Tables"]["activity_flags"]["Row"];
+export type ActivityFlagInsert = Database["public"]["Tables"]["activity_flags"]["Insert"];

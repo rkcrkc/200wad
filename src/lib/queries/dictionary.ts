@@ -2,6 +2,37 @@ import { createClient } from "@/lib/supabase/server";
 import { Word, Language } from "@/types/database";
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Fetch all rows from a Supabase query by paginating in chunks.
+ * Supabase/PostgREST has a default max of 1000 rows per request.
+ * This fetches in batches of 1000 until all rows are retrieved.
+ */
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>
+): Promise<T[]> {
+  const BATCH_SIZE = 1000;
+  const allRows: T[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await buildQuery(offset, offset + BATCH_SIZE - 1);
+    if (error) {
+      console.error("Paginated fetch error:", error);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    allRows.push(...data);
+    if (data.length < BATCH_SIZE) break;
+    offset += BATCH_SIZE;
+  }
+
+  return allRows;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -89,37 +120,41 @@ export async function getDictionaryWords(
   let words: DictionaryWord[] = [];
 
   if (filter === "my-words") {
-    // Get words user has progress on
-    const { data: progressWords } = await supabase
-      .from("user_word_progress")
-      .select(`
-        word_id,
-        status,
-        words!inner(
-          id,
-          english,
-          headword,
-          part_of_speech,
-          category,
-          memory_trigger_image_url,
-          language_id
-        )
-      `)
-      .eq("user_id", user.id)
-      .not("status", "is", null)
-      .limit(10000);
+    // Get words user has progress on (paginate to avoid 1000-row cap)
+    const progressWords = await fetchAllRows((from, to) =>
+      supabase
+        .from("user_word_progress")
+        .select(`
+          word_id,
+          status,
+          words!inner(
+            id,
+            english,
+            headword,
+            part_of_speech,
+            category,
+            memory_trigger_image_url,
+            language_id
+          )
+        `)
+        .eq("user_id", user.id)
+        .not("status", "is", null)
+        .range(from, to)
+    );
 
-    if (progressWords) {
-      // Get lesson info for these words
+    if (progressWords.length > 0) {
+      // Get lesson info for these words (paginate)
       const wordIds = progressWords.map((p) => (p.words as any).id);
-      const { data: lessonWords } = await supabase
-        .from("lesson_words")
-        .select("word_id, lesson_id, lessons(id, title, number)")
-        .in("word_id", wordIds)
-        .limit(10000);
+      const lessonWords = await fetchAllRows((from, to) =>
+        supabase
+          .from("lesson_words")
+          .select("word_id, lesson_id, lessons(id, title, number)")
+          .in("word_id", wordIds)
+          .range(from, to)
+      );
 
       const lessonMap = new Map(
-        (lessonWords || []).map((lw) => [
+        lessonWords.map((lw) => [
           lw.word_id,
           lw.lessons as { id: string; title: string; number: number } | null,
         ])
@@ -155,27 +190,29 @@ export async function getDictionaryWords(
     if (courseLessons && courseLessons.length > 0) {
       const lessonIds = courseLessons.map((l) => l.id);
 
-      // Get all words in those lessons
-      const { data: lessonWords } = await supabase
-        .from("lesson_words")
-        .select(`
-          word_id,
-          lesson_id,
-          lessons(id, title, number),
-          words!inner(
-            id,
-            english,
-            headword,
-            part_of_speech,
-            category,
-            memory_trigger_image_url
-          )
-        `)
-        .in("lesson_id", lessonIds)
-        .order("sort_order")
-        .limit(10000);
+      // Get all words in those lessons (paginate to avoid 1000-row cap)
+      const lessonWords = await fetchAllRows((from, to) =>
+        supabase
+          .from("lesson_words")
+          .select(`
+            word_id,
+            lesson_id,
+            lessons(id, title, number),
+            words!inner(
+              id,
+              english,
+              headword,
+              part_of_speech,
+              category,
+              memory_trigger_image_url
+            )
+          `)
+          .in("lesson_id", lessonIds)
+          .order("sort_order")
+          .range(from, to)
+      );
 
-      if (lessonWords && lessonWords.length > 0) {
+      if (lessonWords.length > 0) {
         // Get ALL user progress for this user (avoids .in() with many IDs)
         const { data: allProgress } = await supabase
           .from("user_word_progress")
@@ -214,16 +251,18 @@ export async function getDictionaryWords(
       }
     }
   } else {
-    // Get all words in the language (only items with category 'word')
-    const { data: allWords } = await supabase
-      .from("words")
-      .select("id, english, headword, part_of_speech, category, memory_trigger_image_url")
-      .eq("language_id", languageId)
-      .eq("category", "word")
-      .order("english")
-      .limit(10000);
+    // Get all words in the language (paginate to avoid 1000-row cap)
+    const allWords = await fetchAllRows((from, to) =>
+      supabase
+        .from("words")
+        .select("id, english, headword, part_of_speech, category, memory_trigger_image_url")
+        .eq("language_id", languageId)
+        .eq("category", "word")
+        .order("english")
+        .range(from, to)
+    );
 
-    if (allWords) {
+    if (allWords.length > 0) {
       // Get ALL user progress (avoids .in() with many IDs)
       const { data: allProgress } = await supabase
         .from("user_word_progress")
@@ -234,14 +273,16 @@ export async function getDictionaryWords(
         (allProgress || []).map((p) => [p.word_id, p.status as WordStatus])
       );
 
-      // Get ALL lesson_words for this language's words
-      const { data: allLessonWords } = await supabase
-        .from("lesson_words")
-        .select("word_id, lesson_id, lessons(id, title, number)")
-        .limit(20000);
+      // Get ALL lesson_words for this language's words (paginate)
+      const allLessonWords = await fetchAllRows((from, to) =>
+        supabase
+          .from("lesson_words")
+          .select("word_id, lesson_id, lessons(id, title, number)")
+          .range(from, to)
+      );
 
       const lessonMap = new Map(
-        (allLessonWords || []).map((lw) => [
+        allLessonWords.map((lw) => [
           lw.word_id,
           lw.lessons as { id: string; title: string; number: number } | null,
         ])

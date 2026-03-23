@@ -30,6 +30,7 @@ interface WordWithLessons {
   lemma: string;
   english: string;
   alternate_answers: string[] | null;
+  alternate_english_answers: string[] | null;
   language_id: string;
   category: string | null;
   part_of_speech: string | null;
@@ -38,7 +39,7 @@ interface WordWithLessons {
   is_irregular: boolean | null;
   grammatical_number: string | null;
   notes: string | null;
-  admin_notes: string | null;
+  developer_notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
   audio_url_english: string | null;
@@ -93,6 +94,7 @@ async function getData(searchParams: SearchParams) {
       lemma,
       english,
       alternate_answers,
+      alternate_english_answers,
       language_id,
       category,
       part_of_speech,
@@ -101,7 +103,7 @@ async function getData(searchParams: SearchParams) {
       is_irregular,
       grammatical_number,
       notes,
-      admin_notes,
+      developer_notes,
       memory_trigger_text,
       memory_trigger_image_url,
       audio_url_english,

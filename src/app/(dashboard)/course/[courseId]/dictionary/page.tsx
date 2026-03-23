@@ -7,6 +7,7 @@ import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 import { DictionaryList } from "@/components/DictionaryList";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { formatNumber } from "@/lib/utils/helpers";
 import { notFound } from "next/navigation";
 
 // Disable caching for this page to always show fresh data
@@ -71,7 +72,7 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
             {/* Total words */}
             <div className="flex flex-col items-start">
               <span className="text-xs text-muted-foreground">Total Words</span>
-              <span className="text-regular-semibold">{stats.totalWords}</span>
+              <span className="text-regular-semibold">{formatNumber(stats.totalWords)}</span>
             </div>
 
             {/* Words studied */}
@@ -80,7 +81,7 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-warning" />
                 <span className="text-regular-semibold">
-                  {stats.wordsStudied} ({studiedPercentage}%)
+                  {formatNumber(stats.wordsStudied)} ({studiedPercentage}%)
                 </span>
               </div>
             </div>
@@ -88,13 +89,13 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
             {/* Words mastered */}
             <div
               className="flex flex-col items-start"
-              title={`${stats.wordsMastered} of ${stats.totalWords} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
+              title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
             >
               <span className="text-xs text-muted-foreground">Words Mastered</span>
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-success" />
                 <span className="text-regular-semibold">
-                  {stats.wordsMastered} ({masteredPercentage}%)
+                  {formatNumber(stats.wordsMastered)} ({masteredPercentage}%)
                 </span>
               </div>
             </div>

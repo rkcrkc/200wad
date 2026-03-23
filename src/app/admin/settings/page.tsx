@@ -1,23 +1,33 @@
-import { Settings } from "lucide-react";
+import { getAdminSettingsData } from "@/lib/queries/admin";
+import { AdminSettingsClient } from "@/components/admin/settings/AdminSettingsClient";
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  const { data, error } = await getAdminSettingsData();
+
+  if (error || !data) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">
+            {error || "Unable to load settings data."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="mt-1 text-gray-600">
-          Admin configuration and preferences.
+          Manage pricing plans, platform configuration, and subscription settings.
         </p>
       </div>
-
-      {/* Placeholder */}
-      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-        <Settings className="mx-auto h-12 w-12 text-gray-300" />
-        <p className="mt-4 text-gray-500">
-          Settings will be available here soon.
-        </p>
-      </div>
+      <AdminSettingsClient data={data} />
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
             {tab.label}
             {tab.count !== undefined && (
               <span className="ml-1.5 text-xs opacity-60" data-tab-count="">
-                ({tab.count})
+                ({tab.count.toLocaleString("en-US")})
               </span>
             )}
           </button>

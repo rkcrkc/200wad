@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
+import { getLessonAccessMap } from "@/lib/utils/accessControl";
 
 export type LessonStatus = "not-started" | "studying" | "mastered";
 
@@ -11,6 +12,8 @@ export interface LessonWithProgress extends Lesson {
   lastStudiedAt: string | null;
   /** Whether this is a virtual auto-lesson */
   isAutoLesson?: boolean;
+  /** Whether this lesson is locked (requires subscription) */
+  isLocked?: boolean;
 }
 
 // Auto-lesson types
@@ -190,7 +193,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       cefr_range: course.cefr_range,
       total_lessons: course.total_lessons,
       word_count: course.word_count,
-      price_cents: course.price_cents,
+      price_override_cents: course.price_override_cents,
       free_lessons: course.free_lessons,
       is_published: course.is_published,
       sort_order: course.sort_order,
@@ -302,6 +305,27 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     }
   );
 
+  // Compute access map for lesson locking
+  if (course && lessons && lessons.length > 0) {
+    const courseAccessInfo = {
+      id: course.id,
+      language_id: course.language_id,
+      free_lessons: course.free_lessons,
+    };
+    const lessonNumbers = lessons.map((l) => l.number);
+    const accessMap = await getLessonAccessMap(
+      user?.id ?? null,
+      courseAccessInfo,
+      lessonNumbers
+    );
+    for (const lp of lessonsWithProgress) {
+      if (!lp.isAutoLesson) {
+        const access = accessMap.get(lp.number);
+        lp.isLocked = access ? !access.hasAccess : false;
+      }
+    }
+  }
+
   // Generate auto-lessons for authenticated users
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
@@ -319,7 +343,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     cefr_range: course.cefr_range,
     total_lessons: course.total_lessons,
     word_count: course.word_count,
-    price_cents: course.price_cents,
+    price_override_cents: course.price_override_cents,
     free_lessons: course.free_lessons,
     is_published: course.is_published,
     sort_order: course.sort_order,

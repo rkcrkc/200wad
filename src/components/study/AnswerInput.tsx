@@ -114,12 +114,15 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   };
 
   // Keep input focused - refocus after blur (with small delay to allow button clicks)
+  // But don't steal focus from other inputs/textareas (e.g. developer notes, user notes)
   const handleBlur = () => {
     setTimeout(() => {
-      if (inputRef.current) {
+      const active = document.activeElement;
+      const isOtherInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+      if (inputRef.current && !isOtherInput) {
         inputRef.current.focus();
       }
-    }, 10);
+    }, 50);
   };
 
   if (!isVisible) {

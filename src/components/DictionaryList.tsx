@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
+import { InlineSearch } from "@/components/InlineSearch";
 import { DictionaryRow } from "@/components/DictionaryRow";
 import { DictionaryWord } from "@/lib/queries/dictionary";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils/helpers";
 
 type FilterType = "my-words" | "course" | "all";
 type SortColumn = "english" | "headword" | "partOfSpeech" | "status" | "lessonNumber";
 type SortDirection = "asc" | "desc";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const PAGE_SIZE = 50;
 
 interface DictionaryListProps {
   myWords: DictionaryWord[];
@@ -69,10 +73,18 @@ export function DictionaryList({
   languageFlag,
   languageName,
 }: DictionaryListProps) {
-  const [filter, setFilter] = useState<FilterType>("course");
-  const [letterFilter, setLetterFilter] = useState<string | null>("A"); // Default to 'A' for course/all
+  const searchParams = useSearchParams();
+  const highlightWordId = searchParams.get("word");
+
+  const [filter, setFilter] = useState<FilterType>(() => {
+    // If navigating to a specific word, start on "course" tab (most likely to contain it)
+    return "course";
+  });
+  const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>("english");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedWordId, setHighlightedWordId] = useState<string | null>(highlightWordId);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -109,9 +121,19 @@ export function DictionaryList({
     );
   }, [currentWords, letterFilter]);
 
+  // Apply search filter (stacks on top of letter filter)
+  const searchFilteredWords = useMemo(() => {
+    if (!searchQuery) return letterFilteredWords;
+    const query = searchQuery.toLowerCase();
+    return letterFilteredWords.filter((word) =>
+      word.english.toLowerCase().includes(query) ||
+      word.headword.toLowerCase().includes(query)
+    );
+  }, [letterFilteredWords, searchQuery]);
+
   // Sort words
   const sortedWords = useMemo(() => {
-    const sorted = [...letterFilteredWords];
+    const sorted = [...searchFilteredWords];
     sorted.sort((a, b) => {
       let comparison = 0;
 
@@ -137,13 +159,12 @@ export function DictionaryList({
       return sortDirection === "asc" ? comparison : -comparison;
     });
     return sorted;
-  }, [letterFilteredWords, sortColumn, sortDirection]);
+  }, [searchFilteredWords, sortColumn, sortDirection]);
 
   // Handle filter changes
   const handleFilterChange = (newFilter: FilterType) => {
     setFilter(newFilter);
-    // "My Words" shows all by default, others start on 'A'
-    setLetterFilter(newFilter === "my-words" ? null : "A");
+    setLetterFilter(null);
   };
 
   const handleLetterChange = (letter: string | null) => {
@@ -162,6 +183,73 @@ export function DictionaryList({
     return letters;
   }, [currentWords]);
 
+  // Infinite scroll
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset display count when filtered results change
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE);
+  }, [sortedWords.length, filter, letterFilter, searchQuery]);
+
+  const hasMore = displayCount < sortedWords.length;
+
+  const loadMore = useCallback(() => {
+    setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, sortedWords.length));
+  }, [sortedWords.length]);
+
+  // IntersectionObserver to trigger loadMore
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
+
+  const visibleWords = sortedWords.slice(0, displayCount);
+
+  // Scroll to highlighted word from search navigation
+  useEffect(() => {
+    if (!highlightedWordId) return;
+
+    // Find the word's index in sorted results
+    const wordIndex = sortedWords.findIndex((w) => w.id === highlightedWordId);
+    if (wordIndex === -1) return;
+
+    // Ensure enough items are displayed to include the word
+    if (wordIndex >= displayCount) {
+      setDisplayCount(wordIndex + PAGE_SIZE);
+    }
+
+    // Scroll to the row after a short delay for render
+    const timer = setTimeout(() => {
+      const row = document.querySelector(`[data-word-id="${highlightedWordId}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+
+    // Clear highlight after 3 seconds
+    const clearTimer = setTimeout(() => {
+      setHighlightedWordId(null);
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearTimer);
+    };
+  }, [highlightedWordId, sortedWords, displayCount]);
+
   return (
     <>
       {/* Filter tabs */}
@@ -172,7 +260,14 @@ export function DictionaryList({
           onChange={(tabId) => handleFilterChange(tabId as FilterType)}
         />
 
-        {languageFlag && <div className="text-2xl">{languageFlag}</div>}
+        <div className="flex items-center gap-3">
+          <InlineSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Filter words..."
+          />
+          {languageFlag && <div className="text-2xl">{languageFlag}</div>}
+        </div>
       </div>
 
       {/* Letter filter */}
@@ -279,17 +374,20 @@ export function DictionaryList({
                 </td>
               </tr>
             ) : (
-              sortedWords.map((word, index) => (
+              visibleWords.map((word, index) => (
                 <DictionaryRow
                   key={word.id}
                   word={word}
                   isFirst={index === 0}
-                  isLast={index === sortedWords.length - 1}
+                  isLast={index === visibleWords.length - 1 && !hasMore}
+                  isHighlighted={word.id === highlightedWordId}
                 />
               ))
             )}
           </tbody>
         </table>
+        {/* Sentinel for infinite scroll */}
+        <div ref={sentinelRef} className="h-1" />
       </div>
 
       {/* Floating Footer */}
@@ -298,7 +396,7 @@ export function DictionaryList({
           <span className="text-sm text-muted-foreground">
             {sortedWords.length === 0
               ? "No words"
-              : `${sortedWords.length} word${sortedWords.length === 1 ? "" : "s"}`}
+              : `${formatNumber(sortedWords.length)} word${sortedWords.length === 1 ? "" : "s"}`}
           </span>
         </div>
       </div>

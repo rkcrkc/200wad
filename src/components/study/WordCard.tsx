@@ -2,7 +2,7 @@
 
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
-import { EditableText } from "@/components/admin";
+import { EditableText, EditableArrayField } from "@/components/admin";
 
 interface WordCardProps {
   englishWord: string;
@@ -22,6 +22,9 @@ interface WordCardProps {
   wordId?: string;
   isEditMode?: boolean;
   onFieldSave?: (field: string, value: string) => Promise<boolean>;
+  onArrayFieldSave?: (field: string, value: string[]) => Promise<boolean>;
+  alternateAnswers?: string[];
+  alternateEnglishAnswers?: string[];
 }
 
 export function WordCard({
@@ -37,6 +40,9 @@ export function WordCard({
   wordId,
   isEditMode = false,
   onFieldSave,
+  onArrayFieldSave,
+  alternateAnswers = [],
+  alternateEnglishAnswers = [],
 }: WordCardProps) {
   const isPlayingEnglish = playingAudioType === "english";
   const isPlayingForeign = playingAudioType === "foreign";
@@ -99,6 +105,19 @@ export function WordCard({
           <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />
         )}
 
+        {/* Alternate English answers - edit mode only */}
+        {isEditMode && wordId && onArrayFieldSave && showEnglish && (
+          <EditableArrayField
+            value={alternateEnglishAnswers}
+            field="alternate_english_answers"
+            wordId={wordId}
+            isEditMode={isEditMode}
+            onSave={onArrayFieldSave}
+            label="Alt English"
+            className="ml-14"
+          />
+        )}
+
         {/* Divider - show when both words are visible or will be visible */}
         <div
           className={`h-px w-full bg-black/10 transition-opacity ${
@@ -134,6 +153,19 @@ export function WordCard({
           </button>
         ) : (
           <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />
+        )}
+
+        {/* Alternate foreign answers - edit mode only */}
+        {isEditMode && wordId && onArrayFieldSave && showForeign && (
+          <EditableArrayField
+            value={alternateAnswers}
+            field="alternate_answers"
+            wordId={wordId}
+            isEditMode={isEditMode}
+            onSave={onArrayFieldSave}
+            label="Alt Foreign"
+            className="ml-14"
+          />
         )}
       </div>
     </div>

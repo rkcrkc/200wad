@@ -87,8 +87,9 @@ interface Word {
   is_irregular: boolean | null;
   grammatical_number: string | null;
   notes: string | null;
-  admin_notes: string | null;
+  developer_notes: string | null;
   alternate_answers: string[] | null;
+  alternate_english_answers: string[] | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
   audio_url_english: string | null;
@@ -116,8 +117,9 @@ interface FormData {
   is_irregular: boolean;
   grammatical_number: string;
   notes: string;
-  admin_notes: string;
+  developer_notes: string;
   alternate_answers: string[];
+  alternate_english_answers: string[];
   memory_trigger_text: string;
 }
 
@@ -178,6 +180,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
   const [editingWord, setEditingWord] = useState<Word | null>(null);
   const [deletingWord, setDeletingWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"word" | "trigger" | "audio">("word");
   const [formData, setFormData] = useState<FormData>({
     headword: "",
     lemma: "",
@@ -189,11 +192,13 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
     is_irregular: false,
     grammatical_number: "sg",
     notes: "",
-    admin_notes: "",
+    developer_notes: "",
     alternate_answers: [],
+    alternate_english_answers: [],
     memory_trigger_text: "",
   });
   const [newAlternateAnswer, setNewAlternateAnswer] = useState("");
+  const [newAlternateEnglishAnswer, setNewAlternateEnglishAnswer] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [fileUploads, setFileUploads] = useState<FileUploads>({
     triggerImage: null,
@@ -302,11 +307,13 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
       is_irregular: false,
       grammatical_number: "sg",
       notes: "",
-      admin_notes: "",
+      developer_notes: "",
       alternate_answers: [],
+      alternate_english_answers: [],
       memory_trigger_text: "",
     });
     setNewAlternateAnswer("");
+    setNewAlternateEnglishAnswer("");
     setErrors({});
     setFileUploads({
       triggerImage: null,
@@ -321,6 +328,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
       audioTrigger: null,
     });
     setEditingWord(null);
+    setActiveTab("word");
     setShowSentenceForm(false);
     setNewSentence({ foreign_sentence: "", english_sentence: "" });
     setRelatedWords([]);
@@ -346,8 +354,9 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
       is_irregular: word.is_irregular ?? false,
       grammatical_number: word.grammatical_number || "sg",
       notes: word.notes || "",
-      admin_notes: word.admin_notes || "",
+      developer_notes: word.developer_notes || "",
       alternate_answers: word.alternate_answers || [],
+      alternate_english_answers: word.alternate_english_answers || [],
       memory_trigger_text: word.memory_trigger_text || "",
     });
     setPreviewUrls({
@@ -397,8 +406,9 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
         is_irregular: formData.is_irregular,
         grammatical_number: formData.grammatical_number || null,
         notes: formData.notes || null,
-        admin_notes: formData.admin_notes || null,
+        developer_notes: formData.developer_notes || null,
         alternate_answers: formData.alternate_answers.length > 0 ? formData.alternate_answers : null,
+        alternate_english_answers: formData.alternate_english_answers.length > 0 ? formData.alternate_english_answers : null,
         memory_trigger_text: formData.memory_trigger_text || null,
       };
 
@@ -586,7 +596,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
               {lesson.course && positionInOrder != null && (
                 <span className="text-gray-500"> · Lesson {positionInOrder}</span>
               )}{" "}
-              &middot; {words.length} word{words.length !== 1 ? "s" : ""}
+              &middot; {words.length.toLocaleString("en-US")} word{words.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button onClick={openCreateModal}>
@@ -732,6 +742,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
             : "Add a new vocabulary word to this lesson."
         }
         size="xl"
+        fullHeight
         footer={
           <>
             <Button
@@ -754,287 +765,583 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
           </>
         }
       >
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <AdminFormField
-              label={`Headword (${lesson.course?.language?.name || "Foreign"})`}
-              name="headword"
-              required
-              error={errors.headword}
-            >
-              <AdminInput
-                id="headword"
-                name="headword"
-                value={formData.headword}
-                onChange={(e) =>
-                  setFormData({ ...formData, headword: e.target.value })
-                }
-                placeholder="e.g., l'avventura"
-                error={!!errors.headword}
-              />
-            </AdminFormField>
-
-            <AdminFormField
-              label="English"
-              name="english"
-              required
-              error={errors.english}
-            >
-              <AdminInput
-                id="english"
-                name="english"
-                value={formData.english}
-                onChange={(e) =>
-                  setFormData({ ...formData, english: e.target.value })
-                }
-                placeholder="e.g., the adventure"
-                error={!!errors.english}
-              />
-            </AdminFormField>
+        <div>
+          {/* Tab Bar */}
+          <div className="mb-4 flex gap-1 border-b border-gray-200">
+            {(["word", "trigger", "audio"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {tab === "word" ? "Word" : tab === "trigger" ? "Memory Trigger" : "Audio Files"}
+              </button>
+            ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <AdminFormField
-              label="Lemma (base form)"
-              name="lemma"
-              hint="Optional. Used for search/grouping. Defaults to headword if empty."
-            >
-              <AdminInput
-                id="lemma"
-                name="lemma"
-                value={formData.lemma}
-                onChange={(e) =>
-                  setFormData({ ...formData, lemma: e.target.value })
-                }
-                placeholder="e.g., avventura"
-              />
-            </AdminFormField>
+          {/* Tab: Word */}
+          {activeTab === "word" && (
+            <div className="space-y-6">
+              {/* Foreign Word subgroup */}
+              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                <h4 className="text-sm font-medium text-gray-500">Foreign Word</h4>
+                <AdminFormField
+                  label={`Headword (${lesson.course?.language?.name || "Foreign"})`}
+                  name="headword"
+                  required
+                  error={errors.headword}
+                >
+                  <AdminInput
+                    id="headword"
+                    name="headword"
+                    value={formData.headword}
+                    onChange={(e) =>
+                      setFormData({ ...formData, headword: e.target.value })
+                    }
+                    placeholder="e.g., l'avventura"
+                    error={!!errors.headword}
+                  />
+                </AdminFormField>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Alternate Answers
-                <span className="ml-1 text-xs font-normal text-gray-500">
-                  (other spellings accepted in tests)
-                </span>
-              </label>
-              {formData.alternate_answers.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {formData.alternate_answers.map((answer, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
-                    >
-                      {answer}
-                      <button
-                        type="button"
-                        onClick={() =>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Alternate Answers
+                    <span className="ml-1 text-xs font-normal text-gray-500">
+                      (other spellings accepted in tests)
+                    </span>
+                  </label>
+                  {formData.alternate_answers.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {formData.alternate_answers.map((answer, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                        >
+                          {answer}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                alternate_answers: formData.alternate_answers.filter(
+                                  (_, i) => i !== index
+                                ),
+                              })
+                            }
+                            className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                            title="Remove"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newAlternateAnswer}
+                      onChange={(e) => setNewAlternateAnswer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newAlternateAnswer.trim()) {
+                          e.preventDefault();
+                          if (!formData.alternate_answers.includes(newAlternateAnswer.trim())) {
+                            setFormData({
+                              ...formData,
+                              alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                            });
+                          }
+                          setNewAlternateAnswer("");
+                        }
+                      }}
+                      placeholder="Type and press Enter to add"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (newAlternateAnswer.trim() && !formData.alternate_answers.includes(newAlternateAnswer.trim())) {
                           setFormData({
                             ...formData,
-                            alternate_answers: formData.alternate_answers.filter(
-                              (_, i) => i !== index
-                            ),
-                          })
+                            alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
+                          });
+                          setNewAlternateAnswer("");
                         }
-                        className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
-                        title="Remove"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      }}
+                      disabled={!newAlternateAnswer.trim()}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                <AdminFormField
+                  label="Lemma (base form)"
+                  name="lemma"
+                  hint="Optional. Used for search/grouping. Defaults to headword if empty."
+                >
+                  <AdminInput
+                    id="lemma"
+                    name="lemma"
+                    value={formData.lemma}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lemma: e.target.value })
+                    }
+                    placeholder="e.g., avventura"
+                  />
+                </AdminFormField>
+              </div>
+
+              {/* English Word subgroup */}
+              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                <h4 className="text-sm font-medium text-gray-500">English Word</h4>
+                <AdminFormField
+                  label="English"
+                  name="english"
+                  required
+                  error={errors.english}
+                >
+                  <AdminInput
+                    id="english"
+                    name="english"
+                    value={formData.english}
+                    onChange={(e) =>
+                      setFormData({ ...formData, english: e.target.value })
+                    }
+                    placeholder="e.g., the adventure"
+                    error={!!errors.english}
+                  />
+                </AdminFormField>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Alternate English Answers
+                    <span className="ml-1 text-xs font-normal text-gray-500">
+                      (other English translations accepted in tests)
                     </span>
-                  ))}
+                  </label>
+                  {formData.alternate_english_answers.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {formData.alternate_english_answers.map((answer, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-sm text-green-700"
+                        >
+                          {answer}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                alternate_english_answers: formData.alternate_english_answers.filter(
+                                  (_, i) => i !== index
+                                ),
+                              })
+                            }
+                            className="ml-1 text-green-400 hover:text-red-500 transition-colors"
+                            title="Remove"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newAlternateEnglishAnswer}
+                      onChange={(e) => setNewAlternateEnglishAnswer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newAlternateEnglishAnswer.trim()) {
+                          e.preventDefault();
+                          if (!formData.alternate_english_answers.includes(newAlternateEnglishAnswer.trim())) {
+                            setFormData({
+                              ...formData,
+                              alternate_english_answers: [...formData.alternate_english_answers, newAlternateEnglishAnswer.trim()],
+                            });
+                          }
+                          setNewAlternateEnglishAnswer("");
+                        }
+                      }}
+                      placeholder="Type and press Enter to add"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (newAlternateEnglishAnswer.trim() && !formData.alternate_english_answers.includes(newAlternateEnglishAnswer.trim())) {
+                          setFormData({
+                            ...formData,
+                            alternate_english_answers: [...formData.alternate_english_answers, newAlternateEnglishAnswer.trim()],
+                          });
+                          setNewAlternateEnglishAnswer("");
+                        }
+                      }}
+                      disabled={!newAlternateEnglishAnswer.trim()}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classifications subgroup */}
+              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                <h4 className="text-sm font-medium text-gray-500">Classifications</h4>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <AdminFormField label="Category" name="category">
+                    <AdminSelect
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
+                      options={categoryOptions}
+                    />
+                  </AdminFormField>
+
+                  {formData.category === "word" && (
+                    <AdminFormField label="Part of Speech" name="part_of_speech">
+                      <AdminSelect
+                        id="part_of_speech"
+                        name="part_of_speech"
+                        value={formData.part_of_speech}
+                        onChange={(e) =>
+                          setFormData({ ...formData, part_of_speech: e.target.value })
+                        }
+                        options={partOfSpeechOptions}
+                      />
+                    </AdminFormField>
+                  )}
+
+                  {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
+                    <AdminFormField label="Gender" name="gender">
+                      <AdminSelect
+                        id="gender"
+                        name="gender"
+                        value={formData.gender}
+                        onChange={(e) =>
+                          setFormData({ ...formData, gender: e.target.value })
+                        }
+                        options={genderOptions}
+                      />
+                    </AdminFormField>
+                  )}
+                </div>
+
+                {formData.category === "word" && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {formData.part_of_speech === "verb" && (
+                      <AdminFormField label="Transitivity" name="transitivity">
+                        <AdminSelect
+                          id="transitivity"
+                          name="transitivity"
+                          value={formData.transitivity}
+                          onChange={(e) =>
+                            setFormData({ ...formData, transitivity: e.target.value })
+                          }
+                          options={transitivityOptions}
+                        />
+                      </AdminFormField>
+                    )}
+
+                    {formData.part_of_speech === "verb" && (
+                      <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_irregular}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_irregular: e.target.checked })
+                            }
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700">Irregular verb</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {["noun", "article", "adjective_noun"].includes(formData.part_of_speech) && (
+                      <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={formData.grammatical_number === "pl"}
+                            onChange={(e) =>
+                              setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
+                            }
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700">Plural</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes subgroup */}
+              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                <h4 className="text-sm font-medium text-gray-500">Notes</h4>
+                <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
+                  <AdminTextarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    placeholder="Grammar notes, usage tips, etc."
+                  />
+                </AdminFormField>
+                <AdminFormField label="Developer Notes" name="developer_notes" hint="The student will NOT see these">
+                  <AdminTextarea
+                    id="developer_notes"
+                    name="developer_notes"
+                    value={formData.developer_notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, developer_notes: e.target.value })
+                    }
+                    placeholder="Private notes for administrators only..."
+                  />
+                </AdminFormField>
+              </div>
+
+              {/* Example Sentences (only when editing) */}
+              {editingWord && (
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-500">Example Sentences</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSentenceForm(true)}
+                      disabled={showSentenceForm}
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add Sentence
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {editingWord.example_sentences?.map((sentence) => (
+                      <div
+                        key={sentence.id}
+                        className="flex items-start justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {sentence.foreign_sentence}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {sentence.english_sentence}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteSentence(sentence.id)}
+                          className="rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {showSentenceForm && (
+                    <div className="mt-3 rounded-lg border border-primary/50 bg-primary/5 p-4">
+                      <div className="space-y-3">
+                        <AdminFormField label="Foreign Sentence" name="new_foreign">
+                          <AdminInput
+                            id="new_foreign"
+                            value={newSentence.foreign_sentence}
+                            onChange={(e) =>
+                              setNewSentence({
+                                ...newSentence,
+                                foreign_sentence: e.target.value,
+                              })
+                            }
+                            placeholder="e.g., Ciao, come stai?"
+                          />
+                        </AdminFormField>
+                        <AdminFormField label="English Translation" name="new_english">
+                          <AdminInput
+                            id="new_english"
+                            value={newSentence.english_sentence}
+                            onChange={(e) =>
+                              setNewSentence({
+                                ...newSentence,
+                                english_sentence: e.target.value,
+                              })
+                            }
+                            placeholder="e.g., Hello, how are you?"
+                          />
+                        </AdminFormField>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowSentenceForm(false);
+                              setNewSentence({ foreign_sentence: "", english_sentence: "" });
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleAddSentence}
+                            disabled={
+                              isLoading ||
+                              !newSentence.foreign_sentence ||
+                              !newSentence.english_sentence
+                            }
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={newAlternateAnswer}
-                  onChange={(e) => setNewAlternateAnswer(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newAlternateAnswer.trim()) {
-                      e.preventDefault();
-                      if (!formData.alternate_answers.includes(newAlternateAnswer.trim())) {
-                        setFormData({
-                          ...formData,
-                          alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
-                        });
-                      }
-                      setNewAlternateAnswer("");
-                    }
-                  }}
-                  placeholder="Type and press Enter to add"
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (newAlternateAnswer.trim() && !formData.alternate_answers.includes(newAlternateAnswer.trim())) {
-                      setFormData({
-                        ...formData,
-                        alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
-                      });
-                      setNewAlternateAnswer("");
-                    }
-                  }}
-                  disabled={!newAlternateAnswer.trim()}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <AdminFormField label="Category" name="category">
-              <AdminSelect
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
-                options={categoryOptions}
-              />
-            </AdminFormField>
+              {/* Related Words (only when editing) */}
+              {editingWord && (
+                <div>
+                  <h4 className="mb-3 text-sm font-medium text-gray-500 flex items-center gap-2">
+                    <Link2 className="h-4 w-4" />
+                    Related Words
+                  </h4>
 
-            {formData.category === "word" && (
-              <AdminFormField label="Part of Speech" name="part_of_speech">
-                <AdminSelect
-                  id="part_of_speech"
-                  name="part_of_speech"
-                  value={formData.part_of_speech}
-                  onChange={(e) =>
-                    setFormData({ ...formData, part_of_speech: e.target.value })
-                  }
-                  options={partOfSpeechOptions}
-                />
-              </AdminFormField>
-            )}
-          </div>
+                  {isLoadingRelations ? (
+                    <p className="text-sm text-gray-500">Loading relationships...</p>
+                  ) : relatedWords.length > 0 ? (
+                    <div className="space-y-2 mb-4">
+                      {["compound", "grammar", "sentence"].map((type) => {
+                        const typeWords = relatedWords.filter(r => r.relationship_type === type);
+                        if (typeWords.length === 0) return null;
+                        return (
+                          <div key={type}>
+                            <p className="text-xs font-medium text-gray-500 uppercase mb-1">{type}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {typeWords.map((rel) => (
+                                <span
+                                  key={rel.relationship_id}
+                                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
+                                >
+                                  <span className="font-medium">{rel.headword}</span>
+                                  <span className="text-blue-400">({rel.english})</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveRelation(rel.relationship_id)}
+                                    className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
+                                    title="Remove relationship"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 mb-4">No related words.</p>
+                  )}
 
-          {/* Lexical Metadata - shown conditionally based on POS */}
-          <div className="grid grid-cols-2 gap-4">
-            {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
-              <AdminFormField 
-                label="Gender" 
-                name="gender"
-                hint="For nouns and adjectives"
-              >
-                <AdminSelect
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gender: e.target.value })
-                  }
-                  options={genderOptions}
-                />
-              </AdminFormField>
-            )}
-
-            {formData.part_of_speech === "verb" && (
-              <AdminFormField 
-                label="Transitivity" 
-                name="transitivity"
-                hint="For verbs only"
-              >
-                <AdminSelect
-                  id="transitivity"
-                  name="transitivity"
-                  value={formData.transitivity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, transitivity: e.target.value })
-                  }
-                  options={transitivityOptions}
-                />
-              </AdminFormField>
-            )}
-          </div>
-
-          {/* Boolean flags - only show for specific word types */}
-          {formData.category === "word" && (formData.part_of_speech === "verb" || ["noun", "article", "adjective_noun"].includes(formData.part_of_speech)) && (
-            <div className="flex gap-6">
-              {formData.part_of_speech === "verb" && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_irregular}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_irregular: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">Irregular verb</span>
-                </label>
-              )}
-
-              {["noun", "article", "adjective_noun"].includes(formData.part_of_speech) && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={formData.grammatical_number === "pl"}
-                    onChange={(e) =>
-                      setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
-                    }
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">Plural</span>
-                </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={newRelationType}
+                      onChange={(e) => setNewRelationType(e.target.value)}
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="compound">Compound</option>
+                      <option value="grammar">Grammar</option>
+                      <option value="sentence">Sentence</option>
+                    </select>
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={relationSearch}
+                        onChange={(e) => setRelationSearch(e.target.value)}
+                        placeholder="Search words to link..."
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      {isSearchingRelations && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                          Searching...
+                        </span>
+                      )}
+                      {relationSearchResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                          {relationSearchResults.map((word) => (
+                            <button
+                              key={word.id}
+                              type="button"
+                              onClick={() => handleAddRelation(word.id)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex justify-between items-center"
+                            >
+                              <span className="font-medium">{word.headword}</span>
+                              <span className="text-gray-400">{word.english}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
 
-          <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
-            <AdminTextarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="Grammar notes, usage tips, etc."
-            />
-          </AdminFormField>
+          {/* Tab: Memory Trigger */}
+          {activeTab === "trigger" && (
+            <div className="space-y-6">
+              <AdminFormField label="Trigger Text" name="memory_trigger_text">
+                <AdminTextarea
+                  id="memory_trigger_text"
+                  name="memory_trigger_text"
+                  value={formData.memory_trigger_text}
+                  onChange={(e) =>
+                    setFormData({ ...formData, memory_trigger_text: e.target.value })
+                  }
+                  placeholder="Mnemonic or memory aid..."
+                />
+              </AdminFormField>
 
-          {/* Memory Trigger */}
-          <div className="border-t pt-4">
-            <h3 className="mb-3 font-medium text-gray-900">Memory Trigger</h3>
-            
-            <AdminFormField label="Trigger Text" name="memory_trigger_text">
-              <AdminTextarea
-                id="memory_trigger_text"
-                name="memory_trigger_text"
-                value={formData.memory_trigger_text}
-                onChange={(e) =>
-                  setFormData({ ...formData, memory_trigger_text: e.target.value })
-                }
-                placeholder="Mnemonic or memory aid..."
-              />
-            </AdminFormField>
-
-            <div className="mt-3">
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Trigger Image
-              </label>
-              <AdminFileUpload
-                type="image"
-                value={previewUrls.triggerImage}
-                onChange={(file, url) => {
-                  setFileUploads({ ...fileUploads, triggerImage: file });
-                  setPreviewUrls({ ...previewUrls, triggerImage: url });
-                }}
-              />
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Trigger Image
+                </label>
+                <AdminFileUpload
+                  type="image"
+                  value={previewUrls.triggerImage}
+                  onChange={(file, url) => {
+                    setFileUploads({ ...fileUploads, triggerImage: file });
+                    setPreviewUrls({ ...previewUrls, triggerImage: url });
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Audio Files */}
-          <div className="border-t pt-4">
-            <h3 className="mb-3 font-medium text-gray-900">Audio Files</h3>
-
-            <div className="grid grid-cols-3 gap-4">
+          {/* Tab: Audio Files */}
+          {activeTab === "audio" && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <AdminAudioUpload
                 label="English Audio"
                 value={previewUrls.audioEnglish}
@@ -1060,212 +1367,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
                 }}
               />
             </div>
-          </div>
-
-          {/* Example Sentences (only when editing) */}
-          {editingWord && (
-            <div className="border-t pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-medium text-gray-900">Example Sentences</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSentenceForm(true)}
-                  disabled={showSentenceForm}
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add Sentence
-                </Button>
-              </div>
-
-              {/* Existing sentences */}
-              <div className="space-y-2">
-                {editingWord.example_sentences?.map((sentence) => (
-                  <div
-                    key={sentence.id}
-                    className="flex items-start justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {sentence.foreign_sentence}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {sentence.english_sentence}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteSentence(sentence.id)}
-                      className="rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* New sentence form */}
-              {showSentenceForm && (
-                <div className="mt-3 rounded-lg border border-primary/50 bg-primary/5 p-4">
-                  <div className="space-y-3">
-                    <AdminFormField label="Foreign Sentence" name="new_foreign">
-                      <AdminInput
-                        id="new_foreign"
-                        value={newSentence.foreign_sentence}
-                        onChange={(e) =>
-                          setNewSentence({
-                            ...newSentence,
-                            foreign_sentence: e.target.value,
-                          })
-                        }
-                        placeholder="e.g., Ciao, come stai?"
-                      />
-                    </AdminFormField>
-                    <AdminFormField label="English Translation" name="new_english">
-                      <AdminInput
-                        id="new_english"
-                        value={newSentence.english_sentence}
-                        onChange={(e) =>
-                          setNewSentence({
-                            ...newSentence,
-                            english_sentence: e.target.value,
-                          })
-                        }
-                        placeholder="e.g., Hello, how are you?"
-                      />
-                    </AdminFormField>
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowSentenceForm(false);
-                          setNewSentence({ foreign_sentence: "", english_sentence: "" });
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleAddSentence}
-                        disabled={
-                          isLoading ||
-                          !newSentence.foreign_sentence ||
-                          !newSentence.english_sentence
-                        }
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           )}
-
-          {/* Related Words */}
-          {editingWord && (
-            <div className="border-t pt-4">
-              <h3 className="mb-3 font-medium text-gray-900 flex items-center gap-2">
-                <Link2 className="h-4 w-4" />
-                Related Words
-              </h3>
-
-              {isLoadingRelations ? (
-                <p className="text-sm text-gray-500">Loading relationships...</p>
-              ) : relatedWords.length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  {/* Group by relationship type */}
-                  {["compound", "grammar", "sentence"].map((type) => {
-                    const typeWords = relatedWords.filter(r => r.relationship_type === type);
-                    if (typeWords.length === 0) return null;
-                    return (
-                      <div key={type}>
-                        <p className="text-xs font-medium text-gray-500 uppercase mb-1">{type}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {typeWords.map((rel) => (
-                            <span
-                              key={rel.relationship_id}
-                              className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
-                            >
-                              <span className="font-medium">{rel.headword}</span>
-                              <span className="text-blue-400">({rel.english})</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveRelation(rel.relationship_id)}
-                                className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
-                                title="Remove relationship"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 mb-4">No related words.</p>
-              )}
-
-              {/* Add new relationship */}
-              <div className="flex items-center gap-2">
-                <select
-                  value={newRelationType}
-                  onChange={(e) => setNewRelationType(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="compound">Compound</option>
-                  <option value="grammar">Grammar</option>
-                  <option value="sentence">Sentence</option>
-                </select>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={relationSearch}
-                    onChange={(e) => setRelationSearch(e.target.value)}
-                    placeholder="Search words to link..."
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  {isSearchingRelations && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                      Searching...
-                    </span>
-                  )}
-                  {relationSearchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                      {relationSearchResults.map((word) => (
-                        <button
-                          key={word.id}
-                          type="button"
-                          onClick={() => handleAddRelation(word.id)}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex justify-between items-center"
-                        >
-                          <span className="font-medium">{word.headword}</span>
-                          <span className="text-gray-400">{word.english}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Admin Notes */}
-          <div className="border-t pt-4">
-            <AdminFormField label="Admin Notes" name="admin_notes" hint="The student will NOT see these">
-              <AdminTextarea
-                id="admin_notes"
-                name="admin_notes"
-                value={formData.admin_notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, admin_notes: e.target.value })
-                }
-                placeholder="Private notes for administrators only..."
-              />
-            </AdminFormField>
-          </div>
         </div>
       </AdminModal>
 

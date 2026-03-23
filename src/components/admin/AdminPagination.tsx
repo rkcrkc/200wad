@@ -95,7 +95,7 @@ export function AdminPagination({
   return (
     <div ref={containerRef} className="flex items-center justify-between">
       <p className="text-sm text-gray-500 whitespace-nowrap">
-        Page {currentPage} of {totalPages} ({totalCount} {itemLabel})
+        Page {currentPage} of {totalPages} ({totalCount.toLocaleString("en-US")} {itemLabel})
       </p>
       <div className="flex items-center gap-1">
         {/* First */}

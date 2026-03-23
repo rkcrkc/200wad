@@ -54,7 +54,7 @@ export function LessonCompletedModal({
               <span>{formatDuration(elapsedSeconds)}</span>
             </div>
             <span>·</span>
-            <span>{words.length} words</span>
+            <span>{words.length.toLocaleString("en-US")} words</span>
             <span>·</span>
             <button
               onClick={() => setShowItalian(!showItalian)}

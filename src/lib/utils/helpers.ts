@@ -1,6 +1,13 @@
 import { StatusType } from "@/components/ui/status-pill";
 
 /**
+ * Format a number with comma separators (e.g., 1000 → "1,000").
+ */
+export function formatNumber(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+/**
  * Format seconds into a human-readable time string.
  * @param seconds - Total seconds to format
  * @param options - Formatting options
@@ -36,7 +43,8 @@ export function formatTimerDisplay(seconds: number): string {
  * @param status - Database status string
  * @returns StatusType for StatusPill component
  */
-export function mapStatus(status: string): StatusType {
+export function mapStatus(status: string, isLocked?: boolean): StatusType {
+  if (isLocked) return "locked";
   switch (status) {
     case "mastered":
       return "mastered";

@@ -88,7 +88,7 @@ export function UnlockBundlePromo({
             </>
           )}
           <Link
-            href="/plans"
+            href="/account/subscriptions"
             className="flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 font-bold text-blue-600 shadow-lg transition-all hover:bg-blue-50"
           >
             View Bundle Plans

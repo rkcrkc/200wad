@@ -34,6 +34,27 @@ export async function createTestSession(
     return { sessionId: null, error: "User not authenticated" };
   }
 
+  // Rate limiting: max 20 sessions per hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentSessions } = await supabase
+    .from("study_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("started_at", oneHourAgo);
+
+  if (recentSessions && recentSessions > 20) {
+    return { sessionId: null, error: "Rate limit exceeded. Please wait before starting another session." };
+  }
+
+  // Auto-end orphaned test sessions for this lesson
+  await supabase
+    .from("study_sessions")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("lesson_id", lessonId)
+    .eq("session_type", "test")
+    .is("ended_at", null);
+
   const { data, error } = await supabase
     .from("study_sessions")
     .insert({
@@ -94,8 +115,8 @@ export interface CompleteTestSessionResult {
 export async function completeTestSession(
   sessionId: string,
   lessonId: string,
-  stats: TestStats,
-  questionResults: TestQuestionResult[],
+  inputStats: TestStats,
+  inputQuestionResults: TestQuestionResult[],
   intendedMilestone?: string | null
 ): Promise<CompleteTestSessionResult> {
   const supabase = await createClient();
@@ -107,8 +128,153 @@ export async function completeTestSession(
     return { success: false, testScoreId: null, error: "User not authenticated" };
   }
 
+  // Mutable copies so server-side re-scoring can override client values
+  let stats = { ...inputStats };
+  let questionResults = inputQuestionResults.map((q) => ({ ...q }));
+
   // Check if this is a real DB session (not a local/guest fallback)
   const isRealDbSession = !sessionId.startsWith("local_") && !sessionId.startsWith("guest_");
+
+  // --- Anti-gaming validations ---
+
+  // Validate lesson exists and get word count
+  const { data: lessonData } = await supabase
+    .from("lessons")
+    .select("word_count")
+    .eq("id", lessonId)
+    .single();
+
+  if (!lessonData) {
+    return { success: false, testScoreId: null, error: "Lesson not found" };
+  }
+
+  // Verify totalQuestions doesn't exceed lesson word count * 2 (testTwice mode)
+  if (stats.totalQuestions > (lessonData.word_count || 0) * 2) {
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "question_count_exceeded",
+        severity: "medium",
+        details: { lessonId, totalQuestions: stats.totalQuestions, lessonWordCount: lessonData.word_count },
+      });
+    } catch { /* non-critical */ }
+  }
+
+  // Verify word IDs belong to the lesson
+  const wordIds = questionResults.map((q) => q.wordId);
+  const uniqueWordIds = [...new Set(wordIds)];
+
+  if (uniqueWordIds.length > 0) {
+    const { data: lessonWords } = await supabase
+      .from("lesson_words")
+      .select("word_id")
+      .eq("lesson_id", lessonId)
+      .in("word_id", uniqueWordIds);
+
+    const validWordIds = new Set((lessonWords || []).map((lw) => lw.word_id));
+    const invalidWordIds = uniqueWordIds.filter((id) => !validWordIds.has(id));
+
+    if (invalidWordIds.length > 0) {
+      try {
+        await supabase.from("activity_flags").insert({
+          user_id: user.id,
+          flag_type: "word_id_mismatch",
+          severity: "high",
+          details: { lessonId, invalidWordIds },
+          session_id: isRealDbSession ? sessionId : null,
+        });
+      } catch { /* non-critical */ }
+      return { success: false, testScoreId: null, error: "Invalid word IDs detected" };
+    }
+  }
+
+  // Server-side re-scoring
+  if (questionResults.length > 0) {
+    const { data: wordData } = await supabase
+      .from("words")
+      .select("id, headword, alternate_answers")
+      .in("id", uniqueWordIds);
+
+    if (wordData) {
+      const wordMap = new Map(wordData.map((w) => [w.id, w]));
+
+      const { serverScoreAllQuestions } = await import("@/lib/utils/serverScoring");
+      const scoringInput = questionResults.map((q) => {
+        const word = wordMap.get(q.wordId);
+        const validAnswers = word
+          ? [word.headword, ...(word.alternate_answers || [])]
+          : [q.correctAnswer];
+        return {
+          wordId: q.wordId,
+          userAnswer: q.userAnswer,
+          correctAnswers: validAnswers,
+          clueLevel: q.clueLevel,
+          clientPointsEarned: q.pointsEarned,
+          clientMaxPoints: q.maxPoints,
+        };
+      });
+
+      const serverResults = serverScoreAllQuestions(scoringInput);
+
+      if (serverResults.hasMismatches) {
+        // Log the mismatch
+        try {
+          await supabase.from("activity_flags").insert({
+            user_id: user.id,
+            flag_type: "score_mismatch",
+            severity: "medium",
+            details: {
+              lessonId,
+              clientPoints: stats.pointsEarned,
+              serverPoints: serverResults.totalPointsEarned,
+              mismatches: serverResults.results.filter((r) => !r.clientMatchesServer),
+            },
+            session_id: isRealDbSession ? sessionId : null,
+          });
+        } catch { /* non-critical */ }
+
+        // Use server values
+        stats = {
+          ...stats,
+          pointsEarned: serverResults.totalPointsEarned,
+          maxPoints: serverResults.totalMaxPoints,
+          scorePercent: serverResults.totalMaxPoints > 0
+            ? Math.round((serverResults.totalPointsEarned / serverResults.totalMaxPoints) * 100)
+            : 0,
+        };
+
+        // Update question results with server values
+        for (let i = 0; i < questionResults.length; i++) {
+          questionResults[i] = {
+            ...questionResults[i],
+            pointsEarned: serverResults.results[i].serverPointsEarned,
+            maxPoints: serverResults.results[i].serverMaxPoints,
+            mistakeCount: serverResults.results[i].serverMistakeCount,
+          };
+        }
+      }
+    }
+  }
+
+  // Verify minimum time per question (2 seconds)
+  if (stats.totalQuestions > 0 && stats.durationSeconds < stats.totalQuestions * 2) {
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "impossible_speed",
+        severity: "medium",
+        details: {
+          lessonId,
+          totalQuestions: stats.totalQuestions,
+          durationSeconds: stats.durationSeconds,
+          secondsPerQuestion: stats.durationSeconds / stats.totalQuestions,
+        },
+        session_id: isRealDbSession ? sessionId : null,
+      });
+    } catch { /* non-critical */ }
+  }
+
+  // --- End anti-gaming validations ---
 
   // 1. End the study session in DB
   if (isRealDbSession) {
@@ -204,6 +370,30 @@ export async function completeTestSession(
       lessonId,
       milestoneResult.completedMilestone
     );
+  }
+
+  // Record daily activity for leaderboard/streak tracking
+  try {
+    const { data: lesson } = await supabase
+      .from("lessons")
+      .select("course_id, courses(language_id)")
+      .eq("id", lessonId)
+      .single();
+
+    const languageId = (lesson?.courses as { language_id: string } | null)?.language_id;
+    if (languageId) {
+      const { recordActivity } = await import("./activity");
+      await recordActivity({
+        languageId,
+        wordsStudied: stats.totalQuestions,
+        wordsMastered: stats.masteredWordsCount,
+        testPointsEarned: stats.pointsEarned,
+        testMaxPoints: stats.maxPoints,
+        studyTimeSeconds: stats.durationSeconds,
+      });
+    }
+  } catch {
+    // Non-critical — don't fail the session completion
   }
 
   // Revalidate lesson pages

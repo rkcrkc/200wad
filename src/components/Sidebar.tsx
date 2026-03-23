@@ -8,8 +8,6 @@ import {
   BookOpen,
   ClipboardCheck,
   BookMarked,
-  Users,
-  Trophy,
   Lock,
   Gift,
   Settings,
@@ -24,8 +22,6 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
-  { path: "/community", icon: Users, label: "Community" },
-  { path: "/trophies", icon: Trophy, label: "Trophies" },
 ];
 
 const bottomNavItems = [
@@ -99,9 +95,10 @@ function SidebarButton({ icon: Icon, label }: { icon: LucideIcon; label: string 
 
 interface SidebarProps {
   dueTestsCount?: number;
+  onViewPlans?: () => void;
 }
 
-export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
+export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: SidebarProps) {
   const pathname = usePathname();
   const { courseId, dueTestsCount: contextDueTestsCount } = useCourseContext();
 
@@ -164,6 +161,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount }: SidebarProps) {
         <Button
           className="w-full bg-warning hover:bg-warning/90 text-white"
           size="sm"
+          onClick={onViewPlans}
         >
           View Plans
         </Button>

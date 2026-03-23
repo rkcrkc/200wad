@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronLeft, ChevronRight, Menu, Search, TrendingUp } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Medal, Menu, TrendingUp } from "lucide-react";
+import { SearchBar } from "./SearchBar";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ interface HeaderProps {
   showPreviewMode?: boolean;
   /** Due tests count for mobile menu badge */
   dueTestsCount?: number;
+  /** Callback to open the upgrade modal */
+  onViewPlans?: () => void;
 }
 
 // Placeholder stats for onboarding preview
@@ -33,9 +36,10 @@ const PREVIEW_STATS: HeaderStats = {
   totalWords: 200,
   totalWordsStudied: 48,
   totalTimeSeconds: 3600, // 1 hour
+  leaderboardRank: 42,
 };
 
-export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount }: HeaderProps) {
+export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans }: HeaderProps) {
   const { user, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
@@ -200,24 +204,26 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   })()}
                 </div>
               </div>
+
+              {/* Leaderboard Rank Indicator */}
+              {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (
+                <Link href="/community" className="flex flex-col items-center transition-opacity hover:opacity-70">
+                  <div className="flex items-center gap-1">
+                    <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
+                      #{effectiveStats.leaderboardRank}
+                    </span>
+                    <Medal className="text-warning h-4 w-4" strokeWidth={2} />
+                  </div>
+                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
+                    rank
+                  </span>
+                </Link>
+              )}
             </div>
           )}
 
           {/* Search Bar - Show when sidebar is shown and logged in, hide on small/md */}
-          {showSidebar && showAsLoggedIn && (
-            <div className="relative ml-5 hidden h-[42px] w-[400px] shrink-0 lg:block">
-              <div className="border-secondary bg-input-background absolute top-0 left-0 h-[42px] w-full rounded-[10px] border">
-                <input
-                  type="text"
-                  placeholder="Search words, lessons or help"
-                  className="text-foreground placeholder:text-muted-foreground focus:ring-primary h-full w-full rounded-[inherit] bg-transparent py-2 pr-4 pl-10 text-[15px] leading-[1.35] font-medium tracking-[-0.3px] focus:ring-2 focus:outline-none"
-                />
-              </div>
-              <div className="pointer-events-none absolute top-[9px] left-3">
-                <Search className="text-muted-foreground h-5 w-5" />
-              </div>
-            </div>
-          )}
+          {showSidebar && showAsLoggedIn && <SearchBar />}
         </div>
 
         {/* Right side - Actions */}
@@ -286,6 +292,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
         isOpen={mobileMenuOpen}
         onClose={handleCloseMobileMenu}
         dueTestsCount={dueTestsCount}
+        onViewPlans={onViewPlans}
       />
     )}
     </>

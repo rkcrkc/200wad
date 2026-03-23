@@ -13,6 +13,7 @@ interface AdminModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  fullHeight?: boolean;
 }
 
 export function AdminModal({
@@ -23,6 +24,7 @@ export function AdminModal({
   children,
   footer,
   size = "md",
+  fullHeight = false,
 }: AdminModalProps) {
   // Handle escape key
   const handleEscape = useCallback(
@@ -67,13 +69,14 @@ export function AdminModal({
       {/* Modal */}
       <div
         className={cn(
-          "relative w-full rounded-xl bg-white shadow-xl",
+          "relative flex w-full flex-col rounded-xl bg-white shadow-xl",
           sizeClasses[size],
-          "mx-4 max-h-[90vh] overflow-hidden"
+          "mx-4",
+          fullHeight ? "h-[90vh]" : "max-h-[90vh]"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             {description && (
@@ -89,13 +92,13 @@ export function AdminModal({
         </div>
 
         {/* Content */}
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-gray-200 px-6 py-4">
             {footer}
           </div>
         )}

@@ -44,3 +44,22 @@ export type { UpdateProfileData, MutationResult } from "./settings";
 export { addLanguageWithCourse } from "./onboarding";
 
 export type { AddLanguageWithCourseResult } from "./onboarding";
+
+export {
+  createCheckoutSession,
+  createCustomerPortalSession,
+} from "./subscriptions";
+
+export type {
+  CheckoutSessionResult,
+  PortalSessionResult,
+} from "./subscriptions";
+
+export {
+  recordReferralSignup,
+  completeReferralIfPending,
+} from "./referrals";
+
+export type { RecordReferralSignupResult } from "./referrals";
+
+export { recordActivity } from "./activity";

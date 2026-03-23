@@ -85,8 +85,16 @@ export function StartTestModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+
+      {/* Modal */}
+      <div className="relative mx-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
         {/* Title row with close button */}
         <div className="mb-1 flex items-start justify-between gap-4">
           <h2 className="text-xl-semibold text-foreground">{lessonTitle}</h2>
