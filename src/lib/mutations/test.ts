@@ -9,6 +9,7 @@ import {
   getNextMilestone,
   calculateNextTestDueAt,
 } from "@/lib/utils/milestones";
+import { updateLessonProgress } from "./study";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -362,6 +363,9 @@ export async function completeTestSession(
       question.pointsEarned
     );
   }
+
+  // 5b. Recalculate lesson progress (words_mastered count) from updated word progress
+  await updateLessonProgress(lessonId, stats.durationSeconds);
 
   // 6. Advance milestone schedule if this counted as a milestone test
   if (milestoneResult.shouldAdvance && milestoneResult.completedMilestone) {

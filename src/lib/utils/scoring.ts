@@ -53,6 +53,33 @@ export interface NormalizeOptions {
   preserveCase?: boolean;
 }
 
+/** Punctuation characters stripped during normalization */
+const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`]/;
+
+/**
+ * Build a mapping from normalized string indices to original string indices.
+ * Used by getCharacterDiff to correctly map DP results back to original characters.
+ */
+export function getNormalizedIndexMap(answer: string, options: NormalizeOptions | boolean = {}): number[] {
+  if (typeof options === "boolean") {
+    options = { strictPunctuation: options, preserveCase: options };
+  }
+  const { strictPunctuation = false } = options;
+
+  const trimmed = answer.trim();
+  if (!trimmed) return [];
+  const trimOffset = answer.length - answer.trimStart().length;
+
+  const indexMap: number[] = [];
+  for (let i = 0; i < trimmed.length; i++) {
+    if (!strictPunctuation && STRIPPED_PUNCTUATION.test(trimmed[i])) {
+      continue;
+    }
+    indexMap.push(trimOffset + i);
+  }
+  return indexMap;
+}
+
 /** Languages that require case-sensitive comparison (e.g., German capitalizes nouns) */
 const CASE_SENSITIVE_LANGUAGES = ["de", "german"];
 
@@ -83,7 +110,7 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
     normalized = normalized.toLowerCase();
   }
   if (!strictPunctuation) {
-    normalized = normalized.replace(/[!?.,'"¡¿]/g, "");
+    normalized = normalized.replace(new RegExp(STRIPPED_PUNCTUATION.source, "g"), "");
   }
   return normalized;
 }

@@ -12,6 +12,7 @@ import {
   getScoreLetter,
   calculateScorePercent,
   normalizeAnswer,
+  getNormalizedIndexMap,
   languageRequiresCase,
   type AnswerGrade,
   type ScoreLetter,
@@ -30,8 +31,12 @@ function getCharacterDiff(
   const normalizedUser = normalizeAnswer(userAnswer, options);
   const normalizedCorrect = normalizeAnswer(correctAnswer, options);
 
+  // Map from normalized indices back to original string indices
+  // This is needed because normalization can remove characters (e.g., punctuation),
+  // causing a length mismatch between the normalized and original strings.
+  const userIndexMap = getNormalizedIndexMap(userAnswer, options);
+
   // Use dynamic programming to find optimal alignment
-  // Build the edit distance matrix and backtrack to find alignment
   const m = normalizedUser.length;
   const n = normalizedCorrect.length;
 
@@ -52,35 +57,44 @@ function getCharacterDiff(
   }
 
   // Backtrack to find which characters in user answer are correct
-  const result: Array<{ char: string; isCorrect: boolean }> = [];
+  // Track which original indices were used and whether they're correct
+  const diffByOrigIndex = new Map<number, boolean>();
   let i = m, j = n;
-
-  // Build result in reverse order
-  const reverseResult: Array<{ char: string; isCorrect: boolean }> = [];
 
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && normalizedUser[i - 1] === normalizedCorrect[j - 1]) {
-      // Match - character is correct
-      reverseResult.push({ char: userAnswer[i - 1], isCorrect: true });
+      diffByOrigIndex.set(userIndexMap[i - 1], true);
       i--;
       j--;
     } else if (i > 0 && (j === 0 || dp[i - 1][j] <= dp[i][j - 1] && dp[i - 1][j] <= dp[i - 1][j - 1])) {
-      // Deletion from user (extra char in user answer) - mark as incorrect
-      reverseResult.push({ char: userAnswer[i - 1], isCorrect: false });
+      diffByOrigIndex.set(userIndexMap[i - 1], false);
       i--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] <= dp[i - 1][j])) {
-      // Insertion needed (missing char in user answer) - skip
       j--;
     } else {
-      // Substitution - character is wrong
-      reverseResult.push({ char: userAnswer[i - 1], isCorrect: false });
+      diffByOrigIndex.set(userIndexMap[i - 1], false);
       i--;
       j--;
     }
   }
 
-  // Reverse to get correct order
-  return reverseResult.reverse();
+  // Build final result: iterate the original (trimmed) string so stripped
+  // characters (e.g., apostrophes) are shown and correctly positioned
+  const trimmed = userAnswer.trim();
+  const trimOffset = userAnswer.length - userAnswer.trimStart().length;
+  const result: Array<{ char: string; isCorrect: boolean }> = [];
+
+  for (let idx = 0; idx < trimmed.length; idx++) {
+    const origIdx = trimOffset + idx;
+    if (diffByOrigIndex.has(origIdx)) {
+      result.push({ char: trimmed[idx], isCorrect: diffByOrigIndex.get(origIdx)! });
+    } else {
+      // Stripped character (e.g., punctuation) — show as correct since it was ignored
+      result.push({ char: trimmed[idx], isCorrect: true });
+    }
+  }
+
+  return result;
 }
 
 export interface TestAnswerInputHandle {

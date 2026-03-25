@@ -97,6 +97,20 @@ export function LessonPageContent({
 
           {/* Stats */}
           <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+            {/* Lesson completion */}
+            <div className="flex items-stretch gap-2.5">
+              <div className="relative w-1 overflow-hidden rounded-full bg-black/10">
+                <div
+                  className="absolute bottom-0 w-full rounded-full bg-primary transition-all duration-300"
+                  style={{ height: `${masteredPercentage}%` }}
+                />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-xs text-muted-foreground">Completion</span>
+                <span className="text-regular-semibold">{masteredPercentage}%</span>
+              </div>
+            </div>
+
             {/* Average score */}
             <div className="flex flex-col items-start">
               <span className="text-xs text-muted-foreground">Average score</span>

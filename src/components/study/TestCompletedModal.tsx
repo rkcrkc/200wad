@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, ChevronRight, TrendingUp, Zap, Image as ImageIcon, ImageOff } from "lucide-react";
+import { Clock, TrendingUp, Zap, Image as ImageIcon, ImageOff, RotateCcw, BookOpen, RefreshCw, X } from "lucide-react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
@@ -70,7 +69,7 @@ export function TestCompletedModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div className="flex min-h-[70vh] max-h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
+      <div className="flex h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
         {/* Header with background */}
         <div className="shrink-0 bg-[#EDE8DF] px-8 pt-8 pb-6 text-center">
           <p className="mb-2 text-sm text-muted-foreground">
@@ -82,7 +81,7 @@ export function TestCompletedModal({
         </div>
 
         {/* Stats Row */}
-        <div className="shrink-0 flex items-center justify-between bg-white px-8 py-5 text-sm">
+        <div className="shrink-0 flex items-center justify-between px-8 py-5 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Points</p>
             <p className="flex items-center gap-1.5 font-semibold">
@@ -194,50 +193,79 @@ export function TestCompletedModal({
         </div>
 
         {/* Fixed Actions */}
-        <div className="shrink-0 bg-[#FAF8F3] px-8 py-6">
-          <div className="flex flex-col items-center gap-3">
-            {isPerfectScore ? (
-              <>
-                {/* Perfect score: Done + Test again */}
-                <Button onClick={onDone} size="xl" className="w-full max-w-md">
-                  Done
-                </Button>
-                <button
-                  onClick={onTestAgain}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Test again
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Less than 100%: Retest + Study + Not now */}
-                <div className="flex w-full max-w-2xl gap-3">
-                  <Button onClick={onRetestIncorrect} size="xl" className="flex-1 gap-2">
-                    Retest incorrect words
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    onClick={onStudyIncorrect}
-                    variant="outline"
-                    size="xl"
-                    className="flex-1 gap-2"
-                  >
-                    Study incorrect words
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </div>
-                <button
-                  onClick={onDone}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Not now
-                </button>
-              </>
-            )}
-          </div>
+        <div className="shrink-0 bg-[#EDE8DF] px-8 py-6">
+          {isPerfectScore ? (
+            <div className="flex justify-center gap-4">
+              <ActionCard
+                icon={<RefreshCw className="h-6 w-6" />}
+                label="Retest all words"
+                onClick={onTestAgain}
+              />
+              <ActionCard
+                icon={<X className="h-6 w-6" />}
+                label="Done"
+                onClick={onDone}
+                muted
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center gap-4">
+              <ActionCard
+                icon={<RotateCcw className="h-6 w-6" />}
+                label="Retest incorrect"
+                onClick={onRetestIncorrect}
+                primary
+              />
+              <ActionCard
+                icon={<BookOpen className="h-6 w-6" />}
+                label="Study incorrect"
+                onClick={onStudyIncorrect}
+              />
+              <ActionCard
+                icon={<RefreshCw className="h-6 w-6" />}
+                label="Retest all words"
+                onClick={onTestAgain}
+              />
+              <ActionCard
+                icon={<X className="h-6 w-6" />}
+                label="Not now"
+                onClick={onDone}
+                muted
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function ActionCard({
+  icon,
+  label,
+  onClick,
+  primary,
+  muted,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-28 flex-col items-center gap-2 rounded-xl px-3 py-4 transition-colors ${
+        primary
+          ? "bg-primary text-white hover:bg-primary/90"
+          : muted
+            ? "bg-white text-muted-foreground hover:bg-gray-50"
+            : "bg-white text-foreground hover:bg-gray-50"
+      }`}
+    >
+      {icon}
+      <span className="text-xs font-medium leading-tight text-center">{label}</span>
+    </button>
   );
 }

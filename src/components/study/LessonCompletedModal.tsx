@@ -41,7 +41,7 @@ export function LessonCompletedModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div className="flex min-h-[70vh] max-h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
+      <div className="flex h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
         {/* Header with background */}
         <div className="shrink-0 bg-[#EDE8DF] px-8 pt-8 pb-6 text-center">
           <p className="mb-2 text-sm text-muted-foreground">
@@ -139,7 +139,7 @@ export function LessonCompletedModal({
         </div>
 
         {/* Fixed Actions */}
-        <div className="shrink-0 bg-[#FAF8F3] px-8 py-6">
+        <div className="shrink-0 bg-[#EDE8DF] px-8 py-6">
           <div className="flex flex-col items-center gap-3">
             <Button
               onClick={onStartTest}

@@ -95,6 +95,9 @@ export function TestModeClient({
     courseName: course?.name,
   });
 
+  // Active words (subset used for current test - may be filtered for retest)
+  const [activeWords, setActiveWords] = useState(words);
+
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -130,7 +133,7 @@ export function TestModeClient({
   const testAnswerInputRef = useRef<TestAnswerInputHandle>(null);
 
   // Build test sequence - in testTwice mode, test all words then test them all again
-  const testSequence = testTwice ? [...words, ...words] : words;
+  const testSequence = testTwice ? [...activeWords, ...activeWords] : activeWords;
   const totalQuestions = testSequence.length;
 
   // Get current word from sequence
@@ -139,7 +142,7 @@ export function TestModeClient({
 
   // For testTwice mode, we need to track progress per attempt (not just per word)
   // Attempt 1 = first pass, Attempt 2 = second pass
-  const currentAttemptNumber = testTwice && currentWordIndex >= words.length ? 2 : 1;
+  const currentAttemptNumber = testTwice && currentWordIndex >= activeWords.length ? 2 : 1;
   const progressKey = testTwice ? `${currentWord?.id}_${currentAttemptNumber}` : currentWord?.id;
   const currentProgress = testProgressMap.get(progressKey || "");
   const hasSubmittedAnswer = currentProgress?.hasAnswered ?? false;
@@ -422,6 +425,32 @@ export function TestModeClient({
       const maxPoints = totalQuestions * 3; // Max possible is 3 points per word
       const correctAnswers = questionResults.filter((q) => q.mistakeCount === 0).length;
 
+      // Calculate new words: words that had no prior test attempts
+      const newWordsCount = words.filter((w) => {
+        const wasTestedBefore = w.progress?.times_tested && w.progress.times_tested > 0;
+        // Check if this word was answered in this test
+        const progressKey = testTwice ? `${w.id}_1` : w.id;
+        const answered = testProgressMap.get(progressKey)?.hasAnswered;
+        return !wasTestedBefore && answered;
+      }).length;
+
+      // Calculate mastered words: words that reach streak >= 3 during this test
+      const masteredWordsCount = words.filter((w) => {
+        const priorStreak = w.progress?.correct_streak || 0;
+        const wasAlreadyMastered = w.status === "mastered";
+        if (wasAlreadyMastered) return false;
+        // Count consecutive correct answers in this test for this word
+        let streak = priorStreak;
+        const attempts = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+        for (const key of attempts) {
+          const p = testProgressMap.get(key);
+          if (p?.hasAnswered) {
+            streak = p.mistakeCount === 0 ? streak + 1 : 0;
+          }
+        }
+        return streak >= 3;
+      }).length;
+
       const stats = {
         totalQuestions,
         correctAnswers,
@@ -429,8 +458,8 @@ export function TestModeClient({
         maxPoints,
         scorePercent: calculateScorePercent(totalPoints, maxPoints),
         durationSeconds: elapsedSeconds,
-        newWordsCount: 0, // TODO: Calculate based on first-time words
-        masteredWordsCount: 0, // TODO: Calculate based on mastery
+        newWordsCount,
+        masteredWordsCount,
       };
 
       const result = await completeTestSession(sessionId, lesson.id, stats, questionResults, milestone);
@@ -472,7 +501,7 @@ export function TestModeClient({
         setCurrentWordIndex(index);
         // Restore clue level for this word if already answered
         const word = testSequence[index];
-        const attemptNum = testTwice && index >= words.length ? 2 : 1;
+        const attemptNum = testTwice && index >= activeWords.length ? 2 : 1;
         const key = testTwice ? `${word.id}_${attemptNum}` : word.id;
         const progress = testProgressMap.get(key);
         setClueLevel(progress?.clueLevel ?? 0);
@@ -480,7 +509,7 @@ export function TestModeClient({
         scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
       }
     },
-    [currentWordIndex, totalQuestions, testSequence, testTwice, words.length, stopAudio, testProgressMap]
+    [currentWordIndex, totalQuestions, testSequence, testTwice, activeWords.length, stopAudio, testProgressMap]
   );
 
   // Handle exit test - show confirmation modal
@@ -526,24 +555,48 @@ export function TestModeClient({
   }, [router, lesson.id, course?.id]);
 
   const handleTestAgain = useCallback(() => {
-    // Reset all state and start fresh
+    // Reset all state and start fresh with all words
+    setActiveWords(words);
     setCurrentWordIndex(0);
     setClueLevel(0);
     setTestProgressMap(new Map());
-    setViewedWordIndices([0]); // Reset to first word viewed
+    setViewedWordIndices([0]);
     setShowCompletionModal(false);
     setElapsedSeconds(0);
-    
+
     // Create new session
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-  }, [sessionId, lesson.id]);
+  }, [sessionId, lesson.id, words]);
 
   const handleRetestIncorrect = useCallback(() => {
-    // Placeholder - redirect to lesson page with toast
-    router.push(`/lesson/${lesson.id}`);
-  }, [router, lesson.id]);
+    // Filter to only words that were not fully correct
+    const incorrectWordIds = new Set<string>();
+    testProgressMap.forEach((progress, key) => {
+      if (progress.hasAnswered && !progress.isCorrect) {
+        // In testTwice mode, key is "wordId_attemptNum", otherwise just "wordId"
+        const wordId = testTwice ? key.split("_")[0] : key;
+        incorrectWordIds.add(wordId);
+      }
+    });
+
+    const incorrectWords = words.filter((w) => incorrectWordIds.has(w.id));
+    if (incorrectWords.length === 0) return;
+
+    // Reset state with filtered words
+    setActiveWords(incorrectWords);
+    setCurrentWordIndex(0);
+    setClueLevel(0);
+    setTestProgressMap(new Map());
+    setViewedWordIndices([0]);
+    setShowCompletionModal(false);
+    setElapsedSeconds(0);
+
+    if (sessionId) {
+      clearSessionProgress("test", sessionId, lesson.id);
+    }
+  }, [testProgressMap, testTwice, words, sessionId, lesson.id]);
 
   const handleStudyIncorrect = useCallback(() => {
     // Placeholder - redirect to study mode
@@ -562,7 +615,35 @@ export function TestModeClient({
     const maxPoints = totalQuestions * 3;
     const scorePercent = calculateScorePercent(totalPoints, maxPoints);
 
-    return { totalPoints, maxPoints, scorePercent };
+    // New words: words answered in this test that had no prior test attempts
+    const newWordsCount = words.filter((w) => {
+      const wasTestedBefore = w.progress?.times_tested && w.progress.times_tested > 0;
+      const progressKey = testTwice ? `${w.id}_1` : w.id;
+      const answered = testProgressMap.get(progressKey)?.hasAnswered;
+      return !wasTestedBefore && answered;
+    }).length;
+
+    // Mastered this test: words that reach streak >= 3 during this test (weren't already mastered)
+    const masteredWordsCount = words.filter((w) => {
+      const priorStreak = w.progress?.correct_streak || 0;
+      const wasAlreadyMastered = w.status === "mastered";
+      if (wasAlreadyMastered) return false;
+      let streak = priorStreak;
+      const attempts = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+      for (const key of attempts) {
+        const p = testProgressMap.get(key);
+        if (p?.hasAnswered) {
+          streak = p.mistakeCount === 0 ? streak + 1 : 0;
+        }
+      }
+      return streak >= 3;
+    }).length;
+
+    // Total vocabulary: already-mastered words + newly mastered in this test
+    const alreadyMastered = words.filter((w) => w.status === "mastered").length;
+    const totalVocabulary = alreadyMastered + masteredWordsCount;
+
+    return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, totalVocabulary };
   };
 
   // Build word results map for modal
@@ -672,7 +753,7 @@ export function TestModeClient({
   // Build testResults map for word tracker dots (sequence index -> grade)
   const testResults = new Map<number, "correct" | "half-correct" | "incorrect">();
   testSequence.forEach((word, index) => {
-    const attemptNum = testTwice && index >= words.length ? 2 : 1;
+    const attemptNum = testTwice && index >= activeWords.length ? 2 : 1;
     const key = testTwice ? `${word.id}_${attemptNum}` : word.id;
     const progress = testProgressMap.get(key);
     if (progress?.hasAnswered) {
@@ -901,15 +982,15 @@ export function TestModeClient({
       {showCompletionModal && (
         <TestCompletedModal
           lesson={lesson}
-          words={words}
+          words={activeWords}
           wordResultsMap={getWordResultsMap()}
           elapsedSeconds={elapsedSeconds}
           totalPoints={testStats.totalPoints}
           maxPoints={testStats.maxPoints}
           scorePercent={testStats.scorePercent}
-          newWordsCount={0}
-          masteredWordsCount={0}
-          totalVocabulary={0}
+          newWordsCount={testStats.newWordsCount}
+          masteredWordsCount={testStats.masteredWordsCount}
+          totalVocabulary={testStats.totalVocabulary}
           onDone={handleDone}
           onTestAgain={handleTestAgain}
           onRetestIncorrect={handleRetestIncorrect}

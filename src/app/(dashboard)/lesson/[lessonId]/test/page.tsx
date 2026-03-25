@@ -37,10 +37,11 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
     ? (type as TestType)
     : DEFAULT_TEST_TYPE;
 
-  // For picture-only mode, filter to only words with images
+  // Filter out info pages (they only appear in lessons, not tests)
+  // For picture-only mode, also filter to only words with images
   const testWords = testType === "picture-only"
-    ? words.filter((w) => w.memory_trigger_image_url)
-    : words;
+    ? words.filter((w) => w.memory_trigger_image_url && w.category !== "information")
+    : words.filter((w) => w.category !== "information");
 
   // If picture-only mode but no words with images, redirect or show error
   if (testType === "picture-only" && testWords.length === 0) {
