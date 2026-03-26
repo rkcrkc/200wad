@@ -47,22 +47,15 @@ export function WordCard({
   const isPlayingEnglish = playingAudioType === "english";
   const isPlayingForeign = playingAudioType === "foreign";
 
-  // Determine which word is the "question" (shown in blue in test mode before answer)
-  // If English is hidden, foreign is the question; otherwise English is the question
-  const englishIsQuestion = showEnglish && !showForeign;
-  const foreignIsQuestion = showForeign && !showEnglish;
-
   // Get color for English word
   const getEnglishWordColor = () => {
-    if (isPlayingEnglish) return "#00C950"; // Green when playing
-    if (mode === "test" && !hasSubmitted && englishIsQuestion) return "#0B6CFF"; // Blue when it's the question
+    if (isPlayingEnglish) return "#00C950"; // Green when playing audio
     return "#141515"; // Default black
   };
 
   // Get color for Foreign word
   const getForeignWordColor = () => {
-    if (isPlayingForeign) return "#00C950"; // Green when playing
-    if (mode === "test" && !hasSubmitted && foreignIsQuestion) return "#0B6CFF"; // Blue when it's the question
+    if (isPlayingForeign) return "#00C950"; // Green when playing audio
     return "#141515"; // Default black
   };
 

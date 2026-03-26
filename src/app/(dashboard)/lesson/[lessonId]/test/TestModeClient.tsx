@@ -332,6 +332,24 @@ export function TestModeClient({
     };
   }, []);
 
+  // Intercept browser back/forward navigation (e.g. Option+Arrow, Cmd+[, back button)
+  useEffect(() => {
+    // Push a dummy state so pressing back triggers popstate instead of leaving
+    window.history.pushState({ testMode: true }, '');
+
+    const handlePopState = () => {
+      // Re-push state to prevent actual navigation
+      window.history.pushState({ testMode: true }, '');
+      setShowExitModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Save progress to localStorage whenever word index or progress changes
   useEffect(() => {
     if (!sessionId) return;
@@ -694,6 +712,10 @@ export function TestModeClient({
       if (!currentWord) return false;
       const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
       if (result.success) {
+        // Update local state so the UI reflects the change immediately
+        setActiveWords((prev) =>
+          prev.map((w) => (w.id === currentWord.id ? { ...w, [field]: value } : w))
+        );
         return true;
       }
       console.error("Failed to update word field:", result.error);

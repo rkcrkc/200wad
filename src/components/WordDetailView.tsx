@@ -393,11 +393,11 @@ export function WordDetailView({
           // If no audio playing, go back
           handleBackClick();
         }
-      } else if (e.key === "ArrowLeft" && hasPrevious && onPrevious) {
+      } else if (e.key === "ArrowLeft" && !e.altKey && !e.metaKey && hasPrevious && onPrevious) {
         audioSequenceCancelledRef.current = true;
         stopAudio();
         onPrevious();
-      } else if (e.key === "ArrowRight" && hasNext && onNext) {
+      } else if (e.key === "ArrowRight" && !e.altKey && !e.metaKey && hasNext && onNext) {
         audioSequenceCancelledRef.current = true;
         stopAudio();
         onNext();

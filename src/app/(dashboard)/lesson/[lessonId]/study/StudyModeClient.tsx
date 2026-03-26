@@ -95,6 +95,9 @@ export function StudyModeClient({
     courseName: course?.name,
   });
 
+  // Local copy of words (allows admin edits to reflect immediately)
+  const [localWords, setLocalWords] = useState(words);
+
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -149,8 +152,8 @@ export function StudyModeClient({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const answerInputRef = useRef<AnswerInputHandle>(null);
 
-  const currentWord = words[currentWordIndex];
-  const isLastWord = currentWordIndex === words.length - 1;
+  const currentWord = localWords[currentWordIndex];
+  const isLastWord = currentWordIndex === localWords.length - 1;
 
   // Initialize study session (always fresh - study mode is sandboxed)
   useEffect(() => {
@@ -197,7 +200,7 @@ export function StudyModeClient({
     ];
 
     // Also preload next word's audio if available
-    const nextWord = words[currentWordIndex + 1];
+    const nextWord = localWords[currentWordIndex + 1];
     if (nextWord) {
       urlsToPreload.push(
         nextWord.audio_url_english,
@@ -207,7 +210,7 @@ export function StudyModeClient({
     }
 
     preloadAudio(urlsToPreload);
-  }, [currentWord, currentWordIndex, words, preloadAudio]);
+  }, [currentWord, currentWordIndex, localWords, preloadAudio]);
 
   // Timer (pauses when idle or lesson complete)
   useEffect(() => {
@@ -297,6 +300,24 @@ export function StudyModeClient({
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Intercept browser back/forward navigation (e.g. Option+Arrow, Cmd+[, back button)
+  useEffect(() => {
+    // Push a dummy state so pressing back triggers popstate instead of leaving
+    window.history.pushState({ studyMode: true }, '');
+
+    const handlePopState = () => {
+      // Re-push state to prevent actual navigation
+      window.history.pushState({ studyMode: true }, '');
+      setShowExitModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -579,7 +600,7 @@ export function StudyModeClient({
   // Handle jump to word
   const handleJumpToWord = useCallback(
     (index: number) => {
-      if (index !== currentWordIndex && index >= 0 && index < words.length) {
+      if (index !== currentWordIndex && index >= 0 && index < localWords.length) {
         stopAudio();
         if (phaseTimeoutRef.current) {
           clearTimeout(phaseTimeoutRef.current);
@@ -590,7 +611,7 @@ export function StudyModeClient({
         scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
       }
     },
-    [currentWordIndex, words.length, stopAudio]
+    [currentWordIndex, localWords.length, stopAudio]
   );
 
   // Handle user notes change
@@ -737,8 +758,10 @@ export function StudyModeClient({
     async (field: string, value: string): Promise<boolean> => {
       const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
       if (result.success) {
-        // Update local word data optimistically
-        // Note: The page will revalidate on next navigation
+        // Update local state so the UI reflects the change immediately
+        setLocalWords((prev) =>
+          prev.map((w) => (w.id === currentWord.id ? { ...w, [field]: value } : w))
+        );
         return true;
       }
       console.error("Failed to update word field:", result.error);
@@ -819,7 +842,7 @@ export function StudyModeClient({
           lessonNumber={lesson.number}
           lessonTitle={lesson.title}
           currentWordIndex={currentWordIndex}
-          totalWords={words.length}
+          totalWords={localWords.length}
           completedWordIndices={viewedWordIndices}
           onJumpToWord={handleJumpToWord}
           isTimerPaused={isTimerPaused}
@@ -926,11 +949,11 @@ export function StudyModeClient({
           {/* Action Bar Row */}
           <StudyActionBar
             currentWordIndex={currentWordIndex}
-            totalWords={words.length}
+            totalWords={localWords.length}
             englishWord={currentWord.english}
             foreignWord={currentWord.headword}
             partOfSpeech={currentWord.part_of_speech}
-            wordList={words.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+            wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
             testHistory={currentWord.testHistory}
             scoreStats={currentWord.scoreStats}
@@ -967,7 +990,7 @@ export function StudyModeClient({
       {showCompletionModal && (
         <LessonCompletedModal
           lesson={lesson}
-          words={words}
+          words={localWords}
           wordProgressMap={wordProgressMap}
           elapsedSeconds={elapsedSeconds}
           onStartTest={handleStartTest}

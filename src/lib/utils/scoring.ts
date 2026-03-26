@@ -54,7 +54,7 @@ export interface NormalizeOptions {
 }
 
 /** Punctuation characters stripped during normalization */
-const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`]/;
+const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`()]/;
 
 /**
  * Build a mapping from normalized string indices to original string indices.

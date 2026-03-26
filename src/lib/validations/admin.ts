@@ -70,8 +70,8 @@ export const createWordSchema = z.object({
   headword: z.string().min(1, "Headword is required").max(200),
   lemma: z.string().max(200).optional().nullable(), // Defaults to headword if not provided
   english: z.string().min(1, "English translation is required").max(200),
-  alternate_answers: z.array(z.string().max(200)).optional().default([]),
-  alternate_english_answers: z.array(z.string().max(200)).optional().default([]),
+  alternate_answers: z.array(z.string().max(200)).nullable().optional().default([]),
+  alternate_english_answers: z.array(z.string().max(200)).nullable().optional().default([]),
   category: z.enum(["word", "phrase", "sentence", "fact", "information"]).optional().nullable(),
   part_of_speech: z.string().max(50).optional().nullable(),
   gender: z.enum(["m", "f", "n", "mf"]).optional().nullable(),

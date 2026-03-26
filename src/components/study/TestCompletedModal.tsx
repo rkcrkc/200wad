@@ -54,17 +54,20 @@ export function TestCompletedModal({
   onRetestIncorrect,
   onStudyIncorrect,
 }: TestCompletedModalProps) {
-  const [activeTab, setActiveTab] = useState<"incorrect" | "all">("incorrect");
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
   const isPerfectScore = scorePercent === 100;
-  
+
   // Filter words by result
   const incorrectWords = words.filter((word) => {
     const result = wordResultsMap.get(word.id);
     return result && result.grade !== "correct";
   });
-  
+
+  const [activeTab, setActiveTab] = useState<"incorrect" | "all">(
+    isPerfectScore ? "all" : "incorrect"
+  );
+
   const displayWords = activeTab === "incorrect" ? incorrectWords : words;
 
   return (
@@ -81,7 +84,7 @@ export function TestCompletedModal({
         </div>
 
         {/* Stats Row */}
-        <div className="shrink-0 flex items-center justify-between px-8 py-5 text-sm">
+        <div className="shrink-0 flex items-center justify-between bg-[#FAF8F3] px-8 py-5 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Points</p>
             <p className="flex items-center gap-1.5 font-semibold">
@@ -126,7 +129,7 @@ export function TestCompletedModal({
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto bg-[#FAF8F3] p-8">
-          {/* Tabs - only show if not perfect score */}
+          {/* Tabs - hidden on perfect score */}
           {!isPerfectScore && (
             <Tabs
               tabs={[
