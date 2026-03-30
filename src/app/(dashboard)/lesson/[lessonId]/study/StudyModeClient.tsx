@@ -879,7 +879,7 @@ export function StudyModeClient({
 
             {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
             <div className="flex gap-6">
-              <div className="flex w-[700px] flex-col gap-6">
+              <div className="flex w-[800px] flex-col gap-6">
                 {imageMode === "memory-trigger" ? (
                   <MemoryTriggerCard
                     imageUrl={currentWord.memory_trigger_image_url}
@@ -938,6 +938,7 @@ export function StudyModeClient({
             ref={answerInputRef}
             wordId={currentWord.id}
             languageName={language?.name || "Italian"}
+            languageCode={language?.code}
             validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
             isVisible={showInput}
             isLastWord={isLastWord}

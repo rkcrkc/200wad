@@ -311,6 +311,88 @@ export function calculateScorePercent(pointsEarned: number, maxPoints: number): 
 }
 
 // ============================================================================
+// CHARACTER-LEVEL DIFF
+// ============================================================================
+
+/**
+ * Compute character-level diff between user answer and correct answer
+ * Returns array of { char, isCorrect } for rendering
+ */
+export function getCharacterDiff(
+  userAnswer: string,
+  correctAnswer: string,
+  options: NormalizeOptions = {}
+): Array<{ char: string; isCorrect: boolean }> {
+  const normalizedUser = normalizeAnswer(userAnswer, options);
+  const normalizedCorrect = normalizeAnswer(correctAnswer, options);
+
+  // Map from normalized indices back to original string indices
+  // This is needed because normalization can remove characters (e.g., punctuation),
+  // causing a length mismatch between the normalized and original strings.
+  const userIndexMap = getNormalizedIndexMap(userAnswer, options);
+
+  // Use dynamic programming to find optimal alignment
+  const m = normalizedUser.length;
+  const n = normalizedCorrect.length;
+
+  // dp[i][j] = edit distance between normalizedUser[0..i-1] and normalizedCorrect[0..j-1]
+  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (normalizedUser[i - 1] === normalizedCorrect[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+
+  // Backtrack to find which characters in user answer are correct
+  // Track which original indices were used and whether they're correct
+  const diffByOrigIndex = new Map<number, boolean>();
+  let i = m, j = n;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && normalizedUser[i - 1] === normalizedCorrect[j - 1]) {
+      diffByOrigIndex.set(userIndexMap[i - 1], true);
+      i--;
+      j--;
+    } else if (i > 0 && (j === 0 || dp[i - 1][j] <= dp[i][j - 1] && dp[i - 1][j] <= dp[i - 1][j - 1])) {
+      diffByOrigIndex.set(userIndexMap[i - 1], false);
+      i--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] <= dp[i - 1][j])) {
+      j--;
+    } else {
+      diffByOrigIndex.set(userIndexMap[i - 1], false);
+      i--;
+      j--;
+    }
+  }
+
+  // Build final result: iterate the original (trimmed) string so stripped
+  // characters (e.g., apostrophes) are shown and correctly positioned
+  const trimmed = userAnswer.trim();
+  const trimOffset = userAnswer.length - userAnswer.trimStart().length;
+  const result: Array<{ char: string; isCorrect: boolean }> = [];
+
+  for (let idx = 0; idx < trimmed.length; idx++) {
+    const origIdx = trimOffset + idx;
+    if (diffByOrigIndex.has(origIdx)) {
+      result.push({ char: trimmed[idx], isCorrect: diffByOrigIndex.get(origIdx)! });
+    } else {
+      // Stripped character (e.g., punctuation) — show as correct since it was ignored
+      result.push({ char: trimmed[idx], isCorrect: true });
+    }
+  }
+
+  return result;
+}
+
+// ============================================================================
 // TEST RESULT TYPES
 // ============================================================================
 

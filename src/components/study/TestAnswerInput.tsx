@@ -11,91 +11,12 @@ import {
   getAnswerGrade,
   getScoreLetter,
   calculateScorePercent,
-  normalizeAnswer,
-  getNormalizedIndexMap,
+  getCharacterDiff,
   languageRequiresCase,
   type AnswerGrade,
   type ScoreLetter,
   type NormalizeOptions,
 } from "@/lib/utils/scoring";
-
-/**
- * Compute character-level diff between user answer and correct answer
- * Returns array of { char, isCorrect } for rendering
- */
-function getCharacterDiff(
-  userAnswer: string,
-  correctAnswer: string,
-  options: NormalizeOptions = {}
-): Array<{ char: string; isCorrect: boolean }> {
-  const normalizedUser = normalizeAnswer(userAnswer, options);
-  const normalizedCorrect = normalizeAnswer(correctAnswer, options);
-
-  // Map from normalized indices back to original string indices
-  // This is needed because normalization can remove characters (e.g., punctuation),
-  // causing a length mismatch between the normalized and original strings.
-  const userIndexMap = getNormalizedIndexMap(userAnswer, options);
-
-  // Use dynamic programming to find optimal alignment
-  const m = normalizedUser.length;
-  const n = normalizedCorrect.length;
-
-  // dp[i][j] = edit distance between normalizedUser[0..i-1] and normalizedCorrect[0..j-1]
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (normalizedUser[i - 1] === normalizedCorrect[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-      } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
-      }
-    }
-  }
-
-  // Backtrack to find which characters in user answer are correct
-  // Track which original indices were used and whether they're correct
-  const diffByOrigIndex = new Map<number, boolean>();
-  let i = m, j = n;
-
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && normalizedUser[i - 1] === normalizedCorrect[j - 1]) {
-      diffByOrigIndex.set(userIndexMap[i - 1], true);
-      i--;
-      j--;
-    } else if (i > 0 && (j === 0 || dp[i - 1][j] <= dp[i][j - 1] && dp[i - 1][j] <= dp[i - 1][j - 1])) {
-      diffByOrigIndex.set(userIndexMap[i - 1], false);
-      i--;
-    } else if (j > 0 && (i === 0 || dp[i][j - 1] <= dp[i - 1][j])) {
-      j--;
-    } else {
-      diffByOrigIndex.set(userIndexMap[i - 1], false);
-      i--;
-      j--;
-    }
-  }
-
-  // Build final result: iterate the original (trimmed) string so stripped
-  // characters (e.g., apostrophes) are shown and correctly positioned
-  const trimmed = userAnswer.trim();
-  const trimOffset = userAnswer.length - userAnswer.trimStart().length;
-  const result: Array<{ char: string; isCorrect: boolean }> = [];
-
-  for (let idx = 0; idx < trimmed.length; idx++) {
-    const origIdx = trimOffset + idx;
-    if (diffByOrigIndex.has(origIdx)) {
-      result.push({ char: trimmed[idx], isCorrect: diffByOrigIndex.get(origIdx)! });
-    } else {
-      // Stripped character (e.g., punctuation) — show as correct since it was ignored
-      result.push({ char: trimmed[idx], isCorrect: true });
-    }
-  }
-
-  return result;
-}
 
 export interface TestAnswerInputHandle {
   insertCharacter: (char: string) => void;
@@ -177,6 +98,9 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     strictPunctuation: nervesOfSteelMode,
     preserveCase,
   };
+
+  // Check if any valid answer contains a gender marker (m) or (f)
+  const hasGender = validAnswers.some((a) => /\((m|f)\)\s*$/.test(a));
 
   // Use existing result if provided (word already answered), otherwise use local result
   const result = existingResult ?? localResult;
@@ -312,16 +236,26 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
               <span className="text-destructive">{result.userAnswer}</span>
             ) : (
               // Half-correct - show character-level highlighting
-              getCharacterDiff(result.userAnswer, result.correctAnswer, normalizeOptions).map(
-                ({ char, isCorrect }, index) => (
-                  <span
-                    key={index}
-                    className={isCorrect ? "text-foreground" : "text-destructive"}
-                  >
-                    {char}
-                  </span>
-                )
-              )
+              <>
+                {getCharacterDiff(result.userAnswer, result.correctAnswer, normalizeOptions).map(
+                  ({ char, isCorrect }, index) => (
+                    <span
+                      key={index}
+                      className={isCorrect ? "text-foreground" : "text-destructive"}
+                    >
+                      {char}
+                    </span>
+                  )
+                )}
+                {/* Show missing gender marker hint when word is correct but gender was omitted */}
+                {(() => {
+                  const genderMatch = result.correctAnswer.match(/\((m|f)\)\s*$/);
+                  if (!genderMatch) return null;
+                  const userHasGender = /\(?(m|f)\)?\s*$/.test(result.userAnswer.trim());
+                  if (userHasGender) return null;
+                  return <span className="text-amber-500"> ({genderMatch[1]})</span>;
+                })()}
+              </>
             )}
           </div>
         ) : (
@@ -332,7 +266,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             onBlur={handleBlur}
-            placeholder={`Type the word in ${languageName} ${languageFlag}...`}
+            placeholder={`Type the word in ${languageName}${hasGender ? " + (m/f)" : ""}...`}
             className="flex-1 bg-transparent text-xl font-medium text-foreground outline-none placeholder:text-black/50"
           />
         )}
