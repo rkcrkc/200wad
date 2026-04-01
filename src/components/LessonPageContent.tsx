@@ -30,6 +30,7 @@ interface LessonPageContentProps {
   wordsNotStudied: number;
   wordsNotMastered: number;
   masteredPercentage: number;
+  averageTestScore: number | null;
   totalTimeSeconds: number;
   studyTimeSeconds: number;
   testTimeSeconds: number;
@@ -47,6 +48,7 @@ export function LessonPageContent({
   wordsNotStudied,
   wordsNotMastered,
   masteredPercentage,
+  averageTestScore,
   totalTimeSeconds,
   studyTimeSeconds,
   testTimeSeconds,
@@ -98,7 +100,7 @@ export function LessonPageContent({
           {/* Stats */}
           <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
             {/* Lesson completion */}
-            <div className="flex items-stretch gap-2.5">
+            <div className="group relative flex items-stretch gap-2.5 cursor-default">
               <div className="relative w-1 overflow-hidden rounded-full bg-black/10">
                 <div
                   className="absolute bottom-0 w-full rounded-full bg-primary transition-all duration-300"
@@ -109,14 +111,29 @@ export function LessonPageContent({
                 <span className="text-xs text-muted-foreground">Completion</span>
                 <span className="text-regular-semibold">{masteredPercentage}%</span>
               </div>
+              {/* Tooltip */}
+              <div className="pointer-events-none absolute top-full left-0 z-50 mt-1 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+                <div className="flex flex-col gap-1">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
+                    Words mastered
+                  </span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    <span className="font-semibold">{words.length - wordsNotMastered}</span> mastered / <span className="font-semibold">{words.length}</span> total = <span className="font-semibold">{masteredPercentage}%</span>
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Average score */}
             <div className="flex flex-col items-start">
               <span className="text-xs text-muted-foreground">Average score</span>
-              <div className="flex items-center gap-1.5 text-success">
-                <span className="text-regular-semibold">✓ {masteredPercentage}%</span>
-              </div>
+              {averageTestScore !== null ? (
+                <div className="flex items-center gap-1.5 text-success">
+                  <span className="text-regular-semibold">✓ {averageTestScore}%</span>
+                </div>
+              ) : (
+                <span className="text-regular-semibold text-muted-foreground">—</span>
+              )}
             </div>
 
             {/* Total time */}

@@ -103,6 +103,7 @@ export interface GetWordsResult {
     totalTimeSeconds: number;
     studyTimeSeconds: number;
     testTimeSeconds: number;
+    averageTestScore: number | null;
   };
   isGuest: boolean;
   userId: string | null;
@@ -135,7 +136,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !user,
       userId: user?.id ?? null,
     };
@@ -189,7 +190,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       previousLesson,
       nextLesson,
       courseLessons: orderedLessons,
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !user,
       userId: user?.id ?? null,
     };
@@ -253,6 +254,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   let totalTimeSeconds = 0;
   let studyTimeSeconds = 0;
   let testTimeSeconds = 0;
+  let averageTestScore: number | null = null;
   if (user) {
     const [studySessionsResult, testScoresResult] = await Promise.all([
       supabase
@@ -262,7 +264,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         .eq("lesson_id", lessonId),
       supabase
         .from("user_test_scores")
-        .select("duration_seconds")
+        .select("duration_seconds, score_percent")
         .eq("user_id", user.id)
         .eq("lesson_id", lessonId),
     ]);
@@ -271,11 +273,18 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       (sum, ss) => sum + (ss.duration_seconds || 0),
       0
     );
-    testTimeSeconds = (testScoresResult.data || []).reduce(
+    const testScores = testScoresResult.data || [];
+    testTimeSeconds = testScores.reduce(
       (sum, ts) => sum + (ts.duration_seconds || 0),
       0
     );
     totalTimeSeconds = studyTimeSeconds + testTimeSeconds;
+
+    // Calculate average test score
+    if (testScores.length > 0) {
+      const totalScore = testScores.reduce((sum, ts) => sum + (ts.score_percent || 0), 0);
+      averageTestScore = Math.round(totalScore / testScores.length);
+    }
   }
 
   // Get test history for all words in this lesson
@@ -349,6 +358,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
 
     return {
       ...word,
+      sort_order: word.sort_order ?? 0,
       example_sentences: undefined, // Remove nested field
       exampleSentences,
       relatedWords,
@@ -374,6 +384,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       totalTimeSeconds,
       studyTimeSeconds,
       testTimeSeconds,
+      averageTestScore,
     },
     isGuest: !user,
     userId: user?.id ?? null,
@@ -542,7 +553,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !userId,
       userId,
     };
@@ -566,7 +577,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
+      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: false,
       userId,
     };
@@ -799,6 +810,7 @@ async function getAutoLessonWords(
     totalTimeSeconds: 0,
     studyTimeSeconds: 0,
     testTimeSeconds: 0,
+    averageTestScore: null,
   });
 }
 
@@ -813,7 +825,7 @@ function buildAutoLessonResult(
   courseLessons: AdjacentLesson[],
   words: WordWithDetails[],
   userId: string | null,
-  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number }
+  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number; averageTestScore: number | null }
 ): GetWordsResult {
   const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
     notes: { number: 800, title: "My Notes", emoji: "📝" },
@@ -871,7 +883,7 @@ function buildAutoLessonResult(
     previousLesson: null, // Auto-lessons don't have prev/next
     nextLesson: null,
     courseLessons,
-    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0 },
+    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
     isGuest: false,
     userId,
   };
