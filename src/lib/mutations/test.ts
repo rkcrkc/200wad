@@ -106,6 +106,7 @@ export interface TestStats {
 export interface CompleteTestSessionResult {
   success: boolean;
   testScoreId: string | null;
+  totalVocabulary: number;
   error: string | null;
 }
 
@@ -126,7 +127,7 @@ export async function completeTestSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, testScoreId: null, error: "User not authenticated" };
+    return { success: false, testScoreId: null, totalVocabulary: 0, error: "User not authenticated" };
   }
 
   // Mutable copies so server-side re-scoring can override client values
@@ -146,7 +147,7 @@ export async function completeTestSession(
     .single();
 
   if (!lessonData) {
-    return { success: false, testScoreId: null, error: "Lesson not found" };
+    return { success: false, testScoreId: null, totalVocabulary: 0, error: "Lesson not found" };
   }
 
   // Verify totalQuestions doesn't exceed lesson word count * 2 (testTwice mode)
@@ -185,7 +186,7 @@ export async function completeTestSession(
           session_id: isRealDbSession ? sessionId : null,
         });
       } catch { /* non-critical */ }
-      return { success: false, testScoreId: null, error: "Invalid word IDs detected" };
+      return { success: false, testScoreId: null, totalVocabulary: 0, error: "Invalid word IDs detected" };
     }
   }
 
@@ -224,12 +225,12 @@ export async function completeTestSession(
             user_id: user.id,
             flag_type: "score_mismatch",
             severity: "medium",
-            details: {
+            details: JSON.parse(JSON.stringify({
               lessonId,
               clientPoints: stats.pointsEarned,
               serverPoints: serverResults.totalPointsEarned,
               mismatches: serverResults.results.filter((r) => !r.clientMatchesServer),
-            },
+            })),
             session_id: isRealDbSession ? sessionId : null,
           });
         } catch { /* non-critical */ }
@@ -325,7 +326,7 @@ export async function completeTestSession(
 
   if (testScoreError) {
     console.error("Error creating test score:", testScoreError);
-    return { success: false, testScoreId: null, error: testScoreError.message };
+    return { success: false, testScoreId: null, totalVocabulary: 0, error: testScoreError.message };
   }
 
   // 4. Save individual test question results
@@ -400,10 +401,17 @@ export async function completeTestSession(
     // Non-critical — don't fail the session completion
   }
 
+  // 7. Get total vocabulary count (all mastered words for this user)
+  const { count: totalVocabulary } = await supabase
+    .from("user_word_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", "mastered");
+
   // Revalidate lesson pages
   revalidatePath(`/lesson/${lessonId}`);
 
-  return { success: true, testScoreId: testScore.id, error: null };
+  return { success: true, testScoreId: testScore.id, totalVocabulary: totalVocabulary || 0, error: null };
 }
 
 /**

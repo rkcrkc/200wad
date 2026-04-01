@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { StudyMusicTrackInsert, StudyMusicTrackUpdate } from "@/types/database";
 
@@ -14,7 +14,7 @@ export async function createMusicTrack(data: {
   file_path: string;
   file_size?: number | null;
 }) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get the next sort_order
   const { data: maxOrder } = await supabase
@@ -49,7 +49,7 @@ export async function updateMusicTrack(
   id: string,
   data: Partial<StudyMusicTrackUpdate>
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("study_music_tracks")
@@ -66,7 +66,7 @@ export async function updateMusicTrack(
 }
 
 export async function deleteMusicTrack(id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // First get the track to delete its file
   const { data: track } = await supabase
@@ -103,7 +103,7 @@ export async function deleteMusicTrack(id: string) {
 }
 
 export async function reorderMusicTracks(trackIds: string[]) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Update sort_order for each track
   const updates = trackIds.map((id, index) =>
@@ -134,7 +134,7 @@ export async function toggleMusicTrackActive(id: string, isActive: boolean) {
  * Returns the file path (not the full URL)
  */
 export async function uploadMusicFile(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const file = formData.get("file") as File;
   if (!file) {

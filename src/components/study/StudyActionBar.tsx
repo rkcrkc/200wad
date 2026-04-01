@@ -17,6 +17,7 @@ import {
   Languages,
   Zap,
   Play,
+  Pause,
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,7 @@ const MAC_SHORTCUTS: Record<string, string> = {
   "¿": "Option+?", "¡": "Option+1",
 };
 
-import { STUDY_MUSIC_TRACKS, type StudyMusicTrackId } from "@/hooks/useStudyMusic";
+import type { StudyMusicTrack } from "@/hooks/useStudyMusic";
 
 /** Animated audiowave icon for playing state */
 function AudioWaveIcon({ className }: { className?: string }) {
@@ -165,18 +166,22 @@ interface StudyActionBarProps {
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
   /** Whether background music is enabled */
   musicEnabled?: boolean;
-  /** Callback when music enabled changes */
-  onMusicEnabledChange?: (enabled: boolean) => void;
+  /** Available music tracks */
+  musicTracks?: StudyMusicTrack[];
   /** Currently selected music track */
-  selectedTrack?: StudyMusicTrackId;
-  /** Callback when track changes */
-  onTrackChange?: (track: StudyMusicTrackId) => void;
+  selectedTrack?: string;
+  /** Callback when a track is toggled (play/pause) */
+  onToggleTrack?: (trackId: string) => void;
   /** Whether music playback has an error */
   musicHasError?: boolean;
-  /** Current volume (0-1) */
+  /** Current music volume (0-1) */
   musicVolume?: number;
-  /** Callback when volume changes */
+  /** Callback when music volume changes */
   onMusicVolumeChange?: (volume: number) => void;
+  /** Current word audio volume (0-1) */
+  wordVolume?: number;
+  /** Callback when word volume changes */
+  onWordVolumeChange?: (volume: number) => void;
   /** Whether user is an admin */
   isAdmin?: boolean;
   /** Whether admin edit mode is active */
@@ -240,12 +245,14 @@ export function StudyActionBar({
   imageMode = "memory-trigger",
   onImageModeChange,
   musicEnabled = false,
-  onMusicEnabledChange,
-  selectedTrack = "focus-flow",
-  onTrackChange,
+  musicTracks = [],
+  selectedTrack = "",
+  onToggleTrack,
   musicHasError = false,
   musicVolume = 0.5,
   onMusicVolumeChange,
+  wordVolume = 1,
+  onWordVolumeChange,
   isAdmin = false,
   isEditMode = false,
   onEditModeToggle,
@@ -259,6 +266,7 @@ export function StudyActionBar({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccentsOpen, setIsAccentsOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
+  const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const accentsRef = useRef<HTMLDivElement>(null);
@@ -625,64 +633,34 @@ export function StudyActionBar({
                     Study Music
                   </div>
 
-                  {/* Enable/disable toggle */}
-                  <label className="mb-4 flex cursor-pointer items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      Enable background music
-                    </span>
-                    <div
-                      className={cn(
-                        "relative h-6 w-11 cursor-pointer rounded-full transition-colors",
-                        musicEnabled ? "bg-primary" : "bg-gray-200"
-                      )}
-                      onClick={() => onMusicEnabledChange?.(!musicEnabled)}
-                    >
-                      <div
-                        className={cn(
-                          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                          musicEnabled ? "translate-x-5" : "translate-x-0.5"
-                        )}
-                      />
-                    </div>
-                  </label>
-
-                  {/* Volume slider */}
-                  <div className="mb-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Volume</span>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round(musicVolume * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={Math.round(musicVolume * 100)}
-                      onChange={(e) => onMusicVolumeChange?.(Number(e.target.value) / 100)}
-                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
-                    />
-                  </div>
-
                   {/* Track list */}
                   <div className="mb-4 space-y-1">
-                    {STUDY_MUSIC_TRACKS.map((track) => {
+                    {musicTracks.map((track) => {
                       const isSelected = selectedTrack === track.id;
-                      const isPlaying = isSelected && musicEnabled && !musicHasError;
+                      const isPlayingTrack = isSelected && musicEnabled && !musicHasError;
+                      const isHovered = hoveredTrack === track.id;
+                      const mins = Math.floor(track.duration_seconds / 60);
+                      const durationLabel = mins >= 60
+                        ? `${Math.floor(mins / 60)}h ${mins % 60}m`
+                        : `${mins} min`;
                       return (
                         <button
                           key={track.id}
-                          onClick={() => onTrackChange?.(track.id)}
+                          onClick={() => onToggleTrack?.(track.id)}
+                          onMouseEnter={() => setHoveredTrack(track.id)}
+                          onMouseLeave={() => setHoveredTrack(null)}
                           className={cn(
                             "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
-                            isSelected
+                            isPlayingTrack
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-gray-50"
                           )}
                         >
-                          {/* Play button / Audiowave */}
+                          {/* Play / Pause / Audiowave icon */}
                           <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            {isPlaying ? (
+                            {isPlayingTrack && isHovered ? (
+                              <Pause className="h-4 w-4 text-primary" />
+                            ) : isPlayingTrack ? (
                               <AudioWaveIcon />
                             ) : (
                               <Play
@@ -694,10 +672,46 @@ export function StudyActionBar({
                             )}
                           </div>
                           <span className="flex-1 text-sm font-medium">{track.name}</span>
-                          <span className="text-xs text-muted-foreground">{track.duration}</span>
+                          <span className="text-xs text-muted-foreground">{durationLabel}</span>
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* Volume sliders */}
+                  <div className="mb-4 space-y-3">
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Music volume</span>
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round(musicVolume * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={Math.round(musicVolume * 100)}
+                        onChange={(e) => onMusicVolumeChange?.(Number(e.target.value) / 100)}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Word volume</span>
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round(wordVolume * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={Math.round(wordVolume * 100)}
+                        onChange={(e) => onWordVolumeChange?.(Number(e.target.value) / 100)}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
+                      />
+                    </div>
                   </div>
 
                   {/* Error message */}

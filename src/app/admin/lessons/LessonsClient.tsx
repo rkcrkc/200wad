@@ -1055,19 +1055,24 @@ export function LessonsClient({
     setIsSearchingRelatedWords(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("words")
-        .select("id, headword, english, language_id")
-        .or(`headword.ilike.%${query}%,english.ilike.%${query}%`)
-        .limit(10);
+      const { data, error } = await supabase.rpc("search_words", {
+        p_query: query.trim(),
+        p_exclude_word_id: editingWord?.id,
+      });
 
       if (error) {
         console.error("Error searching words:", error);
         setRelatedWordSearchResults([]);
       } else {
-        // Filter out the current word and already related words
-        const filtered = (data || []).filter(
-          (w) => w.id !== editingWord?.id && !relatedWordIds.includes(w.id)
+        // Map RPC results and filter out already related words
+        const mapped = (data || []).map((row: { word_id: string; headword: string; english: string; language_id: string }) => ({
+          id: row.word_id,
+          headword: row.headword,
+          english: row.english,
+          language_id: row.language_id,
+        }));
+        const filtered = mapped.filter(
+          (w: { id: string }) => !relatedWordIds.includes(w.id)
         ) as Word[];
         setRelatedWordSearchResults(filtered);
       }

@@ -53,8 +53,8 @@ export interface NormalizeOptions {
   preserveCase?: boolean;
 }
 
-/** Punctuation characters stripped during normalization */
-const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`()]/;
+/** Punctuation and whitespace characters stripped during normalization */
+const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`()\s]/;
 
 /**
  * Build a mapping from normalized string indices to original string indices.
@@ -94,7 +94,7 @@ export function languageRequiresCase(languageCode?: string | null): boolean {
 /**
  * Normalize an answer for comparison
  * - Lowercase (unless preserveCase is true - for German or "nerves of steel")
- * - Remove punctuation (unless strictPunctuation is true)
+ * - Remove punctuation and whitespace (unless strictPunctuation is true)
  * - Trim whitespace
  */
 export function normalizeAnswer(answer: string, options: NormalizeOptions | boolean = {}): string {

@@ -206,7 +206,7 @@ export async function getPersonalBests(languageId: string): Promise<{
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().split("T")[0];
-      weekMap.set(weekKey, (weekMap.get(weekKey) || 0) + row.words_studied);
+      weekMap.set(weekKey, (weekMap.get(weekKey) || 0) + (row.words_studied ?? 0));
     }
     bestWeekWords = Math.max(...weekMap.values(), 0);
   }

@@ -34,6 +34,7 @@ export function SubscriptionsPageClient({
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [billingToggle, setBillingToggle] = useState<string>("monthly");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const hasAllLangsSub = useMemo(
     () => data.subscriptions.some((sub) => sub.type === "all-languages" && sub.isEffective),
@@ -86,6 +87,7 @@ export function SubscriptionsPageClient({
   const handleCheckout = useCallback(async () => {
     if (cartItems.length === 0) return;
     setIsCheckingOut(true);
+    setCheckoutError(null);
 
     try {
       const result = await createCheckoutSession({
@@ -99,12 +101,13 @@ export function SubscriptionsPageClient({
       if (result.success && result.url) {
         window.location.href = result.url;
       } else {
-        // Reset checkout state on error
         setIsCheckingOut(false);
+        setCheckoutError(result.error || "Checkout failed. Please try again.");
         console.error("Checkout error:", result.error);
       }
-    } catch {
+    } catch (err) {
       setIsCheckingOut(false);
+      setCheckoutError(err instanceof Error ? err.message : "An unexpected error occurred.");
     }
   }, [cartItems]);
 
@@ -141,6 +144,7 @@ export function SubscriptionsPageClient({
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckout}
         isCheckingOut={isCheckingOut}
+        checkoutError={checkoutError}
       />
     </div>
   );

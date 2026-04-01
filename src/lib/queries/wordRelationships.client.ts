@@ -62,18 +62,22 @@ export async function searchWordsForRelationship(
 
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("words")
-    .select("id, headword, english")
-    .or(`headword.ilike.%${searchQuery}%,english.ilike.%${searchQuery}%`)
-    .neq("id", excludeWordId)
-    .limit(limit);
+  const { data, error } = await supabase.rpc("search_words", {
+    p_query: searchQuery.trim(),
+    p_exclude_word_id: excludeWordId,
+  });
 
   if (error) {
     return { words: [], error: error.message };
   }
 
-  return { words: data || [], error: null };
+  const words = (data || []).map((row: { word_id: string; headword: string; english: string }) => ({
+    id: row.word_id,
+    headword: row.headword,
+    english: row.english,
+  }));
+
+  return { words, error: null };
 }
 
 /**

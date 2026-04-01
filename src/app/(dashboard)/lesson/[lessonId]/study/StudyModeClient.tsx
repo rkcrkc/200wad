@@ -72,16 +72,16 @@ export function StudyModeClient({
 }: StudyModeClientProps) {
   const router = useRouter();
   const { isAdmin } = useUser();
-  const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
+  const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
-    setEnabled: setMusicEnabled,
     selectedTrack,
-    setSelectedTrack,
+    toggleTrack,
     volume: musicVolume,
     setVolume: setMusicVolume,
     hasError: musicHasError,
     stop: stopMusic,
+    tracks: musicTracks,
   } = useStudyMusic();
 
   const languageFlag = getFlagFromCode(language?.code);
@@ -969,12 +969,14 @@ export function StudyModeClient({
             imageMode={imageMode}
             onImageModeChange={setImageMode}
             musicEnabled={musicEnabled}
-            onMusicEnabledChange={setMusicEnabled}
+            musicTracks={musicTracks}
             selectedTrack={selectedTrack}
-            onTrackChange={setSelectedTrack}
+            onToggleTrack={toggleTrack}
             musicHasError={musicHasError}
             musicVolume={musicVolume}
             onMusicVolumeChange={setMusicVolume}
+            wordVolume={wordVolume}
+            onWordVolumeChange={setWordVolume}
             isAdmin={isAdmin}
             isEditMode={isEditMode}
             onEditModeToggle={() => setIsEditMode(!isEditMode)}

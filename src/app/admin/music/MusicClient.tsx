@@ -25,7 +25,6 @@ import {
   createMusicTrack,
   updateMusicTrack,
   deleteMusicTrack,
-  uploadMusicFile,
   toggleMusicTrackActive,
 } from "@/lib/mutations/admin/music";
 import { StudyMusicTrack } from "@/types/database";
@@ -62,8 +61,9 @@ function formatDuration(seconds: number): string {
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return "—";
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 0.1) return `${mb.toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 export function MusicClient({ tracks }: MusicClientProps) {
@@ -184,55 +184,61 @@ export function MusicClient({ tracks }: MusicClientProps) {
     }
   };
 
-  const handleUploadFile = async () => {
-    if (!selectedFile) return;
+  const handleSubmit = async () => {
+    let filePath = uploadedFilePath;
+    let fileSize = uploadedFileSize;
 
-    setIsUploading(true);
-    setErrors({});
+    // If file is selected but not yet uploaded, upload via API route
+    if (selectedFile && !filePath) {
+      setIsUploading(true);
+      try {
+        const formDataObj = new FormData();
+        formDataObj.append("file", selectedFile);
 
-    try {
-      const formDataObj = new FormData();
-      formDataObj.append("file", selectedFile);
+        const response = await fetch("/api/admin/upload-music", {
+          method: "POST",
+          body: formDataObj,
+        });
 
-      const result = await uploadMusicFile(formDataObj);
+        const result = await response.json();
 
-      if (!result.success) {
-        setErrors({ file: result.error || "Upload failed" });
+        if (!response.ok || !result.success) {
+          setErrors({ file: result.error || "Upload failed" });
+          setIsUploading(false);
+          return;
+        }
+
+        filePath = result.filePath;
+        fileSize = result.fileSize;
+        setUploadedFilePath(filePath);
+        setUploadedFileSize(fileSize);
+        setSelectedFile(null);
+      } catch (err: unknown) {
+        console.error("Upload error:", err);
+        const message = err instanceof Error ? err.message : "Upload failed. Please try again.";
+        setErrors({ file: message });
+        setIsUploading(false);
         return;
+      } finally {
+        setIsUploading(false);
       }
-
-      setUploadedFilePath(result.filePath!);
-      setUploadedFileSize(result.fileSize!);
-      setSelectedFile(null);
-    } catch (err) {
-      console.error("Upload error:", err);
-      setErrors({ file: "Upload failed. Please try again." });
-    } finally {
-      setIsUploading(false);
     }
-  };
 
-  const validateForm = (): boolean => {
+    // Validate
     const newErrors: FormErrors = {};
-
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     }
-
-    if (!editingTrack && !uploadedFilePath) {
-      newErrors.file = "Please upload an audio file";
+    if (!editingTrack && !filePath && !selectedFile) {
+      newErrors.file = "Please select an audio file";
     }
-
     if (!extractedDuration && !editingTrack) {
       newErrors.file = "Could not determine audio duration";
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
     setIsLoading(true);
 
@@ -244,9 +250,9 @@ export function MusicClient({ tracks }: MusicClientProps) {
           description: formData.description || null,
           category: formData.category || null,
           bpm: formData.bpm ? parseInt(formData.bpm, 10) : null,
-          ...(uploadedFilePath !== editingTrack.file_path && {
-            file_path: uploadedFilePath!,
-            file_size: uploadedFileSize,
+          ...(filePath !== editingTrack.file_path && {
+            file_path: filePath!,
+            file_size: fileSize,
             duration_seconds: extractedDuration!,
           }),
         });
@@ -263,8 +269,8 @@ export function MusicClient({ tracks }: MusicClientProps) {
           category: formData.category || null,
           bpm: formData.bpm ? parseInt(formData.bpm, 10) : null,
           duration_seconds: extractedDuration!,
-          file_path: uploadedFilePath!,
-          file_size: uploadedFileSize,
+          file_path: filePath!,
+          file_size: fileSize,
         });
 
         if (!result.success) {
@@ -491,11 +497,13 @@ export function MusicClient({ tracks }: MusicClientProps) {
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={isLoading || isUploading}>
-              {isLoading
-                ? "Saving..."
-                : editingTrack
-                ? "Save Changes"
-                : "Add Track"}
+              {isUploading
+                ? "Uploading..."
+                : isLoading
+                  ? "Saving..."
+                  : editingTrack
+                    ? "Save Changes"
+                    : "Add Track"}
             </Button>
           </>
         }
@@ -515,52 +523,33 @@ export function MusicClient({ tracks }: MusicClientProps) {
             error={errors.file}
           >
             <div className="space-y-2">
-              {uploadedFilePath && (
-                <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
-                  <Music className="h-4 w-4" />
-                  <span className="flex-1 truncate">
-                    {editingTrack ? "Current file uploaded" : "File uploaded successfully"}
-                  </span>
-                  {extractedDuration && (
-                    <span className="text-green-600">
-                      {formatDuration(extractedDuration)}
-                    </span>
-                  )}
-                </div>
-              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                {selectedFile
+                  ? selectedFile.name
+                  : editingTrack && uploadedFilePath
+                    ? "Replace File"
+                    : "Choose File"}
+              </Button>
 
-              <div className="flex gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {selectedFile ? selectedFile.name : "Choose File"}
-                </Button>
-                {selectedFile && !uploadedFilePath && (
-                  <Button
-                    type="button"
-                    onClick={handleUploadFile}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                )}
-              </div>
-
-              {selectedFile && extractedDuration && !uploadedFilePath && (
+              {(selectedFile || (editingTrack && extractedDuration)) && extractedDuration && (
                 <p className="text-sm text-gray-500">
-                  Duration: {formatDuration(extractedDuration)} • Size:{" "}
-                  {formatFileSize(selectedFile.size)}
+                  Duration: {formatDuration(extractedDuration)}
+                  {(selectedFile?.size || uploadedFileSize) && (
+                    <> • Size: {formatFileSize(selectedFile?.size ?? uploadedFileSize)}</>
+                  )}
                 </p>
               )}
             </div>

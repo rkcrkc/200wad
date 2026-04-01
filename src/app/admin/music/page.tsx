@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MusicClient } from "./MusicClient";
 
 async function getMusicTracks() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: tracks, error } = await supabase
     .from("study_music_tracks")

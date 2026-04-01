@@ -1,32 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-/**
- * Available study music tracks
- * URLs point to Supabase Storage paths
- */
-export const STUDY_MUSIC_TRACKS = [
-  { id: "focus-flow", name: "Focus Flow", duration: "60 min" },
-  { id: "deep-learning", name: "Deep Learning", duration: "45 min" },
-  { id: "calm-study", name: "Calm Study", duration: "30 min" },
-  { id: "memory-boost", name: "Memory Boost", duration: "50 min" },
-] as const;
-
-export type StudyMusicTrackId = (typeof STUDY_MUSIC_TRACKS)[number]["id"];
+export interface StudyMusicTrack {
+  id: string;
+  name: string;
+  file_path: string;
+  duration_seconds: number;
+}
 
 // Supabase Storage base URL for audio files
-const STORAGE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/audio/study-music";
+const STORAGE_BASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/audio";
 
-/**
- * Get the audio URL for a track
- */
-function getTrackUrl(trackId: StudyMusicTrackId): string {
-  return `${STORAGE_BASE_URL}/${trackId}.mp3`;
+function getTrackUrl(filePath: string): string {
+  return `${STORAGE_BASE_URL}/${filePath}`;
 }
 
 // LocalStorage keys
-const STORAGE_KEY_ENABLED = "study-music-enabled";
 const STORAGE_KEY_TRACK = "study-music-track";
 const STORAGE_KEY_VOLUME = "study-music-volume";
 
@@ -41,9 +33,11 @@ interface UseStudyMusicReturn {
   /** Toggle music on/off */
   setEnabled: (enabled: boolean) => void;
   /** Currently selected track ID */
-  selectedTrack: StudyMusicTrackId;
+  selectedTrack: string;
   /** Change the selected track */
-  setSelectedTrack: (trackId: StudyMusicTrackId) => void;
+  setSelectedTrack: (trackId: string) => void;
+  /** Toggle a track: play if not playing, pause if already playing */
+  toggleTrack: (trackId: string) => void;
   /** Current volume (0-1) */
   volume: number;
   /** Set volume (0-1) */
@@ -54,39 +48,69 @@ interface UseStudyMusicReturn {
   hasError: boolean;
   /** Stop playback (e.g., when leaving study mode) */
   stop: () => void;
+  /** Available tracks from the database */
+  tracks: StudyMusicTrack[];
+  /** Whether tracks are still loading */
+  isLoadingTracks: boolean;
 }
 
 /**
  * Hook for managing background study music
- * Persists settings to localStorage and handles audio playback
+ * Fetches tracks from the database and handles audio playback
  */
-export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusicReturn {
+export function useStudyMusic(
+  options: UseStudyMusicOptions = {}
+): UseStudyMusicReturn {
   const { defaultVolume = 0.5 } = options;
 
   // State
   const [isEnabled, setIsEnabledState] = useState(false);
-  const [selectedTrack, setSelectedTrackState] = useState<StudyMusicTrackId>("focus-flow");
+  const [selectedTrack, setSelectedTrackState] = useState<string>("");
   const [volume, setVolumeState] = useState(defaultVolume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [tracks, setTracks] = useState<StudyMusicTrack[]>([]);
+  const [isLoadingTracks, setIsLoadingTracks] = useState(true);
 
   // Audio element ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize from localStorage
+  // Fetch tracks from database
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    async function fetchTracks() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("study_music_tracks")
+        .select("id, name, file_path, duration_seconds")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
 
-    const storedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
+      if (error) {
+        console.error("Error fetching study music tracks:", error);
+        setIsLoadingTracks(false);
+        return;
+      }
+
+      setTracks(data || []);
+      setIsLoadingTracks(false);
+    }
+
+    fetchTracks();
+  }, []);
+
+  // Initialize from localStorage (after tracks are loaded)
+  useEffect(() => {
+    if (typeof window === "undefined" || tracks.length === 0) return;
+
     const storedTrack = localStorage.getItem(STORAGE_KEY_TRACK);
     const storedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
 
-    if (storedEnabled !== null) {
-      setIsEnabledState(storedEnabled === "true");
-    }
-    if (storedTrack && STUDY_MUSIC_TRACKS.some((t) => t.id === storedTrack)) {
-      setSelectedTrackState(storedTrack as StudyMusicTrackId);
+    if (storedTrack && tracks.some((t) => t.id === storedTrack)) {
+      setSelectedTrackState(storedTrack);
+    } else {
+      // Default to first track
+      setSelectedTrackState(tracks[0].id);
     }
     if (storedVolume !== null) {
       const vol = parseFloat(storedVolume);
@@ -96,11 +120,15 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
     }
 
     setIsInitialized(true);
-  }, []);
+  }, [tracks]);
+
+  // Find current track's file_path
+  const currentTrack = tracks.find((t) => t.id === selectedTrack);
 
   // Create and manage audio element
   useEffect(() => {
-    if (typeof window === "undefined" || !isInitialized) return;
+    if (typeof window === "undefined" || !isInitialized || !currentTrack)
+      return;
 
     // Create audio element if it doesn't exist
     if (!audioRef.current) {
@@ -124,13 +152,12 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
     const audio = audioRef.current;
 
     // Update source if track changed
-    const trackUrl = getTrackUrl(selectedTrack);
+    const trackUrl = getTrackUrl(currentTrack.file_path);
     if (audio.src !== trackUrl) {
       const wasPlaying = !audio.paused;
       audio.src = trackUrl;
       if (wasPlaying && isEnabled) {
         audio.play().catch(() => {
-          // Autoplay may be blocked
           setHasError(true);
         });
       }
@@ -142,17 +169,12 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
     // Play/pause based on enabled state
     if (isEnabled && audio.paused) {
       audio.play().catch(() => {
-        // Autoplay may be blocked - user needs to interact first
         setHasError(true);
       });
     } else if (!isEnabled && !audio.paused) {
       audio.pause();
     }
-
-    return () => {
-      // Don't cleanup audio on every render, only on unmount
-    };
-  }, [isEnabled, selectedTrack, volume, isInitialized]);
+  }, [isEnabled, selectedTrack, volume, isInitialized, currentTrack]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -169,12 +191,9 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
   const setEnabled = useCallback((enabled: boolean) => {
     setIsEnabledState(enabled);
     setHasError(false);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_ENABLED, String(enabled));
-    }
   }, []);
 
-  const setSelectedTrack = useCallback((trackId: StudyMusicTrackId) => {
+  const setSelectedTrack = useCallback((trackId: string) => {
     setSelectedTrackState(trackId);
     setHasError(false);
     if (typeof window !== "undefined") {
@@ -190,6 +209,19 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
     }
   }, []);
 
+  const toggleTrack = useCallback((trackId: string) => {
+    if (selectedTrack === trackId && isEnabled) {
+      // Pause current track
+      setEnabled(false);
+    } else {
+      // Play new or resumed track
+      setSelectedTrackState(trackId);
+      localStorage.setItem(STORAGE_KEY_TRACK, trackId);
+      setHasError(false);
+      setEnabled(true);
+    }
+  }, [selectedTrack, isEnabled, setEnabled]);
+
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -203,10 +235,13 @@ export function useStudyMusic(options: UseStudyMusicOptions = {}): UseStudyMusic
     setEnabled,
     selectedTrack,
     setSelectedTrack,
+    toggleTrack,
     volume,
     setVolume,
     isPlaying,
     hasError,
     stop,
+    tracks,
+    isLoadingTracks,
   };
 }

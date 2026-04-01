@@ -34,7 +34,7 @@ export interface SearchResults {
 
 /**
  * Search words and lessons within a course (client-side).
- * Words are searched by headword and english fields.
+ * Words are searched by headword and english fields (accent-insensitive).
  * Lessons are searched by title.
  */
 export async function searchCourse(
@@ -54,7 +54,7 @@ export async function searchCourse(
 
   const supabase = createClient();
 
-  // Get lesson IDs for this course first
+  // Get lesson IDs for this course (for lesson title search)
   const { data: courseLessons } = await supabase
     .from("lessons")
     .select("id, title, number, emoji")
@@ -65,28 +65,15 @@ export async function searchCourse(
     return { words: [], lessons: [] };
   }
 
-  const lessonIds = courseLessons.map((l) => l.id);
-
   // Run word and lesson searches in parallel
-  const pattern = `%${sanitized}%`;
-
   const [wordsResult, lessonResults] = await Promise.all([
-    // Search words via lesson_words junction to scope to course
-    supabase
-      .from("lesson_words")
-      .select(`
-        lesson_id,
-        words!inner(id, english, headword, category),
-        lessons!inner(id, title, number)
-      `)
-      .in("lesson_id", lessonIds)
-      .or(
-        `english.ilike.${pattern},headword.ilike.${pattern}`,
-        { referencedTable: "words" }
-      )
-      .limit(20),
+    // Accent-insensitive word search via RPC
+    supabase.rpc("search_course_words", {
+      p_query: sanitized,
+      p_course_id: courseId,
+    }),
 
-    // Search lessons by title
+    // Search lessons by title (client-side filter)
     Promise.resolve(
       courseLessons
         .filter((l) => l.title.toLowerCase().includes(sanitized.toLowerCase()))
@@ -94,35 +81,18 @@ export async function searchCourse(
     ),
   ]);
 
-  // Process word results - deduplicate by word ID
-  const seenWordIds = new Set<string>();
+  // Process word results
   const words: SearchWordResult[] = [];
-
   if (wordsResult.data) {
     for (const row of wordsResult.data) {
-      const word = row.words as unknown as {
-        id: string;
-        english: string;
-        headword: string;
-        category: string | null;
-      };
-      if (!word || seenWordIds.has(word.id)) continue;
-      seenWordIds.add(word.id);
-
-      const lesson = row.lessons as unknown as {
-        id: string;
-        title: string;
-        number: number;
-      };
-
       words.push({
-        id: word.id,
-        english: word.english,
-        headword: word.headword,
-        category: word.category,
-        lessonId: lesson.id,
-        lessonTitle: lesson.title,
-        lessonNumber: lesson.number,
+        id: row.word_id,
+        english: row.english,
+        headword: row.headword,
+        category: row.category,
+        lessonId: row.lesson_id,
+        lessonTitle: row.lesson_title,
+        lessonNumber: row.lesson_number,
       });
     }
   }

@@ -72,16 +72,16 @@ export function TestModeClient({
 }: TestModeClientProps) {
   const router = useRouter();
   const { isAdmin } = useUser();
-  const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
+  const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
-    setEnabled: setMusicEnabled,
     selectedTrack,
-    setSelectedTrack,
+    toggleTrack,
     volume: musicVolume,
     setVolume: setMusicVolume,
     hasError: musicHasError,
     stop: stopMusic,
+    tracks: musicTracks,
   } = useStudyMusic();
 
   const languageFlag = getFlagFromCode(language?.code);
@@ -114,6 +114,7 @@ export function TestModeClient({
 
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [serverTotalVocabulary, setServerTotalVocabulary] = useState<number | null>(null);
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
@@ -484,6 +485,7 @@ export function TestModeClient({
 
       if (result.success) {
         clearSessionProgress("test", sessionId, lesson.id);
+        setServerTotalVocabulary(result.totalVocabulary);
       } else {
         console.error("Failed to complete test session:", result.error);
       }
@@ -581,6 +583,7 @@ export function TestModeClient({
     setViewedWordIndices([0]);
     setShowCompletionModal(false);
     setElapsedSeconds(0);
+    setServerTotalVocabulary(null);
 
     // Create new session
     if (sessionId) {
@@ -609,6 +612,7 @@ export function TestModeClient({
     setTestProgressMap(new Map());
     setViewedWordIndices([0]);
     setShowCompletionModal(false);
+    setServerTotalVocabulary(null);
     setElapsedSeconds(0);
 
     if (sessionId) {
@@ -657,9 +661,11 @@ export function TestModeClient({
       return streak >= 3;
     }).length;
 
-    // Total vocabulary: already-mastered words + newly mastered in this test
-    const alreadyMastered = words.filter((w) => w.status === "mastered").length;
-    const totalVocabulary = alreadyMastered + masteredWordsCount;
+    // Total vocabulary: use server count (includes all mastered words across all lessons)
+    // Fallback to local calculation if server hasn't responded yet
+    const totalVocabulary = serverTotalVocabulary ?? (
+      words.filter((w) => w.status === "mastered").length + masteredWordsCount
+    );
 
     return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, totalVocabulary };
   };
@@ -987,12 +993,14 @@ export function TestModeClient({
             imageMode={imageMode}
             onImageModeChange={setImageMode}
             musicEnabled={musicEnabled}
-            onMusicEnabledChange={setMusicEnabled}
+            musicTracks={musicTracks}
             selectedTrack={selectedTrack}
-            onTrackChange={setSelectedTrack}
+            onToggleTrack={toggleTrack}
             musicHasError={musicHasError}
             musicVolume={musicVolume}
             onMusicVolumeChange={setMusicVolume}
+            wordVolume={wordVolume}
+            onWordVolumeChange={setWordVolume}
             isAdmin={isAdmin}
             isEditMode={isEditMode}
             onEditModeToggle={() => setIsEditMode(!isEditMode)}

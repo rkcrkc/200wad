@@ -254,7 +254,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
                   if (!genderMatch) return null;
                   const userHasGender = /\(?(m|f)\)?\s*$/.test(feedback.userAnswer.trim());
                   if (userHasGender) return null;
-                  return <span className="text-amber-500"> ({genderMatch[1]})</span>;
+                  return <span className="text-destructive"> ({genderMatch[1]})</span>;
                 })()}
               </>
             )}

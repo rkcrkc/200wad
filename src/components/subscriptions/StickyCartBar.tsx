@@ -10,6 +10,7 @@ interface StickyCartBarProps {
   onRemoveItem: (pricingPlanId: string) => void;
   onCheckout: () => void;
   isCheckingOut: boolean;
+  checkoutError?: string | null;
 }
 
 function formatPrice(cents: number): string {
@@ -22,6 +23,7 @@ export function StickyCartBar({
   onRemoveItem,
   onCheckout,
   isCheckingOut,
+  checkoutError,
 }: StickyCartBarProps) {
   if (cartItems.length === 0) return null;
 
@@ -77,6 +79,12 @@ export function StickyCartBar({
               <div className="flex items-center gap-1 text-xs text-orange-600">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Cannot mix lifetime &amp; recurring</span>
+              </div>
+            )}
+            {checkoutError && (
+              <div className="flex items-center gap-1 text-xs text-destructive">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{checkoutError}</span>
               </div>
             )}
           </div>

@@ -131,6 +131,7 @@ interface GeneralRow {
   // Legacy DL columns
   Course: string;
   Lesson: string;
+  LessonSortOrder: string;
   RefN: string;
   Gender: string;
   FgnDictionary: string;
@@ -615,7 +616,7 @@ async function main() {
   // Filter and prepare words
   const wordsToInsert: WordInsert[] = [];
   const relationshipsToStage: RelationshipStaging[] = [];
-  const lessonWordAssignments: { wordRefN: number; lessonLegacyId: number; courseRef: number }[] = [];
+  const lessonWordAssignments: { wordRefN: number; lessonLegacyId: number; courseRef: number; lessonSortOrder: string }[] = [];
 
   let skippedCourseZero = 0;
   let skippedNoRefN = 0;
@@ -714,6 +715,7 @@ async function main() {
           wordRefN: refN,
           lessonLegacyId: lessonLegacyId,
           courseRef: derivedCourse,
+          lessonSortOrder: row.LessonSortOrder || "",
         });
       } else {
         wordsWithoutLesson++;
@@ -964,7 +966,6 @@ async function main() {
 
   // Create lesson_words entries
   const lessonWordsToInsert: { lesson_id: string; word_id: string; sort_order: number }[] = [];
-  const lessonSortOrders = new Map<string, number>();
 
   // Debug: track why assignments fail
   let noCourseUuid = 0;
@@ -976,6 +977,9 @@ async function main() {
   console.log(`  courseRefToId size: ${courseRefToId.size}`);
   console.log(`  lessonLegacyToId size: ${lessonLegacyToId.size}`);
   console.log(`  refnToWordId size: ${refnToWordId.size}`);
+
+  // Resolve assignments to UUIDs first, keeping lessonSortOrder
+  const resolvedAssignments: { lessonUuid: string; wordUuid: string; lessonSortOrder: string }[] = [];
 
   for (const assignment of lessonWordAssignments) {
     const courseUuid = courseRefToId.get(assignment.courseRef);
@@ -1000,15 +1004,37 @@ async function main() {
       continue;
     }
 
-    // Get next sort order for this lesson
-    const currentOrder = lessonSortOrders.get(lessonUuid) || 0;
-    lessonSortOrders.set(lessonUuid, currentOrder + 1);
-
-    lessonWordsToInsert.push({
-      lesson_id: lessonUuid,
-      word_id: wordUuid,
-      sort_order: currentOrder + 1,
+    resolvedAssignments.push({
+      lessonUuid,
+      wordUuid,
+      lessonSortOrder: assignment.lessonSortOrder,
     });
+  }
+
+  // Group by lesson, sort by LessonSortOrder alphanumerically, assign sequential integers
+  const byLesson = new Map<string, { wordUuid: string; lessonSortOrder: string }[]>();
+  for (const a of resolvedAssignments) {
+    if (!byLesson.has(a.lessonUuid)) {
+      byLesson.set(a.lessonUuid, []);
+    }
+    byLesson.get(a.lessonUuid)!.push({ wordUuid: a.wordUuid, lessonSortOrder: a.lessonSortOrder });
+  }
+
+  const lessonSortOrders = new Map<string, number>();
+  for (const [lessonUuid, words] of byLesson) {
+    // Sort alphanumerically by LessonSortOrder
+    words.sort((a, b) => a.lessonSortOrder.localeCompare(b.lessonSortOrder, undefined, { numeric: true }));
+
+    // Assign sequential integers starting at 1
+    words.forEach((w, index) => {
+      lessonWordsToInsert.push({
+        lesson_id: lessonUuid,
+        word_id: w.wordUuid,
+        sort_order: index + 1,
+      });
+    });
+
+    lessonSortOrders.set(lessonUuid, words.length);
   }
 
   console.log(`  Lesson-word assignments to create: ${lessonWordsToInsert.length}`);

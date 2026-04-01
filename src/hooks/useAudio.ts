@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 export type AudioType = "english" | "foreign" | "trigger";
 
+const STORAGE_KEY_WORD_VOLUME = "word-audio-volume";
+
 interface UseAudioReturn {
   /** Play audio from URL, returns a promise that resolves when audio ends */
   playAudio: (url: string, type: AudioType) => Promise<void>;
@@ -19,6 +21,10 @@ interface UseAudioReturn {
   isLoading: boolean;
   /** Any error that occurred */
   error: string | null;
+  /** Current word audio volume (0-1) */
+  volume: number;
+  /** Set word audio volume (0-1) */
+  setVolume: (volume: number) => void;
 }
 
 export function useAudio(): UseAudioReturn {
@@ -26,11 +32,33 @@ export function useAudio(): UseAudioReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAudioType, setCurrentAudioType] = useState<AudioType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [volume, setVolumeState] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const stored = localStorage.getItem(STORAGE_KEY_WORD_VOLUME);
+    if (stored !== null) {
+      const vol = parseFloat(stored);
+      if (!isNaN(vol) && vol >= 0 && vol <= 1) return vol;
+    }
+    return 1;
+  });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const resolveRef = useRef<(() => void) | null>(null);
   const requestIdRef = useRef<number>(0);
   const preloadCacheRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const volumeRef = useRef(volume);
+
+  const setVolume = useCallback((vol: number) => {
+    const clamped = Math.max(0, Math.min(1, vol));
+    setVolumeState(clamped);
+    volumeRef.current = clamped;
+    if (audioRef.current) {
+      audioRef.current.volume = clamped;
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_WORD_VOLUME, String(clamped));
+    }
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -118,6 +146,7 @@ export function useAudio(): UseAudioReturn {
             return;
           }
           console.log(`[useAudio] Starting playback for type: ${type}`);
+          audio.volume = volumeRef.current;
           setIsLoading(false);
           setIsPlaying(true);
           audio.play().catch((err) => {
@@ -182,5 +211,7 @@ export function useAudio(): UseAudioReturn {
     currentAudioType,
     isLoading,
     error,
+    volume,
+    setVolume,
   };
 }

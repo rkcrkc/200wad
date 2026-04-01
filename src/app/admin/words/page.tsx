@@ -120,8 +120,17 @@ async function getData(searchParams: SearchParams) {
 
   // Apply search or letter filter
   if (searchQuery.trim()) {
-    // Search across headword, english, lemma
-    wordsQuery = wordsQuery.or(`headword.ilike.%${searchQuery}%,english.ilike.%${searchQuery}%,lemma.ilike.%${searchQuery}%`);
+    // Accent-insensitive search: get matching word IDs via RPC, then filter
+    const { data: searchResults } = await supabase.rpc("search_words", {
+      p_query: searchQuery.trim(),
+    });
+    const matchingIds = (searchResults || []).map((r: { word_id: string }) => r.word_id);
+    if (matchingIds.length > 0) {
+      wordsQuery = wordsQuery.in("id", matchingIds);
+    } else {
+      // No matches — force empty result
+      wordsQuery = wordsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+    }
   } else {
     // Filter by starting letter
     const nextLetter = String.fromCharCode(letter.charCodeAt(0) + 1);

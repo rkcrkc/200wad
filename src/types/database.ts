@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      _legacy_word_relationships_staging: {
+        Row: {
+          related_legacy_refn: number
+          relationship_type: string
+          word_legacy_refn: number
+        }
+        Insert: {
+          related_legacy_refn: number
+          relationship_type: string
+          word_legacy_refn: number
+        }
+        Update: {
+          related_legacy_refn?: number
+          relationship_type?: string
+          word_legacy_refn?: number
+        }
+        Relationships: []
+      }
+      activity_flags: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          flag_type: string
+          id: string
+          resolved: boolean | null
+          session_id: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          flag_type: string
+          id?: string
+          resolved?: boolean | null
+          session_id?: string | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          flag_type?: string
+          id?: string
+          resolved?: boolean | null
+          session_id?: string | null
+          severity?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           cefr_range: string | null
@@ -202,6 +261,75 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      leaderboard_rewards: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          league: string
+          rank_max: number
+          rank_min: number
+          reward_cents: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          league: string
+          rank_max: number
+          rank_min: number
+          reward_cents?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          league?: string
+          rank_max?: number
+          rank_min?: number
+          reward_cents?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      lesson_words: {
+        Row: {
+          created_at: string | null
+          lesson_id: string
+          sort_order: number | null
+          word_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          lesson_id: string
+          sort_order?: number | null
+          word_id: string
+        }
+        Update: {
+          created_at?: string | null
+          lesson_id?: string
+          sort_order?: number | null
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_words_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_words_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lessons: {
         Row: {
@@ -632,6 +760,66 @@ export type Database = {
           },
         ]
       }
+      user_daily_activity: {
+        Row: {
+          activity_date: string
+          created_at: string | null
+          id: string
+          language_id: string
+          sessions_count: number | null
+          study_time_seconds: number | null
+          test_max_points: number | null
+          test_points_earned: number | null
+          updated_at: string | null
+          user_id: string
+          words_mastered: number | null
+          words_studied: number | null
+        }
+        Insert: {
+          activity_date: string
+          created_at?: string | null
+          id?: string
+          language_id: string
+          sessions_count?: number | null
+          study_time_seconds?: number | null
+          test_max_points?: number | null
+          test_points_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+          words_mastered?: number | null
+          words_studied?: number | null
+        }
+        Update: {
+          activity_date?: string
+          created_at?: string | null
+          id?: string
+          language_id?: string
+          sessions_count?: number | null
+          study_time_seconds?: number | null
+          test_max_points?: number | null
+          test_points_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+          words_mastered?: number | null
+          words_studied?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_activity_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_daily_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_languages: {
         Row: {
           added_at: string | null
@@ -947,10 +1135,125 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "users_current_course_id_fkey"
+            columns: ["current_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "users_current_language_id_fkey"
             columns: ["current_language_id"]
             isOneToOne: false
             referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_leaderboard_snapshots: {
+        Row: {
+          avg_accuracy: number | null
+          avg_words_per_day: number | null
+          created_at: string | null
+          id: string
+          language_id: string
+          league: string
+          league_points: number | null
+          rank: number
+          reward_cents: number | null
+          streak_days: number | null
+          user_id: string
+          week_end: string
+          week_start: string
+          words_mastered: number | null
+          words_studied: number | null
+        }
+        Insert: {
+          avg_accuracy?: number | null
+          avg_words_per_day?: number | null
+          created_at?: string | null
+          id?: string
+          language_id: string
+          league: string
+          league_points?: number | null
+          rank: number
+          reward_cents?: number | null
+          streak_days?: number | null
+          user_id: string
+          week_end: string
+          week_start: string
+          words_mastered?: number | null
+          words_studied?: number | null
+        }
+        Update: {
+          avg_accuracy?: number | null
+          avg_words_per_day?: number | null
+          created_at?: string | null
+          id?: string
+          language_id?: string
+          league?: string
+          league_points?: number | null
+          rank?: number
+          reward_cents?: number | null
+          streak_days?: number | null
+          user_id?: string
+          week_end?: string
+          week_start?: string
+          words_mastered?: number | null
+          words_studied?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_leaderboard_snapshots_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_leaderboard_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_relationships: {
+        Row: {
+          created_at: string | null
+          id: string
+          related_word_id: string
+          relationship_type: string
+          word_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          related_word_id: string
+          relationship_type: string
+          word_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          related_word_id?: string
+          relationship_type?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_relationships_related_word_id_fkey"
+            columns: ["related_word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "word_relationships_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
             referencedColumns: ["id"]
           },
         ]
@@ -1086,334 +1389,78 @@ export type Database = {
           },
         ]
       }
-      lesson_words: {
-        Row: {
-          lesson_id: string
-          word_id: string
-          sort_order: number
-          created_at: string | null
-        }
-        Insert: {
-          lesson_id: string
-          word_id: string
-          sort_order?: number
-          created_at?: string | null
-        }
-        Update: {
-          lesson_id?: string
-          word_id?: string
-          sort_order?: number
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lesson_words_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "lessons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_words_word_id_fkey"
-            columns: ["word_id"]
-            isOneToOne: false
-            referencedRelation: "words"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      word_relationships: {
-        Row: {
-          id: string
-          word_id: string
-          related_word_id: string
-          relationship_type: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          word_id: string
-          related_word_id: string
-          relationship_type: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          word_id?: string
-          related_word_id?: string
-          relationship_type?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "word_relationships_word_id_fkey"
-            columns: ["word_id"]
-            isOneToOne: false
-            referencedRelation: "words"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "word_relationships_related_word_id_fkey"
-            columns: ["related_word_id"]
-            isOneToOne: false
-            referencedRelation: "words"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_daily_activity: {
-        Row: {
-          id: string
-          user_id: string
-          activity_date: string
-          language_id: string
-          words_studied: number
-          words_mastered: number
-          test_points_earned: number
-          test_max_points: number
-          study_time_seconds: number
-          sessions_count: number
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          activity_date: string
-          language_id: string
-          words_studied?: number
-          words_mastered?: number
-          test_points_earned?: number
-          test_max_points?: number
-          study_time_seconds?: number
-          sessions_count?: number
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          activity_date?: string
-          language_id?: string
-          words_studied?: number
-          words_mastered?: number
-          test_points_earned?: number
-          test_max_points?: number
-          study_time_seconds?: number
-          sessions_count?: number
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_daily_activity_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_daily_activity_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      weekly_leaderboard_snapshots: {
-        Row: {
-          id: string
-          user_id: string
-          language_id: string
-          week_start: string
-          week_end: string
-          league: string
-          rank: number
-          league_points: number
-          words_mastered: number
-          words_studied: number
-          avg_words_per_day: number
-          streak_days: number
-          avg_accuracy: number
-          reward_cents: number
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          language_id: string
-          week_start: string
-          week_end: string
-          league: string
-          rank: number
-          league_points?: number
-          words_mastered?: number
-          words_studied?: number
-          avg_words_per_day?: number
-          streak_days?: number
-          avg_accuracy?: number
-          reward_cents?: number
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          language_id?: string
-          week_start?: string
-          week_end?: string
-          league?: string
-          rank?: number
-          league_points?: number
-          words_mastered?: number
-          words_studied?: number
-          avg_words_per_day?: number
-          streak_days?: number
-          avg_accuracy?: number
-          reward_cents?: number
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "weekly_leaderboard_snapshots_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weekly_leaderboard_snapshots_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leaderboard_rewards: {
-        Row: {
-          id: string
-          league: string
-          rank_min: number
-          rank_max: number
-          reward_cents: number
-          is_active: boolean
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          league: string
-          rank_min: number
-          rank_max: number
-          reward_cents?: number
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          league?: string
-          rank_min?: number
-          rank_max?: number
-          reward_cents?: number
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      activity_flags: {
-        Row: {
-          id: string
-          user_id: string
-          flag_type: string
-          severity: string
-          details: Record<string, unknown>
-          session_id: string | null
-          resolved: boolean
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          flag_type: string
-          severity?: string
-          details?: Record<string, unknown>
-          session_id?: string | null
-          resolved?: boolean
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          flag_type?: string
-          severity?: string
-          details?: Record<string, unknown>
-          session_id?: string | null
-          resolved?: boolean
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_flags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      f_unaccent: { Args: { "": string }; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
-      is_admin: { Args: never; Returns: boolean }
-      update_daily_activity: {
-        Args: {
-          p_user_id: string
-          p_language_id: string
-          p_words_studied?: number
-          p_words_mastered?: number
-          p_test_points_earned?: number
-          p_test_max_points?: number
-          p_study_time_seconds?: number
-        }
-        Returns: undefined
-      }
       get_leaderboard: {
         Args: {
           p_language_id: string
+          p_limit?: number
           p_metric?: string
           p_period?: string
-          p_limit?: number
         }
         Returns: {
+          avatar_url: string
+          current_streak: number
+          league: string
+          metric_value: number
+          name: string
+          nationalities: string[]
           rank: number
           user_id: string
-          username: string | null
-          name: string | null
-          avatar_url: string | null
-          nationalities: string[]
-          league: string
-          current_streak: number
-          metric_value: number
+          username: string
         }[]
       }
       get_user_leaderboard_position: {
         Args: {
-          p_user_id: string
           p_language_id: string
           p_metric?: string
           p_period?: string
+          p_user_id: string
         }
         Returns: {
-          rank: number
           metric_value: number
+          rank: number
           total_users: number
         }[]
+      }
+      is_admin: { Args: never; Returns: boolean }
+      search_course_words: {
+        Args: { p_course_id: string; p_query: string }
+        Returns: {
+          category: string
+          english: string
+          headword: string
+          lesson_id: string
+          lesson_number: number
+          lesson_title: string
+          word_id: string
+        }[]
+      }
+      search_words: {
+        Args: { p_exclude_word_id?: string; p_query: string }
+        Returns: {
+          english: string
+          headword: string
+          language_id: string
+          word_id: string
+        }[]
+      }
+      update_daily_activity: {
+        Args: {
+          p_language_id: string
+          p_study_time_seconds?: number
+          p_test_max_points?: number
+          p_test_points_earned?: number
+          p_user_id: string
+          p_words_mastered?: number
+          p_words_studied?: number
+        }
+        Returns: undefined
       }
     }
     Enums: {
