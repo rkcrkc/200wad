@@ -53,8 +53,8 @@ export interface NormalizeOptions {
   preserveCase?: boolean;
 }
 
-/** Punctuation and whitespace characters stripped during normalization */
-const STRIPPED_PUNCTUATION = /[!?.,'"¡¿\u2018\u2019\u201C\u201D`()\s]/;
+/** Gender marker pattern including preceding space: " (m)" or " (f)" at end of string */
+const GENDER_MARKER = /\s+\((?:m|f)\)\s*$/;
 
 /**
  * Build a mapping from normalized string indices to original string indices.
@@ -64,15 +64,21 @@ export function getNormalizedIndexMap(answer: string, options: NormalizeOptions 
   if (typeof options === "boolean") {
     options = { strictPunctuation: options, preserveCase: options };
   }
-  const { strictPunctuation = false } = options;
 
   const trimmed = answer.trim();
   if (!trimmed) return [];
   const trimOffset = answer.length - answer.trimStart().length;
 
+  const { strictPunctuation = false } = options;
+
+  // Find gender marker to know which indices to skip
+  const genderMatch = !strictPunctuation ? trimmed.match(GENDER_MARKER) : null;
+  const genderStartIdx = genderMatch ? trimmed.length - genderMatch[0].length : -1;
+
   const indexMap: number[] = [];
   for (let i = 0; i < trimmed.length; i++) {
-    if (!strictPunctuation && STRIPPED_PUNCTUATION.test(trimmed[i])) {
+    // Skip gender marker chars (including preceding space)
+    if (genderStartIdx >= 0 && i >= genderStartIdx) {
       continue;
     }
     indexMap.push(trimOffset + i);
@@ -93,9 +99,10 @@ export function languageRequiresCase(languageCode?: string | null): boolean {
 
 /**
  * Normalize an answer for comparison
+ * - Strip gender marker and its preceding space, e.g. " (m)" at end
  * - Lowercase (unless preserveCase is true - for German or "nerves of steel")
- * - Remove punctuation and whitespace (unless strictPunctuation is true)
  * - Trim whitespace
+ * - Punctuation (apostrophes, etc.) is preserved and scored
  */
 export function normalizeAnswer(answer: string, options: NormalizeOptions | boolean = {}): string {
   // Handle legacy boolean parameter (strictMode = both punctuation and case)
@@ -106,11 +113,13 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
   const { strictPunctuation = false, preserveCase = false } = options;
 
   let normalized = answer.trim();
+  // Strip gender marker and its preceding space so it doesn't affect edit distance
+  // In nerves of steel mode, gender marker must be typed exactly
+  if (!strictPunctuation) {
+    normalized = normalized.replace(GENDER_MARKER, "");
+  }
   if (!preserveCase) {
     normalized = normalized.toLowerCase();
-  }
-  if (!strictPunctuation) {
-    normalized = normalized.replace(new RegExp(STRIPPED_PUNCTUATION.source, "g"), "");
   }
   return normalized;
 }

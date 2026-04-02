@@ -12,6 +12,7 @@ import {
   type AnswerGrade,
   type NormalizeOptions,
 } from "@/lib/utils/scoring";
+import { useDeadKeyComposition } from "@/lib/utils/deadKeys";
 
 interface FeedbackState {
   grade: AnswerGrade;
@@ -56,6 +57,9 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   const inputRef = useRef<HTMLInputElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Dead key composition for accented characters (Windows support)
+  const { handleDeadKey, clearPending } = useDeadKeyComposition(languageCode, inputRef, setInput);
+
   // Normalization options based on language
   const preserveCase = languageRequiresCase(languageCode);
   const normalizeOptions: NormalizeOptions = {
@@ -72,6 +76,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
       if (!inputRef.current) return;
       // Don't insert if showing diff (locked display)
       if (showDiff) return;
+      clearPending();
 
       const inputEl = inputRef.current;
       const start = inputEl.selectionStart ?? inputEl.value.length;
@@ -86,7 +91,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
         inputEl.setSelectionRange(start + char.length, start + char.length);
       });
     },
-  }), [showDiff]);
+  }), [showDiff, clearPending]);
 
   // Focus input when it becomes visible
   useEffect(() => {
@@ -101,7 +106,8 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     setFeedback(null);
     setShowDiff(false);
     setShowWarning(false);
-  }, [wordId]);
+    clearPending();
+  }, [wordId, clearPending]);
 
   const handleSubmit = () => {
     if (!input.trim()) return;
@@ -148,7 +154,10 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   // Check if user can proceed to next word
   const canProceed = !strictMode || (feedback?.grade === "correct");
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Dead key composition (accented characters on Windows)
+    if (handleDeadKey(e)) return;
+
     if (e.key === "Enter") {
       if (showDiff) {
         // If showing diff and can proceed, go next

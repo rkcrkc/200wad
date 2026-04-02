@@ -17,6 +17,7 @@ import {
   type ScoreLetter,
   type NormalizeOptions,
 } from "@/lib/utils/scoring";
+import { useDeadKeyComposition } from "@/lib/utils/deadKeys";
 
 export interface TestAnswerInputHandle {
   insertCharacter: (char: string) => void;
@@ -70,12 +71,16 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   const inputRef = useRef<HTMLInputElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Dead key composition for accented characters (Windows support)
+  const { handleDeadKey, clearPending } = useDeadKeyComposition(languageCode, inputRef, setInput);
+
   // Expose insertCharacter method to parent
   useImperativeHandle(ref, () => ({
     insertCharacter: (char: string) => {
       if (!inputRef.current) return;
       // Don't insert if already answered
       if (existingResult || localResult) return;
+      clearPending();
 
       const inputEl = inputRef.current;
       const start = inputEl.selectionStart ?? inputEl.value.length;
@@ -90,7 +95,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
         inputEl.setSelectionRange(start + char.length, start + char.length);
       });
     },
-  }), [existingResult, localResult]);
+  }), [existingResult, localResult, clearPending]);
 
   // Determine if case should be preserved (German language or nerves of steel mode)
   const preserveCase = nervesOfSteelMode || languageRequiresCase(languageCode);
@@ -119,8 +124,9 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     if (!existingResult) {
       setInput("");
       setLocalResult(null);
+      clearPending();
     }
-  }, [wordId, existingResult]);
+  }, [wordId, existingResult, clearPending]);
 
   const handleSubmit = () => {
     if (!input.trim()) return;
@@ -154,7 +160,10 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     }, 50);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Dead key composition (accented characters on Windows)
+    if (handleDeadKey(e)) return;
+
     if (e.key === "Enter" && !result && input.trim() && !isLocked) {
       handleSubmit();
     }
