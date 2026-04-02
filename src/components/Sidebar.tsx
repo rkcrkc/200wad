@@ -9,9 +9,10 @@ import {
   ClipboardCheck,
   BookMarked,
   Lock,
-  Gift,
+  Coins,
   Settings,
   HelpCircle,
+  CirclePlay,
 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ const getNavItems = (courseId?: string) => [
 ];
 
 const bottomNavItems = [
-  { path: "/referrals", icon: Gift, label: "Referrals" },
+  { path: "/referrals", icon: Coins, label: "Credits" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -177,7 +178,8 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: Sideb
             label={item.label}
           />
         ))}
-        <SidebarButton icon={HelpCircle} label="Help" />
+        <SidebarButton icon={CirclePlay} label="Tutorial" />
+        <SidebarNavItem href="/help" icon={HelpCircle} label="Help" />
       </div>
     </div>
   );

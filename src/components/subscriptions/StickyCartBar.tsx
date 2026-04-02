@@ -1,6 +1,7 @@
 "use client";
 
 import { ShoppingCart, X, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "./SubscriptionsPageClient";
 
@@ -42,9 +43,9 @@ export function StickyCartBar({
           <ShoppingCart className="h-5 w-5 text-muted-foreground" />
           <div className="flex flex-wrap items-center gap-2">
             {cartItems.map((item) => (
-              <span
+              <Badge
                 key={`${item.pricingPlanId}-${item.targetId}`}
-                className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium"
+                className="inline-flex items-center gap-1"
               >
                 {item.targetName}
                 <button
@@ -53,7 +54,7 @@ export function StickyCartBar({
                 >
                   <X className="h-3 w-3" />
                 </button>
-              </span>
+              </Badge>
             ))}
           </div>
         </div>

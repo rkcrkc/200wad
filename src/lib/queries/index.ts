@@ -51,3 +51,5 @@ export type { CreditBalance, GetCreditBalanceResult, GetReferralStatsResult } fr
 
 export { getLeaderboard, getLeaderboardRewards, getLeagueConfig, getPersonalBests } from "./leaderboard";
 export type { LeaderboardEntry, LeaderboardMetric, LeaderboardPeriod, LeaderboardData, LeaderboardReward } from "./leaderboard";
+
+export { getHelpEntries, getHelpEntriesAdmin } from "./help";

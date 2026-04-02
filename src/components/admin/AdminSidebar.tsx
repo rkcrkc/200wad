@@ -13,6 +13,7 @@ import {
   CreditCard,
   ChevronLeft,
   Trophy,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,11 @@ const navItems: NavItem[] = [
     label: "Music",
     href: "/admin/music",
     icon: <Music className="h-5 w-5" />,
+  },
+  {
+    label: "Help",
+    href: "/admin/help",
+    icon: <HelpCircle className="h-5 w-5" />,
   },
   {
     label: "Leaderboard",

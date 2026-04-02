@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import type { PricingPlan } from "@/types/database";
 import type { UserSubscription, SubscriptionLanguage } from "@/lib/queries/subscriptions";
@@ -98,21 +99,21 @@ export function LanguageSubscriptionRow({
           <div className="flex items-center gap-1.5">
             {hasLangSub ? (
               <>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                <Badge size="sm">
                   {getPlanLabel(langSub.plan)}
-                </span>
-                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-600">
+                </Badge>
+                <Badge size="sm" variant="success">
                   Active
-                </span>
+                </Badge>
               </>
             ) : hasAllLangsSub ? (
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-600">
+              <Badge size="sm" variant="success">
                 Included
-              </span>
+              </Badge>
             ) : (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              <Badge size="sm">
                 Free plan
-              </span>
+              </Badge>
             )}
           </div>
 

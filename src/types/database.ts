@@ -14,24 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _legacy_word_relationships_staging: {
-        Row: {
-          related_legacy_refn: number
-          relationship_type: string
-          word_legacy_refn: number
-        }
-        Insert: {
-          related_legacy_refn: number
-          relationship_type: string
-          word_legacy_refn: number
-        }
-        Update: {
-          related_legacy_refn?: number
-          relationship_type?: string
-          word_legacy_refn?: number
-        }
-        Relationships: []
-      }
       activity_flags: {
         Row: {
           created_at: string | null
@@ -228,6 +210,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      help_entries: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean
+          language_codes: string[] | null
+          preview: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          language_codes?: string[] | null
+          preview?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          language_codes?: string[] | null
+          preview?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       languages: {
         Row: {
@@ -1650,3 +1674,8 @@ export type WeeklyLeaderboardSnapshot = Database["public"]["Tables"]["weekly_lea
 export type LeaderboardRewardRow = Database["public"]["Tables"]["leaderboard_rewards"]["Row"];
 export type ActivityFlag = Database["public"]["Tables"]["activity_flags"]["Row"];
 export type ActivityFlagInsert = Database["public"]["Tables"]["activity_flags"]["Insert"];
+
+// Help types
+export type HelpEntry = Database["public"]["Tables"]["help_entries"]["Row"];
+export type HelpEntryInsert = Database["public"]["Tables"]["help_entries"]["Insert"];
+export type HelpEntryUpdate = Database["public"]["Tables"]["help_entries"]["Update"];

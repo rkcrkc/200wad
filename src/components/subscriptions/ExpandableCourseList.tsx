@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { getLanguageCoursesAction, type LanguageCourse } from "@/lib/mutations/subscriptions";
 
 interface ExpandableCourseListProps {
@@ -65,9 +66,9 @@ export function ExpandableCourseList({ languageId }: ExpandableCourseListProps) 
           <div className="flex items-center gap-3">
             <span className="text-small-semibold">{course.name}</span>
             {course.level && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              <Badge size="sm">
                 {course.level}
-              </span>
+              </Badge>
             )}
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
