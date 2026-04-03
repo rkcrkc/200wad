@@ -83,7 +83,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
   const courseIds = courses.map((c) => c.id);
   const { data: lessons } = await supabase
     .from("lessons")
-    .select("id, course_id")
+    .select("id, course_id, word_count")
     .in("course_id", courseIds);
 
   const lessonCountByCourse: Record<string, number> = {};
@@ -100,25 +100,14 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     }
   });
 
-  // Count actual words per course (via lesson_words -> lessons)
-  const allLessonIds = lessons?.map((l) => l.id) || [];
-  let wordCountByCourse: Record<string, number> = {};
-
-  if (allLessonIds.length > 0) {
-    const { data: lessonWords } = await supabase
-      .from("lesson_words")
-      .select("lesson_id")
-      .in("lesson_id", allLessonIds);
-
-    lessonWords?.forEach((lw) => {
-      // Find which course this lesson belongs to
-      const lesson = lessons?.find((l) => l.id === lw.lesson_id);
-      if (lesson?.course_id) {
-        wordCountByCourse[lesson.course_id] =
-          (wordCountByCourse[lesson.course_id] || 0) + 1;
-      }
-    });
-  }
+  // Sum word counts per course from already-fetched lesson data
+  const wordCountByCourse: Record<string, number> = {};
+  lessons?.forEach((l) => {
+    if (l.course_id) {
+      wordCountByCourse[l.course_id] =
+        (wordCountByCourse[l.course_id] || 0) + (l.word_count || 0);
+    }
+  });
 
   // Get user's lesson progress if authenticated
   const lessonsCompletedByCourse: Record<string, number> = {};

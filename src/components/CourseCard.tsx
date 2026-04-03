@@ -89,7 +89,7 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <MessageCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{course.actualWordCount} words</span>
+          <span>{course.actualWordCount.toLocaleString()} words</span>
         </div>
       </div>
 

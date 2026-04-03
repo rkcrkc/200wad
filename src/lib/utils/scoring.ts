@@ -56,6 +56,9 @@ export interface NormalizeOptions {
 /** Gender marker pattern including preceding space: " (m)" or " (f)" at end of string */
 const GENDER_MARKER = /\s+\((?:m|f)\)\s*$/;
 
+/** Flexible gender marker for user input: space + optional ( + m/f + optional ) */
+const FLEXIBLE_GENDER_MARKER = /\s+\(?([mf])\)?\s*$/i;
+
 /**
  * Build a mapping from normalized string indices to original string indices.
  * Used by getCharacterDiff to correctly map DP results back to original characters.
@@ -131,12 +134,71 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
 /**
  * Calculate the number of mistakes in an answer
  * Returns 0 for correct, 1-2 for partial, 3+ for incorrect
+ *
+ * For gendered words (correct answer ends with " (m)" or " (f)"):
+ * - Word part and gender are scored separately
+ * - Gender accepts flexible formats: m, (m), (m, f, (f), (f — with or without brackets
+ * - Missing or wrong gender = 1 extra mistake
  */
 export function getMistakeCount(
   userAnswer: string,
   correctAnswer: string,
   options: NormalizeOptions | boolean = {}
 ): number {
+  if (typeof options === "boolean") {
+    options = { strictPunctuation: options, preserveCase: options };
+  }
+
+  const { strictPunctuation = false, preserveCase = false } = options;
+
+  // Check if correct answer has a gender marker
+  const correctTrimmed = correctAnswer.trim();
+  const correctGenderMatch = !strictPunctuation
+    ? correctTrimmed.match(/\s+\(([mf])\)\s*$/)
+    : null;
+
+  if (correctGenderMatch) {
+    // GENDERED WORD: score word and gender separately
+    const expectedGender = correctGenderMatch[1];
+
+    // Strip gender from correct answer
+    const correctWordOnly = correctTrimmed.replace(GENDER_MARKER, "");
+
+    // Try to extract gender from user answer (flexible pattern)
+    const userTrimmed = userAnswer.trim();
+    const userFlexMatch = userTrimmed.match(FLEXIBLE_GENDER_MARKER);
+
+    let userWordOnly: string;
+    let userGender: string | null = null;
+
+    if (userFlexMatch && userFlexMatch.index !== undefined) {
+      userGender = userFlexMatch[1].toLowerCase();
+      userWordOnly = userTrimmed.slice(0, userFlexMatch.index);
+    } else {
+      userWordOnly = userTrimmed;
+    }
+
+    // Normalize word parts
+    let normalizedUserWord = userWordOnly;
+    let normalizedCorrectWord = correctWordOnly;
+    if (!preserveCase) {
+      normalizedUserWord = normalizedUserWord.toLowerCase();
+      normalizedCorrectWord = normalizedCorrectWord.toLowerCase();
+    }
+
+    // Word mistakes (edit distance on word part only)
+    const wordMistakes =
+      normalizedUserWord === normalizedCorrectWord
+        ? 0
+        : levenshteinDistance(normalizedUserWord, normalizedCorrectWord);
+
+    // Gender mistake: missing or wrong = 1
+    const genderMistake = !userGender || userGender !== expectedGender ? 1 : 0;
+
+    return wordMistakes + genderMistake;
+  }
+
+  // NON-GENDERED: standard comparison
   const normalizedUser = normalizeAnswer(userAnswer, options);
   const normalizedCorrect = normalizeAnswer(correctAnswer, options);
 
@@ -145,6 +207,35 @@ export function getMistakeCount(
   }
 
   return levenshteinDistance(normalizedUser, normalizedCorrect);
+}
+
+/**
+ * Canonicalize user gender format to match DB format: " (m)" or " (f)"
+ * Only applies when the correct answer has a gender marker.
+ * Used before passing to getCharacterDiff so the diff display is clean.
+ */
+export function canonicalizeUserGender(
+  userAnswer: string,
+  correctAnswer: string,
+  options: NormalizeOptions | boolean = {}
+): string {
+  if (typeof options === "boolean") {
+    options = { strictPunctuation: options, preserveCase: options };
+  }
+  if (options.strictPunctuation) return userAnswer;
+
+  const correctTrimmed = correctAnswer.trim();
+  if (!GENDER_MARKER.test(correctTrimmed)) return userAnswer;
+
+  const userTrimmed = userAnswer.trim();
+  const userFlexMatch = userTrimmed.match(FLEXIBLE_GENDER_MARKER);
+
+  if (userFlexMatch && userFlexMatch.index !== undefined) {
+    const gender = userFlexMatch[1].toLowerCase();
+    return userTrimmed.slice(0, userFlexMatch.index) + ` (${gender})`;
+  }
+
+  return userAnswer;
 }
 
 // ============================================================================

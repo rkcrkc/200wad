@@ -8,6 +8,7 @@ import {
   getBestMatch,
   getAnswerGrade,
   getCharacterDiff,
+  canonicalizeUserGender,
   languageRequiresCase,
   type AnswerGrade,
   type NormalizeOptions,
@@ -215,7 +216,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     if (feedback.grade === "half-correct") {
       // Check if gender was missing
       const genderMatch = feedback.correctAnswer.match(/\((m|f)\)\s*$/);
-      const userHasGender = genderMatch ? /\(?(m|f)\)?\s*$/.test(feedback.userAnswer.trim()) : true;
+      const userHasGender = genderMatch ? /\s+\(?[mf]\)?\s*$/i.test(feedback.userAnswer.trim()) : true;
       const text = !userHasGender ? "Half-correct! Don\u2019t forget the gender" : "Half-correct!";
       return { icon: "✅", text, emoji: "", textColor: "text-amber-600" };
     }
@@ -247,7 +248,11 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
             ) : (
               // Half-correct - show character-level highlighting
               <>
-                {getCharacterDiff(feedback.userAnswer, feedback.correctAnswer, normalizeOptions).map(
+                {getCharacterDiff(
+                  canonicalizeUserGender(feedback.userAnswer, feedback.correctAnswer, normalizeOptions),
+                  feedback.correctAnswer,
+                  normalizeOptions,
+                ).map(
                   ({ char, isCorrect }, index) => (
                     <span
                       key={index}
@@ -261,7 +266,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
                 {(() => {
                   const genderMatch = feedback.correctAnswer.match(/\((m|f)\)\s*$/);
                   if (!genderMatch) return null;
-                  const userHasGender = /\(?(m|f)\)?\s*$/.test(feedback.userAnswer.trim());
+                  const userHasGender = /\s+\(?[mf]\)?\s*$/i.test(feedback.userAnswer.trim());
                   if (userHasGender) return null;
                   return <span className="text-destructive"> ({genderMatch[1]})</span>;
                 })()}

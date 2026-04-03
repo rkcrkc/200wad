@@ -329,15 +329,17 @@ export async function updateLessonProgress(
     return { success: false, error: "Lesson not found" };
   }
 
-  // Get all words in this lesson
-  const { data: words } = await supabase
-    .from("words")
-    .select("id")
+  // Get all words in this lesson via junction table
+  const { data: lessonWords } = await supabase
+    .from("lesson_words")
+    .select("word_id")
     .eq("lesson_id", lessonId);
 
-  if (!words || words.length === 0) {
+  if (!lessonWords || lessonWords.length === 0) {
     return { success: false, error: "No words found in lesson" };
   }
+
+  const words = lessonWords.map((lw) => ({ id: lw.word_id }));
 
   // Get user's progress for all words in this lesson
   const { data: wordProgress } = await supabase

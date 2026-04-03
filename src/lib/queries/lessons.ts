@@ -217,6 +217,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   let totalTestTimeSeconds = 0;
   let wordsMastered = 0;
   let wordsStudied = 0;
+  const liveMasteredByLesson: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
@@ -266,7 +267,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .in("status", ["studying", "mastered"]),
       supabase
         .from("lesson_words")
-        .select("word_id")
+        .select("lesson_id, word_id")
         .in("lesson_id", lessonIds),
     ]);
 
@@ -276,6 +277,12 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         lessonWordsResult.data.map((lw) => lw.word_id).filter((id): id is string => id !== null)
       );
 
+      // Build per-word status lookup
+      const wordStatusMap = new Map<string, string>();
+      userProgressResult.data.forEach((p) => {
+        if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);
+      });
+
       // Count user progress that matches course words
       wordsStudied = userProgressResult.data.filter((p) => p.word_id && courseWordIds.has(p.word_id)).length;
 
@@ -283,6 +290,15 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       wordsMastered = userProgressResult.data.filter(
         (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "mastered"
       ).length;
+
+      // Build per-lesson mastered counts from live data
+      for (const lw of lessonWordsResult.data) {
+        if (!lw.lesson_id || !lw.word_id) continue;
+        const status = wordStatusMap.get(lw.word_id);
+        if (status === "mastered") {
+          liveMasteredByLesson[lw.lesson_id] = (liveMasteredByLesson[lw.lesson_id] || 0) + 1;
+        }
+      }
     }
   }
 
@@ -294,11 +310,16 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     (lesson) => {
       const progress = progressByLesson[lesson.id];
 
+      // Use live mastered count from user_word_progress (more accurate than stale lesson progress)
+      const liveMastered = liveMasteredByLesson[lesson.id] || 0;
+      const totalWords = lesson.word_count || 0;
+      const liveCompletion = totalWords > 0 ? Math.round((liveMastered / totalWords) * 100) : 0;
+
       return {
         ...lesson,
         status: (progress?.status as LessonStatus) || "not-started",
-        completionPercent: progress?.completion_percent || 0,
-        wordsMastered: progress?.words_mastered || 0,
+        completionPercent: liveCompletion,
+        wordsMastered: liveMastered,
         totalStudyTimeSeconds: progress?.total_study_time_seconds || 0,
         lastStudiedAt: progress?.last_studied_at || null,
       };

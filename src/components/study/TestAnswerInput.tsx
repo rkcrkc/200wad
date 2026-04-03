@@ -12,6 +12,7 @@ import {
   getScoreLetter,
   calculateScorePercent,
   getCharacterDiff,
+  canonicalizeUserGender,
   languageRequiresCase,
   type AnswerGrade,
   type ScoreLetter,
@@ -204,9 +205,17 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
         inputTextColor: "text-foreground",
       };
     } else if (grade === "half-correct") {
+      // Check if gender was missing
+      const genderMatch = result.correctAnswer.match(/\(([mf])\)\s*$/);
+      const userHasGender = genderMatch
+        ? /\s+\(?[mf]\)?\s*$/i.test(result.userAnswer.trim())
+        : true;
+      const text = !userHasGender
+        ? `Half correct! Don\u2019t forget the gender. ${pointsText}`
+        : `Half correct! ${pointsText}`;
       return {
         icon: "✅",
-        text: `Half correct! ${pointsText}`,
+        text,
         emoji: "🙌",
         borderColor: "border-amber-200",
         textColor: "text-amber-600",
@@ -246,7 +255,11 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
             ) : (
               // Half-correct - show character-level highlighting
               <>
-                {getCharacterDiff(result.userAnswer, result.correctAnswer, normalizeOptions).map(
+                {getCharacterDiff(
+                  canonicalizeUserGender(result.userAnswer, result.correctAnswer, normalizeOptions),
+                  result.correctAnswer,
+                  normalizeOptions,
+                ).map(
                   ({ char, isCorrect }, index) => (
                     <span
                       key={index}
@@ -260,7 +273,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
                 {(() => {
                   const genderMatch = result.correctAnswer.match(/\((m|f)\)\s*$/);
                   if (!genderMatch) return null;
-                  const userHasGender = /\(?(m|f)\)?\s*$/.test(result.userAnswer.trim());
+                  const userHasGender = /\s+\(?[mf]\)?\s*$/i.test(result.userAnswer.trim());
                   if (userHasGender) return null;
                   return <span className="text-destructive"> ({genderMatch[1]})</span>;
                 })()}
