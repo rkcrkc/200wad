@@ -4,16 +4,15 @@ import Image from "next/image";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { EditableText, EditableImage } from "@/components/admin";
+import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 
 interface MemoryTriggerCardProps {
   imageUrl: string | null;
   triggerText: string | null;
   englishWord: string;
   foreignWord: string;
-  /** Word gender for color-coded highlighting (red=feminine, blue=masculine) */
+  /** Word gender for color-coded highlighting (f=red, m=blue, n=purple) */
   gender?: string | null;
-  /** Part of speech for color-coded highlighting (green=verb/adjective/adverb) */
-  partOfSpeech?: string | null;
   playingAudioType: AudioType | null;
   onPlayTriggerAudio: () => void;
   /**
@@ -53,41 +52,27 @@ interface MemoryTriggerCardProps {
 }
 
 /**
- * Determine the highlight color based on word's gender and part of speech
- * - Red (#fb2c36): feminine nouns
- * - Blue (#0B6CFF): masculine nouns
- * - Green (#00C950): verbs, adjectives, adverbs
+ * Determine the highlight color based on word's gender.
+ * Uses centralized gender color tokens from design-tokens.
  */
-function getHighlightColor(
-  gender?: string | null,
-  partOfSpeech?: string | null
-): string {
-  // Check part of speech first (verbs, adjectives, adverbs = green)
-  if (partOfSpeech) {
-    const pos = partOfSpeech.toLowerCase();
-    if (pos === "verb" || pos === "adjective" || pos === "adverb") {
-      return "#00C950"; // green
-    }
+function getHighlightColor(gender?: string | null): string {
+  if (gender && gender in genderColor) {
+    return genderColor[gender];
   }
+  return defaultHighlightColor;
+}
 
-  // Check gender (nouns)
-  if (gender) {
-    const g = gender.toLowerCase();
-    if (g === "feminine") {
-      return "#fb2c36"; // red
-    }
-    if (g === "masculine") {
-      return "#0B6CFF"; // blue
-    }
+/** Get darker shade of gender color for audio playback highlighting */
+function getHighlightColorDark(gender?: string | null): string {
+  if (gender && gender in genderColorDark) {
+    return genderColorDark[gender];
   }
-
-  // Default to green (matches original behavior for phonetic hints)
-  return "#00C950";
+  return defaultHighlightColorDark;
 }
 
 /**
  * Parse trigger text and highlight:
- * - If text contains {{...}} markers: highlight marked text with color based on gender/partOfSpeech
+ * - If text contains {{...}} markers: highlight marked text with color based on gender
  * - Otherwise: use legacy auto-detection (ALL CAPS = green, English word = blue italic)
  * - Rest of text: blue when playing, black otherwise
  */
@@ -97,10 +82,10 @@ function parseAndHighlightText(
   foreignWord: string,
   isPlaying: boolean,
   gender?: string | null,
-  partOfSpeech?: string | null
 ): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const highlightColor = getHighlightColor(gender, partOfSpeech);
+  const highlightColor = getHighlightColor(gender);
+  const darkColor = getHighlightColorDark(gender);
 
   // Check if text uses {{...}} marker syntax
   if (text.includes("{{")) {
@@ -115,7 +100,7 @@ function parseAndHighlightText(
       if (match.index > lastIndex) {
         const beforeText = text.slice(lastIndex, match.index);
         parts.push(
-          <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+          <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
             {beforeText}
           </span>
         );
@@ -138,7 +123,7 @@ function parseAndHighlightText(
     // Add any remaining text after the last marker
     if (lastIndex < text.length) {
       parts.push(
-        <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+        <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
           {text.slice(lastIndex)}
         </span>
       );
@@ -155,7 +140,7 @@ function parseAndHighlightText(
   words.forEach((word, index) => {
     const cleanWord = word.toLowerCase().replace(/[!?.,'"]/g, "");
 
-    // Check if this word matches the foreign word (highlighted with color based on gender/pos)
+    // Check if this word matches the foreign word (highlighted with gender color)
     if (cleanWord === cleanForeign || cleanWord.includes(cleanForeign)) {
       parts.push(
         <span
@@ -167,7 +152,7 @@ function parseAndHighlightText(
         </span>
       );
     }
-    // Check if word is in ALL CAPS (phonetic hint - highlighted with color based on gender/pos)
+    // Check if word is in ALL CAPS (phonetic hint - highlighted with gender color)
     else if (word.match(/^[A-Z]{2,}[!?.,'"]*$/) && word.trim().length > 1) {
       parts.push(
         <span
@@ -179,22 +164,22 @@ function parseAndHighlightText(
         </span>
       );
     }
-    // Check if this word is the English word (italic blue - always blue)
+    // Check if this word is the English word (italic, dark gender color)
     else if (cleanWord === cleanEnglish || cleanWord.includes(cleanEnglish)) {
       parts.push(
         <span
           key={index}
           className="font-semibold italic"
-          style={{ color: "#0B6CFF" }}
+          style={{ color: darkColor }}
         >
           {word}
         </span>
       );
     }
-    // Regular text: blue when playing, black otherwise
+    // Regular text: dark gender color when playing, black otherwise
     else {
       parts.push(
-        <span key={index} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+        <span key={index} style={{ color: isPlaying ? darkColor : "#141515" }}>
           {word}
         </span>
       );
@@ -210,7 +195,6 @@ export function MemoryTriggerCard({
   englishWord,
   foreignWord,
   gender,
-  partOfSpeech,
   playingAudioType,
   onPlayTriggerAudio,
   showImage: showImageProp,
@@ -224,6 +208,7 @@ export function MemoryTriggerCard({
   onImageUpload,
 }: MemoryTriggerCardProps) {
   const isPlayingTrigger = playingAudioType === "trigger";
+  const audioDarkColor = getHighlightColorDark(gender);
 
   // If there's no memory trigger content at all, hide the entire card
   const hasNoContent = !triggerText && !imageUrl;
@@ -279,12 +264,29 @@ export function MemoryTriggerCard({
         )}
 
         {/* Trigger text row - audio button on left, matching word card layout */}
-        {showTrigger && triggerText ? (
+        {showTriggerTextProp !== undefined && triggerText ? (
+          // Study mode: always render real container, toggle visibility to prevent layout shift
+          <button
+            onClick={isEditMode ? undefined : showTrigger ? onPlayTriggerAudio : undefined}
+            className="flex items-center gap-4 text-left"
+            style={{
+              visibility: showTrigger ? "visible" : "hidden",
+              pointerEvents: showTrigger ? "auto" : "none",
+              cursor: showTrigger ? "pointer" : "default",
+            }}
+          >
+            <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+            <p className="text-2xl font-medium leading-relaxed">
+              {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger, gender)}
+            </p>
+          </button>
+        ) : showTrigger && triggerText ? (
+          // Test mode / edit mode: render normally when visible
           <button
             onClick={isEditMode ? undefined : onPlayTriggerAudio}
             className="flex cursor-pointer items-center gap-4 text-left"
           >
-            <AudioButton isPlaying={isPlayingTrigger} />
+            <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={triggerText}
@@ -298,7 +300,7 @@ export function MemoryTriggerCard({
               />
             ) : (
               <p className="text-2xl font-medium leading-relaxed">
-                {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger, gender, partOfSpeech)}
+                {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger, gender)}
               </p>
             )}
           </button>
@@ -317,8 +319,8 @@ export function MemoryTriggerCard({
               multiline
             />
           </div>
-        ) : !pictureOnlyMode || showTrigger ? (
-          // Show skeleton only if not in picture-only mode or if trigger should be shown
+        ) : showTriggerTextProp === undefined && (!pictureOnlyMode || showTrigger) ? (
+          // Test mode: show animated skeleton when trigger text not yet revealed
           <div className="flex items-center gap-4">
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
             <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />

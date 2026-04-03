@@ -10,6 +10,7 @@ import { AudioButton } from "@/components/ui/audio-button";
 import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
+import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 
 interface WordListItem {
   id: string;
@@ -38,27 +39,22 @@ interface WordDetailViewProps {
 }
 
 /**
- * Determine the highlight color based on word's gender and part of speech
- * - Red (#fb2c36): feminine nouns
- * - Blue (#0B6CFF): masculine nouns
- * - Green (#00C950): verbs, adjectives, adverbs
+ * Determine the highlight color based on word's gender.
+ * Uses centralized gender color tokens from design-tokens.
  */
-function getHighlightColor(
-  gender?: string | null,
-  partOfSpeech?: string | null
-): string {
-  if (partOfSpeech) {
-    const pos = partOfSpeech.toLowerCase();
-    if (pos === "verb" || pos === "adjective" || pos === "adverb") {
-      return "#00C950";
-    }
+function getHighlightColor(gender?: string | null): string {
+  if (gender && gender in genderColor) {
+    return genderColor[gender];
   }
-  if (gender) {
-    const g = gender.toLowerCase();
-    if (g === "feminine") return "#fb2c36";
-    if (g === "masculine") return "#0B6CFF";
+  return defaultHighlightColor;
+}
+
+/** Get darker shade of gender color for audio playback highlighting */
+function getHighlightColorDark(gender?: string | null): string {
+  if (gender && gender in genderColorDark) {
+    return genderColorDark[gender];
   }
-  return "#00C950";
+  return defaultHighlightColorDark;
 }
 
 /**
@@ -72,10 +68,10 @@ function parseAndHighlightText(
   foreignWord: string,
   isPlaying: boolean,
   gender?: string | null,
-  partOfSpeech?: string | null
 ): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const highlightColor = getHighlightColor(gender, partOfSpeech);
+  const highlightColor = getHighlightColor(gender);
+  const darkColor = getHighlightColorDark(gender);
 
   // Check if text uses {{...}} marker syntax
   if (text.includes("{{")) {
@@ -88,7 +84,7 @@ function parseAndHighlightText(
       if (match.index > lastIndex) {
         const beforeText = text.slice(lastIndex, match.index);
         parts.push(
-          <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+          <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
             {beforeText}
           </span>
         );
@@ -103,7 +99,7 @@ function parseAndHighlightText(
 
     if (lastIndex < text.length) {
       parts.push(
-        <span key={keyIndex++} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+        <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
           {text.slice(lastIndex)}
         </span>
       );
@@ -133,13 +129,13 @@ function parseAndHighlightText(
       );
     } else if (cleanWord === cleanEnglish || cleanWord.includes(cleanEnglish)) {
       parts.push(
-        <span key={index} className="font-semibold italic" style={{ color: "#0B6CFF" }}>
+        <span key={index} className="font-semibold italic" style={{ color: darkColor }}>
           {word}
         </span>
       );
     } else {
       parts.push(
-        <span key={index} style={{ color: isPlaying ? "#0B6CFF" : "#141515" }}>
+        <span key={index} style={{ color: isPlaying ? darkColor : "#141515" }}>
           {word}
         </span>
       );
@@ -180,6 +176,7 @@ export function WordDetailView({
   const isPlayingEnglish = currentAudioType === "english";
   const isPlayingForeign = currentAudioType === "foreign";
   const isPlayingTrigger = currentAudioType === "trigger";
+  const audioDarkColor = getHighlightColorDark(word.gender);
 
   // User notes editing state
   const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
@@ -561,10 +558,10 @@ export function WordDetailView({
             onClick={handlePlayEnglish}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingEnglish} />
+            <AudioButton isPlaying={isPlayingEnglish} playingColor={audioDarkColor} />
             <span
               className="text-[32px] font-semibold leading-tight tracking-tight"
-              style={{ color: isPlayingEnglish ? "#00C950" : "#141515" }}
+              style={{ color: isPlayingEnglish ? getHighlightColorDark(word.gender) : "#141515" }}
             >
               {word.english}
             </span>
@@ -577,10 +574,10 @@ export function WordDetailView({
             onClick={handlePlayForeign}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingForeign} />
+            <AudioButton isPlaying={isPlayingForeign} playingColor={audioDarkColor} />
             <span
               className="text-[32px] font-semibold leading-tight tracking-tight"
-              style={{ color: isPlayingForeign ? "#00C950" : "#141515" }}
+              style={{ color: isPlayingForeign ? getHighlightColorDark(word.gender) : getHighlightColor(word.gender) }}
             >
               {word.headword}
             </span>
@@ -603,15 +600,14 @@ export function WordDetailView({
                       onClick={handlePlayTrigger}
                       className="flex cursor-pointer items-center gap-4 text-left"
                     >
-                      <AudioButton isPlaying={isPlayingTrigger} />
+                      <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
                       <p className="text-xl font-medium leading-relaxed">
                         {parseAndHighlightText(
                           word.memory_trigger_text,
                           word.english,
                           word.headword,
                           isPlayingTrigger,
-                          word.gender,
-                          word.part_of_speech
+                          word.gender
                         )}
                       </p>
                     </button>
@@ -956,6 +952,7 @@ export function WordDetailView({
         englishWord={word.english}
         foreignWord={word.headword}
         partOfSpeech={word.part_of_speech}
+        gender={word.gender}
         wordList={wordList}
         testHistory={word.testHistory}
         scoreStats={word.scoreStats}

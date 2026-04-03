@@ -3,10 +3,13 @@
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { EditableText, EditableArrayField } from "@/components/admin";
+import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 
 interface WordCardProps {
   englishWord: string;
   foreignWord: string;
+  /** Word gender for color-coded foreign word (m=masculine, f=feminine, n=neuter) */
+  gender?: string | null;
   /** Whether to show the foreign word (or skeleton) */
   showForeign: boolean;
   /** Whether to show the English word (defaults to true) */
@@ -30,6 +33,7 @@ interface WordCardProps {
 export function WordCard({
   englishWord,
   foreignWord,
+  gender,
   showForeign,
   showEnglish = true,
   playingAudioType,
@@ -47,16 +51,19 @@ export function WordCard({
   const isPlayingEnglish = playingAudioType === "english";
   const isPlayingForeign = playingAudioType === "foreign";
 
+  const darkColor = gender && gender in genderColorDark ? genderColorDark[gender] : defaultHighlightColorDark;
+
   // Get color for English word
   const getEnglishWordColor = () => {
-    if (isPlayingEnglish) return "#00C950"; // Green when playing audio
+    if (isPlayingEnglish) return darkColor;
     return "#141515"; // Default black
   };
 
-  // Get color for Foreign word
+  // Get color for Foreign word (color-coded by gender)
   const getForeignWordColor = () => {
-    if (isPlayingForeign) return "#00C950"; // Green when playing audio
-    return "#141515"; // Default black
+    if (isPlayingForeign) return darkColor;
+    if (gender && gender in genderColor) return genderColor[gender];
+    return defaultHighlightColor;
   };
 
   // If neither word should be shown, show nothing (picture-only mode)
@@ -74,7 +81,7 @@ export function WordCard({
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingEnglish} />
+            <AudioButton isPlaying={isPlayingEnglish} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={englishWord}
@@ -124,7 +131,7 @@ export function WordCard({
             onClick={isEditMode ? undefined : onPlayForeignAudio}
             className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingForeign} />
+            <AudioButton isPlaying={isPlayingForeign} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={foreignWord}

@@ -14,6 +14,7 @@ import { LessonActivityHistoryResult } from "@/lib/queries";
 import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
 import { cn } from "@/lib/utils";
+import { status as statusTokens } from "@/lib/design-tokens";
 
 interface AdjacentLesson {
   id: string;
@@ -99,16 +100,52 @@ export function LessonPageContent({
 
           {/* Stats */}
           <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+            {/* Status */}
+            <div className="flex flex-col items-start">
+              <span className="text-xs text-muted-foreground">Status</span>
+              <span
+                className="text-small-semibold"
+                style={{
+                  color: masteredPercentage === 100
+                    ? statusTokens.mastered.color
+                    : wordsNotStudied === words.length
+                      ? statusTokens.notStarted.color
+                      : statusTokens.studying.color,
+                }}
+              >
+                {masteredPercentage === 100
+                  ? "Mastered"
+                  : wordsNotStudied === words.length
+                    ? "Not started"
+                    : "Studying"}
+              </span>
+            </div>
+
             {/* Lesson completion */}
-            <div className="group relative flex items-stretch gap-2.5 cursor-default">
-              <div className="relative w-1 overflow-hidden rounded-full bg-black/10">
-                <div
-                  className="absolute bottom-0 w-full rounded-full bg-primary transition-all duration-300"
-                  style={{ height: `${masteredPercentage}%` }}
-                />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-xs text-muted-foreground">Completion</span>
+            <div className="group relative flex flex-col items-start cursor-default">
+              <span className="text-xs text-muted-foreground">Completion</span>
+              <div className="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0">
+                  <circle
+                    cx="10" cy="10" r="8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="text-black/10"
+                  />
+                  <circle
+                    cx="10" cy="10" r="8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    className="text-primary"
+                    strokeDasharray={`${2 * Math.PI * 8}`}
+                    strokeDashoffset={`${2 * Math.PI * 8 * (1 - masteredPercentage / 100)}`}
+                    transform="rotate(-90 10 10)"
+                    style={{ transition: "stroke-dashoffset 0.3s" }}
+                  />
+                </svg>
                 <span className="text-regular-semibold">{masteredPercentage}%</span>
               </div>
               {/* Tooltip */}

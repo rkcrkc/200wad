@@ -38,6 +38,7 @@ interface WordDetailActionBarProps {
   englishWord: string;
   foreignWord: string;
   partOfSpeech?: string | null;
+  gender?: string | null;
   wordList: WordListItem[];
   /** Last 3 test attempts for current word - "traffic lights" (most recent first) */
   testHistory?: TestAttempt[];
@@ -79,6 +80,7 @@ export function WordDetailActionBar({
   englishWord,
   foreignWord,
   partOfSpeech,
+  gender,
   wordList,
   testHistory = [],
   scoreStats,
@@ -110,6 +112,8 @@ export function WordDetailActionBar({
 
   const wordScorePercent = scoreStats?.scorePercent ?? 0;
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
+  const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
+  const posDisplay = posAbbrev && genderAbbrev ? `${posAbbrev} ${genderAbbrev}` : posAbbrev;
 
   const handleWordSelect = (index: number) => {
     onJumpToWord(index);
@@ -182,9 +186,9 @@ export function WordDetailActionBar({
               <span className="text-regular-semibold text-foreground">
                 {englishWord} · {foreignWord}
               </span>
-              {posAbbrev && (
+              {posDisplay && (
                 <span className="text-small-medium text-foreground/50">
-                  {posAbbrev}
+                  {posDisplay}
                 </span>
               )}
             </div>

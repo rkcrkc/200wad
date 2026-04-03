@@ -316,12 +316,14 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
       <div className="flex-1 overflow-auto">
         {selectedEntry ? (
           <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
-            <h1 className="text-page-header mb-2">{selectedEntry.title}</h1>
-            <Badge variant="beige" className="mb-6 text-muted-foreground">
-              {selectedEntry.category}
-            </Badge>
-            <div className="prose prose-gray mt-4 max-w-none prose-a:text-primary prose-a:underline prose-a:decoration-dotted prose-a:underline-offset-2 hover:prose-a:decoration-solid">
-              <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>{selectedEntry.content}</ReactMarkdown>
+            <div className="rounded-xl bg-white p-6 lg:p-10">
+              <h1 className="text-page-header mb-2">{selectedEntry.title}</h1>
+              <Badge variant="beige" className="mb-6 text-muted-foreground">
+                {selectedEntry.category}
+              </Badge>
+              <div className="prose prose-gray mt-4 max-w-none prose-a:text-primary prose-a:underline prose-a:decoration-dotted prose-a:underline-offset-2 hover:prose-a:decoration-solid">
+                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>{selectedEntry.content}</ReactMarkdown>
+              </div>
             </div>
           </div>
         ) : (

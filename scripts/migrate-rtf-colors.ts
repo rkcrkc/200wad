@@ -319,9 +319,15 @@ function extractTextWithColorMarkers(rtfContent: string): string {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
-    // Remove whitespace inside markers at start/end
-    .replace(/\{\{\s+/g, "{{")
-    .replace(/\s+\}\}/g, "}}")
+    // Move whitespace from inside markers to outside
+    // e.g. "with{{ ELECTRO}}" → "with {{ELECTRO}}"
+    // e.g. "{{ELECTRO }}appliances" → "{{ELECTRO}} appliances"
+    .replace(/\{\{\s+/g, " {{")
+    .replace(/\s+\}\}/g, "}} ")
+    // Clean up any double spaces introduced
+    .replace(/  +/g, " ")
+    // Clean up space at start of text (if marker was at the beginning)
+    .replace(/^ /, "")
     // Remove empty markers
     .replace(/\{\{\}\}/g, "")
     // Remove font special characters (like *00000...)

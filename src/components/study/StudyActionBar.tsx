@@ -126,6 +126,8 @@ interface StudyActionBarProps {
   foreignWord: string;
   /** Part of speech / category */
   partOfSpeech?: string | null;
+  /** Gender: "masculine" or "feminine" */
+  gender?: string | null;
   /** List of all words for the word list dropdown */
   wordList: WordListItem[];
   /** Indices of completed words */
@@ -223,6 +225,7 @@ export function StudyActionBar({
   englishWord,
   foreignWord,
   partOfSpeech,
+  gender,
   wordList,
   completedWordIndices = [],
   testHistory = [],
@@ -322,6 +325,12 @@ export function StudyActionBar({
   const canRevealClue = isTestMode && clueLevel < 2 && !hasSubmittedAnswer;
 
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
+  const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
+  // In test mode, hide gender until answer submitted (same as foreign word)
+  const showGender = !isTestMode || hasSubmittedAnswer;
+  const posDisplay = posAbbrev && genderAbbrev && showGender
+    ? `${posAbbrev} ${genderAbbrev}`
+    : posAbbrev;
   const completedSet = new Set(completedWordIndices);
 
   const handleWordSelect = (index: number) => {
@@ -396,9 +405,9 @@ export function StudyActionBar({
             <span className="text-regular-semibold text-foreground">
               {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
             </span>
-            {posAbbrev && (
+            {posDisplay && (
               <span className="text-small-medium text-foreground/50">
-                {posAbbrev}
+                {posDisplay}
               </span>
             )}
           </div>

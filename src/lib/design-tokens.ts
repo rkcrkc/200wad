@@ -126,6 +126,31 @@ export const button = {
 } as const;
 
 // ============================================================================
+// GENDER COLORS (for word highlighting)
+// ============================================================================
+
+export const genderColor: Record<string, string> = {
+  f: "#fb2c36",   // Red - feminine
+  m: "#001EFF",   // Blue - masculine
+  n: "#FF8000",   // Orange - neuter
+  mf: "#00C950",  // Green - mixed gender
+} as const;
+
+/** Darker shades for audio playback highlighting */
+export const genderColorDark: Record<string, string> = {
+  f: "#C9232B",   // Dark red - feminine
+  m: "#0018CC",   // Dark blue - masculine
+  n: "#CC6600",   // Dark orange - neuter
+  mf: "#00A040",  // Dark green - mixed gender
+} as const;
+
+/** Default highlight color when no gender applies */
+export const defaultHighlightColor = "#00C950"; // Green
+
+/** Default dark highlight color for audio playback when no gender applies */
+export const defaultHighlightColorDark = "#00A040"; // Dark green
+
+// ============================================================================
 // STATUS COLORS & STYLES
 // ============================================================================
 

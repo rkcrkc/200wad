@@ -87,9 +87,8 @@ export function TestCompletedModal({
         <div className="shrink-0 flex items-center justify-between bg-[#FAF8F3] px-8 py-5 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Points</p>
-            <p className="flex items-center gap-1.5 font-semibold">
-              <span className="text-success">◐</span>
-              {totalPoints}/{maxPoints}
+            <p className="font-semibold">
+              {totalPoints}/{maxPoints} ({scorePercent}%)
             </p>
           </div>
           <div>

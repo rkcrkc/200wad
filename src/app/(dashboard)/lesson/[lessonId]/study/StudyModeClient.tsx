@@ -856,6 +856,7 @@ export function StudyModeClient({
               <WordCard
                 englishWord={currentWord.english}
                 foreignWord={currentWord.headword}
+                gender={currentWord.gender}
                 showForeign={showForeign}
                 playingAudioType={currentAudioType}
                 onPlayEnglishAudio={() => {
@@ -882,12 +883,12 @@ export function StudyModeClient({
               <div className="flex w-[800px] flex-col gap-6">
                 {imageMode === "memory-trigger" ? (
                   <MemoryTriggerCard
+                    key={currentWord.id}
                     imageUrl={currentWord.memory_trigger_image_url}
                     triggerText={currentWord.memory_trigger_text}
                     englishWord={currentWord.english}
                     foreignWord={currentWord.headword}
                     gender={currentWord.gender}
-                    partOfSpeech={currentWord.part_of_speech}
                     showImage={true}
                     showTriggerText={showTrigger}
                     playingAudioType={currentAudioType}
@@ -903,6 +904,7 @@ export function StudyModeClient({
                   />
                 ) : (
                   <FlashcardCard
+                    key={currentWord.id}
                     imageUrl={currentWord.flashcard_image_url}
                     englishWord={currentWord.english}
                     isVisible={showTrigger}
@@ -954,6 +956,7 @@ export function StudyModeClient({
             englishWord={currentWord.english}
             foreignWord={currentWord.headword}
             partOfSpeech={currentWord.part_of_speech}
+            gender={currentWord.gender}
             wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
             testHistory={currentWord.testHistory}

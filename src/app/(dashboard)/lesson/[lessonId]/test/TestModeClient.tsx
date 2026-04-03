@@ -866,6 +866,7 @@ export function TestModeClient({
                 <WordCard
                   englishWord={currentWord?.english || ""}
                   foreignWord={currentWord?.headword || ""}
+                  gender={currentWord?.gender}
                   showEnglish={testTypeConfig.showEnglishInWordCard || hasSubmittedAnswer}
                   showForeign={testTypeConfig.showForeignInWordCard || hasSubmittedAnswer}
                   playingAudioType={currentAudioType}
@@ -901,7 +902,6 @@ export function TestModeClient({
                     englishWord={currentWord?.english || ""}
                     foreignWord={currentWord?.headword || ""}
                     gender={currentWord?.gender}
-                    partOfSpeech={currentWord?.part_of_speech}
                     isVisible={hasSubmittedAnswer}
                     playingAudioType={currentAudioType}
                     onPlayTriggerAudio={() => {
@@ -973,6 +973,7 @@ export function TestModeClient({
             englishWord={currentWord?.english || ""}
             foreignWord={currentWord?.headword || ""}
             partOfSpeech={currentWord?.part_of_speech}
+            gender={currentWord?.gender}
             wordList={testSequence.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
             testHistory={mergedTestHistory}
