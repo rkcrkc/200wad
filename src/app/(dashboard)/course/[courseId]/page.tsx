@@ -6,7 +6,8 @@ import { LessonsList } from "@/components/LessonsList";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
-import { PageContainer } from "@/components/PageContainer";
+import { PageShell } from "@/components/PageShell";
+import { Popover } from "@/components/ui/popover";
 import { notFound } from "next/navigation";
 import { formatTime, formatNumber } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -51,7 +52,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   return (
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
-    <PageContainer size="lg" withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
+    <PageShell withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-page-header">All Lessons</h1>
@@ -65,14 +66,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
 
           {/* Total time */}
-          <div className="group relative flex flex-col items-start cursor-default">
-            <span className="text-xs text-muted-foreground">Total Time</span>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
-            </div>
-            {/* Tooltip */}
-            <div className="pointer-events-none absolute top-full left-0 z-50 mt-1 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+          <Popover
+            className="flex flex-col items-start cursor-default"
+            content={
               <div className="flex flex-col gap-1">
                 <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
                   Time breakdown
@@ -86,8 +82,14 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   </span>
                 </div>
               </div>
+            }
+          >
+            <span className="text-xs text-muted-foreground">Total Time</span>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
             </div>
-          </div>
+          </Popover>
 
           {/* Words studied */}
           <div className="flex flex-col items-start">
@@ -135,7 +137,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       {isGuest && lessons.length > 0 && (
         <GuestCTA title="Sign up to save your learning progress" />
       )}
-    </PageContainer>
+    </PageShell>
     </SetCourseContext>
   );
 }

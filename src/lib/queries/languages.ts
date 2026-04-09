@@ -7,6 +7,8 @@ export interface LanguageWithProgress extends Language {
   wordsLearned: number;
   progressPercent: number;
   isCurrentLanguage: boolean;
+  /** Computed status based on word progress */
+  status: "not-started" | "learning" | "mastered";
 }
 
 export interface GetLanguagesOptions {
@@ -110,7 +112,7 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       `
       )
       .eq("user_id", user.id)
-      .in("status", ["studying", "mastered"]);
+      .in("status", ["learning", "mastered"]);
 
     // Count words by language
     wordProgress?.forEach((wp) => {
@@ -129,6 +131,14 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       const wordsLearned = wordsLearnedByLanguage[lang.id] || 0;
       const userLang = userLanguages.find((ul) => ul.language_id === lang.id);
 
+      // Compute status from word progress
+      const status: "not-started" | "learning" | "mastered" =
+        wordsLearned >= totalWords && totalWords > 0
+          ? "mastered"
+          : wordsLearned > 0
+            ? "learning"
+            : "not-started";
+
       return {
         ...lang,
         courseCount: courseCountByLanguage[lang.id] || 0,
@@ -136,6 +146,7 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
         wordsLearned,
         progressPercent: totalWords > 0 ? Math.round((wordsLearned / totalWords) * 100) : 0,
         isCurrentLanguage: userLang?.is_current || false,
+        status,
       };
     }
   );

@@ -48,8 +48,8 @@ export function mapStatus(status: string, isLocked?: boolean): StatusType {
   switch (status) {
     case "mastered":
       return "mastered";
-    case "studying":
-      return "studying";
+    case "learning":
+      return "learning";
     default:
       return "notStarted";
   }

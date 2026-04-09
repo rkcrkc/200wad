@@ -89,7 +89,7 @@ export default async function AdminDashboard() {
           <Link
             key={card.href}
             href={card.href}
-            className="group rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
+            className="group rounded-xl bg-white p-6 shadow-card transition-all hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -112,21 +112,21 @@ export default async function AdminDashboard() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/admin/languages"
-            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:border-primary/50"
+            className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-card hover:shadow-md"
           >
             <Globe className="h-5 w-5 text-primary" />
             <span className="font-medium">Add a new language</span>
           </Link>
           <Link
             href="/admin/courses"
-            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:border-primary/50"
+            className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-card hover:shadow-md"
           >
             <BookOpen className="h-5 w-5 text-primary" />
             <span className="font-medium">Create a new course</span>
           </Link>
           <Link
             href="/admin/lessons"
-            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:border-primary/50"
+            className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-card hover:shadow-md"
           >
             <GraduationCap className="h-5 w-5 text-primary" />
             <span className="font-medium">Add a new lesson</span>

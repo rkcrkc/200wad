@@ -14,6 +14,8 @@ import { LessonActivityHistoryResult } from "@/lib/queries";
 import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/tooltip";
+import { Popover } from "@/components/ui/popover";
 import { status as statusTokens } from "@/lib/design-tokens";
 
 interface AdjacentLesson {
@@ -58,7 +60,7 @@ export function LessonPageContent({
   activityHistory,
 }: LessonPageContentProps) {
   const router = useRouter();
-  const [isWordSelected, setIsWordSelected] = useState(false);
+  const [, setIsWordSelected] = useState(false);
   const [showStartTestModal, setShowStartTestModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -74,20 +76,8 @@ export function LessonPageContent({
 
   return (
     <>
-      {/* Back button - always visible */}
-      {!isWordSelected && courseId && (
-        <Link
-          href={`/course/${courseId}`}
-          className="mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          All Lessons
-        </Link>
-      )}
-
-      {/* Header - hidden when word selected */}
-      {!isWordSelected && (
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="mb-2 text-regular-semibold text-black-80">
               Lesson #{lesson.number}
@@ -110,19 +100,31 @@ export function LessonPageContent({
                     ? statusTokens.mastered.color
                     : wordsNotStudied === words.length
                       ? statusTokens.notStarted.color
-                      : statusTokens.studying.color,
+                      : statusTokens.learning.color,
                 }}
               >
                 {masteredPercentage === 100
                   ? "Mastered"
                   : wordsNotStudied === words.length
                     ? "Not started"
-                    : "Studying"}
+                    : "Learning"}
               </span>
             </div>
 
             {/* Lesson completion */}
-            <div className="group relative flex flex-col items-start cursor-default">
+            <Popover
+              className="flex flex-col items-start cursor-default"
+              content={
+                <div className="flex flex-col gap-1">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
+                    Words mastered
+                  </span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    <span className="font-semibold">{words.length - wordsNotMastered}</span> mastered / <span className="font-semibold">{words.length}</span> total = <span className="font-semibold">{masteredPercentage}%</span>
+                  </span>
+                </div>
+              }
+            >
               <span className="text-xs text-muted-foreground">Completion</span>
               <div className="flex items-center gap-2">
                 <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0">
@@ -148,18 +150,7 @@ export function LessonPageContent({
                 </svg>
                 <span className="text-regular-semibold">{masteredPercentage}%</span>
               </div>
-              {/* Tooltip */}
-              <div className="pointer-events-none absolute top-full left-0 z-50 mt-1 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
-                <div className="flex flex-col gap-1">
-                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
-                    Words mastered
-                  </span>
-                  <span className="text-foreground text-[13px] leading-[1.4]">
-                    <span className="font-semibold">{words.length - wordsNotMastered}</span> mastered / <span className="font-semibold">{words.length}</span> total = <span className="font-semibold">{masteredPercentage}%</span>
-                  </span>
-                </div>
-              </div>
-            </div>
+            </Popover>
 
             {/* Average score */}
             <div className="flex flex-col items-start">
@@ -174,14 +165,10 @@ export function LessonPageContent({
             </div>
 
             {/* Total time */}
-            <div className="group relative flex flex-col items-start cursor-default">
-              <span className="text-xs text-muted-foreground">Total time</span>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
-              </div>
-              {/* Tooltip */}
-              <div className="pointer-events-none absolute top-full right-0 z-50 mt-1 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
+            <Popover
+              className="flex flex-col items-start cursor-default"
+              align="right"
+              content={
                 <div className="flex flex-col gap-1">
                   <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
                     Time breakdown
@@ -195,26 +182,33 @@ export function LessonPageContent({
                     </span>
                   </div>
                 </div>
+              }
+            >
+              <span className="text-xs text-muted-foreground">Total time</span>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
               </div>
-            </div>
+            </Popover>
           </div>
         </div>
-      )}
 
       {/* Content - Words List or Activity History */}
-      <div className={!isWordSelected && words.length > 0 && !showHistory ? "pb-24" : ""}>
+
+      <div className={words.length > 0 && !showHistory ? "pb-24" : ""}>
         {showHistory && activityHistory ? (
           <LessonActivityHistory
             activities={activityHistory.activities}
             counts={activityHistory.counts}
             rightContent={
-              <button
-                onClick={() => setShowHistory(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
-                title="Show words"
-              >
-                <ClipboardCheck className="h-5 w-5" />
-              </button>
+              <Tooltip label="Show words">
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                </button>
+              </Tooltip>
             }
           />
         ) : (
@@ -229,22 +223,23 @@ export function LessonPageContent({
             onWordSelected={setIsWordSelected}
             rightContent={
               activityHistory && (
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
-                  title="Show test history"
-                >
-                  <ClipboardCheck className="h-5 w-5" />
-                </button>
+                <Tooltip label="Show test history">
+                  <button
+                    onClick={() => setShowHistory(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
+                  >
+                    <ClipboardCheck className="h-5 w-5" />
+                  </button>
+                </Tooltip>
               )
             }
           />
         )}
       </div>
 
-      {/* Fixed footer bar - hidden when word selected or showing history */}
-      {!isWordSelected && !showHistory && words.length > 0 && (
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+      {/* Fixed footer bar - hidden when showing history */}
+      {!showHistory && words.length > 0 && (
+        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
           <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
             {previousLesson ? (
               <Link

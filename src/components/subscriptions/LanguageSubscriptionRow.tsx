@@ -80,7 +80,7 @@ export function LanguageSubscriptionRow({
             ? "bg-blue-50/50"
             : isDisabled || !showSwitch
               ? ""
-              : "hover:bg-[#FAF8F3]"
+              : "hover:bg-bone-hover"
         }`}
       >
         <div className="grid items-center grid-cols-[1fr_160px_1fr_40px]">

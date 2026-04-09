@@ -83,7 +83,7 @@ export function LessonCompletedModal({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto bg-[#FAF8F3] p-8">
+        <div className="flex-1 overflow-y-auto bg-bone p-8">
           {/* Word Grid */}
           <div className="grid grid-cols-5 gap-4">
             {words.map((word) => {

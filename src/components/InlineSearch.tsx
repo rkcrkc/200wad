@@ -82,7 +82,7 @@ export function InlineSearch({ value, onChange, placeholder = "Filter..." }: Inl
           "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
           hasValue
             ? "bg-primary text-white"
-            : "text-foreground hover:bg-[#FAF8F3]"
+            : "text-foreground hover:bg-beige"
         )}
         aria-label={isOpen ? "Close search" : "Search"}
       >

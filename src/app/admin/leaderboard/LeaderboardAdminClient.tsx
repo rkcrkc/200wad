@@ -69,7 +69,7 @@ export function LeaderboardAdminClient({
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* League Distribution */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4 shadow-card">
           <div className="flex items-center gap-2 mb-3">
             <Shield className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-gray-500">League Distribution</span>
@@ -87,7 +87,7 @@ export function LeaderboardAdminClient({
         </div>
 
         {/* Active Users */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4 shadow-card">
           <div className="flex items-center gap-2 mb-3">
             <Users className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-gray-500">Active Users</span>
@@ -97,7 +97,7 @@ export function LeaderboardAdminClient({
         </div>
 
         {/* Avg Streak */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4 shadow-card">
           <div className="flex items-center gap-2 mb-3">
             <Flame className="h-4 w-4 text-orange-500" />
             <span className="text-sm font-medium text-gray-500">Avg Streak</span>
@@ -107,7 +107,7 @@ export function LeaderboardAdminClient({
         </div>
 
         {/* Monthly Reward Cost */}
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl bg-white p-4 shadow-card">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium text-gray-500">Monthly Rewards</span>
@@ -118,7 +118,7 @@ export function LeaderboardAdminClient({
       </div>
 
       {/* Reward Tiers */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-xl bg-white shadow-card">
         <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="font-semibold">Reward Configuration</h2>
         </div>
@@ -133,7 +133,7 @@ export function LeaderboardAdminClient({
                   <th className="pb-2">Active</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-bone-hover">
                 {rewards.map((r) => (
                   <tr key={r.id}>
                     <td className="py-2 pr-4">
@@ -163,7 +163,7 @@ export function LeaderboardAdminClient({
       </div>
 
       {/* Activity Flags */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-xl bg-white shadow-card">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -184,7 +184,7 @@ export function LeaderboardAdminClient({
             Show resolved
           </label>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-bone-hover">
           {displayedFlags.length === 0 ? (
             <div className="px-6 py-12 text-center text-gray-500">
               No activity flags to review.

@@ -4,6 +4,7 @@ import {
   ProfileSection,
   LearningLanguagesSection,
   SecuritySection,
+  PreferencesSection,
   DangerZoneSection,
   ErrorState,
 } from "@/components/settings";
@@ -17,7 +18,7 @@ export default async function SettingsPage() {
   if (isGuest) {
     return (
       <PageContainer size="sm">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+        <div className="rounded-2xl bg-white p-8 text-center shadow-card">
           <h1 className="mb-4 text-3xl font-semibold">Create an Account</h1>
           <p className="mb-6 text-gray-600">
             Sign up to save your progress and access your settings from any
@@ -57,6 +58,8 @@ export default async function SettingsPage() {
         email={settings.email}
         twoFactorEnabled={settings.twoFactorEnabled}
       />
+
+      <PreferencesSection />
 
       <DangerZoneSection />
     </PageContainer>

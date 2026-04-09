@@ -9,11 +9,12 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  SkipBack,
-  SkipForward,
+  ChevronsLeft,
+  ChevronsRight,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface TestAttempt {
   pointsEarned: number;
@@ -39,6 +40,8 @@ interface WordDetailActionBarProps {
   foreignWord: string;
   partOfSpeech?: string | null;
   gender?: string | null;
+  /** Word category (fact, phrase, sentence, word, information) */
+  category?: string | null;
   wordList: WordListItem[];
   /** Last 3 test attempts for current word - "traffic lights" (most recent first) */
   testHistory?: TestAttempt[];
@@ -56,6 +59,8 @@ interface WordDetailActionBarProps {
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
   /** Whether accessed from dictionary (hides word navigation) */
   fromDictionary?: boolean;
+  /** Layout variant: "page" uses fixed positioning, "sidebar" uses relative positioning */
+  variant?: "page" | "sidebar";
 }
 
 /** Abbreviate part of speech for compact display */
@@ -74,6 +79,22 @@ function abbreviatePartOfSpeech(pos: string | null | undefined): string {
   return pos.slice(0, 4).toLowerCase() + ".";
 }
 
+/** Get full part of speech name from the original value */
+function fullPartOfSpeech(pos: string | null | undefined): string {
+  if (!pos) return "";
+  const lower = pos.toLowerCase();
+  if (lower.includes("noun")) return "Noun";
+  if (lower.includes("verb")) return "Verb";
+  if (lower.includes("adjective")) return "Adjective";
+  if (lower.includes("adverb")) return "Adverb";
+  if (lower.includes("pronoun")) return "Pronoun";
+  if (lower.includes("preposition")) return "Preposition";
+  if (lower.includes("conjunction")) return "Conjunction";
+  if (lower.includes("interjection") || lower.includes("exclamation")) return "Exclamation";
+  if (lower.includes("article")) return "Article";
+  return pos;
+}
+
 export function WordDetailActionBar({
   currentWordIndex,
   totalWords,
@@ -81,6 +102,7 @@ export function WordDetailActionBar({
   foreignWord,
   partOfSpeech,
   gender,
+  category,
   wordList,
   testHistory = [],
   scoreStats,
@@ -93,6 +115,7 @@ export function WordDetailActionBar({
   imageMode = "memory-trigger",
   onImageModeChange,
   fromDictionary = false,
+  variant = "page",
 }: WordDetailActionBarProps) {
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -113,7 +136,9 @@ export function WordDetailActionBar({
   const wordScorePercent = scoreStats?.scorePercent ?? 0;
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
-  const posDisplay = posAbbrev && genderAbbrev ? `${posAbbrev} ${genderAbbrev}` : posAbbrev;
+  const label = category === "word" || posAbbrev ? posAbbrev : "";
+  const posDisplay = label && genderAbbrev ? `${label} ${genderAbbrev}` : label;
+  const posTooltipLabel = posAbbrev ? `Word type: ${fullPartOfSpeech(partOfSpeech)}` : "Word type";
 
   const handleWordSelect = (index: number) => {
     onJumpToWord(index);
@@ -121,13 +146,18 @@ export function WordDetailActionBar({
   };
 
   return (
-    <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+    <div className={cn(
+      "z-10 bg-white shadow-bar",
+      variant === "sidebar"
+        ? "absolute bottom-0 left-0 right-0"
+        : "fixed bottom-0 left-[240px] right-0"
+    )}>
       <div className="border-t border-gray-100 px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Left section - Menu, word info, score */}
           <div className="flex items-center gap-4">
-            {/* Menu button with word list dropdown - hidden when from dictionary */}
-            {!fromDictionary && (
+            {/* Menu button with word list dropdown - hidden when from dictionary or sidebar */}
+            {!fromDictionary && variant !== "sidebar" && (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsWordListOpen(!isWordListOpen)}
@@ -142,7 +172,7 @@ export function WordDetailActionBar({
 
                 {/* Word list dropdown */}
                 {isWordListOpen && (
-                  <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                  <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-panel">
                     <div className="p-2">
                       <div className="mb-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
                         Words in lesson ({wordList.length})
@@ -181,43 +211,63 @@ export function WordDetailActionBar({
               </div>
             )}
 
-            {/* Word text: english · foreign + part of speech */}
-            <div className="flex items-center gap-2">
-              <span className="text-regular-semibold text-foreground">
-                {englishWord} · {foreignWord}
-              </span>
-              {posDisplay && (
-                <span className="text-small-medium text-foreground/50">
-                  {posDisplay}
-                </span>
-              )}
-            </div>
+            {/* Word text: english · foreign + part of speech (hidden in sidebar) */}
+            {variant !== "sidebar" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-regular-semibold text-foreground">
+                    {englishWord} · {foreignWord}
+                  </span>
+                  {posDisplay && (
+                    <Tooltip label={posTooltipLabel}>
+                      <span className="text-small-medium text-foreground/50 cursor-default">
+                        {posDisplay}
+                      </span>
+                    </Tooltip>
+                  )}
+                </div>
 
-            {/* Divider */}
-            <span className="text-foreground/25">|</span>
+                {/* Divider */}
+                <span className="text-foreground/25">|</span>
+              </>
+            )}
+
+            {/* Part of speech only (sidebar) */}
+            {variant === "sidebar" && posDisplay && (
+              <>
+                <Tooltip label={posTooltipLabel}>
+                  <span className="text-small-medium text-foreground/50 cursor-default">
+                    {posDisplay}
+                  </span>
+                </Tooltip>
+                <span className="text-foreground/25">|</span>
+              </>
+            )}
 
             {/* Traffic lights (last 3 test attempts) + historical score percentage */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                {[0, 1, 2].map((i) => {
-                  const attempt = testHistory[i];
-                  // Green = got points, Red = 0 points, Gray = no attempt yet
-                  let bgColor = "bg-gray-300"; // No attempt
-                  if (attempt) {
-                    bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
-                  }
-                  return (
-                    <div
-                      key={i}
-                      className={cn("h-3 w-3 rounded-full", bgColor)}
-                    />
-                  );
-                })}
+            <Tooltip label="Average test score">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  {[0, 1, 2].map((i) => {
+                    const attempt = testHistory[i];
+                    // Green = got points, Red = 0 points, Gray = no attempt yet
+                    let bgColor = "bg-gray-300"; // No attempt
+                    if (attempt) {
+                      bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
+                    }
+                    return (
+                      <div
+                        key={i}
+                        className={cn("h-3 w-3 rounded-full", bgColor)}
+                      />
+                    );
+                  })}
+                </div>
+                <span className="text-regular-semibold text-foreground">
+                  {wordScorePercent}%
+                </span>
               </div>
-              <span className="text-regular-semibold text-foreground">
-                {wordScorePercent}%
-              </span>
-            </div>
+            </Tooltip>
           </div>
 
           {/* Right section - Navigation controls, divider, toggle icons */}
@@ -226,43 +276,48 @@ export function WordDetailActionBar({
             {!fromDictionary && (
               <>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={onReplay}
-                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                    title="Replay audio"
-                  >
-                    <RefreshCw className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onJumpToWord(0)}
-                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                    title="Go to first word"
-                  >
-                    <SkipBack className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={onPreviousWord}
-                    disabled={!hasPrevious}
-                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Previous word"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={onNextWord}
-                    disabled={!hasNext}
-                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                    title="Next word"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onJumpToWord(totalWords - 1)}
-                    className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                    title="Go to last word"
-                  >
-                    <SkipForward className="h-5 w-5" />
-                  </button>
+                  <Tooltip label="Replay audio sequence">
+                    <button
+                      onClick={onReplay}
+                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    >
+                      <RefreshCw className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="First word">
+                    <button
+                      onClick={() => onJumpToWord(0)}
+                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    >
+                      <ChevronsLeft className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Previous word">
+                    <button
+                      onClick={onPreviousWord}
+                      disabled={!hasPrevious}
+                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Next word">
+                    <button
+                      onClick={onNextWord}
+                      disabled={!hasNext}
+                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Last word">
+                    <button
+                      onClick={() => onJumpToWord(totalWords - 1)}
+                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                    >
+                      <ChevronsRight className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
                 </div>
 
                 {/* Divider */}
@@ -270,33 +325,35 @@ export function WordDetailActionBar({
               </>
             )}
 
-            {/* Replay button - always show */}
+            {/* Replay button - show when nav controls are hidden */}
             {fromDictionary && (
-              <button
-                onClick={onReplay}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                title="Replay audio"
-              >
-                <RefreshCw className="h-5 w-5" />
-              </button>
+              <Tooltip label="Replay audio sequence">
+                <button
+                  onClick={onReplay}
+                  className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+              </Tooltip>
             )}
 
             {/* Toggle icons */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";
-                  onImageModeChange?.(newMode);
-                }}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                title={imageMode === "memory-trigger" ? "Switch to flashcard" : "Switch to memory trigger"}
-              >
-                {imageMode === "memory-trigger" ? (
-                  <Zap className="h-5 w-5" />
-                ) : (
-                  <ImageIcon className="h-5 w-5" />
-                )}
-              </button>
+              <Tooltip label={imageMode === "memory-trigger" ? "Show flashcard image" : "Show memory trigger"}>
+                <button
+                  onClick={() => {
+                    const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";
+                    onImageModeChange?.(newMode);
+                  }}
+                  className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                >
+                  {imageMode === "memory-trigger" ? (
+                    <Zap className="h-5 w-5" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>

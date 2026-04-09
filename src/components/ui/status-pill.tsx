@@ -1,6 +1,6 @@
 import { status as statusTokens } from "@/lib/design-tokens";
 
-export type StatusType = "mastered" | "studying" | "notStarted" | "locked";
+export type StatusType = "mastered" | "learning" | "notStarted" | "locked";
 
 interface StatusPillProps {
   status: StatusType;
@@ -12,7 +12,7 @@ interface StatusPillProps {
 
 const statusLabels: Record<StatusType, string> = {
   mastered: "Mastered",
-  studying: "Studying",
+  learning: "Learning",
   notStarted: "Not started",
   locked: "Locked",
 };

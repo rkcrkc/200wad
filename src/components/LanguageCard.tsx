@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ChevronRight, BookOpen } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
+import { StatusPill } from "@/components/ui/status-pill";
 import { LanguageWithProgress } from "@/lib/queries";
+import { mapStatus } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -27,7 +29,10 @@ export function LanguageCard({ language, isActive = false }: LanguageCardProps) 
           {getFlagFromCode(language.code)}
         </div>
         <div className="flex-1">
-          <h3 className="mb-1 text-2xl font-semibold">{language.name}</h3>
+          <div className="mb-1 flex items-center gap-2">
+            <h3 className="text-2xl font-semibold">{language.name}</h3>
+            <StatusPill status={mapStatus(language.status)} />
+          </div>
           <p className="text-sm text-muted-foreground">
             {language.courseCount} {language.courseCount === 1 ? "course" : "courses"}
           </p>

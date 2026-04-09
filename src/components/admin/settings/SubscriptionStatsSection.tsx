@@ -65,7 +65,7 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-xl bg-white p-4 shadow-card">
       <div className={`mb-2 inline-flex rounded-lg p-2 ${color}`}>{icon}</div>
       <div className="text-xl font-semibold text-gray-900">{value}</div>
       <div className="text-xs text-gray-500">{label}</div>

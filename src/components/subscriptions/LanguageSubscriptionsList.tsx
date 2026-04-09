@@ -176,7 +176,7 @@ export function LanguageSubscriptionsList({
           <span />
         </div>
 
-        <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
+        <div className="divide-y divide-bone-hover overflow-hidden rounded-xl bg-white">
           {/* All Languages row — only when sub is active */}
           {showAllLanguagesRow && showAllLanguages && allLangsPlan && (
             <div
@@ -185,7 +185,7 @@ export function LanguageSubscriptionsList({
                   ? "bg-amber-50/50"
                   : hasAllLangsSub
                     ? ""
-                    : "hover:bg-[#FAF8F3]"
+                    : "hover:bg-bone-hover"
               }`}
             >
               <div className="grid items-center grid-cols-[1fr_160px_1fr_40px]">
@@ -297,7 +297,7 @@ export function LanguageSubscriptionsList({
       {showLanguage && otherLanguages.length > 0 && (
         <div>
           <h2 className="mb-4 text-large-semibold">Other Languages</h2>
-          <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
+          <div className="divide-y divide-bone-hover overflow-hidden rounded-xl bg-white">
             {otherLanguages.map((lang) =>
               renderLanguageRow(lang, { showSwitch: true })
             )}

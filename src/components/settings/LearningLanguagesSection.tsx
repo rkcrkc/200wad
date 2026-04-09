@@ -64,7 +64,7 @@ export function LearningLanguagesSection({
   const isOnlyLanguage = languages.length === 1;
 
   return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="mb-1 text-xl font-semibold">Learning Languages</h2>

@@ -8,9 +8,10 @@ import { InlineSearch } from "@/components/InlineSearch";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { PricingPlan } from "@/types/database";
 
-type FilterType = "all" | "not-started" | "studying" | "mastered";
+type FilterType = "all" | "not-started" | "learning" | "mastered";
 type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
 type SortDirection = "asc" | "desc";
 
@@ -89,7 +90,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
     return {
       all: lessons.length,
       "not-started": lessons.filter((l) => l.status === "not-started").length,
-      studying: lessons.filter((l) => l.status === "studying").length,
+      learning: lessons.filter((l) => l.status === "learning").length,
       mastered: lessons.filter((l) => l.status === "mastered").length,
     };
   }, [lessons]);
@@ -160,7 +161,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
   const tabs: Tab[] = [
     { id: "all", label: "All lessons", count: counts.all },
     { id: "not-started", label: "Not started", count: counts["not-started"] },
-    { id: "studying", label: "Studying", count: counts.studying },
+    { id: "learning", label: "Learning", count: counts.learning },
     { id: "mastered", label: "Mastered", count: counts.mastered },
   ];
 
@@ -181,25 +182,26 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
             placeholder="Filter lessons..."
           />
           {/* Stats toggle button */}
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-              showStats
-                ? "bg-primary text-white"
-                : "text-foreground hover:bg-[#FAF8F3]"
-            )}
-            title={showStats ? "Show progress view" : "Show test scores"}
-          >
-            <ClipboardCheck className="h-5 w-5" />
-          </button>
+          <Tooltip label={showStats ? "Show progress view" : "Show test scores"}>
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                showStats
+                  ? "bg-primary text-white"
+                  : "text-foreground hover:bg-beige"
+              )}
+            >
+              <ClipboardCheck className="h-5 w-5" />
+            </button>
+          </Tooltip>
           {languageFlag && <div className="text-2xl">{languageFlag}</div>}
         </div>
       </div>
 
       {/* Lessons Table */}
-      <div className="overflow-x-auto rounded-xl">
-        <table className={cn("w-full border-collapse", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
+      <div className="overflow-x-auto">
+        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
           {/* Table Header */}
           <thead>
             <tr className="whitespace-nowrap">
@@ -215,7 +217,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       onSort={handleSort}
                     />
                   </th>
-                  <th className="min-w-[160px] px-2 py-3 text-left">
+                  <th className="px-2 py-3 text-left">
                     <SortableHeader
                       label="Lesson"
                       column="title"
@@ -318,7 +320,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       onSort={handleSort}
                     />
                   </th>
-                  <th className="min-w-[200px] px-2 py-3 text-left">
+                  <th className="px-2 py-3 text-left">
                     <SortableHeader
                       label="Lesson"
                       column="title"
@@ -358,14 +360,14 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="sticky right-0 w-[32px] bg-background px-2 py-3"></th>
+                  <th className="sticky right-0 w-[140px] bg-background px-2 py-3"></th>
                 </>
               )}
             </tr>
           </thead>
 
           {/* Table Body */}
-          <tbody>
+          <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
             {filteredAndSortedLessons.length === 0 ? (
               <tr>
                 <td colSpan={showStats ? 11 : 7} className="px-6 py-12 text-center">

@@ -40,7 +40,7 @@ export function LeagueInfoCard({
     userRank > totalUsers - relegateBottomN;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="rounded-2xl bg-white p-5 shadow-card">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="h-5 w-5 text-primary" />
         <h3 className="font-semibold">Your League</h3>

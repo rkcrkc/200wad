@@ -9,7 +9,7 @@ export default async function SubscriptionsPage() {
   if (error || !data) {
     return (
       <PageContainer size="sm">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+        <div className="rounded-2xl bg-white p-8 text-center shadow-card">
           <h1 className="mb-4 text-xl-semibold">Something went wrong</h1>
           <p className="text-muted-foreground">
             {error || "Unable to load subscription data. Please try again."}

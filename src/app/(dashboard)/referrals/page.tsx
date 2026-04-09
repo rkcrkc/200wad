@@ -19,7 +19,7 @@ export default async function ReferralsPage() {
   if (!user) {
     return (
       <PageContainer size="sm">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+        <div className="rounded-2xl bg-white p-8 text-center shadow-card">
           <h1 className="mb-4 text-3xl font-semibold">Refer & Earn</h1>
           <p className="mb-6 text-gray-600">
             Sign up to get your referral link and start earning credits.

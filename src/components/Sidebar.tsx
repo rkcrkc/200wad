@@ -49,18 +49,16 @@ function SidebarNavItem({
     <Link
       href={href}
       className={`flex h-12 w-full items-center justify-between rounded-[10px] transition-all ${
-        isActive ? "bg-secondary" : "hover:bg-gray-50"
+        isActive ? "bg-secondary" : "hover:bg-bone-hover"
       }`}
     >
       <div className="flex items-center gap-3 pl-4">
         <Icon
-          className="h-5 w-5 shrink-0"
+          className={`h-5 w-5 shrink-0 ${isActive ? "text-gray-dark" : "text-gray-mid"}`}
           strokeWidth={1.67}
-          style={{ color: isActive ? "#101828" : "#4A5565" }}
         />
         <span
-          className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px]"
-          style={{ color: isActive ? "#101828" : "rgba(20,21,21,0.75)" }}
+          className={`text-[15px] font-semibold leading-[1.35] tracking-[-0.225px] ${isActive ? "text-gray-dark" : "text-black-75"}`}
         >
           {label}
         </span>
@@ -76,16 +74,14 @@ function SidebarNavItem({
 
 function SidebarButton({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <button className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50">
+    <button className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-bone-hover">
       <div className="flex items-center gap-3 pl-4">
         <Icon
-          className="h-5 w-5 shrink-0"
+          className="h-5 w-5 shrink-0 text-gray-mid"
           strokeWidth={1.67}
-          style={{ color: "rgba(20,21,21,0.75)" }}
         />
         <span
-          className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px]"
-          style={{ color: "rgba(20,21,21,0.75)" }}
+          className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px] text-black-75"
         >
           {label}
         </span>

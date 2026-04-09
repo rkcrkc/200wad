@@ -100,7 +100,7 @@ export function SecuritySection({
   };
 
   return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
       <h2 className="mb-6 text-xl font-semibold">Security</h2>
 
       {/* Password Section */}

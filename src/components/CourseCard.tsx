@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ChevronRight, BookOpen, MessageCircle } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
+import { StatusPill } from "@/components/ui/status-pill";
 import { CourseWithProgress } from "@/lib/queries";
+import { mapStatus } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 interface CourseCardProps {
@@ -46,16 +48,21 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
 
       {/* Top Badges Row */}
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
-        {/* Difficulty Badge */}
-        <span
-          className={cn(
-            "inline-block whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
-            levelStyles[level]
-          )}
-        >
-          {levelLabels[level]}
-          {course.cefr_range && ` • ${course.cefr_range}`}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Difficulty Badge */}
+          <span
+            className={cn(
+              "inline-block whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
+              levelStyles[level]
+            )}
+          >
+            {levelLabels[level]}
+            {course.cefr_range && ` • ${course.cefr_range}`}
+          </span>
+
+          {/* Status Pill */}
+          <StatusPill status={mapStatus(course.status)} />
+        </div>
 
         {/* Progress Ring */}
         <div className="flex-shrink-0">

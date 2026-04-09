@@ -12,17 +12,18 @@ interface WordRowProps {
   onClick?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
+  isSelected?: boolean;
 }
 
-export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFirst, isLast }: WordRowProps) {
+export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFirst, isLast, isSelected }: WordRowProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (
     <tr
       className={cn(
         "group cursor-pointer transition-colors hover:bg-bone-hover",
-        !isFirst && "border-t border-gray-200"
-      )}
+        !isFirst && "border-t border-bone-hover",
+              )}
       onClick={onClick}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -34,7 +35,8 @@ export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFir
     >
       {/* Word number */}
       <td className={cn(
-        "bg-white px-6 py-4 text-regular-medium transition-colors group-hover:bg-bone-hover",
+        "px-6 py-4 text-regular-medium transition-colors group-hover:bg-bone-hover",
+        "bg-white",
         isFirst && "rounded-tl-xl",
         isLast && "rounded-bl-xl"
       )}>
@@ -42,7 +44,7 @@ export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFir
       </td>
 
       {/* Thumbnail */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      <td className={cn("px-2 py-4 transition-colors group-hover:bg-bone-hover", "bg-white")}>
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
           {hasImage ? (
             <Image
@@ -61,19 +63,24 @@ export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFir
       </td>
 
       {/* Translation (English) */}
-      <td className="bg-white px-2 py-4 text-medium-medium transition-colors group-hover:bg-bone-hover">{word.english}</td>
+      <td className={cn("px-2 py-4 text-medium-medium transition-colors group-hover:bg-bone-hover", "bg-white")}>
+        <span className="block truncate" title={word.english}>{word.english}</span>
+      </td>
 
       {/* Headword (foreign) */}
-      <td className="bg-white px-2 py-4 text-medium-medium transition-colors group-hover:bg-bone-hover">{word.headword}</td>
+      <td className={cn("px-2 py-4 text-medium-medium transition-colors group-hover:bg-bone-hover", "bg-white")}>
+        <span className="block truncate" title={word.headword}>{word.headword}</span>
+      </td>
 
       {/* Status pill */}
-      <td className="whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      <td className={cn("whitespace-nowrap px-2 py-4 transition-colors group-hover:bg-bone-hover", "bg-white")}>
         <StatusPill status={mapStatus(word.status)} />
       </td>
 
       {/* Chevron - sticky on horizontal scroll */}
       <td className={cn(
-        "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "bg-white",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl"
       )}>

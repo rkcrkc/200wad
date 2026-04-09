@@ -36,6 +36,10 @@ interface WordDetailViewProps {
   isAdmin?: boolean;
   /** Whether accessed from dictionary (changes back button behavior) */
   fromDictionary?: boolean;
+  /** Layout mode: "page" is full-page 2-column, "sidebar" is single-column stacked */
+  layout?: "page" | "sidebar";
+  /** Whether to auto-play audio sequence when word changes (default true) */
+  autoPlayAudio?: boolean;
 }
 
 /**
@@ -64,7 +68,6 @@ function getHighlightColorDark(gender?: string | null): string {
  */
 function parseAndHighlightText(
   text: string,
-  englishWord: string,
   foreignWord: string,
   isPlaying: boolean,
   gender?: string | null,
@@ -109,7 +112,6 @@ function parseAndHighlightText(
 
   // Legacy auto-detection mode
   const words = text.split(/(\s+)/);
-  const cleanEnglish = englishWord.toLowerCase().replace(/[!?.,'"]/g, "");
   const cleanForeign = foreignWord.toLowerCase().replace(/[!?.,'"]/g, "");
 
   words.forEach((word, index) => {
@@ -124,12 +126,6 @@ function parseAndHighlightText(
     } else if (word.match(/^[A-Z]{2,}[!?.,'"]*$/) && word.trim().length > 1) {
       parts.push(
         <span key={index} className="font-bold" style={{ color: highlightColor }}>
-          {word}
-        </span>
-      );
-    } else if (cleanWord === cleanEnglish || cleanWord.includes(cleanEnglish)) {
-      parts.push(
-        <span key={index} className="font-semibold italic" style={{ color: darkColor }}>
           {word}
         </span>
       );
@@ -160,6 +156,8 @@ export function WordDetailView({
   wordList,
   isAdmin = false,
   fromDictionary = false,
+  layout = "page",
+  autoPlayAudio = true,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -330,6 +328,8 @@ export function WordDetailView({
 
   // Auto-play audio sequence when word changes: English → Foreign → Trigger → Foreign
   useEffect(() => {
+    if (!autoPlayAudio) return;
+
     audioSequenceCancelledRef.current = false;
     setIsPlayingSequence(true);
 
@@ -367,7 +367,7 @@ export function WordDetailView({
       stopAudio();
       setIsPlayingSequence(false);
     };
-  }, [word.id, word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio]);
+  }, [word.id, word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio, autoPlayAudio]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -377,8 +377,10 @@ export function WordDetailView({
     };
   }, [stopAudio]);
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation (only in page layout — sidebar handles its own keys)
   useEffect(() => {
+    if (layout === "sidebar") return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         // If audio is playing, stop it first
@@ -403,7 +405,7 @@ export function WordDetailView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleBackClick, onPrevious, onNext, hasPrevious, hasNext, stopAudio, isPlayingSequence]);
+  }, [layout, handleBackClick, onPrevious, onNext, hasPrevious, hasNext, stopAudio, isPlayingSequence]);
 
   const handlePlayEnglish = useCallback(() => {
     if (word.audio_url_english) {
@@ -489,70 +491,74 @@ export function WordDetailView({
     onJumpToWord?.(index);
   }, [stopAudio, onJumpToWord]);
 
+  const isSidebar = layout === "sidebar";
+
   return (
-    <div className="flex flex-col gap-6 pb-20">
-      {/* Navigation row: back button + word dots (if not from dictionary) */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={handleBackClick}
-          className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          {fromDictionary ? "Dictionary" : `#${lessonNumber} ${lessonTitle}`}
-        </button>
+    <div className={isSidebar ? "flex flex-col gap-4" : "flex flex-col gap-6 pb-20"}>
+      {/* Navigation row: back button + word dots (page layout only) */}
+      {!isSidebar && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handleBackClick}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {fromDictionary ? "Dictionary" : `#${lessonNumber} ${lessonTitle}`}
+          </button>
 
-        {/* Word tracker dots with arrows - hidden when from dictionary */}
-        {!fromDictionary && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              Word {currentIndex + 1} of {totalWords}
-            </span>
+          {/* Word tracker dots with arrows - hidden when from dictionary */}
+          {!fromDictionary && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                Word {currentIndex + 1} of {totalWords}
+              </span>
 
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrevious}
-                disabled={!hasPrevious}
-                className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Previous word"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handlePrevious}
+                  disabled={!hasPrevious}
+                  className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Previous word"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
 
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: totalWords }).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      if (index !== currentIndex) {
-                        handleJumpToWord(index);
-                      }
-                    }}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      index === currentIndex
-                        ? "bg-primary"
-                        : "bg-gray-300 hover:bg-gray-400"
-                    }`}
-                    title={`Word ${index + 1}`}
-                  />
-                ))}
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalWords }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (index !== currentIndex) {
+                          handleJumpToWord(index);
+                        }
+                      }}
+                      className={`h-2 w-2 rounded-full transition-colors ${
+                        index === currentIndex
+                          ? "bg-primary"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                      title={`Word ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleNext}
+                  disabled={!hasNext}
+                  className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Next word"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
-
-              <button
-                onClick={handleNext}
-                disabled={!hasNext}
-                className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Next word"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Word Card */}
-      <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
-        <div className="flex flex-col gap-4">
+      <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
+        <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-4"}>
           {/* English word */}
           <button
             onClick={handlePlayEnglish}
@@ -560,7 +566,7 @@ export function WordDetailView({
           >
             <AudioButton isPlaying={isPlayingEnglish} playingColor={audioDarkColor} />
             <span
-              className="text-[32px] font-semibold leading-tight tracking-tight"
+              className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
               style={{ color: isPlayingEnglish ? getHighlightColorDark(word.gender) : "#141515" }}
             >
               {word.english}
@@ -576,7 +582,7 @@ export function WordDetailView({
           >
             <AudioButton isPlaying={isPlayingForeign} playingColor={audioDarkColor} />
             <span
-              className="text-[32px] font-semibold leading-tight tracking-tight"
+              className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
               style={{ color: isPlayingForeign ? getHighlightColorDark(word.gender) : getHighlightColor(word.gender) }}
             >
               {word.headword}
@@ -585,14 +591,14 @@ export function WordDetailView({
         </div>
       </div>
 
-      {/* Two columns layout */}
-      <div className="flex gap-6">
+      {/* Two columns layout (page) or single column (sidebar) */}
+      <div className={isSidebar ? "flex flex-col gap-4" : "flex gap-6"}>
         {/* Left column - Memory Trigger or Flashcard */}
-        <div className="flex w-[55%] flex-col gap-6">
+        <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
             // Memory Trigger mode
             hasMemoryTrigger && (
-              <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+              <div className="w-full rounded-2xl bg-white shadow-card">
                 <div className="flex flex-col gap-5 p-6">
                   {/* Trigger text */}
                   {word.memory_trigger_text && (
@@ -601,10 +607,9 @@ export function WordDetailView({
                       className="flex cursor-pointer items-center gap-4 text-left"
                     >
                       <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
-                      <p className="text-xl font-medium leading-relaxed">
+                      <p className={isSidebar ? "text-xl font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
                         {parseAndHighlightText(
                           word.memory_trigger_text,
-                          word.english,
                           word.headword,
                           isPlayingTrigger,
                           word.gender
@@ -644,7 +649,7 @@ export function WordDetailView({
         {/* Right column - Notes, Examples, Related */}
         <div className="flex flex-1 flex-col gap-6">
           {/* Notes - always show */}
-          <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+          <div className="w-full rounded-2xl bg-white p-6 shadow-card">
             <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
               NOTES
             </span>
@@ -753,7 +758,7 @@ export function WordDetailView({
 
           {/* Developer Section - Admin only */}
           {isAdmin && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
               <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
                 DEVELOPER
               </span>
@@ -871,7 +876,7 @@ export function WordDetailView({
 
           {/* Example Sentences */}
           {word.exampleSentences && word.exampleSentences.length > 0 && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
               <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
                 EXAMPLE SENTENCES
               </span>
@@ -906,7 +911,7 @@ export function WordDetailView({
 
           {/* Related Words */}
           {word.relatedWords && word.relatedWords.length > 0 && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
               <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
                 RELATED WORDS
               </span>
@@ -945,27 +950,30 @@ export function WordDetailView({
         </div>
       </div>
 
-      {/* Footer Action Bar */}
-      <WordDetailActionBar
-        currentWordIndex={currentIndex}
-        totalWords={totalWords}
-        englishWord={word.english}
-        foreignWord={word.headword}
-        partOfSpeech={word.part_of_speech}
-        gender={word.gender}
-        wordList={wordList}
-        testHistory={word.testHistory}
-        scoreStats={word.scoreStats}
-        onJumpToWord={handleJumpToWord}
-        onPreviousWord={handlePrevious}
-        onNextWord={handleNext}
-        onReplay={handleReplay}
-        hasPrevious={hasPrevious}
-        hasNext={hasNext}
-        imageMode={imageMode}
-        onImageModeChange={setImageMode}
-        fromDictionary={fromDictionary}
-      />
+      {/* Footer Action Bar (page layout only — sidebar renders its own) */}
+      {!isSidebar && (
+        <WordDetailActionBar
+          currentWordIndex={currentIndex}
+          totalWords={totalWords}
+          englishWord={word.english}
+          foreignWord={word.headword}
+          partOfSpeech={word.part_of_speech}
+          gender={word.gender}
+          category={word.category}
+          wordList={wordList}
+          testHistory={word.testHistory}
+          scoreStats={word.scoreStats}
+          onJumpToWord={handleJumpToWord}
+          onPreviousWord={handlePrevious}
+          onNextWord={handleNext}
+          onReplay={handleReplay}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
+          imageMode={imageMode}
+          onImageModeChange={setImageMode}
+          fromDictionary={fromDictionary}
+        />
+      )}
     </div>
   );
 }

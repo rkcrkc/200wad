@@ -72,7 +72,7 @@ export function WordCard({
   }
 
   return (
-    <div className="w-full rounded-2xl bg-white p-6 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+    <div className="w-full rounded-2xl bg-white p-6 shadow-card">
       {/* Words container */}
       <div className="flex flex-col gap-4">
         {/* English word row */}
@@ -89,12 +89,12 @@ export function WordCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-[32px] font-semibold leading-tight tracking-tight"
-                inputClassName="text-[32px] font-semibold leading-tight tracking-tight"
+                className="text-xxl2-semibold"
+                inputClassName="text-xxl2-semibold tracking-tight"
               />
             ) : (
               <span
-                className="text-[32px] font-semibold leading-tight tracking-tight"
+                className="text-xxl2-semibold"
                 style={{ color: getEnglishWordColor() }}
               >
                 {englishWord}
@@ -139,12 +139,12 @@ export function WordCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-[32px] font-semibold leading-tight tracking-tight"
-                inputClassName="text-[32px] font-semibold leading-tight tracking-tight"
+                className="text-xxl2-semibold"
+                inputClassName="text-xxl2-semibold tracking-tight"
               />
             ) : (
               <span
-                className="text-[32px] font-semibold leading-tight tracking-tight"
+                className="text-xxl2-semibold"
                 style={{ color: getForeignWordColor() }}
               >
                 {foreignWord}

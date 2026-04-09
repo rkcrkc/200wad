@@ -61,7 +61,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
 
   if (scheduleData.error) {
     return (
-      <PageContainer size="sm">
+      <PageContainer size="ms">
         <EmptyState
           title="Error loading schedule"
           description={scheduleData.error}
@@ -123,13 +123,13 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
       courseName={course.name}
       dueTestsCount={dueTestsCount}
     >
-      <PageContainer size="sm">
+      <PageContainer size="ms" className="pb-24">
         {/* Greeting */}
         <div className="mb-8">
-          <h1 className="text-2xl">
+          <p className="text-[18px] font-medium text-muted-foreground">
             <span className="mr-2">☀️</span>
             {greeting}
-          </h1>
+          </p>
         </div>
 
         {hasContent ? (

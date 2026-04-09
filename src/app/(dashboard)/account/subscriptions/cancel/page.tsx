@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export default function SubscriptionCancelPage() {
   return (
     <PageContainer size="sm">
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+      <div className="rounded-2xl bg-white p-8 text-center shadow-card">
         <div className="mb-4 flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
             <XCircle className="h-8 w-8 text-muted-foreground" />

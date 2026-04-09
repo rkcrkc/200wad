@@ -226,7 +226,7 @@ export function UpgradeModal({
       {/* Modal */}
       <div className="relative mx-4 w-full max-w-6xl h-[90vh] overflow-hidden rounded-xl bg-white shadow-xl flex flex-col">
         {/* Fixed top bar */}
-        <div className="shrink-0 flex items-center justify-between bg-[#FAF8F3] px-6 py-4">
+        <div className="shrink-0 flex items-center justify-between bg-bone px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground"
@@ -244,7 +244,7 @@ export function UpgradeModal({
         {/* Scrollable content */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {/* Header section with beige background */}
-          <div className="shrink-0 bg-[#FAF8F3] px-6 pb-6">
+          <div className="shrink-0 bg-bone px-6 pb-6">
             {/* Lock icon */}
             <div className="mb-4 flex justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white">

@@ -549,7 +549,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         </button>
 
         {/* Course Details Card */}
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6">
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-card">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               {isEditingCourseDetails ? (
@@ -708,7 +708,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         </div>
 
         {/* Lessons Table */}
-        <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="rounded-xl bg-white shadow-card">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
@@ -735,7 +735,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-bone-hover">
               {courseLessons.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
@@ -901,7 +901,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
 
       {/* Courses grouped by language */}
       {coursesByLanguage.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center text-gray-500">
+        <div className="rounded-xl bg-white px-6 py-12 text-center text-gray-500 shadow-card">
           {languages.length === 0
             ? "Add a language first before creating courses."
             : "No courses yet. Add your first course to get started."}
@@ -914,7 +914,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
             const totalWords = languageCourses.reduce((sum, c) => sum + (c.word_count ?? 0), 0);
 
             return (
-              <div key={language.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <div key={language.id} className="rounded-xl bg-white overflow-hidden shadow-card">
                 {/* Accordion Header */}
                 <button
                   onClick={() => toggleLanguage(language.id)}
@@ -965,7 +965,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-bone-hover">
                         {languageCourses.map((course, index) => (
                           <tr
                             key={course.id}

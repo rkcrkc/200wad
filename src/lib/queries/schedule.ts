@@ -177,10 +177,10 @@ async function getLessonSampleWords(
 ): Promise<Record<string, string[]>> {
   if (lessonIds.length === 0) return {};
 
-  // Use lesson_words join table to get words per lesson
+  // Use lesson_words join table to get words per lesson, excluding information pages
   const { data: lessonWords } = await supabase
     .from("lesson_words")
-    .select("lesson_id, words(english)")
+    .select("lesson_id, words(english, category)")
     .in("lesson_id", lessonIds)
     .order("sort_order");
 
@@ -188,13 +188,12 @@ async function getLessonSampleWords(
   lessonWords?.forEach((lw) => {
     const lessonId = lw.lesson_id;
     if (!lessonId) return;
+    const word = lw.words as { english: string; category: string | null } | null;
+    if (!word || word.category === "information") return;
     if (!samplesByLesson[lessonId]) {
       samplesByLesson[lessonId] = [];
     }
-    // Limit to 10 sample words per lesson
-    if (samplesByLesson[lessonId].length < 10 && lw.words) {
-      samplesByLesson[lessonId].push((lw.words as { english: string }).english);
-    }
+    samplesByLesson[lessonId].push(word.english);
   });
 
   return samplesByLesson;

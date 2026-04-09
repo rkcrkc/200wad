@@ -160,13 +160,13 @@ export const status = {
     color: "#00C950",
     dotColor: "#00C950",
   },
-  studying: {
+  learning: {
     bg: "#FFF6DA",
     color: "#FF9224",
     dotColor: "#FF9224",
   },
   notStarted: {
-    bg: "#F5F5F5",
+    bg: "#FAF8F3",
     color: "rgba(20, 21, 21, 0.5)",
     dotColor: "rgba(20, 21, 21, 0.2)",
   },

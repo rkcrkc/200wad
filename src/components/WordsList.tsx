@@ -7,7 +7,7 @@ import { Tabs, Tab } from "@/components/ui/tabs";
 import { InlineSearch } from "@/components/InlineSearch";
 import { WordRow } from "@/components/WordRow";
 import { WordCard } from "@/components/WordCard";
-import { WordDetailView } from "@/components/WordDetailView";
+import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
 
@@ -58,7 +58,6 @@ export function WordsList({
       if (wordIndex !== -1) {
         setSelectedWordIndex(wordIndex);
         onWordSelected?.(true);
-        window.scrollTo({ top: 0, behavior: "instant" });
       }
       setInitialWordHandled(true);
     }
@@ -109,11 +108,14 @@ export function WordsList({
 
   // Navigation handlers - navigate within filtered list
   const handleSelectWord = useCallback((index: number) => {
-    setSelectedWordIndex(index);
-    onWordSelected?.(true);
-    // Scroll to top when selecting a word
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [onWordSelected]);
+    if (selectedWordIndex === index) {
+      setSelectedWordIndex(null);
+      onWordSelected?.(false);
+    } else {
+      setSelectedWordIndex(index);
+      onWordSelected?.(true);
+    }
+  }, [onWordSelected, selectedWordIndex]);
 
   const handleBack = useCallback(() => {
     setSelectedWordIndex(null);
@@ -123,16 +125,12 @@ export function WordsList({
   const handlePreviousWord = useCallback(() => {
     if (selectedWordIndex !== null && selectedWordIndex > 0) {
       setSelectedWordIndex(selectedWordIndex - 1);
-      // Scroll to top when navigating
-      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [selectedWordIndex]);
 
   const handleNextWord = useCallback(() => {
     if (selectedWordIndex !== null && selectedWordIndex < filteredWords.length - 1) {
       setSelectedWordIndex(selectedWordIndex + 1);
-      // Scroll to top when navigating
-      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [selectedWordIndex, filteredWords.length]);
 
@@ -141,8 +139,6 @@ export function WordsList({
   const handleJumpToWord = useCallback((index: number) => {
     if (index >= 0 && index < filteredWords.length) {
       setSelectedWordIndex(index);
-      // Scroll to top when jumping to a word
-      window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [filteredWords.length]);
 
@@ -153,29 +149,7 @@ export function WordsList({
     foreign: w.headword,
   }));
 
-  // Show detail view when a word is selected
-  if (selectedWord && selectedWordIndex !== null) {
-    return (
-      <WordDetailView
-        word={selectedWord}
-        lessonTitle={lessonTitle}
-        lessonNumber={lessonNumber}
-        onBack={handleBack}
-        onPrevious={fromDictionary ? undefined : handlePreviousWord}
-        onNext={fromDictionary ? undefined : handleNextWord}
-        onJumpToWord={fromDictionary ? undefined : handleJumpToWord}
-        hasPrevious={fromDictionary ? false : selectedWordIndex > 0}
-        hasNext={fromDictionary ? false : selectedWordIndex < filteredWords.length - 1}
-        currentIndex={selectedWordIndex}
-        totalWords={fromDictionary ? 1 : filteredWords.length}
-        wordList={fromDictionary ? [] : wordListForActionBar}
-        isAdmin={isAdmin}
-        fromDictionary={fromDictionary}
-      />
-    );
-  }
-
-  // Show list view
+  // Show list view (always render), sidebar overlays when word is selected
   return (
     <div>
       {/* Filter Tabs + Page controls */}
@@ -192,14 +166,14 @@ export function WordsList({
             placeholder="Filter words..."
           />
           <button
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
             aria-label="Flashcard mode (coming soon)"
           >
             <Zap className="h-5 w-5" />
           </button>
           <button
             onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-[#FAF8F3]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
             aria-label={viewMode === "list" ? "Switch to grid view" : "Switch to list view"}
           >
             {viewMode === "list" ? (
@@ -228,19 +202,27 @@ export function WordsList({
           </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="overflow-x-auto rounded-xl">
-          <table className="min-w-[600px] w-full border-collapse">
+        <div className="overflow-hidden rounded-xl">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col style={{ width: 72 }} />
+              <col style={{ width: 64 }} />
+              <col />
+              <col />
+              <col style={{ width: 140 }} />
+              <col style={{ width: 60 }} />
+            </colgroup>
             {/* Table Header */}
             <thead>
               <tr className="whitespace-nowrap text-xs-medium text-muted-foreground">
-                <th className="w-[40px] px-6 py-3 text-left font-medium">#</th>
-                <th className="w-12 px-2 py-3"></th>
-                <th className="min-w-[120px] px-2 py-3 text-left font-medium">English</th>
-                <th className="min-w-[120px] px-2 py-3 text-left font-medium">
+                <th className="px-6 py-3 text-left font-medium">#</th>
+                <th className="px-2 py-3"></th>
+                <th className="px-2 py-3 text-left font-medium">English</th>
+                <th className="px-2 py-3 text-left font-medium">
                   {languageName ?? "Translation"}
                 </th>
-                <th className="w-[140px] px-2 py-3 text-left font-medium">Status</th>
-                <th className="sticky right-0 w-[60px] bg-background px-2 py-3"></th>
+                <th className="px-2 py-3 text-left font-medium">Status</th>
+                <th className="sticky right-0 bg-background px-2 py-3"></th>
               </tr>
             </thead>
 
@@ -255,6 +237,7 @@ export function WordsList({
                   onClick={() => handleSelectWord(index)}
                   isFirst={index === 0}
                   isLast={index === filteredWords.length - 1}
+                  isSelected={selectedWordIndex === index}
                 />
               ))}
             </tbody>
@@ -272,6 +255,25 @@ export function WordsList({
             />
           ))}
         </div>
+      )}
+
+      {/* Word Detail Sidebar */}
+      {selectedWord && selectedWordIndex !== null && !fromDictionary && (
+        <WordDetailSidebar
+          word={selectedWord}
+          lessonTitle={lessonTitle}
+          lessonNumber={lessonNumber}
+          onClose={handleBack}
+          onPrevious={handlePreviousWord}
+          onNext={handleNextWord}
+          onJumpToWord={handleJumpToWord}
+          hasPrevious={selectedWordIndex > 0}
+          hasNext={selectedWordIndex < filteredWords.length - 1}
+          currentIndex={selectedWordIndex}
+          totalWords={filteredWords.length}
+          wordList={wordListForActionBar}
+          isAdmin={isAdmin}
+        />
       )}
     </div>
   );

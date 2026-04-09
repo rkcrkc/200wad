@@ -15,7 +15,7 @@ export function PersonalBestsCard({
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="rounded-2xl bg-white p-5 shadow-card">
       <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Personal Bests</h3>
       <div className="grid grid-cols-3 gap-4">
         <div className="text-center">

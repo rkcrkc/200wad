@@ -357,7 +357,7 @@ export function MusicClient({ tracks }: MusicClientProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-xl bg-white shadow-card">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
@@ -388,7 +388,7 @@ export function MusicClient({ tracks }: MusicClientProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-bone-hover">
             {tracks.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center text-gray-500">

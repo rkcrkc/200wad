@@ -433,7 +433,7 @@ export function HelpClient({ entries, languages }: HelpClientProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-xl bg-white shadow-card">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
@@ -457,7 +457,7 @@ export function HelpClient({ entries, languages }: HelpClientProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-bone-hover">
             {filteredEntries.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">

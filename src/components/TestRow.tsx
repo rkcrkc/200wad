@@ -21,7 +21,7 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
   return (
     <tr className={cn(
       "group transition-colors hover:bg-bone-hover",
-      !isFirst && "border-t border-gray-200"
+      !isFirst && "border-t border-bone-hover"
     )}>
       {/* Lesson number */}
       <td className={cn(
@@ -41,7 +41,7 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
             {test.lessonEmoji || "📚"}
           </div>
-          <div className="truncate text-regular-semibold text-foreground">
+          <div className="truncate text-medium-semibold text-foreground">
             {test.lessonTitle}
           </div>
         </Link>

@@ -78,7 +78,6 @@ function getHighlightColorDark(gender?: string | null): string {
  */
 function parseAndHighlightText(
   text: string,
-  englishWord: string,
   foreignWord: string,
   isPlaying: boolean,
   gender?: string | null,
@@ -134,7 +133,6 @@ function parseAndHighlightText(
 
   // Legacy auto-detection mode (no markers)
   const words = text.split(/(\s+)/);
-  const cleanEnglish = englishWord.toLowerCase().replace(/[!?.,'"]/g, "");
   const cleanForeign = foreignWord.toLowerCase().replace(/[!?.,'"]/g, "");
 
   words.forEach((word, index) => {
@@ -159,18 +157,6 @@ function parseAndHighlightText(
           key={index}
           className="font-bold"
           style={{ color: highlightColor }}
-        >
-          {word}
-        </span>
-      );
-    }
-    // Check if this word is the English word (italic, dark gender color)
-    else if (cleanWord === cleanEnglish || cleanWord.includes(cleanEnglish)) {
-      parts.push(
-        <span
-          key={index}
-          className="font-semibold italic"
-          style={{ color: darkColor }}
         >
           {word}
         </span>
@@ -239,7 +225,7 @@ export function MemoryTriggerCard({
   // Full skeleton when nothing visible
   if (showNothing) {
     return (
-      <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+      <div className="w-full rounded-2xl bg-white shadow-card">
         <div className="flex flex-col gap-5 p-6">
           <div className="flex items-center gap-4">
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
@@ -252,7 +238,7 @@ export function MemoryTriggerCard({
   }
 
   return (
-    <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+    <div className="w-full rounded-2xl bg-white shadow-card">
       <div className="flex flex-col gap-5 p-6">
         {/* Picture-only mode: Show English word as clue 1 */}
         {pictureOnlyMode && showEnglishLabel && (
@@ -276,9 +262,22 @@ export function MemoryTriggerCard({
             }}
           >
             <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
-            <p className="text-2xl font-medium leading-relaxed">
-              {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger, gender)}
-            </p>
+            {isEditMode && wordId && onFieldSave ? (
+              <EditableText
+                value={triggerText}
+                field="memory_trigger_text"
+                wordId={wordId}
+                isEditMode={isEditMode}
+                onSave={onFieldSave}
+                className="text-2xl font-medium leading-relaxed"
+                inputClassName="text-xl font-medium w-full"
+                multiline
+              />
+            ) : (
+              <p className="text-2xl font-medium leading-relaxed">
+                {parseAndHighlightText(triggerText, foreignWord, isPlayingTrigger, gender)}
+              </p>
+            )}
           </button>
         ) : showTrigger && triggerText ? (
           // Test mode / edit mode: render normally when visible
@@ -300,7 +299,7 @@ export function MemoryTriggerCard({
               />
             ) : (
               <p className="text-2xl font-medium leading-relaxed">
-                {parseAndHighlightText(triggerText, englishWord, foreignWord, isPlayingTrigger, gender)}
+                {parseAndHighlightText(triggerText, foreignWord, isPlayingTrigger, gender)}
               </p>
             )}
           </button>

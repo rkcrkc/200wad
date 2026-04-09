@@ -228,7 +228,7 @@ export function LessonActivityHistory({
                   key={activity.id}
                   className={cn(
                     "group transition-colors hover:bg-bone-hover",
-                    index !== 0 && "border-t border-gray-200"
+                    index !== 0 && "border-t border-bone-hover"
                   )}
                 >
                   {/* Index (chronological order) */}

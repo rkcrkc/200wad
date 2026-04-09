@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-type ContainerSize = "sm" | "md" | "lg";
+type ContainerSize = "sm" | "ms" | "md" | "lg";
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -16,6 +16,7 @@ interface PageContainerProps {
 
 const sizeClasses: Record<ContainerSize, string> = {
   sm: "max-w-content-sm", // 840px - forms, settings, auth
+  ms: "max-w-content-ms", // 960px - schedule, medium-small
   md: "max-w-content-md", // 1080px - standard content
   lg: "max-w-content-lg", // 1280px - wide data displays
 };
@@ -25,6 +26,7 @@ const sizeClasses: Record<ContainerSize, string> = {
  *
  * Size guide:
  * - sm (840px): Forms, settings, authentication, focused content
+ * - ms (960px): Schedule, medium-small content
  * - md (1080px): Standard pages, lessons, dashboard content
  * - lg (1280px): Wide data displays, tables, charts
  */
@@ -37,7 +39,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "mx-auto w-full",
+        "mx-auto w-full transition-[max-width] duration-300 ease-in-out",
         sizeClasses[size],
         withTopPadding && "pt-[80px]",
         className

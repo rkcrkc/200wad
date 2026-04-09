@@ -9,6 +9,7 @@ import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
   StudyNavbar,
   StudyActionBar,
+  StudyWordListSidebar,
   WordCard,
   MemoryTriggerCard,
   FlashcardCard,
@@ -829,10 +830,24 @@ export function StudyModeClient({
   const showInput = true;
   const sidebarEnabled = phase === "show-input" || phase === "show-feedback";
 
+  // Derive answered word indices for sidebar checkmarks (only words with submitted answers)
+  const answeredWordIndices = localWords
+    .map((w, i) => (wordProgressMap.get(w.id)?.hasAnswered ? i : -1))
+    .filter((i) => i !== -1);
+
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Main content area - no sidebar in study mode */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* Word list sidebar */}
+      <StudyWordListSidebar
+        wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+        currentWordIndex={currentWordIndex}
+        completedWordIndices={answeredWordIndices}
+        onJumpToWord={handleJumpToWord}
+        mode="study"
+      />
+
+      {/* Main content area */}
+      <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
         {/* Custom navbar (replaces default header) */}
         <StudyNavbar
           languageFlag={languageFlag}
@@ -843,7 +858,7 @@ export function StudyModeClient({
           lessonTitle={lesson.title}
           currentWordIndex={currentWordIndex}
           totalWords={localWords.length}
-          completedWordIndices={viewedWordIndices}
+          completedWordIndices={answeredWordIndices}
           onJumpToWord={handleJumpToWord}
           isTimerPaused={isTimerPaused}
         />
@@ -934,7 +949,7 @@ export function StudyModeClient({
         </div>
 
         {/* Fixed bottom container - stacked input and action bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
           {/* Answer Input Row */}
           <AnswerInput
             ref={answerInputRef}
@@ -957,8 +972,9 @@ export function StudyModeClient({
             foreignWord={currentWord.headword}
             partOfSpeech={currentWord.part_of_speech}
             gender={currentWord.gender}
+            category={currentWord.category}
             wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
-            completedWordIndices={viewedWordIndices}
+            completedWordIndices={answeredWordIndices}
             testHistory={currentWord.testHistory}
             scoreStats={currentWord.scoreStats}
             onJumpToWord={handleJumpToWord}

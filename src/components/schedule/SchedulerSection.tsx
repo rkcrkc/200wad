@@ -77,11 +77,11 @@ export function SchedulerSection({
   }
 
   return (
-    <section className="mb-8">
+    <section className="mb-16">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground">{heading}</h2>
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
+      <div className="mb-8 flex items-center justify-between">
+        <h2 className="text-xl-semibold text-foreground">{heading}</h2>
+        <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link href={linkHref}>
             {linkText}
             <ArrowRight className="h-4 w-4" />

@@ -337,28 +337,28 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
             </div>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="rounded-xl bg-white p-5 shadow-card">
                 <BookOpen className="mb-3 h-6 w-6 text-primary" />
                 <h3 className="text-regular-semibold mb-1">Browse Topics</h3>
                 <p className="text-sm text-muted-foreground">
                   Use the sidebar to explore {categoryNames.length} categories covering {entries.length} topics — from lessons and tests to memory techniques and settings.
                 </p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="rounded-xl bg-white p-5 shadow-card">
                 <Search className="mb-3 h-6 w-6 text-primary" />
                 <h3 className="text-regular-semibold mb-1">Search</h3>
                 <p className="text-sm text-muted-foreground">
                   Looking for something specific? Type in the search bar to filter entries by title or content.
                 </p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="rounded-xl bg-white p-5 shadow-card">
                 <MessageCircleQuestion className="mb-3 h-6 w-6 text-primary" />
                 <h3 className="text-regular-semibold mb-1">Linked Entries</h3>
                 <p className="text-sm text-muted-foreground">
                   Many help entries link to related topics. Click any blue link within an entry to jump straight to it.
                 </p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="rounded-xl bg-white p-5 shadow-card">
                 <List className="mb-3 h-6 w-6 text-primary" />
                 <h3 className="text-regular-semibold mb-1">On Mobile</h3>
                 <p className="text-sm text-muted-foreground">

@@ -10,7 +10,7 @@ const variantStyles = {
   success: "bg-green-100 text-green-600",
   white: "bg-white text-gray-600",
   outline: "border border-gray-300 text-gray-600",
-  beige: "bg-[#FAF8F3] text-gray-600",
+  beige: "bg-bone text-gray-600",
 };
 
 export function Badge({ size = "default", variant = "default", className, ...props }: BadgeProps) {

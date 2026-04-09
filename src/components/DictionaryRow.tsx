@@ -34,7 +34,7 @@ export function DictionaryRow({ word, isFirst, isLast, isHighlighted }: Dictiona
       onClick={handleClick}
       className={cn(
         "group cursor-pointer transition-colors hover:bg-bone-hover",
-        !isFirst && "border-t border-gray-200",
+        !isFirst && "border-t border-bone-hover",
         isHighlighted && "ring-2 ring-primary ring-inset"
       )}
     >

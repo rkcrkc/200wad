@@ -9,6 +9,7 @@ import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
   StudyNavbar,
   StudyActionBar,
+  StudyWordListSidebar,
   WordCard,
   MemoryTriggerCard,
   FlashcardCard,
@@ -837,8 +838,18 @@ export function TestModeClient({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Main content area - no sidebar in test mode */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* Word list sidebar */}
+      <StudyWordListSidebar
+        wordList={testSequence.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+        currentWordIndex={currentWordIndex}
+        completedWordIndices={viewedWordIndices}
+        onJumpToWord={handleJumpToWord}
+        mode="test"
+        testResults={testResults}
+      />
+
+      {/* Main content area */}
+      <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
         {/* Custom navbar */}
         <StudyNavbar
           languageFlag={languageFlag}
@@ -948,7 +959,7 @@ export function TestModeClient({
         </div>
 
         {/* Fixed bottom container */}
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-[0px_-8px_30px_-15px_rgba(0,0,0,0.1)]">
+        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
           {/* Test Answer Input */}
           <TestAnswerInput
             ref={testAnswerInputRef}
@@ -974,6 +985,7 @@ export function TestModeClient({
             foreignWord={currentWord?.headword || ""}
             partOfSpeech={currentWord?.part_of_speech}
             gender={currentWord?.gender}
+            category={currentWord?.category}
             wordList={testSequence.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
             completedWordIndices={viewedWordIndices}
             testHistory={mergedTestHistory}

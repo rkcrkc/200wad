@@ -358,11 +358,11 @@ export async function updateLessonProgress(
   const completionPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
 
   // Determine lesson status
-  let lessonStatus: "not-started" | "studying" | "mastered" = "not-started";
+  let lessonStatus: "not-started" | "learning" | "mastered" = "not-started";
   if (completionPercent >= 100) {
     lessonStatus = "mastered";
   } else if (wordsStudied > 0) {
-    lessonStatus = "studying";
+    lessonStatus = "learning";
   }
 
   // Get existing lesson progress (may not exist for new lessons)

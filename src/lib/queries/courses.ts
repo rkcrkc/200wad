@@ -40,6 +40,8 @@ export interface CourseWithProgress extends Course {
   progressPercent: number;
   /** Actual word count from database (overrides static word_count field) */
   actualWordCount: number;
+  /** Computed status based on lesson completion */
+  status: "not-started" | "learning" | "mastered";
 }
 
 export interface GetCoursesResult {
@@ -140,6 +142,14 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       const lessonsCompleted = lessonsCompletedByCourse[course.id] || 0;
       const actualWordCount = wordCountByCourse[course.id] || 0;
 
+      // Compute status from lesson completion
+      const status: "not-started" | "learning" | "mastered" =
+        lessonsCompleted >= totalLessons && totalLessons > 0
+          ? "mastered"
+          : lessonsCompleted > 0
+            ? "learning"
+            : "not-started";
+
       return {
         ...course,
         totalLessons,
@@ -147,6 +157,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         progressPercent:
           totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0,
         actualWordCount,
+        status,
       };
     }
   );

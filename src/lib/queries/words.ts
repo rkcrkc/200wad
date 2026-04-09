@@ -52,7 +52,7 @@ function extractLesson(lesson: Lesson & { courses?: unknown }): Lesson {
   };
 }
 
-export type WordStatus = "not-started" | "studying" | "mastered";
+export type WordStatus = "not-started" | "learning" | "mastered";
 
 export interface TestAttempt {
   pointsEarned: number;
@@ -241,7 +241,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       if (wordId) {
         progressByWord[wordId] = wp;
       }
-      if (wp.status === "studying" || wp.status === "mastered") {
+      if (wp.status === "learning" || wp.status === "mastered") {
         wordsStudied++;
       }
       if (wp.status === "mastered") {
@@ -719,7 +719,7 @@ async function getAutoLessonWords(
     if (wp.word_id) {
       progressByWord[wp.word_id] = wp;
     }
-    if (wp.status === "studying" || wp.status === "mastered") {
+    if (wp.status === "learning" || wp.status === "mastered") {
       wordsStudied++;
     }
     if (wp.status === "mastered") {

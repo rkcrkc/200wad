@@ -1,4 +1,5 @@
 import { DashboardContent } from "@/components/DashboardContent";
+import { TooltipInit } from "@/components/TooltipInit";
 import {
   getDueTestsCount,
   getCurrentCourse,
@@ -58,6 +59,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="h-screen overflow-hidden bg-white">
+      <TooltipInit />
       <DashboardContent
         dueTestsCount={dueTestsCount}
         defaultCourseContext={defaultCourseContext}

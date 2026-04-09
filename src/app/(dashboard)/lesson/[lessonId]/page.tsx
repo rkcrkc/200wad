@@ -1,12 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
-import { PageContainer } from "@/components/PageContainer";
+import { PageShell } from "@/components/PageShell";
 import { LessonPageContent } from "@/components/LessonPageContent";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -65,21 +63,14 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
-      <PageContainer size="md" withTopPadding={false} className="pt-8">
+      <PageShell
+        backLink={course?.id ? { href: `/course/${course.id}`, label: "All Lessons" } : undefined}
+        withTopPadding={false}
+        className="pt-8"
+      >
         {words.length === 0 ? (
           // Empty state - show header with informative message
           <div>
-            {/* Back button */}
-            {course?.id && (
-              <Link
-                href={`/course/${course.id}`}
-                className="mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                All Lessons
-              </Link>
-            )}
-
             {/* Header */}
             <div className="mb-6">
               <p className="mb-2 text-regular-semibold text-black-80">
@@ -118,7 +109,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         {isGuest && words.length > 0 && (
           <GuestCTA title="Sign up to save your learning progress" />
         )}
-      </PageContainer>
+      </PageShell>
     </SetCourseContext>
   );
 }

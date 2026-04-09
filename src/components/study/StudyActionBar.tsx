@@ -3,14 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import {
   RefreshCw,
-  SkipBack,
-  SkipForward,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronLeft,
   ChevronRight,
-  Menu,
   Puzzle,
-  X,
-  Check,
   Image as ImageIcon,
   Music,
   SlidersHorizontal,
@@ -21,6 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/tooltip";
 import { BreathingIndicator, type BreathingPhase } from "./BreathingIndicator";
 
 /** Accented characters for European languages */
@@ -126,8 +124,10 @@ interface StudyActionBarProps {
   foreignWord: string;
   /** Part of speech / category */
   partOfSpeech?: string | null;
-  /** Gender: "masculine" or "feminine" */
+  /** Gender: m, f, n, mf */
   gender?: string | null;
+  /** Word category (fact, phrase, sentence, word, information) */
+  category?: string | null;
   /** List of all words for the word list dropdown */
   wordList: WordListItem[];
   /** Indices of completed words */
@@ -219,6 +219,22 @@ function abbreviatePartOfSpeech(pos: string | null | undefined): string {
   return pos.slice(0, 4).toLowerCase() + ".";
 }
 
+/** Get full part of speech name from the original value */
+function fullPartOfSpeech(pos: string | null | undefined): string {
+  if (!pos) return "";
+  const lower = pos.toLowerCase();
+  if (lower.includes("noun")) return "Noun";
+  if (lower.includes("verb")) return "Verb";
+  if (lower.includes("adjective")) return "Adjective";
+  if (lower.includes("adverb")) return "Adverb";
+  if (lower.includes("pronoun")) return "Pronoun";
+  if (lower.includes("preposition")) return "Preposition";
+  if (lower.includes("conjunction")) return "Conjunction";
+  if (lower.includes("interjection") || lower.includes("exclamation")) return "Exclamation";
+  if (lower.includes("article")) return "Article";
+  return pos;
+}
+
 export function StudyActionBar({
   currentWordIndex,
   totalWords,
@@ -226,6 +242,7 @@ export function StudyActionBar({
   foreignWord,
   partOfSpeech,
   gender,
+  category,
   wordList,
   completedWordIndices = [],
   testHistory = [],
@@ -265,12 +282,10 @@ export function StudyActionBar({
   breathingSecond = 0,
   breathingActive = false,
 }: StudyActionBarProps) {
-  const [isWordListOpen, setIsWordListOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccentsOpen, setIsAccentsOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const accentsRef = useRef<HTMLDivElement>(null);
   const musicRef = useRef<HTMLDivElement>(null);
@@ -299,9 +314,6 @@ export function StudyActionBar({
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsWordListOpen(false);
-      }
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setIsSettingsOpen(false);
       }
@@ -312,11 +324,11 @@ export function StudyActionBar({
         setIsMusicOpen(false);
       }
     }
-    if (isWordListOpen || isSettingsOpen || isAccentsOpen || isMusicOpen) {
+    if (isSettingsOpen || isAccentsOpen || isMusicOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [isWordListOpen, isSettingsOpen, isAccentsOpen, isMusicOpen]);
+  }, [isSettingsOpen, isAccentsOpen, isMusicOpen]);
 
   // Use historical score percentage from scoreStats
   const wordScorePercent = scoreStats?.scorePercent ?? 0;
@@ -328,77 +340,16 @@ export function StudyActionBar({
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
   // In test mode, hide gender until answer submitted (same as foreign word)
   const showGender = !isTestMode || hasSubmittedAnswer;
-  const posDisplay = posAbbrev && genderAbbrev && showGender
-    ? `${posAbbrev} ${genderAbbrev}`
-    : posAbbrev;
-  const completedSet = new Set(completedWordIndices);
-
-  const handleWordSelect = (index: number) => {
-    onJumpToWord(index);
-    setIsWordListOpen(false);
-  };
-
+  const label = category === "word" || posAbbrev ? posAbbrev : "";
+  const posDisplay = label && genderAbbrev && showGender
+    ? `${label} ${genderAbbrev}`
+    : label;
+  const posTooltipLabel = posAbbrev ? `Word type: ${fullPartOfSpeech(partOfSpeech)}` : "Word type";
   return (
     <div className="px-4 py-4 sm:px-6">
       <div className="flex items-center justify-between gap-4">
-        {/* Left section - Menu, word info, score */}
+        {/* Left section - word info, score */}
         <div className="flex items-center gap-4">
-          {/* Menu button with word list dropdown - hidden in test mode */}
-          {!isTestMode && (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsWordListOpen(!isWordListOpen)}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-                  isWordListOpen ? "bg-primary/10 text-primary" : "text-foreground"
-                )}
-                title="Word list"
-              >
-                {isWordListOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-
-              {/* Word list dropdown */}
-              {isWordListOpen && (
-                <div className="absolute bottom-full left-0 mb-2 max-h-[400px] w-[300px] overflow-y-auto rounded-xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
-                  <div className="p-2">
-                    <div className="mb-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                      Words in lesson ({wordList.length.toLocaleString("en-US")})
-                    </div>
-                    {wordList.map((word, index) => {
-                      const isCurrent = index === currentWordIndex;
-                      const isCompleted = completedSet.has(index);
-                      return (
-                        <button
-                          key={word.id}
-                          onClick={() => handleWordSelect(index)}
-                          className={cn(
-                            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                            isCurrent
-                              ? "bg-primary/10 text-primary"
-                              : "hover:bg-gray-50"
-                          )}
-                        >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-medium text-foreground/50">
-                            {index + 1}
-                          </span>
-                          <span className={cn(
-                            "flex-1 text-sm font-medium",
-                            isCurrent ? "text-primary" : "text-foreground"
-                          )}>
-                            {word.english} · {word.foreign}
-                          </span>
-                          {isCompleted && (
-                            <Check className="h-4 w-4 shrink-0 text-success" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Word text: english · foreign + part of speech */}
           {/* In test mode, hide foreign word until answer submitted */}
           <div className="flex items-center gap-2">
@@ -406,9 +357,11 @@ export function StudyActionBar({
               {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
             </span>
             {posDisplay && (
-              <span className="text-small-medium text-foreground/50">
-                {posDisplay}
-              </span>
+              <Tooltip label={posTooltipLabel}>
+                <span className="text-small-medium text-foreground/50 cursor-default">
+                  {posDisplay}
+                </span>
+              </Tooltip>
             )}
           </div>
 
@@ -417,32 +370,34 @@ export function StudyActionBar({
 
           {/* Traffic lights (last 3 test attempts) + historical score percentage */}
           {/* Display order: oldest on left, newest on right, empty slots on right */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              {[0, 1, 2].map((i) => {
-                // testHistory is ordered newest-first, so reverse for display
-                // Position 0 (left) = oldest, Position 2 (right) = newest
-                const historyLength = testHistory.length;
-                const reversedIndex = historyLength - 1 - i;
-                const attempt = reversedIndex >= 0 ? testHistory[reversedIndex] : undefined;
+          <Tooltip label="Average test score">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map((i) => {
+                  // testHistory is ordered newest-first, so reverse for display
+                  // Position 0 (left) = oldest, Position 2 (right) = newest
+                  const historyLength = testHistory.length;
+                  const reversedIndex = historyLength - 1 - i;
+                  const attempt = reversedIndex >= 0 ? testHistory[reversedIndex] : undefined;
 
-                // Green = got points, Red = 0 points, Gray = no attempt yet
-                let bgColor = "bg-gray-300"; // No attempt
-                if (attempt) {
-                  bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
-                }
-                return (
-                  <div
-                    key={i}
-                    className={cn("h-3 w-3 rounded-full", bgColor)}
-                  />
-                );
-              })}
+                  // Green = got points, Red = 0 points, Gray = no attempt yet
+                  let bgColor = "bg-gray-300"; // No attempt
+                  if (attempt) {
+                    bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className={cn("h-3 w-3 rounded-full", bgColor)}
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-regular-semibold text-foreground">
+                {wordScorePercent}%
+              </span>
             </div>
-            <span className="text-regular-semibold text-foreground">
-              {wordScorePercent}%
-            </span>
-          </div>
+          </Tooltip>
         </div>
 
         {/* Right section - Breathing indicator, Accents + Clue button (grouped), Navigation controls, divider, toggle icons */}
@@ -480,7 +435,7 @@ export function StudyActionBar({
                     {/* Accented characters panel */}
                     {isAccentsOpen && (
                       <div className="absolute bottom-full left-0 mb-2 -translate-x-1/2">
-                        <div className="w-[340px] rounded-xl bg-white p-3 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                        <div className="w-[340px] rounded-xl bg-white p-3 shadow-panel">
                           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
                             Accented characters
                           </div>
@@ -539,51 +494,56 @@ export function StudyActionBar({
 
           {/* Navigation controls */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={onRestart}
-              disabled={isTestMode && !hasSubmittedAnswer}
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Replay"
-            >
-              <RefreshCw className="h-5 w-5" />
-            </button>
+            <Tooltip label="Replay audio sequence">
+              <button
+                onClick={onRestart}
+                disabled={isTestMode && !hasSubmittedAnswer}
+                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+            </Tooltip>
             {/* Skip to first - study mode only */}
             {!isTestMode && (
-              <button
-                onClick={() => onJumpToWord(0)}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
-                title="Go to first word"
-              >
-                <SkipBack className="h-5 w-5" />
-              </button>
+              <Tooltip label="First word">
+                <button
+                  onClick={() => onJumpToWord(0)}
+                  className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
+                >
+                  <ChevronsLeft className="h-5 w-5" />
+                </button>
+              </Tooltip>
             )}
             {/* Previous word */}
-            <button
-              onClick={onPreviousWord}
-              disabled={!canGoPrevious}
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Previous word"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+            <Tooltip label="Previous word">
+              <button
+                onClick={onPreviousWord}
+                disabled={!canGoPrevious}
+                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            </Tooltip>
             {/* Next word */}
-            <button
-              onClick={onNextWord}
-              disabled={!canGoNext}
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Next word"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+            <Tooltip label="Next word">
+              <button
+                onClick={onNextWord}
+                disabled={!canGoNext}
+                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </Tooltip>
             {/* Skip to last - study mode only */}
             {!isTestMode && (
-              <button
-                onClick={() => onJumpToWord(totalWords - 1)}
-                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
-                title="Go to last word"
-              >
-                <SkipForward className="h-5 w-5" />
-              </button>
+              <Tooltip label="Last word">
+                <button
+                  onClick={() => onJumpToWord(totalWords - 1)}
+                  className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
+                >
+                  <ChevronsRight className="h-5 w-5" />
+                </button>
+              </Tooltip>
             )}
           </div>
 
@@ -594,30 +554,32 @@ export function StudyActionBar({
           <div className="flex items-center gap-3">
             {/* Admin edit mode toggle */}
             {isAdmin && onEditModeToggle && (
-              <button
-                onClick={onEditModeToggle}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-                  isEditMode
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:text-primary"
-                )}
-                title={isEditMode ? "Exit edit mode" : "Edit word"}
-              >
-                <Pencil className="h-5 w-5" />
-              </button>
+              <Tooltip label={isEditMode ? "Exit edit mode" : "Edit word"}>
+                <button
+                  onClick={onEditModeToggle}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                    isEditMode
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:text-primary"
+                  )}
+                >
+                  <Pencil className="h-5 w-5" />
+                </button>
+              </Tooltip>
             )}
-            <button
-              onClick={() => onImageModeChange?.(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
-              className="flex h-6 w-6 items-center justify-center text-foreground transition-colors hover:text-primary"
-              title={imageMode === "memory-trigger" ? "Switch to flashcard" : "Switch to memory trigger"}
-            >
-              {imageMode === "memory-trigger" ? (
-                <Zap className="h-5 w-5" />
-              ) : (
-                <ImageIcon className="h-5 w-5" />
-              )}
-            </button>
+            <Tooltip label={imageMode === "memory-trigger" ? "Show flashcard image" : "Show memory trigger"}>
+              <button
+                onClick={() => onImageModeChange?.(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
+                className="flex h-6 w-6 items-center justify-center text-foreground transition-colors hover:text-primary"
+              >
+                {imageMode === "memory-trigger" ? (
+                  <Zap className="h-5 w-5" />
+                ) : (
+                  <ImageIcon className="h-5 w-5" />
+                )}
+              </button>
+            </Tooltip>
             {/* Music button with dropdown */}
             <div className="relative" ref={musicRef}>
               <button
@@ -637,7 +599,7 @@ export function StudyActionBar({
 
               {/* Music dropdown */}
               {isMusicOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-[320px] rounded-xl bg-white p-4 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                <div className="absolute bottom-full right-0 mb-2 w-[320px] rounded-xl bg-white p-4 shadow-panel">
                   <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
                     Study Music
                   </div>
@@ -734,7 +696,7 @@ export function StudyActionBar({
                   )}
 
                   {/* Explainer */}
-                  <div className="rounded-lg bg-[#FAF8F3] p-3">
+                  <div className="rounded-lg bg-bone p-3">
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       <span className="font-medium text-foreground">Alpha wave music</span> is tuned to
                       frequencies (around 432-528 Hz) that help induce alpha brainwaves — the optimal
@@ -759,7 +721,7 @@ export function StudyActionBar({
 
               {/* Settings dropdown */}
               {isSettingsOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-[280px] rounded-xl bg-white p-4 shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.25)]">
+                <div className="absolute bottom-full right-0 mb-2 w-[280px] rounded-xl bg-white p-4 shadow-panel">
                   <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
                     {isTestMode ? "Test Settings" : "Lesson Settings"}
                   </div>

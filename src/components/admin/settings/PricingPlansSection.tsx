@@ -147,7 +147,7 @@ export function PricingPlansSection({ plans }: PricingPlansSectionProps) {
             <h3 className="mb-2 text-sm font-medium text-gray-500 uppercase">
               {tierLabel(tier)}
             </h3>
-            <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
+            <div className="divide-y divide-bone-hover overflow-hidden rounded-xl bg-white">
               {tierPlans.map((plan) => (
                 <div
                   key={plan.id}

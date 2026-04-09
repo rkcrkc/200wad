@@ -80,7 +80,7 @@ export function PlatformConfigSection({ config }: PlatformConfigSectionProps) {
         </div>
       )}
 
-      <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
+      <div className="divide-y divide-bone-hover overflow-hidden rounded-xl bg-white">
         {/* Free Lessons */}
         <div className="flex items-center justify-between px-6 py-4">
           <div>

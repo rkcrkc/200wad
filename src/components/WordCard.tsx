@@ -15,7 +15,7 @@ export function WordCard({ word, index, languageFlag = "🇮🇹", onClick }: Wo
 
   return (
     <div
-      className="flex cursor-pointer flex-col rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+      className="flex cursor-pointer flex-col rounded-xl bg-white p-4 shadow-card transition-all hover:shadow-md"
       onClick={onClick}
       role="button"
       tabIndex={0}

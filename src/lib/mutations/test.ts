@@ -503,7 +503,7 @@ async function advanceMilestoneSchedule(
       lesson_id: lessonId,
       next_milestone: nextMilestone,
       next_test_due_at: nextTestDueAt?.toISOString() || null,
-      status: "studying",
+      status: "learning",
     }, {
       onConflict: "user_id,lesson_id",
     });
@@ -553,7 +553,7 @@ async function updateWordTestProgress(
   const newStreak = isCorrect ? currentStreak + 1 : 0;
 
   // Determine new status
-  let newStatus: "not-started" | "studying" | "mastered" = "studying";
+  let newStatus: "not-started" | "learning" | "mastered" = "learning";
   if (newStreak >= 3) {
     newStatus = "mastered";
   }

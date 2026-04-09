@@ -33,7 +33,7 @@ export function FlashcardCard({
   // Full skeleton when nothing visible
   if (showNothing) {
     return (
-      <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+      <div className="w-full rounded-2xl bg-white shadow-card">
         <div className="p-6">
           <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
         </div>
@@ -42,7 +42,7 @@ export function FlashcardCard({
   }
 
   return (
-    <div className="w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)]">
+    <div className="w-full rounded-2xl bg-white shadow-card">
       <div className="p-6">
         {showImage && imageUrl ? (
           <div className="relative h-[400px] w-full overflow-hidden rounded-lg">

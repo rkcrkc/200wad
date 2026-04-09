@@ -188,7 +188,7 @@ export function StudySidebar({
   const displaySystemNotes = savedSystemNotes ?? systemNotes;
 
   const cardClasses = cn(
-    "w-full rounded-2xl bg-white shadow-[0px_5px_40px_-10px_rgba(0,0,0,0.15)] transition-opacity",
+    "w-full rounded-2xl bg-white shadow-card transition-opacity",
     !isEnabled && "pointer-events-none opacity-30"
   );
 

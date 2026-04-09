@@ -38,8 +38,8 @@ export function TestsList({ dueTests, previousTests, languageFlag }: TestsListPr
       </div>
 
       {/* Tests Table */}
-      <div className="overflow-x-auto rounded-xl">
-        <table className="min-w-[900px] w-full border-collapse">
+      <div className="overflow-x-auto">
+        <table className="min-w-[900px] w-full border-separate border-spacing-0">
           {/* Table Header */}
           <thead>
             <tr className="whitespace-nowrap text-small-medium text-muted-foreground">
@@ -56,7 +56,7 @@ export function TestsList({ dueTests, previousTests, languageFlag }: TestsListPr
           </thead>
 
           {/* Table Body */}
-          <tbody>
+          <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
             {currentTests.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center">

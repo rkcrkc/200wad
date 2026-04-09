@@ -53,11 +53,13 @@
   --color-black-75: rgba(20, 21, 21, 0.75);
   --color-black-50: rgba(20, 21, 21, 0.5);
   --color-black-20: rgba(20, 21, 21, 0.2);
+  --color-gray-dark: #101828;
+  --color-gray-mid: #4A5565;
   --color-blue: #0b6cff;
   --color-beige: #f2ead9;
   --color-bone: #faf8f3;
   --color-bone-50: rgba(250, 248, 243, 0.5);
-  --color-bone-hover: #f7f5f0;
+  --color-bone-hover: #f6f3eb;
   --color-white: #ffffff;
   --color-orange: #ff9224;
   --color-yellow-light: #fff6da;
@@ -66,9 +68,9 @@
   /* Status backgrounds */
   --status-mastered-bg: #e6f9f0;
   --status-mastered-color: #00c950;
-  --status-studying-bg: #fff6da;
-  --status-studying-color: #ff9224;
-  --status-not-started-bg: #f5f5f5;
+  --status-learning-bg: #fff6da;
+  --status-learning-color: #ff9224;
+  --status-not-started-bg: #faf8f3;
   --status-not-started-color: rgba(20, 21, 21, 0.5);
 
   /* Corner Radius */
@@ -116,10 +118,16 @@
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-ring: var(--ring);
+  --color-beige: #f2ead9;
+  --color-bone: #faf8f3;
   --color-bone-50: rgba(250, 248, 243, 0.5);
-  --color-bone-hover: #f7f5f0;
+  --color-bone-hover: #f6f3eb;
+  --color-gray-dark: #101828;
+  --color-gray-mid: #4A5565;
   --color-black-80: rgba(20, 21, 21, 0.8);
+  --color-black-75: rgba(20, 21, 21, 0.75);
   --color-black-50: rgba(20, 21, 21, 0.5);
+  --color-black-20: rgba(20, 21, 21, 0.2);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -143,6 +151,11 @@
   --color-chart-1: var(--chart-1);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Shadows */
+  --shadow-card: 0px 2px 20px -8px rgba(0, 0, 0, 0.08);
+  --shadow-panel: 0px 5px 40px -10px rgba(0, 0, 0, 0.25);
+  --shadow-bar: 0px -8px 30px -15px rgba(0, 0, 0, 0.1);
 }
 
 @layer base {
@@ -232,12 +245,39 @@
     font-variation-settings: "opsz" 32;
   }
 
+  /* XXL2 / Semibold - Inter Display / Semibold / 28px / -2.5% / 1.35 */
+  .text-xxl2-semibold {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.025em;
+    font-variation-settings: "opsz" 32;
+  }
+
+  /* XL / Medium - Inter Display / Medium / 24px / -2.5% / 1.35 */
+  .text-xl-medium {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.025em;
+    font-variation-settings: "opsz" 32;
+  }
+
   /* XL / Semibold - Inter Display / Semibold / 24px / -2.5% / 1.35 */
   .text-xl-semibold {
     font-size: 24px;
     font-weight: 600;
     line-height: 1.35;
     letter-spacing: -0.025em;
+    font-variation-settings: "opsz" 32;
+  }
+
+  /* Large / Medium - Inter Display / Medium / 20px / -2% / 1.35 */
+  .text-large-medium {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
     font-variation-settings: "opsz" 32;
   }
 
@@ -254,6 +294,14 @@
   .text-medium-medium {
     font-size: 18px;
     font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+  }
+
+  /* Medium / Semibold - Inter / Semibold / 18px / -1.5% / 1.35 */
+  .text-medium-semibold {
+    font-size: 18px;
+    font-weight: 600;
     line-height: 1.35;
     letter-spacing: -0.015em;
   }
@@ -334,6 +382,10 @@
     max-width: 840px;
   }
 
+  .max-w-content-ms {
+    max-width: 960px;
+  }
+
   .max-w-content-md {
     max-width: 1080px;
   }
@@ -355,6 +407,11 @@
 
 .animate-audiowave {
   animation: audiowave 0.8s ease-in-out infinite;
+}
+
+/* Hide hover tooltips when user preference is off */
+body.hide-tooltips .tooltip-hover {
+  display: none !important;
 }
 
 .dark {

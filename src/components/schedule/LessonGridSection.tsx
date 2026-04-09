@@ -41,14 +41,14 @@ export function LessonGridSection({
   return (
     <section>
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-foreground">{heading}</h2>
+          <h2 className="text-xl-semibold text-foreground">{heading}</h2>
           {showTabs && (
             <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
           )}
         </div>
-        <Button asChild variant="outline" size="sm" className="gap-1.5">
+        <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link href={`/course/${courseId}`}>
             All lessons
             <ArrowRight className="h-4 w-4" />
@@ -58,7 +58,7 @@ export function LessonGridSection({
 
       {/* Lesson Grid */}
       {displayLessons.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {displayLessons.slice(0, 6).map((lesson) => (
             <LessonPreviewCard key={lesson.id} lesson={lesson} />
           ))}

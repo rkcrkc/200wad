@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,39 +12,15 @@ import {
   ChevronDown,
   Volume2,
   Image as ImageIcon,
-  X,
-  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AdminModal,
-  ConfirmModal,
-  AdminFormField,
-  AdminInput,
-  AdminTextarea,
-  AdminSelect,
-  AdminFileUpload,
-} from "@/components/admin";
-import { AdminAudioUpload } from "@/components/admin/AdminAudioUpload";
-import {
-  createWord,
-  updateWord,
-  deleteWord,
-  reorderWords,
-} from "@/lib/mutations/admin/words";
-import {
-  createSentence,
-  deleteSentence,
-} from "@/lib/mutations/admin/sentences";
+import { ConfirmModal } from "@/components/admin";
+import { AdminWordEditModal } from "@/components/admin/AdminWordEditModal";
+import type { WordWithDetails, WordLessonInfo } from "@/components/admin/AdminWordEditModal";
+import { deleteWord, reorderWords } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
+import { createClient } from "@/lib/supabase/client";
 import { getFlagFromCode } from "@/lib/utils/flags";
-import {
-  getWordRelationships,
-  searchWordsForRelationship,
-  addWordRelationship,
-  removeWordRelationship,
-  type RelatedWord,
-} from "@/lib/queries/wordRelationships.client";
 
 interface Language {
   id: string;
@@ -74,299 +50,85 @@ interface ExampleSentence {
   sort_order: number | null;
 }
 
-interface Word {
-  id: string;
-  headword: string;
-  lemma: string;
-  english: string;
-  language_id: string;
-  category: string | null;
-  part_of_speech: string | null;
-  gender: string | null;
-  transitivity: string | null;
-  is_irregular: boolean | null;
-  grammatical_number: string | null;
-  notes: string | null;
-  developer_notes: string | null;
-  alternate_answers: string[] | null;
-  alternate_english_answers: string[] | null;
-  memory_trigger_text: string | null;
-  memory_trigger_image_url: string | null;
-  audio_url_english: string | null;
-  audio_url_foreign: string | null;
-  audio_url_trigger: string | null;
-  related_word_ids: string[] | null;
+interface Word extends WordWithDetails {
   sort_order: number;
   example_sentences: ExampleSentence[];
+}
+
+interface LessonOption {
+  id: string;
+  number: number;
+  title: string;
+  emoji: string | null;
+  course_id: string | null;
+}
+
+interface CourseOption {
+  id: string;
+  name: string;
+  language_id: string | null;
 }
 
 interface WordsClientProps {
   lesson: Lesson;
   words: Word[];
   positionInOrder?: number | null;
+  allLessons?: LessonOption[];
+  allCourses?: CourseOption[];
 }
 
-interface FormData {
-  headword: string;
-  lemma: string;
-  english: string;
-  category: string;
-  part_of_speech: string;
-  gender: string;
-  transitivity: string;
-  is_irregular: boolean;
-  grammatical_number: string;
-  notes: string;
-  developer_notes: string;
-  alternate_answers: string[];
-  alternate_english_answers: string[];
-  memory_trigger_text: string;
-}
-
-interface FormErrors {
-  headword?: string;
-  english?: string;
-}
-
-interface FileUploads {
-  triggerImage: File | null;
-  audioEnglish: File | null;
-  audioForeign: File | null;
-  audioTrigger: File | null;
-}
-
-const categoryOptions = [
-  { value: "", label: "Select..." },
-  { value: "word", label: "Word" },
-  { value: "phrase", label: "Phrase" },
-  { value: "sentence", label: "Sentence" },
-  { value: "fact", label: "Fact" },
-  { value: "information", label: "Information" },
-];
-
-const partOfSpeechOptions = [
-  { value: "", label: "Select..." },
-  { value: "noun", label: "Noun" },
-  { value: "verb", label: "Verb" },
-  { value: "adjective", label: "Adjective" },
-  { value: "adverb", label: "Adverb" },
-  { value: "pronoun", label: "Pronoun" },
-  { value: "preposition", label: "Preposition" },
-  { value: "conjunction", label: "Conjunction" },
-  { value: "interjection", label: "Interjection" },
-  { value: "article", label: "Article" },
-  { value: "number", label: "Number" },
-];
-
-const genderOptions = [
-  { value: "", label: "Select..." },
-  { value: "m", label: "Masculine (m)" },
-  { value: "f", label: "Feminine (f)" },
-  { value: "n", label: "Neuter (n)" },
-  { value: "mf", label: "Both (m/f)" },
-];
-
-const transitivityOptions = [
-  { value: "", label: "Select..." },
-  { value: "vt", label: "Transitive (vt)" },
-  { value: "vi", label: "Intransitive (vi)" },
-  { value: "vt_vi", label: "Both (vt/vi)" },
-];
-
-export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps) {
+export function WordsClient({ lesson, words, positionInOrder, allLessons, allCourses }: WordsClientProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingWord, setEditingWord] = useState<Word | null>(null);
+  const [editingWordLessons, setEditingWordLessons] = useState<WordLessonInfo[]>([]);
   const [deletingWord, setDeletingWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"word" | "trigger" | "audio">("word");
-  const [formData, setFormData] = useState<FormData>({
-    headword: "",
-    lemma: "",
-    english: "",
-    category: "",
-    part_of_speech: "",
-    gender: "",
-    transitivity: "",
-    is_irregular: false,
-    grammatical_number: "sg",
-    notes: "",
-    developer_notes: "",
-    alternate_answers: [],
-    alternate_english_answers: [],
-    memory_trigger_text: "",
-  });
-  const [newAlternateAnswer, setNewAlternateAnswer] = useState("");
-  const [newAlternateEnglishAnswer, setNewAlternateEnglishAnswer] = useState("");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [fileUploads, setFileUploads] = useState<FileUploads>({
-    triggerImage: null,
-    audioEnglish: null,
-    audioForeign: null,
-    audioTrigger: null,
-  });
-  const [previewUrls, setPreviewUrls] = useState<{
-    triggerImage: string | null;
-    audioEnglish: string | null;
-    audioForeign: string | null;
-    audioTrigger: string | null;
-  }>({
-    triggerImage: null,
-    audioEnglish: null,
-    audioForeign: null,
-    audioTrigger: null,
-  });
 
-  // New sentence form
-  const [showSentenceForm, setShowSentenceForm] = useState(false);
-  const [newSentence, setNewSentence] = useState({
-    foreign_sentence: "",
-    english_sentence: "",
-  });
-
-  // Related words state
-  const [relatedWords, setRelatedWords] = useState<RelatedWord[]>([]);
-  const [isLoadingRelations, setIsLoadingRelations] = useState(false);
-  const [relationSearch, setRelationSearch] = useState("");
-  const [relationSearchResults, setRelationSearchResults] = useState<{ id: string; headword: string; english: string }[]>([]);
-  const [isSearchingRelations, setIsSearchingRelations] = useState(false);
-  const [newRelationType, setNewRelationType] = useState("compound");
-
-  // Fetch related words when editing word changes
-  useEffect(() => {
-    if (editingWord) {
-      setIsLoadingRelations(true);
-      getWordRelationships(editingWord.id)
-        .then((result) => {
-          if (!result.error) {
-            setRelatedWords(result.relatedWords);
-          }
-        })
-        .finally(() => setIsLoadingRelations(false));
-    } else {
-      setRelatedWords([]);
-    }
-  }, [editingWord?.id]);
-
-  // Search for words to add as related
-  useEffect(() => {
-    if (!relationSearch.trim() || !editingWord) {
-      setRelationSearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearchingRelations(true);
-      const result = await searchWordsForRelationship(relationSearch, editingWord.id);
-      if (!result.error) {
-        // Filter out words already in relationships
-        const existingIds = relatedWords.map(r => r.id);
-        setRelationSearchResults(result.words.filter(w => !existingIds.includes(w.id)));
-      }
-      setIsSearchingRelations(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [relationSearch, editingWord?.id, relatedWords]);
-
-  const handleAddRelation = async (relatedWordId: string) => {
-    if (!editingWord) return;
-    const result = await addWordRelationship(editingWord.id, relatedWordId, newRelationType);
-    if (result.success) {
-      // Refresh relationships
-      const refreshResult = await getWordRelationships(editingWord.id);
-      if (!refreshResult.error) {
-        setRelatedWords(refreshResult.relatedWords);
-      }
-      setRelationSearch("");
-      setRelationSearchResults([]);
-    } else {
-      alert(result.error || "Failed to add relationship");
-    }
-  };
-
-  const handleRemoveRelation = async (relationshipId: string) => {
-    const result = await removeWordRelationship(relationshipId);
-    if (result.success) {
-      setRelatedWords(relatedWords.filter(r => r.relationship_id !== relationshipId));
-    } else {
-      alert(result.error || "Failed to remove relationship");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      headword: "",
-      lemma: "",
-      english: "",
-      category: "",
-      part_of_speech: "",
-      gender: "",
-      transitivity: "",
-      is_irregular: false,
-      grammatical_number: "sg",
-      notes: "",
-      developer_notes: "",
-      alternate_answers: [],
-      alternate_english_answers: [],
-      memory_trigger_text: "",
-    });
-    setNewAlternateAnswer("");
-    setNewAlternateEnglishAnswer("");
-    setErrors({});
-    setFileUploads({
-      triggerImage: null,
-      audioEnglish: null,
-      audioForeign: null,
-      audioTrigger: null,
-    });
-    setPreviewUrls({
-      triggerImage: null,
-      audioEnglish: null,
-      audioForeign: null,
-      audioTrigger: null,
-    });
-    setEditingWord(null);
-    setActiveTab("word");
-    setShowSentenceForm(false);
-    setNewSentence({ foreign_sentence: "", english_sentence: "" });
-    setRelatedWords([]);
-    setRelationSearch("");
-    setRelationSearchResults([]);
+  const getCourseName = (courseId: string) => {
+    const course = allCourses?.find((c) => c.id === courseId);
+    return course?.name || "";
   };
 
   const openCreateModal = () => {
-    resetForm();
+    setEditingWord(null);
+    setEditingWordLessons([]);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (word: Word) => {
+  const openEditModal = async (word: Word) => {
     setEditingWord(word);
-    setFormData({
-      headword: word.headword,
-      lemma: word.lemma,
-      english: word.english,
-      category: word.category || "",
-      part_of_speech: word.part_of_speech || "",
-      gender: word.gender || "",
-      transitivity: word.transitivity || "",
-      is_irregular: word.is_irregular ?? false,
-      grammatical_number: word.grammatical_number || "sg",
-      notes: word.notes || "",
-      developer_notes: word.developer_notes || "",
-      alternate_answers: word.alternate_answers || [],
-      alternate_english_answers: word.alternate_english_answers || [],
-      memory_trigger_text: word.memory_trigger_text || "",
-    });
-    setPreviewUrls({
-      triggerImage: word.memory_trigger_image_url,
-      audioEnglish: word.audio_url_english,
-      audioForeign: word.audio_url_foreign,
-      audioTrigger: word.audio_url_trigger,
-    });
-    setErrors({});
     setIsModalOpen(true);
+
+    // Fetch which lessons this word belongs to
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("lesson_words")
+        .select("lesson_id, lessons(id, number, title, emoji, course_id)")
+        .eq("word_id", word.id);
+
+      if (data) {
+        const wLessons: WordLessonInfo[] = data.map((lw: any) => ({
+          id: lw.lessons.id,
+          number: lw.lessons.number,
+          title: lw.lessons.title,
+          emoji: lw.lessons.emoji,
+          course_id: lw.lessons.course_id,
+        }));
+        setEditingWordLessons(wLessons);
+      }
+    } catch {
+      // Fallback: we know the word is in the current lesson
+      setEditingWordLessons([{
+        id: lesson.id,
+        number: lesson.number,
+        title: lesson.title,
+        emoji: lesson.emoji,
+        course_id: lesson.course?.id || null,
+      }]);
+    }
   };
 
   const openDeleteModal = (word: Word) => {
@@ -374,180 +136,34 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
     setIsDeleteModalOpen(true);
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.headword.trim()) {
-      newErrors.headword = "Headword is required";
-    }
-    if (!formData.english.trim()) {
-      newErrors.english = "English translation is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleModalSuccess = () => {
+    setIsModalOpen(false);
+    setEditingWord(null);
+    setEditingWordLessons([]);
+    router.refresh();
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-
-    try {
-      // Prepare base data
-      const wordData: any = {
-        headword: formData.headword,
-        lemma: formData.lemma || formData.headword, // Default lemma to headword
-        english: formData.english,
-        category: formData.category || null,
-        part_of_speech: formData.category === "word" ? (formData.part_of_speech || null) : null,
-        gender: formData.gender || null,
-        transitivity: formData.transitivity || null,
-        is_irregular: formData.is_irregular,
-        grammatical_number: formData.grammatical_number || null,
-        notes: formData.notes || null,
-        developer_notes: formData.developer_notes || null,
-        alternate_answers: formData.alternate_answers.length > 0 ? formData.alternate_answers : null,
-        alternate_english_answers: formData.alternate_english_answers.length > 0 ? formData.alternate_english_answers : null,
-        memory_trigger_text: formData.memory_trigger_text || null,
-      };
-
-      // Get the word ID (for uploads)
-      let wordId = editingWord?.id;
-
-      if (editingWord) {
-        // Update word first
-        const result = await updateWord(editingWord.id, wordData, lesson.id);
-        if (!result.success) {
-          setErrors({ headword: result.error || "Failed to update word" });
-          return;
-        }
-      } else {
-        // Create word first
-        const result = await createWord({
-          lesson_id: lesson.id,
-          ...wordData,
-        });
-        if (!result.success || !result.id) {
-          setErrors({ headword: result.error || "Failed to create word" });
-          return;
-        }
-        wordId = result.id;
-      }
-
-      // Handle file uploads
-      if (wordId) {
-        const uploadPromises: Promise<any>[] = [];
-
-        if (fileUploads.triggerImage) {
-          uploadPromises.push(
-            uploadFileClient("images", fileUploads.triggerImage, "words", wordId, "trigger")
-              .then((res) => {
-                if (res.url) {
-                  return updateWord(wordId!, { memory_trigger_image_url: res.url });
-                }
-              })
-          );
-        }
-
-        if (fileUploads.audioEnglish) {
-          uploadPromises.push(
-            uploadFileClient("audio", fileUploads.audioEnglish, "words", wordId, "english")
-              .then((res) => {
-                if (res.url) {
-                  return updateWord(wordId!, { audio_url_english: res.url });
-                }
-              })
-          );
-        }
-
-        if (fileUploads.audioForeign) {
-          uploadPromises.push(
-            uploadFileClient("audio", fileUploads.audioForeign, "words", wordId, "foreign")
-              .then((res) => {
-                if (res.url) {
-                  return updateWord(wordId!, { audio_url_foreign: res.url });
-                }
-              })
-          );
-        }
-
-        if (fileUploads.audioTrigger) {
-          uploadPromises.push(
-            uploadFileClient("audio", fileUploads.audioTrigger, "words", wordId, "trigger")
-              .then((res) => {
-                if (res.url) {
-                  return updateWord(wordId!, { audio_url_trigger: res.url });
-                }
-              })
-          );
-        }
-
-        await Promise.all(uploadPromises);
-      }
-
-      setIsModalOpen(false);
-      resetForm();
-      router.refresh();
-    } finally {
-      setIsLoading(false);
-    }
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingWord(null);
+    setEditingWordLessons([]);
   };
 
   const handleDelete = async () => {
     if (!deletingWord) return;
 
     setIsLoading(true);
-
     try {
       const result = await deleteWord(deletingWord.id);
       if (!result.success) {
         alert(result.error);
         return;
       }
-
       setIsDeleteModalOpen(false);
       setDeletingWord(null);
       router.refresh();
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleAddSentence = async () => {
-    if (!editingWord || !newSentence.foreign_sentence || !newSentence.english_sentence) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await createSentence({
-        word_id: editingWord.id,
-        foreign_sentence: newSentence.foreign_sentence,
-        english_sentence: newSentence.english_sentence,
-      });
-
-      if (result.success) {
-        setNewSentence({ foreign_sentence: "", english_sentence: "" });
-        setShowSentenceForm(false);
-        router.refresh();
-      } else {
-        alert(result.error);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteSentence = async (sentenceId: string) => {
-    const confirmed = window.confirm("Delete this example sentence?");
-    if (!confirmed) return;
-
-    const result = await deleteSentence(sentenceId);
-    if (!result.success) {
-      alert(result.error);
-    } else {
-      router.refresh();
     }
   };
 
@@ -607,7 +223,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
       </div>
 
       {/* Words List */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-xl bg-white shadow-card">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
@@ -634,7 +250,7 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-bone-hover">
             {words.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
@@ -728,648 +344,18 @@ export function WordsClient({ lesson, words, positionInOrder }: WordsClientProps
         </table>
       </div>
 
-      {/* Create/Edit Modal */}
-      <AdminModal
+      {/* Shared Word Create/Edit Modal */}
+      <AdminWordEditModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          resetForm();
-        }}
-        title={editingWord ? "Edit Word" : "Add Word"}
-        description={
-          editingWord
-            ? "Update the word details, media, and example sentences."
-            : "Add a new vocabulary word to this lesson."
-        }
-        size="xl"
-        fullHeight
-        footer={
-          <>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsModalOpen(false);
-                resetForm();
-              }}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading
-                ? "Saving..."
-                : editingWord
-                ? "Save Changes"
-                : "Add Word"}
-            </Button>
-          </>
-        }
-      >
-        <div>
-          {/* Tab Bar */}
-          <div className="mb-4 flex gap-1 border-b border-gray-200">
-            {(["word", "trigger", "audio"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === tab
-                    ? "border-b-2 border-primary text-primary"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {tab === "word" ? "Word" : tab === "trigger" ? "Memory Trigger" : "Audio Files"}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab: Word */}
-          {activeTab === "word" && (
-            <div className="space-y-6">
-              {/* Foreign Word subgroup */}
-              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                <h4 className="text-sm font-medium text-gray-500">Foreign Word</h4>
-                <AdminFormField
-                  label={`Headword (${lesson.course?.language?.name || "Foreign"})`}
-                  name="headword"
-                  required
-                  error={errors.headword}
-                >
-                  <AdminInput
-                    id="headword"
-                    name="headword"
-                    value={formData.headword}
-                    onChange={(e) =>
-                      setFormData({ ...formData, headword: e.target.value })
-                    }
-                    placeholder="e.g., l'avventura"
-                    error={!!errors.headword}
-                  />
-                </AdminFormField>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Alternate Answers
-                    <span className="ml-1 text-xs font-normal text-gray-500">
-                      (other spellings accepted in tests)
-                    </span>
-                  </label>
-                  {formData.alternate_answers.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {formData.alternate_answers.map((answer, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
-                        >
-                          {answer}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                alternate_answers: formData.alternate_answers.filter(
-                                  (_, i) => i !== index
-                                ),
-                              })
-                            }
-                            className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
-                            title="Remove"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newAlternateAnswer}
-                      onChange={(e) => setNewAlternateAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newAlternateAnswer.trim()) {
-                          e.preventDefault();
-                          if (!formData.alternate_answers.includes(newAlternateAnswer.trim())) {
-                            setFormData({
-                              ...formData,
-                              alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
-                            });
-                          }
-                          setNewAlternateAnswer("");
-                        }
-                      }}
-                      placeholder="Type and press Enter to add"
-                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (newAlternateAnswer.trim() && !formData.alternate_answers.includes(newAlternateAnswer.trim())) {
-                          setFormData({
-                            ...formData,
-                            alternate_answers: [...formData.alternate_answers, newAlternateAnswer.trim()],
-                          });
-                          setNewAlternateAnswer("");
-                        }
-                      }}
-                      disabled={!newAlternateAnswer.trim()}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </div>
-
-                <AdminFormField
-                  label="Lemma (base form)"
-                  name="lemma"
-                  hint="Optional. Used for search/grouping. Defaults to headword if empty."
-                >
-                  <AdminInput
-                    id="lemma"
-                    name="lemma"
-                    value={formData.lemma}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lemma: e.target.value })
-                    }
-                    placeholder="e.g., avventura"
-                  />
-                </AdminFormField>
-              </div>
-
-              {/* English Word subgroup */}
-              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                <h4 className="text-sm font-medium text-gray-500">English Word</h4>
-                <AdminFormField
-                  label="English"
-                  name="english"
-                  required
-                  error={errors.english}
-                >
-                  <AdminInput
-                    id="english"
-                    name="english"
-                    value={formData.english}
-                    onChange={(e) =>
-                      setFormData({ ...formData, english: e.target.value })
-                    }
-                    placeholder="e.g., the adventure"
-                    error={!!errors.english}
-                  />
-                </AdminFormField>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Alternate English Answers
-                    <span className="ml-1 text-xs font-normal text-gray-500">
-                      (other English translations accepted in tests)
-                    </span>
-                  </label>
-                  {formData.alternate_english_answers.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {formData.alternate_english_answers.map((answer, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-sm text-green-700"
-                        >
-                          {answer}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                alternate_english_answers: formData.alternate_english_answers.filter(
-                                  (_, i) => i !== index
-                                ),
-                              })
-                            }
-                            className="ml-1 text-green-400 hover:text-red-500 transition-colors"
-                            title="Remove"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={newAlternateEnglishAnswer}
-                      onChange={(e) => setNewAlternateEnglishAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newAlternateEnglishAnswer.trim()) {
-                          e.preventDefault();
-                          if (!formData.alternate_english_answers.includes(newAlternateEnglishAnswer.trim())) {
-                            setFormData({
-                              ...formData,
-                              alternate_english_answers: [...formData.alternate_english_answers, newAlternateEnglishAnswer.trim()],
-                            });
-                          }
-                          setNewAlternateEnglishAnswer("");
-                        }
-                      }}
-                      placeholder="Type and press Enter to add"
-                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (newAlternateEnglishAnswer.trim() && !formData.alternate_english_answers.includes(newAlternateEnglishAnswer.trim())) {
-                          setFormData({
-                            ...formData,
-                            alternate_english_answers: [...formData.alternate_english_answers, newAlternateEnglishAnswer.trim()],
-                          });
-                          setNewAlternateEnglishAnswer("");
-                        }
-                      }}
-                      disabled={!newAlternateEnglishAnswer.trim()}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Classifications subgroup */}
-              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                <h4 className="text-sm font-medium text-gray-500">Classifications</h4>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <AdminFormField label="Category" name="category">
-                    <AdminSelect
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={(e) =>
-                        setFormData({ ...formData, category: e.target.value })
-                      }
-                      options={categoryOptions}
-                    />
-                  </AdminFormField>
-
-                  {formData.category === "word" && (
-                    <AdminFormField label="Part of Speech" name="part_of_speech">
-                      <AdminSelect
-                        id="part_of_speech"
-                        name="part_of_speech"
-                        value={formData.part_of_speech}
-                        onChange={(e) =>
-                          setFormData({ ...formData, part_of_speech: e.target.value })
-                        }
-                        options={partOfSpeechOptions}
-                      />
-                    </AdminFormField>
-                  )}
-
-                  {(formData.part_of_speech === "noun" || formData.part_of_speech === "adjective") && (
-                    <AdminFormField label="Gender" name="gender">
-                      <AdminSelect
-                        id="gender"
-                        name="gender"
-                        value={formData.gender}
-                        onChange={(e) =>
-                          setFormData({ ...formData, gender: e.target.value })
-                        }
-                        options={genderOptions}
-                      />
-                    </AdminFormField>
-                  )}
-                </div>
-
-                {formData.category === "word" && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {formData.part_of_speech === "verb" && (
-                      <AdminFormField label="Transitivity" name="transitivity">
-                        <AdminSelect
-                          id="transitivity"
-                          name="transitivity"
-                          value={formData.transitivity}
-                          onChange={(e) =>
-                            setFormData({ ...formData, transitivity: e.target.value })
-                          }
-                          options={transitivityOptions}
-                        />
-                      </AdminFormField>
-                    )}
-
-                    {formData.part_of_speech === "verb" && (
-                      <div className="flex items-end pb-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={formData.is_irregular}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_irregular: e.target.checked })
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700">Irregular verb</span>
-                        </label>
-                      </div>
-                    )}
-
-                    {["noun", "article", "adjective_noun"].includes(formData.part_of_speech) && (
-                      <div className="flex items-end pb-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={formData.grammatical_number === "pl"}
-                            onChange={(e) =>
-                              setFormData({ ...formData, grammatical_number: e.target.checked ? "pl" : "sg" })
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700">Plural</span>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Notes subgroup */}
-              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                <h4 className="text-sm font-medium text-gray-500">Notes</h4>
-                <AdminFormField label="Study Notes" name="notes" hint="The student will see these">
-                  <AdminTextarea
-                    id="notes"
-                    name="notes"
-                    value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    placeholder="Grammar notes, usage tips, etc."
-                  />
-                </AdminFormField>
-                <AdminFormField label="Developer Notes" name="developer_notes" hint="The student will NOT see these">
-                  <AdminTextarea
-                    id="developer_notes"
-                    name="developer_notes"
-                    value={formData.developer_notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, developer_notes: e.target.value })
-                    }
-                    placeholder="Private notes for administrators only..."
-                  />
-                </AdminFormField>
-              </div>
-
-              {/* Example Sentences (only when editing) */}
-              {editingWord && (
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-500">Example Sentences</h4>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSentenceForm(true)}
-                      disabled={showSentenceForm}
-                    >
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add Sentence
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {editingWord.example_sentences?.map((sentence) => (
-                      <div
-                        key={sentence.id}
-                        className="flex items-start justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {sentence.foreign_sentence}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {sentence.english_sentence}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteSentence(sentence.id)}
-                          className="rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {showSentenceForm && (
-                    <div className="mt-3 rounded-lg border border-primary/50 bg-primary/5 p-4">
-                      <div className="space-y-3">
-                        <AdminFormField label="Foreign Sentence" name="new_foreign">
-                          <AdminInput
-                            id="new_foreign"
-                            value={newSentence.foreign_sentence}
-                            onChange={(e) =>
-                              setNewSentence({
-                                ...newSentence,
-                                foreign_sentence: e.target.value,
-                              })
-                            }
-                            placeholder="e.g., Ciao, come stai?"
-                          />
-                        </AdminFormField>
-                        <AdminFormField label="English Translation" name="new_english">
-                          <AdminInput
-                            id="new_english"
-                            value={newSentence.english_sentence}
-                            onChange={(e) =>
-                              setNewSentence({
-                                ...newSentence,
-                                english_sentence: e.target.value,
-                              })
-                            }
-                            placeholder="e.g., Hello, how are you?"
-                          />
-                        </AdminFormField>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setShowSentenceForm(false);
-                              setNewSentence({ foreign_sentence: "", english_sentence: "" });
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleAddSentence}
-                            disabled={
-                              isLoading ||
-                              !newSentence.foreign_sentence ||
-                              !newSentence.english_sentence
-                            }
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Related Words (only when editing) */}
-              {editingWord && (
-                <div>
-                  <h4 className="mb-3 text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Link2 className="h-4 w-4" />
-                    Related Words
-                  </h4>
-
-                  {isLoadingRelations ? (
-                    <p className="text-sm text-gray-500">Loading relationships...</p>
-                  ) : relatedWords.length > 0 ? (
-                    <div className="space-y-2 mb-4">
-                      {["compound", "grammar", "sentence"].map((type) => {
-                        const typeWords = relatedWords.filter(r => r.relationship_type === type);
-                        if (typeWords.length === 0) return null;
-                        return (
-                          <div key={type}>
-                            <p className="text-xs font-medium text-gray-500 uppercase mb-1">{type}</p>
-                            <div className="flex flex-wrap gap-2">
-                              {typeWords.map((rel) => (
-                                <span
-                                  key={rel.relationship_id}
-                                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-sm text-blue-700"
-                                >
-                                  <span className="font-medium">{rel.headword}</span>
-                                  <span className="text-blue-400">({rel.english})</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveRelation(rel.relationship_id)}
-                                    className="ml-1 text-blue-400 hover:text-red-500 transition-colors"
-                                    title="Remove relationship"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 mb-4">No related words.</p>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={newRelationType}
-                      onChange={(e) => setNewRelationType(e.target.value)}
-                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="compound">Compound</option>
-                      <option value="grammar">Grammar</option>
-                      <option value="sentence">Sentence</option>
-                    </select>
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={relationSearch}
-                        onChange={(e) => setRelationSearch(e.target.value)}
-                        placeholder="Search words to link..."
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                      {isSearchingRelations && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                          Searching...
-                        </span>
-                      )}
-                      {relationSearchResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                          {relationSearchResults.map((word) => (
-                            <button
-                              key={word.id}
-                              type="button"
-                              onClick={() => handleAddRelation(word.id)}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex justify-between items-center"
-                            >
-                              <span className="font-medium">{word.headword}</span>
-                              <span className="text-gray-400">{word.english}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab: Memory Trigger */}
-          {activeTab === "trigger" && (
-            <div className="space-y-6">
-              <AdminFormField label="Trigger Text" name="memory_trigger_text">
-                <AdminTextarea
-                  id="memory_trigger_text"
-                  name="memory_trigger_text"
-                  value={formData.memory_trigger_text}
-                  onChange={(e) =>
-                    setFormData({ ...formData, memory_trigger_text: e.target.value })
-                  }
-                  placeholder="Mnemonic or memory aid..."
-                />
-              </AdminFormField>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Trigger Image
-                </label>
-                <AdminFileUpload
-                  type="image"
-                  value={previewUrls.triggerImage}
-                  onChange={(file, url) => {
-                    setFileUploads({ ...fileUploads, triggerImage: file });
-                    setPreviewUrls({ ...previewUrls, triggerImage: url });
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Tab: Audio Files */}
-          {activeTab === "audio" && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <AdminAudioUpload
-                label="English Audio"
-                value={previewUrls.audioEnglish}
-                onChange={(file, url) => {
-                  setFileUploads({ ...fileUploads, audioEnglish: file });
-                  setPreviewUrls({ ...previewUrls, audioEnglish: url });
-                }}
-              />
-              <AdminAudioUpload
-                label="Foreign Audio"
-                value={previewUrls.audioForeign}
-                onChange={(file, url) => {
-                  setFileUploads({ ...fileUploads, audioForeign: file });
-                  setPreviewUrls({ ...previewUrls, audioForeign: url });
-                }}
-              />
-              <AdminAudioUpload
-                label="Trigger Audio"
-                value={previewUrls.audioTrigger}
-                onChange={(file, url) => {
-                  setFileUploads({ ...fileUploads, audioTrigger: file });
-                  setPreviewUrls({ ...previewUrls, audioTrigger: url });
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </AdminModal>
+        onClose={handleModalClose}
+        editingWord={editingWord}
+        lessonId={lesson.id}
+        languageName={lesson.course?.language?.name || undefined}
+        onSuccess={handleModalSuccess}
+        lessons={allLessons}
+        getCourseName={getCourseName}
+        wordLessons={editingWordLessons}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

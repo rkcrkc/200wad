@@ -333,8 +333,8 @@ export function SearchBar() {
                         }
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                           idx === activeIndex
-                            ? "bg-[#FAF8F3]"
-                            : "hover:bg-[#FAF8F3]"
+                            ? "bg-bone-hover"
+                            : "hover:bg-bone-hover"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -382,8 +382,8 @@ export function SearchBar() {
                         }
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                           idx === activeIndex
-                            ? "bg-[#FAF8F3]"
-                            : "hover:bg-[#FAF8F3]"
+                            ? "bg-bone-hover"
+                            : "hover:bg-bone-hover"
                         }`}
                       >
                         {lesson.emoji && (

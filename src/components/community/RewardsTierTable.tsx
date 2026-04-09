@@ -19,7 +19,7 @@ export function RewardsTierTable({
   if (tiers.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="rounded-2xl bg-white p-5 shadow-card">
       <div className="flex items-center gap-2 mb-4">
         <DollarSign className="h-5 w-5 text-green-600" />
         <h3 className="font-semibold">Weekly Rewards</h3>

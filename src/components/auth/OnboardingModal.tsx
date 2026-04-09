@@ -219,7 +219,7 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
           </div>
 
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto bg-[#FAF8F3] p-8">
+          <div className="flex-1 overflow-y-auto bg-bone p-8">
             <div className="space-y-3">
               {languages.map((language) => {
                 const isSelected = selectedLanguageId === language.id;
@@ -278,7 +278,7 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
           </div>
 
           {/* Fixed footer */}
-          <div className="shrink-0 bg-[#FAF8F3] px-8 py-6">
+          <div className="shrink-0 bg-bone px-8 py-6">
             <div className="flex flex-col items-center gap-3">
               <Button
                 onClick={handleLanguageContinue}
@@ -322,7 +322,7 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto bg-[#FAF8F3] p-8">
+        <div className="flex-1 overflow-y-auto bg-bone p-8">
           <div className="mx-auto max-w-md space-y-6">
             {error && (
               <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
@@ -393,7 +393,7 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#FAF8F3] px-2 text-muted-foreground">or</span>
+                <span className="bg-bone px-2 text-muted-foreground">or</span>
               </div>
             </div>
 
@@ -402,7 +402,7 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
         </div>
 
         {/* Fixed footer */}
-        <div className="shrink-0 bg-[#FAF8F3] px-8 py-6">
+        <div className="shrink-0 bg-bone px-8 py-6">
           <div className="flex flex-col items-center gap-3">
             <Button
               type="button"

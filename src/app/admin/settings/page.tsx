@@ -10,7 +10,7 @@ export default async function AdminSettingsPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
+        <div className="rounded-xl bg-white p-12 text-center shadow-card">
           <p className="text-gray-500">
             {error || "Unable to load settings data."}
           </p>

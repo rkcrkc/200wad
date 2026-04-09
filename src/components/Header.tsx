@@ -8,6 +8,7 @@ import { SearchBar } from "./SearchBar";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
+import { Popover } from "@/components/ui/popover";
 import { MobileMenu } from "./MobileMenu";
 import type { HeaderStats } from "./DashboardContent";
 
@@ -150,7 +151,14 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           {showAsLoggedIn && effectiveStats && hasContext && (
             <div className="ml-4 hidden shrink-0 items-center gap-5 md:flex">
               {/* Course Progress Indicator */}
-              <div className="group relative flex flex-col cursor-default">
+              <Popover
+                className="flex flex-col cursor-default"
+                content={
+                  <span className="text-foreground text-[14px] leading-[1.4] font-medium">
+                    {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
+                  </span>
+                }
+              >
                 <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
                   {effectiveStats.courseProgressPercent}% complete
                 </span>
@@ -160,16 +168,33 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     style={{ width: `${effectiveStats.courseProgressPercent}%` }}
                   />
                 </div>
-                {/* Tooltip */}
-                <div className="pointer-events-none absolute top-full left-0 z-50 mt-4 whitespace-nowrap rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
-                  <span className="text-foreground text-[14px] leading-[1.4] font-medium">
-                    {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
-                  </span>
-                </div>
-              </div>
+              </Popover>
 
               {/* Words Per Day Indicator */}
-              <div className="group relative flex flex-col items-center">
+              <Popover
+                className="flex flex-col items-center"
+                content={(() => {
+                  const words = effectiveStats.totalWordsStudied ?? 0;
+                  const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
+                  const perHour = hours > 0 ? (words / hours) : 0;
+                  const perHourDisplay = perHour.toFixed(1);
+                  return (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                        Words per day rate
+                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                        </span>
+                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              >
                 <div className="flex items-center gap-1">
                   <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
                     {effectiveStats.wordsPerDay}
@@ -179,31 +204,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
                   words/day
                 </span>
-                {/* Tooltip */}
-                <div className="pointer-events-none absolute top-full left-0 z-50 mt-2 rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover:opacity-100">
-                  {(() => {
-                    const words = effectiveStats.totalWordsStudied ?? 0;
-                    const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
-                    const perHour = hours > 0 ? (words / hours) : 0;
-                    const perHourDisplay = perHour.toFixed(1);
-                    return (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
-                          Words per day rate
-                        </span>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                            {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
-                          </span>
-                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                            {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
+              </Popover>
 
               {/* Leaderboard Rank Indicator */}
               {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (

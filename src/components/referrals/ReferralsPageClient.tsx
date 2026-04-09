@@ -66,7 +66,7 @@ export function ReferralsPageClient({
 
       {/* Referral link */}
       {referralLink && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl bg-white p-6 shadow-card">
           <h2 className="mb-3 text-large-semibold">Your Referral Link</h2>
           <div className="flex items-center gap-3">
             <div className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-muted-foreground">
@@ -90,7 +90,7 @@ export function ReferralsPageClient({
       )}
 
       {/* How it works */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="rounded-2xl bg-white p-6 shadow-card">
         <h2 className="mb-4 text-large-semibold">How It Works</h2>
         <div className="space-y-4">
           <div className="flex items-start gap-4">
@@ -130,7 +130,7 @@ export function ReferralsPageClient({
       </div>
 
       {/* Recent Referrals */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="rounded-2xl bg-white p-6 shadow-card">
         <h2 className="mb-4 text-large-semibold">Recent Referrals</h2>
         {referralHistory.length > 0 ? (
           <div className="space-y-3">
@@ -221,7 +221,7 @@ function StatCard({
     return (
       <Link
         href={href}
-        className="relative rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-[#FAF8F3]"
+        className="relative rounded-xl bg-white p-4 shadow-card transition-colors hover:bg-bone-hover"
       >
         {content}
       </Link>
@@ -229,7 +229,7 @@ function StatCard({
   }
 
   return (
-    <div className="relative rounded-xl border border-gray-200 bg-white p-4">
+    <div className="relative rounded-xl bg-white p-4 shadow-card">
       {content}
     </div>
   );

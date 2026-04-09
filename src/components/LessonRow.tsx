@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronRight, Lock } from "lucide-react";
+import { BookOpen, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { StatusPill } from "@/components/ui/status-pill";
+import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { mapStatus } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         onClick={handleClick}
         className={cn(
           "group cursor-pointer transition-colors hover:bg-bone-hover",
-          !isFirst && "border-t border-gray-200",
+          !isFirst && "border-t border-bone-hover",
           lesson.isLocked && "opacity-60"
         )}
       >
@@ -61,7 +62,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
               {lesson.emoji || "📚"}
             </div>
-            <div className="truncate text-regular-semibold text-foreground">
+            <div className="truncate text-medium-semibold text-foreground">
               {lesson.title}
             </div>
           </div>
@@ -139,7 +140,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       onClick={handleClick}
       className={cn(
         "group cursor-pointer transition-colors hover:bg-bone-hover",
-        !isFirst && "border-t border-gray-200",
+        !isFirst && "border-t border-bone-hover",
         lesson.isLocked && "opacity-60"
       )}
     >
@@ -158,7 +159,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
             {lesson.emoji || "📚"}
           </div>
-          <div className="truncate text-regular-semibold text-foreground">
+          <div className="truncate text-medium-semibold text-foreground">
             {lesson.title}
           </div>
         </div>
@@ -171,7 +172,11 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
 
       {/* # Words */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {lesson.word_count}
+        <WordsPreviewTooltip
+          lessonId={lesson.id}
+          wordCount={lesson.word_count ?? 0}
+          isAutoLesson={lesson.isAutoLesson}
+        />
       </td>
 
       {/* # Mastered */}
@@ -189,17 +194,47 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         </div>
       </td>
 
-      {/* Chevron / Lock - sticky on horizontal scroll */}
+      {/* Actions / Lock - sticky on horizontal scroll */}
       <td className={cn(
         "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl"
       )}>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-1">
           {lesson.isLocked ? (
             <Lock className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <>
+              <div className="group/study relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/lesson/${lesson.id}/study`);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
+                >
+                  <BookOpen className="h-4 w-4" />
+                </button>
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover/study:opacity-100">
+                  Study lesson
+                </span>
+              </div>
+              <div className="group/test relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/lesson/${lesson.id}/test`);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
+                >
+                  <ClipboardPen className="h-4 w-4" />
+                </button>
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover/test:opacity-100">
+                  Take test
+                </span>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </>
           )}
         </div>
       </td>

@@ -43,6 +43,17 @@ async function getData(lessonId: string) {
     if (idx >= 0) positionInOrder = idx + 1;
   }
 
+  // Fetch all lessons and courses for the Lessons tab in word edit modal
+  const { data: allLessons } = await supabase
+    .from("lessons")
+    .select("id, number, title, emoji, course_id")
+    .order("number");
+
+  const { data: allCourses } = await supabase
+    .from("courses")
+    .select("id, name, language_id")
+    .order("sort_order");
+
   // Fetch words via lesson_words join table
   const { data: lessonWords, error: wordsError } = await supabase
     .from("lesson_words")
@@ -64,7 +75,7 @@ async function getData(lessonId: string) {
     sort_order: lw.sort_order,
   }));
 
-  return { lesson, words, positionInOrder };
+  return { lesson, words, positionInOrder, allLessons: allLessons || [], allCourses: allCourses || [] };
 }
 
 export default async function WordsPage({ params }: PageProps) {
@@ -81,6 +92,8 @@ export default async function WordsPage({ params }: PageProps) {
         lesson={data.lesson as any}
         words={data.words as any[]}
         positionInOrder={data.positionInOrder}
+        allLessons={data.allLessons as any[]}
+        allCourses={data.allCourses as any[]}
       />
     </div>
   );

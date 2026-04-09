@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { getLessonAccessMap } from "@/lib/utils/accessControl";
 
-export type LessonStatus = "not-started" | "studying" | "mastered";
+export type LessonStatus = "not-started" | "learning" | "mastered";
 
 export interface LessonWithProgress extends Lesson {
   status: LessonStatus;
@@ -264,7 +264,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .from("user_word_progress")
         .select("word_id, status")
         .eq("user_id", user.id)
-        .in("status", ["studying", "mastered"]),
+        .in("status", ["learning", "mastered"]),
       supabase
         .from("lesson_words")
         .select("lesson_id, word_id")

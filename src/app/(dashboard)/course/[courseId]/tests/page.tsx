@@ -5,7 +5,7 @@ import { setCurrentCourse } from "@/lib/mutations";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
-import { PageContainer } from "@/components/PageContainer";
+import { PageShell } from "@/components/PageShell";
 import { TestsList } from "@/components/TestsList";
 import { formatTime, formatNumber } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -40,7 +40,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
       courseId={course.id}
       courseName={course.name}
     >
-      <PageContainer size="lg" withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
+      <PageShell withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-page-header">Tests</h1>
@@ -88,7 +88,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
         {isGuest && (
           <GuestCTA title="Sign up to track your test progress" />
         )}
-      </PageContainer>
+      </PageShell>
     </SetCourseContext>
   );
 }

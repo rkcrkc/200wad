@@ -1,5 +1,6 @@
 export { StudyNavbar } from "./StudyNavbar";
 export { StudyActionBar } from "./StudyActionBar";
+export { StudyWordListSidebar } from "./StudyWordListSidebar";
 export { WordTrackerDots } from "./WordTrackerDots";
 export { WordCard } from "./WordCard";
 export { MemoryTriggerCard } from "./MemoryTriggerCard";

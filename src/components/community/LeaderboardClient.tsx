@@ -280,7 +280,7 @@ export function LeaderboardClient({
       </div>
 
       {/* Leaderboard Card */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-card">
         {/* Card Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div className="flex items-start gap-2.5">
@@ -347,7 +347,7 @@ export function LeaderboardClient({
           ) : null}
 
           {/* Rankings */}
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-bone-hover">
             {useMockData
               ? MOCK_USERS.map((user) => (
                   <MockUserRow
