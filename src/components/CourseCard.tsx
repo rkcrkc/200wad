@@ -3,7 +3,7 @@ import { ChevronRight, BookOpen, MessageCircle } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
 import { StatusPill } from "@/components/ui/status-pill";
 import { CourseWithProgress } from "@/lib/queries";
-import { mapStatus } from "@/lib/utils/helpers";
+import { mapStatus, formatNumber } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 interface CourseCardProps {
@@ -92,11 +92,11 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
       <div className="mb-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <BookOpen className="h-4 w-4 flex-shrink-0" />
-          <span>{course.totalLessons} lessons</span>
+          <span>{formatNumber(course.totalLessons)} lessons</span>
         </div>
         <div className="flex items-center gap-1.5">
           <MessageCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{course.actualWordCount.toLocaleString()} words</span>
+          <span>{formatNumber(course.actualWordCount)} words</span>
         </div>
       </div>
 

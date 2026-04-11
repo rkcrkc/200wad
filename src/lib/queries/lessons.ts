@@ -82,11 +82,14 @@ async function generateAutoLessons(
     return [];
   }
 
-  // Get user's test score IDs first
+  // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
+  // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
+  // through PostgREST and silently return empty on long URLs).
   const { data: userTestScores } = await supabase
     .from("user_test_scores")
     .select("id")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .in("lesson_id", lessonIds);
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
@@ -100,13 +103,13 @@ async function generateAutoLessons(
       .in("word_id", courseWordIds)
       .not("user_notes", "is", null),
 
-    // Get test data for best/worst calculation (via test_score_id)
+    // Get test data for best/worst calculation (via test_score_id).
+    // No word_id filter needed — test_score_ids are already scoped to this course.
     testScoreIds.length > 0
       ? supabase
           .from("test_questions")
           .select("word_id, points_earned, max_points")
           .in("test_score_id", testScoreIds)
-          .in("word_id", courseWordIds)
       : Promise.resolve({ data: [] }),
   ]);
 

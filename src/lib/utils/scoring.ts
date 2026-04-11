@@ -103,9 +103,10 @@ export function languageRequiresCase(languageCode?: string | null): boolean {
 /**
  * Normalize an answer for comparison
  * - Strip gender marker and its preceding space, e.g. " (m)" at end
+ * - Strip trailing "!" and "?" (decorative sentence-ending punctuation)
  * - Lowercase (unless preserveCase is true - for German or "nerves of steel")
  * - Trim whitespace
- * - Punctuation (apostrophes, etc.) is preserved and scored
+ * - Internal punctuation (apostrophes, etc.) is preserved and scored
  */
 export function normalizeAnswer(answer: string, options: NormalizeOptions | boolean = {}): string {
   // Handle legacy boolean parameter (strictMode = both punctuation and case)
@@ -120,6 +121,8 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
   // In nerves of steel mode, gender marker must be typed exactly
   if (!strictPunctuation) {
     normalized = normalized.replace(GENDER_MARKER, "");
+    // Strip trailing "!" and "?" so users aren't penalized for omitting them
+    normalized = normalized.replace(/[!?]+$/, "").trimEnd();
   }
   if (!preserveCase) {
     normalized = normalized.toLowerCase();

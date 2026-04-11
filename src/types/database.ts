@@ -1014,6 +1014,7 @@ export type Database = {
           id: string
           last_mistake_count: number | null
           last_studied_at: string | null
+          learning_at: string | null
           mastered_at: string | null
           next_review_at: string | null
           status: string | null
@@ -1031,6 +1032,7 @@ export type Database = {
           id?: string
           last_mistake_count?: number | null
           last_studied_at?: string | null
+          learning_at?: string | null
           mastered_at?: string | null
           next_review_at?: string | null
           status?: string | null
@@ -1048,6 +1050,7 @@ export type Database = {
           id?: string
           last_mistake_count?: number | null
           last_studied_at?: string | null
+          learning_at?: string | null
           mastered_at?: string | null
           next_review_at?: string | null
           status?: string | null

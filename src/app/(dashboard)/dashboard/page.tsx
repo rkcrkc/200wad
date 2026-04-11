@@ -7,12 +7,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pick?: string }>;
+}) {
+  const { pick } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   // Redirect to current course schedule if user has one set
-  if (user) {
+  // Skip redirect when ?pick=true so the user can switch language
+  if (user && pick !== "true") {
     const { data: userData } = await supabase
       .from("users")
       .select("current_course_id")

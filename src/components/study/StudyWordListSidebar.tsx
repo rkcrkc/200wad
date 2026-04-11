@@ -31,6 +31,7 @@ export function StudyWordListSidebar({
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentItemRef = useRef<HTMLButtonElement>(null);
   const [showFade, setShowFade] = useState(false);
+  const [showTopFade, setShowTopFade] = useState(false);
 
   const isTestMode = mode === "test";
   const completedSet = new Set(completedWordIndices);
@@ -40,12 +41,15 @@ export function StudyWordListSidebar({
     ? Math.max(...completedWordIndices)
     : 0;
 
-  // Check if scroll container needs bottom fade
+  // Check if scroll container needs top/bottom fades
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const hasOverflow = el.scrollHeight > el.clientHeight;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
-    setShowFade(el.scrollHeight > el.clientHeight && !atBottom);
+    const atTop = el.scrollTop < 4;
+    setShowFade(hasOverflow && !atBottom);
+    setShowTopFade(hasOverflow && !atTop);
   }, []);
 
   // Auto-scroll current word into view
@@ -69,10 +73,10 @@ export function StudyWordListSidebar({
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto pt-4 pb-4"
+          className="h-full overflow-y-auto pt-2 pb-4"
           onScroll={checkScroll}
         >
-          <div className="px-2">
+          <div className="flex flex-col gap-1 px-2">
             {wordList.map((word, index) => {
               const isCurrent = index === currentWordIndex;
               const isCompleted = completedSet.has(index);
@@ -93,7 +97,7 @@ export function StudyWordListSidebar({
                       ? "bg-secondary"
                       : isDisabled
                         ? "opacity-40 cursor-not-allowed"
-                        : "hover:bg-gray-50"
+                        : "hover:bg-[#FAF8F3]"
                   )}
                 >
                   {/* Number */}
@@ -137,6 +141,11 @@ export function StudyWordListSidebar({
             })}
           </div>
         </div>
+
+        {/* Top fade gradient */}
+        {showTopFade && (
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white to-transparent" />
+        )}
 
         {/* Bottom fade gradient */}
         {showFade && (

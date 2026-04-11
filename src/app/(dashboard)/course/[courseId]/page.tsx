@@ -9,7 +9,7 @@ import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { Popover } from "@/components/ui/popover";
 import { notFound } from "next/navigation";
-import { formatTime, formatNumber } from "@/lib/utils/helpers";
+import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
 interface CoursePageProps {
@@ -38,7 +38,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
     setCurrentCourse(courseId);
   }
 
-  // Calculate progress percentages
+  // Calculate progress percentages (raw numeric values — formatted via
+  // formatPercent / formatRatioPercent at render time so digits/decimals stay
+  // consistent with the rest of the app).
   const studiedPercentage =
     stats.totalWords > 0
       ? Math.round((stats.wordsStudied / stats.totalWords) * 100)
@@ -75,10 +77,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 </span>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-foreground text-[13px] leading-[1.4]">
-                    Study time: <span className="font-semibold">{formatTime(stats.studyTimeSeconds)}</span>
+                    Study time: <span className="font-semibold">{formatDuration(stats.studyTimeSeconds)}</span>
                   </span>
                   <span className="text-foreground text-[13px] leading-[1.4]">
-                    Test time: <span className="font-semibold">{formatTime(stats.testTimeSeconds)}</span>
+                    Test time: <span className="font-semibold">{formatDuration(stats.testTimeSeconds)}</span>
                   </span>
                 </div>
               </div>
@@ -87,7 +89,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <span className="text-xs text-muted-foreground">Total Time</span>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-regular-semibold">{formatTime(stats.totalTimeSeconds)}</span>
+              <span className="text-regular-semibold">{formatDuration(stats.totalTimeSeconds)}</span>
             </div>
           </Popover>
 
@@ -97,7 +99,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-warning" />
               <span className="text-regular-semibold">
-                {formatNumber(stats.wordsStudied)} ({studiedPercentage}%)
+                {formatNumber(stats.wordsStudied)} ({formatPercent(studiedPercentage)})
               </span>
             </div>
           </div>
@@ -105,13 +107,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
           {/* Words mastered */}
           <div
             className="group relative flex flex-col items-start"
-            title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
+            title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${formatRatioPercent(stats.wordsMastered, stats.totalWords, { decimals: 1 })})`}
           >
             <span className="text-xs text-muted-foreground">Words mastered</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-success" />
               <span className="text-regular-semibold">
-                {formatNumber(stats.wordsMastered)} ({masteredPercentage}%)
+                {formatNumber(stats.wordsMastered)} ({formatPercent(masteredPercentage)})
               </span>
             </div>
           </div>

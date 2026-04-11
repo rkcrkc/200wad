@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { WordTagPill } from "./WordTagPill";
+import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
 
@@ -18,7 +18,7 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-      <div className="flex min-h-[400px] flex-col gap-0 md:flex-row md:items-stretch">
+      <div className="flex min-h-[420px] flex-col gap-0 md:flex-row md:items-stretch">
         {/* Lesson Image */}
         <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden md:h-auto md:w-full md:max-w-[340px]">
           {lesson.imageUrl ? (
@@ -35,7 +35,7 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
         </div>
 
         {/* Lesson Info */}
-        <div className="flex flex-1 flex-col p-8">
+        <div className="flex min-w-0 flex-1 flex-col p-8">
           {/* Lesson Number & Word Count */}
           <div className="flex items-center justify-between">
             <p className="text-regular-semibold text-muted-foreground">
@@ -54,12 +54,8 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
               {lesson.title}
             </h2>
 
-            {/* Word Tags */}
-            <div className="flex max-h-[112px] flex-wrap gap-2 overflow-hidden">
-              {lesson.sampleWords.map((word, index) => (
-                <WordTagPill key={index} word={word} />
-              ))}
-            </div>
+            {/* Word Tags - 3 rows, horizontally scrollable */}
+            <ScrollablePills words={lesson.sampleWords} rows={3} />
           </div>
 
           {/* Action Buttons */}

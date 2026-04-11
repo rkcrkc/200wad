@@ -80,7 +80,7 @@ export function SchedulerSection({
     <section className="mb-16">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-xl-semibold text-foreground">{heading}</h2>
+        <h2 className="text-xxl2-semibold text-foreground">{heading}</h2>
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link href={linkHref}>
             {linkText}

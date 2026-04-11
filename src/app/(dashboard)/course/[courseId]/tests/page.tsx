@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { TestsList } from "@/components/TestsList";
-import { formatTime, formatNumber } from "@/lib/utils/helpers";
+import { formatDuration, formatNumber } from "@/lib/utils/helpers";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { notFound } from "next/navigation";
 
@@ -52,7 +52,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
               <span className="text-xs text-muted-foreground">Total Test Time</span>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-regular-semibold">{formatTime(stats.totalTestTimeSeconds)}</span>
+                <span className="text-regular-semibold">{formatDuration(stats.totalTestTimeSeconds)}</span>
               </div>
             </div>
 

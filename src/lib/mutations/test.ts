@@ -482,8 +482,16 @@ async function determineMilestone(
 }
 
 /**
- * Advance the milestone schedule after completing a milestone test
- * Uses upsert to create the record if it doesn't exist (e.g., user went directly to test)
+ * Advance the milestone schedule after completing a milestone test.
+ *
+ * This only touches milestone scheduling fields — it must NOT overwrite
+ * `status`, `words_mastered`, or `completion_percent`, which are the
+ * canonical outputs of `updateLessonProgress` and are always refreshed
+ * earlier in `completeTestSession`. Overwriting `status` here used to
+ * silently demote freshly-mastered lessons back to "learning".
+ *
+ * Safe to use .update() (not upsert) because `completeTestSession` always
+ * runs `updateLessonProgress` first, which creates the row if missing.
  */
 async function advanceMilestoneSchedule(
   userId: string,
@@ -498,15 +506,12 @@ async function advanceMilestoneSchedule(
 
   await supabase
     .from("user_lesson_progress")
-    .upsert({
-      user_id: userId,
-      lesson_id: lessonId,
+    .update({
       next_milestone: nextMilestone,
       next_test_due_at: nextTestDueAt?.toISOString() || null,
-      status: "learning",
-    }, {
-      onConflict: "user_id,lesson_id",
-    });
+    })
+    .eq("user_id", userId)
+    .eq("lesson_id", lessonId);
 }
 
 // ============================================================================
@@ -535,12 +540,13 @@ async function updateWordTestProgress(
 
   const now = new Date();
   const isCorrect = mistakeCount === 0;
-  
+
   // Calculate new values
   const currentTimesTested = existingProgress?.times_tested || 0;
   const currentTotalPoints = existingProgress?.total_points_earned || 0;
   const currentBestClueLevel = existingProgress?.best_clue_level ?? 2;
   const currentStreak = existingProgress?.correct_streak || 0;
+  const currentStatus = (existingProgress?.status as "not-started" | "learning" | "mastered" | undefined) || "not-started";
 
   // Best clue level is the minimum clue level used for a correct answer
   // Lower is better (0 = no clues needed)
@@ -553,10 +559,38 @@ async function updateWordTestProgress(
   const newStreak = isCorrect ? currentStreak + 1 : 0;
 
   // Determine new status
-  let newStatus: "not-started" | "learning" | "mastered" = "learning";
+  // Rules:
+  //   - 3+ correct in a row → mastered
+  //   - Correct answer on a not-started word → learning (test-mode backup to study-mode path)
+  //   - Wrong answer on a not-started word → stay not-started (prevents gibberish-test promotion)
+  //   - Any attempt on a learning/mastered word → stays at least learning (streak reset on wrong,
+  //     which demotes mastered → learning by design)
+  let newStatus: "not-started" | "learning" | "mastered";
   if (newStreak >= 3) {
     newStatus = "mastered";
+  } else if (isCorrect || currentStatus !== "not-started") {
+    newStatus = "learning";
+  } else {
+    newStatus = "not-started";
   }
+
+  // Preserve the first-time mastery timestamp — never overwrite once set.
+  // If the word is currently mastered (or becoming mastered for the first time),
+  // keep the earliest mastered_at we have.
+  const masteredAt =
+    newStatus === "mastered"
+      ? existingProgress?.mastered_at || now.toISOString()
+      : existingProgress?.mastered_at || null;
+
+  // Preserve the first-time learning timestamp — never overwrite once set.
+  // Any promotion out of "not-started" counts as a learning transition.
+  // Test mode is a backup path: study mode is the primary writer of
+  // learning_at, but a correct test answer on a not-started word also
+  // transitions to "learning".
+  const learningAt =
+    newStatus !== "not-started"
+      ? existingProgress?.learning_at || now.toISOString()
+      : existingProgress?.learning_at || null;
 
   const progressData = {
     user_id: userId,
@@ -568,7 +602,8 @@ async function updateWordTestProgress(
     best_clue_level: newBestClueLevel,
     last_mistake_count: mistakeCount,
     last_studied_at: now.toISOString(),
-    mastered_at: newStatus === "mastered" ? now.toISOString() : existingProgress?.mastered_at || null,
+    mastered_at: masteredAt,
+    learning_at: learningAt,
   };
 
   if (existingProgress) {

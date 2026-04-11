@@ -10,13 +10,9 @@ import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
 import { MobileMenu } from "./MobileMenu";
+import { CourseDropdown } from "./CourseDropdown";
 import type { HeaderStats } from "./DashboardContent";
-
-/** Format seconds as hours with 1 decimal place */
-function formatHours(seconds: number): string {
-  const hours = seconds / 3600;
-  return hours < 0.1 ? "0 hours" : `${hours.toFixed(1)} hours`;
-}
+import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
 
 interface HeaderProps {
   showSidebar?: boolean;
@@ -99,32 +95,33 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
             {/* Logo / Course Selector - smaller on mobile, full width on lg */}
             <div className="-ml-4 flex w-auto shrink-0 px-4 lg:w-[240px]">
-            <Link
-              href={courseSelectorHref}
-              className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
-            >
-              <div className="flex h-full min-w-0 items-center gap-3 pl-4">
-                {/* Logo Icon or Language Flag */}
-                {hasContext ? (
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
-                    {languageFlag}
-                  </div>
-                ) : (
+            {hasContext && showAsLoggedIn && languageId ? (
+              <CourseDropdown
+                languageFlag={languageFlag!}
+                languageId={languageId}
+                courseId={courseId!}
+                courseName={courseName!}
+              />
+            ) : (
+              <Link
+                href={courseSelectorHref}
+                className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-[#FAF8F3]"
+              >
+                <div className="flex h-full min-w-0 items-center gap-3 pl-4">
                   <div className="bg-primary relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
                     <span className="text-sm font-bold text-white">W</span>
                   </div>
-                )}
-                {/* Title */}
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-                    {showAsLoggedIn ? "Learning" : "Welcome to"}
-                  </span>
-                  <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
-                    {hasContext ? courseName : "200 Words a Day"}
-                  </span>
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
+                      Welcome to
+                    </span>
+                    <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+                      200 Words a Day
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            )}
           </div>
 
           {/* Back/Forward Navigation - Show when logged in, hide on small screens */}
@@ -155,12 +152,12 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 className="flex flex-col cursor-default"
                 content={
                   <span className="text-foreground text-[14px] leading-[1.4] font-medium">
-                    {effectiveStats.wordsMastered} of {effectiveStats.totalWords} words mastered ({effectiveStats.totalWords && effectiveStats.totalWords > 0 ? ((effectiveStats.wordsMastered ?? 0) / effectiveStats.totalWords * 100).toFixed(1) : 0}%)
+                    {formatNumber(effectiveStats.wordsMastered ?? 0)} of {formatNumber(effectiveStats.totalWords ?? 0)} words mastered ({formatRatioPercent(effectiveStats.wordsMastered ?? 0, effectiveStats.totalWords ?? 0, { decimals: 1 })})
                   </span>
                 }
               >
                 <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
-                  {effectiveStats.courseProgressPercent}% complete
+                  {formatPercent(effectiveStats.courseProgressPercent)} complete
                 </span>
                 <div className="mt-1 h-1.5 w-[100px] overflow-hidden rounded-full bg-gray-200">
                   <div
@@ -185,10 +182,10 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                       </span>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {words} words studied ÷ {formatHours(effectiveStats.totalTimeSeconds ?? 0)} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                          {formatNumber(words)} words studied ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
                         </span>
                         <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{effectiveStats.wordsPerDay} words/day</span>
+                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>
                         </span>
                       </div>
                     </div>
@@ -197,7 +194,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               >
                 <div className="flex items-center gap-1">
                   <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
-                    {effectiveStats.wordsPerDay}
+                    {formatNumber(effectiveStats.wordsPerDay ?? 0)}
                   </span>
                   <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
                 </div>
@@ -211,7 +208,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 <Link href="/community" className="flex flex-col items-center transition-opacity hover:opacity-70">
                   <div className="flex items-center gap-1">
                     <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
-                      #{effectiveStats.leaderboardRank}
+                      #{formatNumber(effectiveStats.leaderboardRank)}
                     </span>
                     <Medal className="text-warning h-4 w-4" strokeWidth={2} />
                   </div>

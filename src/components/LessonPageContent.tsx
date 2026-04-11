@@ -8,7 +8,7 @@ import { WordsList } from "@/components/WordsList";
 import { LessonActivityHistory } from "@/components/LessonActivityHistory";
 import { Button } from "@/components/ui/button";
 import { StartTestModal } from "@/components/study";
-import { formatTime } from "@/lib/utils/helpers";
+import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { WordWithDetails } from "@/lib/queries/words";
 import { LessonActivityHistoryResult } from "@/lib/queries";
 import { Lesson } from "@/types/database";
@@ -30,8 +30,9 @@ interface LessonPageContentProps {
   languageFlag?: string;
   languageName?: string;
   courseId?: string;
-  wordsNotStudied: number;
-  wordsNotMastered: number;
+  wordsNotStarted: number;
+  wordsLearning: number;
+  wordsMastered: number;
   masteredPercentage: number;
   averageTestScore: number | null;
   totalTimeSeconds: number;
@@ -48,8 +49,9 @@ export function LessonPageContent({
   languageFlag,
   languageName,
   courseId,
-  wordsNotStudied,
-  wordsNotMastered,
+  wordsNotStarted,
+  wordsLearning,
+  wordsMastered,
   masteredPercentage,
   averageTestScore,
   totalTimeSeconds,
@@ -77,7 +79,7 @@ export function LessonPageContent({
   return (
     <>
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="mb-2 text-regular-semibold text-black-80">
               Lesson #{lesson.number}
@@ -98,14 +100,14 @@ export function LessonPageContent({
                 style={{
                   color: masteredPercentage === 100
                     ? statusTokens.mastered.color
-                    : wordsNotStudied === words.length
+                    : wordsNotStarted === words.length
                       ? statusTokens.notStarted.color
                       : statusTokens.learning.color,
                 }}
               >
                 {masteredPercentage === 100
                   ? "Mastered"
-                  : wordsNotStudied === words.length
+                  : wordsNotStarted === words.length
                     ? "Not started"
                     : "Learning"}
               </span>
@@ -120,7 +122,7 @@ export function LessonPageContent({
                     Words mastered
                   </span>
                   <span className="text-foreground text-[13px] leading-[1.4]">
-                    <span className="font-semibold">{words.length - wordsNotMastered}</span> mastered / <span className="font-semibold">{words.length}</span> total = <span className="font-semibold">{masteredPercentage}%</span>
+                    <span className="font-semibold">{formatNumber(wordsMastered)}</span> mastered / <span className="font-semibold">{formatNumber(words.length)}</span> total = <span className="font-semibold">{formatPercent(masteredPercentage, { decimals: 1 })}</span>
                   </span>
                 </div>
               }
@@ -148,7 +150,7 @@ export function LessonPageContent({
                     style={{ transition: "stroke-dashoffset 0.3s" }}
                   />
                 </svg>
-                <span className="text-regular-semibold">{masteredPercentage}%</span>
+                <span className="text-regular-semibold">{formatPercent(masteredPercentage)}</span>
               </div>
             </Popover>
 
@@ -157,7 +159,7 @@ export function LessonPageContent({
               <span className="text-xs text-muted-foreground">Average score</span>
               {averageTestScore !== null ? (
                 <div className="flex items-center gap-1.5 text-success">
-                  <span className="text-regular-semibold">✓ {averageTestScore}%</span>
+                  <span className="text-regular-semibold">✓ {formatPercent(averageTestScore)}</span>
                 </div>
               ) : (
                 <span className="text-regular-semibold text-muted-foreground">—</span>
@@ -175,10 +177,10 @@ export function LessonPageContent({
                   </span>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-foreground text-[13px] leading-[1.4]">
-                      Study time: <span className="font-semibold">{formatTime(studyTimeSeconds)}</span>
+                      Study time: <span className="font-semibold">{formatDuration(studyTimeSeconds)}</span>
                     </span>
                     <span className="text-foreground text-[13px] leading-[1.4]">
-                      Test time: <span className="font-semibold">{formatTime(testTimeSeconds)}</span>
+                      Test time: <span className="font-semibold">{formatDuration(testTimeSeconds)}</span>
                     </span>
                   </div>
                 </div>
@@ -187,7 +189,7 @@ export function LessonPageContent({
               <span className="text-xs text-muted-foreground">Total time</span>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-regular-semibold">{formatTime(totalTimeSeconds)}</span>
+                <span className="text-regular-semibold">{formatDuration(totalTimeSeconds)}</span>
               </div>
             </Popover>
           </div>
@@ -216,8 +218,9 @@ export function LessonPageContent({
             words={words}
             languageFlag={languageFlag}
             languageName={languageName}
-            wordsNotStudied={wordsNotStudied}
-            wordsNotMastered={wordsNotMastered}
+            wordsNotStarted={wordsNotStarted}
+            wordsLearning={wordsLearning}
+            wordsMastered={wordsMastered}
             lessonTitle={lesson.title}
             lessonNumber={lesson.number}
             onWordSelected={setIsWordSelected}

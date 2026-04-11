@@ -15,23 +15,25 @@ interface WordsListProps {
   words: WordWithDetails[];
   languageFlag?: string;
   languageName?: string;
-  wordsNotStudied: number;
-  wordsNotMastered: number;
+  wordsNotStarted: number;
+  wordsLearning: number;
+  wordsMastered: number;
   lessonTitle: string;
   lessonNumber: number;
   onWordSelected?: (isSelected: boolean) => void;
   rightContent?: ReactNode;
 }
 
-type FilterTab = "all" | "not-studied" | "not-mastered";
+type FilterTab = "all" | "not-started" | "learning" | "mastered";
 type ViewMode = "list" | "grid";
 
 export function WordsList({
   words,
   languageFlag,
   languageName,
-  wordsNotStudied,
-  wordsNotMastered,
+  wordsNotStarted,
+  wordsLearning,
+  wordsMastered,
   lessonTitle,
   lessonNumber,
   onWordSelected,
@@ -65,8 +67,9 @@ export function WordsList({
 
   const allTabs: Tab[] = [
     { id: "all", label: "All words", count: words.length },
-    { id: "not-studied", label: "Not yet studied", count: wordsNotStudied },
-    { id: "not-mastered", label: "Not yet mastered", count: wordsNotMastered },
+    { id: "not-started", label: "Not started", count: wordsNotStarted },
+    { id: "learning", label: "Learning", count: wordsLearning },
+    { id: "mastered", label: "Mastered", count: wordsMastered },
   ];
 
   // Hide tabs with zero items (except "all" which always shows)
@@ -79,11 +82,14 @@ export function WordsList({
   const filteredWords = words.filter((word) => {
     // Status filter
     switch (effectiveActiveTab) {
-      case "not-studied":
+      case "not-started":
         if (word.status !== "not-started") return false;
         break;
-      case "not-mastered":
-        if (word.status === "mastered") return false;
+      case "learning":
+        if (word.status !== "learning") return false;
+        break;
+      case "mastered":
+        if (word.status !== "mastered") return false;
         break;
     }
     // Search filter
@@ -100,11 +106,13 @@ export function WordsList({
   });
 
   const emptyMessage =
-    effectiveActiveTab === "not-studied"
-      ? "All words have been studied!"
-      : effectiveActiveTab === "not-mastered"
-        ? "All words have been mastered!"
-        : "No words found.";
+    effectiveActiveTab === "not-started"
+      ? "No words are Not started."
+      : effectiveActiveTab === "learning"
+        ? "No words are Learning."
+        : effectiveActiveTab === "mastered"
+          ? "No words are Mastered yet."
+          : "No words found.";
 
   // Navigation handlers - navigate within filtered list
   const handleSelectWord = useCallback((index: number) => {

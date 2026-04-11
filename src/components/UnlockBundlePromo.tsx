@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Sparkles } from "lucide-react";
+import { formatNumber } from "@/lib/utils/helpers";
 
 interface UnlockBundlePromoProps {
   languageName: string;
@@ -42,7 +43,7 @@ export function UnlockBundlePromo({
 
           {/* Description */}
           <p className="mb-4 text-blue-100">
-            Get access to all {courseCount} courses with {totalWords.toLocaleString()} words
+            Get access to all {formatNumber(courseCount)} courses with {formatNumber(totalWords)} words
             total. Save up to 40% compared to buying individually.
           </p>
 

@@ -662,11 +662,14 @@ export function TestModeClient({
       return streak >= 3;
     }).length;
 
-    // Total vocabulary: use server count (includes all mastered words across all lessons)
-    // Fallback to local calculation if server hasn't responded yet
-    const totalVocabulary = serverTotalVocabulary ?? (
-      words.filter((w) => w.status === "mastered").length + masteredWordsCount
-    );
+    // Total vocabulary is server-authoritative: `completeTestSession` runs
+    // `user_word_progress` updates first and then COUNTs `status='mastered'`
+    // across ALL lessons for this user. We deliberately do NOT compute a local
+    // fallback — the previous client-side formula only counted THIS lesson's
+    // mastered words (+ this-test additions) and undercounted the user's real
+    // total. Instead we propagate `null` when the server value isn't available
+    // (guest mode, or a server error) and let the modal render a placeholder.
+    const totalVocabulary: number | null = serverTotalVocabulary;
 
     return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, totalVocabulary };
   };

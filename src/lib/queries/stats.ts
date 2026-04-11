@@ -145,19 +145,33 @@ export async function getCourseProgress(
 
   const lessonIds = lessons.map((l) => l.id);
 
-  // Fetch mastered lessons, lesson_words, and user progress in parallel
-  const [lessonsCompletedResult, lessonWordsResult, userProgressResult] = await Promise.all([
+  // Fetch mastered lessons, lesson_words (paginated), and user progress in parallel.
+  // lesson_words can exceed PostgREST's default 1000-row page for large courses, so
+  // we page through it explicitly rather than relying on a fixed limit.
+  const fetchAllLessonWords = async (): Promise<{ word_id: string | null }[]> => {
+    const pageSize = 1000;
+    const rows: { word_id: string | null }[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("lesson_words")
+        .select("word_id")
+        .in("lesson_id", lessonIds)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      rows.push(...data);
+      if (data.length < pageSize) break;
+    }
+    return rows;
+  };
+
+  const [lessonsCompletedResult, lessonWordsRows, userProgressResult] = await Promise.all([
     supabase
       .from("user_lesson_progress")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .in("lesson_id", lessonIds)
       .eq("status", "mastered"),
-    supabase
-      .from("lesson_words")
-      .select("word_id")
-      .in("lesson_id", lessonIds)
-      .limit(10000),
+    fetchAllLessonWords(),
     supabase
       .from("user_word_progress")
       .select("word_id, status")
@@ -169,7 +183,7 @@ export async function getCourseProgress(
 
   // Calculate word stats
   const courseWordIds = new Set(
-    (lessonWordsResult.data || []).map((lw) => lw.word_id).filter((id): id is string => id !== null)
+    lessonWordsRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
   );
   const totalWords = courseWordIds.size;
   const wordsMastered = (userProgressResult.data || []).filter(

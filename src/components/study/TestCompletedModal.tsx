@@ -1,11 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, TrendingUp, Zap, Image as ImageIcon, ImageOff, RotateCcw, BookOpen, RefreshCw, X } from "lucide-react";
-import Image from "next/image";
+import {
+  Clock,
+  TrendingUp,
+  Zap,
+  Image as ImageIcon,
+  RotateCcw,
+  BookOpen,
+  RefreshCw,
+  X,
+  LayoutGrid,
+} from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
+import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
+import { CompletedModalShell } from "./CompletedModalShell";
+import { WordGrid } from "./WordGrid";
+import { CompletedModalActionCard } from "./CompletedModalActionCard";
 
 export interface TestWordResult {
   wordId: string;
@@ -25,17 +38,15 @@ interface TestCompletedModalProps {
   scorePercent: number;
   newWordsCount: number;
   masteredWordsCount: number;
-  totalVocabulary: number;
+  /**
+   * User's total mastered vocabulary across ALL lessons. Server-authoritative:
+   * `null` when unavailable (guest mode or server error) — rendered as "—".
+   */
+  totalVocabulary: number | null;
   onDone: () => void;
   onTestAgain: () => void;
   onRetestIncorrect: () => void;
   onStudyIncorrect: () => void;
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function TestCompletedModal({
@@ -55,6 +66,7 @@ export function TestCompletedModal({
   onStudyIncorrect,
 }: TestCompletedModalProps) {
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  const [columns, setColumns] = useState<4 | 5>(5);
 
   const isPerfectScore = scorePercent === 100;
 
@@ -71,52 +83,57 @@ export function TestCompletedModal({
   const displayWords = activeTab === "incorrect" ? incorrectWords : words;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div className="flex h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
-        {/* Header with background */}
-        <div className="shrink-0 bg-[#EDE8DF] px-8 pt-8 pb-6 text-center">
-          <p className="mb-2 text-sm text-muted-foreground">
-            Lesson #{lesson.number} · {lesson.title}
-          </p>
-          <h1 className="mb-3 text-3xl font-bold">
-            Test completed! <span className="text-muted-foreground">You scored {scorePercent}%</span>
-          </h1>
-        </div>
+    <CompletedModalShell onDismiss={onDone}>
+      <CompletedModalShell.Header
+        eyebrow={`Lesson #${lesson.number} · ${lesson.title}`}
+        title={
+          <>
+            Test completed!{" "}
+            <span className="text-muted-foreground">You scored {formatPercent(scorePercent)}</span>
+          </>
+        }
+      />
 
-        {/* Stats Row */}
-        <div className="shrink-0 flex items-center justify-between bg-bone px-8 py-5 text-sm">
-          <div>
-            <p className="text-xs text-muted-foreground">Points</p>
-            <p className="font-semibold">
-              {totalPoints}/{maxPoints} ({scorePercent}%)
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Time taken</p>
-            <p className="flex items-center gap-1.5 font-semibold">
-              <Clock className="h-4 w-4" />
-              {formatDuration(elapsedSeconds)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">New words this test</p>
-            <p className="font-semibold">{newWordsCount} words</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Mastered this test</p>
-            <p className="font-semibold">{masteredWordsCount} words</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Your total vocabulary</p>
-            <p className="flex items-center gap-1.5 font-semibold">
-              {totalVocabulary} words
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </p>
-          </div>
+      <CompletedModalShell.StatsBar>
+        <div>
+          <p className="text-xs text-muted-foreground">Points</p>
+          <p className="font-semibold">
+            {formatNumber(totalPoints)}/{formatNumber(maxPoints)} ({formatPercent(scorePercent)})
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Time taken</p>
+          <p className="flex items-center gap-1.5 font-semibold">
+            <Clock className="h-4 w-4" />
+            {formatDuration(elapsedSeconds, { style: "timer" })}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">New words this test</p>
+          <p className="font-semibold">{formatNumber(newWordsCount)} words</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Mastered this test</p>
+          <p className="font-semibold">{formatNumber(masteredWordsCount)} words</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Your total vocabulary</p>
+          <p className="flex items-center gap-1.5 font-semibold">
+            {totalVocabulary !== null ? `${formatNumber(totalVocabulary)} words` : "—"}
+            <TrendingUp className="h-4 w-4 text-primary" />
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
+            onClick={() =>
+              setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
+            }
             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            title={imageMode === "memory-trigger" ? "Switch to flashcards" : "Switch to memory triggers"}
+            title={
+              imageMode === "memory-trigger"
+                ? "Switch to flashcards"
+                : "Switch to memory triggers"
+            }
           >
             {imageMode === "memory-trigger" ? (
               <Zap className="h-5 w-5 text-foreground" />
@@ -124,150 +141,75 @@ export function TestCompletedModal({
               <ImageIcon className="h-5 w-5 text-foreground" />
             )}
           </button>
+          <button
+            onClick={() => setColumns(columns === 5 ? 4 : 5)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
+            title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+          >
+            <LayoutGrid className="h-5 w-5 text-foreground" />
+          </button>
         </div>
+      </CompletedModalShell.StatsBar>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto bg-bone p-8">
-          {/* Tabs - hidden on perfect score */}
-          {!isPerfectScore && (
-            <Tabs
-              tabs={[
-                { id: "incorrect", label: "Incorrect words", count: incorrectWords.length },
-                { id: "all", label: "All words", count: words.length },
-              ]}
-              activeTab={activeTab}
-              onChange={(tabId) => setActiveTab(tabId as "incorrect" | "all")}
-              className="mb-4"
+      <CompletedModalShell.Body>
+        {/* Tabs - hidden on perfect score */}
+        {!isPerfectScore && (
+          <Tabs
+            tabs={[
+              { id: "incorrect", label: "Incorrect words", count: incorrectWords.length },
+              { id: "all", label: "All words", count: words.length },
+            ]}
+            activeTab={activeTab}
+            onChange={(tabId) => setActiveTab(tabId as "incorrect" | "all")}
+            className="mb-4"
+          />
+        )}
+
+        <WordGrid words={displayWords} imageMode={imageMode} columns={columns} />
+      </CompletedModalShell.Body>
+
+      <CompletedModalShell.Footer>
+        {isPerfectScore ? (
+          <div className="flex justify-center gap-4">
+            <CompletedModalActionCard
+              icon={<RefreshCw className="h-6 w-6" />}
+              label="Retest all words"
+              onClick={onTestAgain}
             />
-          )}
-
-          {/* Word Grid */}
-          <div className="grid grid-cols-5 gap-4">
-            {displayWords.map((word) => {
-              const result = wordResultsMap.get(word.id);
-              const imageUrl = imageMode === "memory-trigger"
-                ? word.memory_trigger_image_url
-                : word.flashcard_image_url;
-              const hasImage = !!imageUrl;
-
-              return (
-                <div
-                  key={word.id}
-                  className="overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                >
-                  {/* Image */}
-                  <div className="relative h-28 w-full">
-                    {hasImage ? (
-                      <Image
-                        src={imageUrl!}
-                        alt={word.english}
-                        fill
-                        className="object-contain"
-                        sizes="200px"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-                        {imageMode === "flashcard" ? (
-                          <>
-                            <ImageOff className="h-8 w-8 text-gray-300" />
-                            <span className="text-xs text-muted-foreground">Coming soon</span>
-                          </>
-                        ) : (
-                          <span className="text-3xl">🗣️</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Word Info - Foreign first, English beneath */}
-                  <div className="p-3">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {word.headword}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {word.english}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+            <CompletedModalActionCard
+              icon={<X className="h-6 w-6" />}
+              label="Done"
+              onClick={onDone}
+              muted
+            />
           </div>
-        </div>
-
-        {/* Fixed Actions */}
-        <div className="shrink-0 bg-[#EDE8DF] px-8 py-6">
-          {isPerfectScore ? (
-            <div className="flex justify-center gap-4">
-              <ActionCard
-                icon={<RefreshCw className="h-6 w-6" />}
-                label="Retest all words"
-                onClick={onTestAgain}
-              />
-              <ActionCard
-                icon={<X className="h-6 w-6" />}
-                label="Done"
-                onClick={onDone}
-                muted
-              />
-            </div>
-          ) : (
-            <div className="flex justify-center gap-4">
-              <ActionCard
-                icon={<RotateCcw className="h-6 w-6" />}
-                label="Retest incorrect"
-                onClick={onRetestIncorrect}
-                primary
-              />
-              <ActionCard
-                icon={<BookOpen className="h-6 w-6" />}
-                label="Study incorrect"
-                onClick={onStudyIncorrect}
-              />
-              <ActionCard
-                icon={<RefreshCw className="h-6 w-6" />}
-                label="Retest all words"
-                onClick={onTestAgain}
-              />
-              <ActionCard
-                icon={<X className="h-6 w-6" />}
-                label="Not now"
-                onClick={onDone}
-                muted
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ActionCard({
-  icon,
-  label,
-  onClick,
-  primary,
-  muted,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  primary?: boolean;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex w-28 flex-col items-center gap-2 rounded-xl px-3 py-4 transition-colors ${
-        primary
-          ? "bg-primary text-white hover:bg-primary/90"
-          : muted
-            ? "bg-white text-muted-foreground hover:bg-gray-50"
-            : "bg-white text-foreground hover:bg-gray-50"
-      }`}
-    >
-      {icon}
-      <span className="text-xs font-medium leading-tight text-center">{label}</span>
-    </button>
+        ) : (
+          <div className="flex justify-center gap-4">
+            <CompletedModalActionCard
+              icon={<RotateCcw className="h-6 w-6" />}
+              label="Retest incorrect"
+              onClick={onRetestIncorrect}
+              primary
+            />
+            <CompletedModalActionCard
+              icon={<BookOpen className="h-6 w-6" />}
+              label="Study incorrect"
+              onClick={onStudyIncorrect}
+            />
+            <CompletedModalActionCard
+              icon={<RefreshCw className="h-6 w-6" />}
+              label="Retest all words"
+              onClick={onTestAgain}
+            />
+            <CompletedModalActionCard
+              icon={<X className="h-6 w-6" />}
+              label="Not now"
+              onClick={onDone}
+              muted
+            />
+          </div>
+        )}
+      </CompletedModalShell.Footer>
+    </CompletedModalShell>
   );
 }

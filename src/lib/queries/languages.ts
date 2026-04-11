@@ -58,30 +58,22 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
     }
   });
 
-  // Count actual words per language (via words -> lessons -> courses)
+  // Count words per language directly via words.language_id (words have a direct FK to languages)
   const { data: wordCounts } = await supabase
     .from("words")
-    .select(`
-      id,
-      lessons!inner(
-        courses!inner(
-          language_id
-        )
-      )
-    `);
+    .select("id, language_id");
 
-  // Build word count map from actual words
   const wordCountByLanguage: Record<string, number> = {};
   wordCounts?.forEach((word) => {
-    const langId = (word.lessons as any)?.courses?.language_id;
-    if (langId) {
-      wordCountByLanguage[langId] = (wordCountByLanguage[langId] || 0) + 1;
+    if (word.language_id) {
+      wordCountByLanguage[word.language_id] =
+        (wordCountByLanguage[word.language_id] || 0) + 1;
     }
   });
 
   // Fetch user progress if authenticated
   let userLanguages: UserLanguage[] = [];
-  let wordsLearnedByLanguage: Record<string, number> = {};
+  const wordsLearnedByLanguage: Record<string, number> = {};
 
   if (user) {
     // Get user's languages
@@ -92,8 +84,9 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
 
     userLanguages = userLangs || [];
 
-    // Get words learned per language (via lessons -> courses -> languages)
-    // This is a complex query, so we'll do it step by step
+    // Get words in learning/mastered status, joined directly via words.language_id.
+    // user_word_progress has a unique (user_id, word_id) constraint so each row is
+    // already a distinct word — no extra dedupe needed.
     const { data: wordProgress } = await supabase
       .from("user_word_progress")
       .select(
@@ -101,22 +94,15 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
         word_id,
         status,
         words!inner(
-          lesson_id,
-          lessons!inner(
-            course_id,
-            courses!inner(
-              language_id
-            )
-          )
+          language_id
         )
       `
       )
       .eq("user_id", user.id)
       .in("status", ["learning", "mastered"]);
 
-    // Count words by language
     wordProgress?.forEach((wp) => {
-      const langId = (wp.words as any)?.lessons?.courses?.language_id;
+      const langId = (wp.words as { language_id: string } | null)?.language_id;
       if (langId) {
         wordsLearnedByLanguage[langId] =
           (wordsLearnedByLanguage[langId] || 0) + 1;

@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils/helpers";
 
 export interface Tab {
   id: string;
@@ -45,7 +46,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
             {tab.label}
             {tab.count !== undefined && (
               <span className="ml-1.5 text-xs opacity-60" data-tab-count="">
-                ({tab.count.toLocaleString("en-US")})
+                ({formatNumber(tab.count)})
               </span>
             )}
           </button>

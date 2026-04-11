@@ -111,28 +111,79 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     }
   });
 
-  // Get user's lesson progress if authenticated
+  // Get per-course word progress (words-mastered basis) and lesson completion stats
   const lessonsCompletedByCourse: Record<string, number> = {};
+  const wordsMasteredByCourse: Record<string, number> = {};
+  const wordsStudiedByCourse: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
-    const { data: lessonProgress } = await supabase
-      .from("user_lesson_progress")
-      .select("lesson_id, status")
-      .eq("user_id", user.id)
-      .in(
-        "lesson_id",
-        lessons.map((l) => l.id)
-      )
-      .eq("status", "mastered");
+    const lessonIds = lessons.map((l) => l.id);
+    const lessonIdToCourse: Record<string, string> = {};
+    lessons.forEach((l) => {
+      if (l.course_id) lessonIdToCourse[l.id] = l.course_id;
+    });
 
-    // Map lesson IDs back to courses
-    lessonProgress?.forEach((lp) => {
-      const lesson = lessons.find((l) => l.id === lp.lesson_id);
-      if (lesson?.course_id) {
-        lessonsCompletedByCourse[lesson.course_id] =
-          (lessonsCompletedByCourse[lesson.course_id] || 0) + 1;
+    const [lessonProgressResult, lessonWordsResult, userProgressResult] = await Promise.all([
+      // Lesson-level mastered counts (for the lessonsCompleted field, kept for UI consumers)
+      supabase
+        .from("user_lesson_progress")
+        .select("lesson_id, status")
+        .eq("user_id", user.id)
+        .in("lesson_id", lessonIds)
+        .eq("status", "mastered"),
+      // Full lesson → word map so we can bucket user progress by course
+      supabase
+        .from("lesson_words")
+        .select("lesson_id, word_id")
+        .in("lesson_id", lessonIds),
+      // All of this user's progress on any word — we intersect client-side
+      supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("status", ["learning", "mastered"]),
+    ]);
+
+    // lessonsCompleted per course
+    lessonProgressResult.data?.forEach((lp) => {
+      if (!lp.lesson_id) return;
+      const courseId = lessonIdToCourse[lp.lesson_id];
+      if (courseId) {
+        lessonsCompletedByCourse[courseId] = (lessonsCompletedByCourse[courseId] || 0) + 1;
       }
     });
+
+    // Build courseId → Set<wordId>
+    const courseWordSets: Record<string, Set<string>> = {};
+    lessonWordsResult.data?.forEach((lw) => {
+      const courseId = lessonIdToCourse[lw.lesson_id];
+      if (courseId && lw.word_id) {
+        if (!courseWordSets[courseId]) courseWordSets[courseId] = new Set();
+        courseWordSets[courseId].add(lw.word_id);
+      }
+    });
+
+    // Bucket word progress into courses
+    const progressByWord = new Map<string, string>();
+    userProgressResult.data?.forEach((p) => {
+      if (p.word_id && p.status) progressByWord.set(p.word_id, p.status);
+    });
+
+    for (const [courseId, wordSet] of Object.entries(courseWordSets)) {
+      let mastered = 0;
+      let studied = 0;
+      for (const wordId of wordSet) {
+        const status = progressByWord.get(wordId);
+        if (status === "mastered") {
+          mastered++;
+          studied++;
+        } else if (status === "learning") {
+          studied++;
+        }
+      }
+      wordsMasteredByCourse[courseId] = mastered;
+      wordsStudiedByCourse[courseId] = studied;
+    }
   }
 
   // Combine data
@@ -141,12 +192,20 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       const totalLessons = lessonCountByCourse[course.id] || course.total_lessons || 0;
       const lessonsCompleted = lessonsCompletedByCourse[course.id] || 0;
       const actualWordCount = wordCountByCourse[course.id] || 0;
+      const wordsMastered = wordsMasteredByCourse[course.id] || 0;
+      const wordsStudied = wordsStudiedByCourse[course.id] || 0;
 
-      // Compute status from lesson completion
+      // Course progress is always word-based: wordsMastered / totalWords
+      const progressPercent =
+        actualWordCount > 0
+          ? Math.round((wordsMastered / actualWordCount) * 100)
+          : 0;
+
+      // Status derived from word progress to stay consistent with the percentage
       const status: "not-started" | "learning" | "mastered" =
-        lessonsCompleted >= totalLessons && totalLessons > 0
+        actualWordCount > 0 && wordsMastered >= actualWordCount
           ? "mastered"
-          : lessonsCompleted > 0
+          : wordsStudied > 0
             ? "learning"
             : "not-started";
 
@@ -154,8 +213,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         ...course,
         totalLessons,
         lessonsCompleted,
-        progressPercent:
-          totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0,
+        progressPercent,
         actualWordCount,
         status,
       };

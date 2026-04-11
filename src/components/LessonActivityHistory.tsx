@@ -4,7 +4,7 @@ import { useState, useMemo, ReactNode } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonActivity } from "@/lib/queries";
-import { formatTime } from "@/lib/utils/helpers";
+import { formatDuration, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "study" | "test";
@@ -272,7 +272,7 @@ export function LessonActivityHistory({
                   {/* Score - only shown when not filtering to study sessions */}
                   {filter !== "study" && (
                     <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-                      {activity.type === "test" ? `${activity.scorePercent}%` : "-"}
+                      {activity.type === "test" ? formatPercent(activity.scorePercent ?? 0) : "-"}
                     </td>
                   )}
 
@@ -284,7 +284,7 @@ export function LessonActivityHistory({
                       index === filteredAndSortedActivities.length - 1 && "rounded-br-xl"
                     )}
                   >
-                    {formatTime(activity.durationSeconds)}
+                    {formatDuration(activity.durationSeconds)}
                   </td>
                 </tr>
               ))

@@ -1,4 +1,5 @@
 import { ProgressRing } from "./progress-ring";
+import { formatPercent } from "@/lib/utils/helpers";
 
 interface ProgressRingWithLabelProps {
   value: number;
@@ -25,7 +26,7 @@ export function ProgressRingWithLabel({
     <div className="relative">
       <ProgressRing value={value} size={size} strokeWidth={strokeWidth} />
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={percentageClass}>{value}%</span>
+        <span className={percentageClass}>{formatPercent(value)}</span>
         {secondaryLabel && (
           <span className={secondaryClass}>{secondaryLabel}</span>
         )}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { WordTagPill } from "./WordTagPill";
+import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
 
@@ -12,10 +12,10 @@ interface LessonPreviewCardProps {
 
 export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-card">
+    <div className="flex flex-col overflow-hidden pt-2 px-6 rounded-2xl bg-white shadow-card">
       <Link href={`/lesson/${lesson.id}`}>
         {/* Lesson Image */}
-        <div className="relative h-[180px] w-full overflow-hidden">
+        <div className="relative h-[220px] w-full overflow-hidden">
           {lesson.imageUrl ? (
             <img
               src={lesson.imageUrl}
@@ -31,7 +31,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
       </Link>
 
       {/* Lesson Info */}
-      <div className="flex min-w-0 flex-col p-6 pb-0">
+      <div className="flex min-w-0 flex-col pt-8 pb-0">
         {/* Lesson Number & Word Count */}
         <div className="mb-3 flex items-center justify-between">
           <p className="text-regular-semibold text-muted-foreground">
@@ -46,21 +46,17 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
 
         {/* Title */}
         <Link href={`/lesson/${lesson.id}`}>
-          <h3 className="mb-4 truncate text-xl-semibold text-foreground">
+          <h3 className="mb-5 truncate text-xl-semibold text-foreground">
             {lesson.title}
           </h3>
         </Link>
 
-        {/* Word Tags - max 2 rows */}
-        <div className="flex max-h-[76px] flex-wrap gap-2 overflow-hidden">
-          {lesson.sampleWords.map((word, index) => (
-            <WordTagPill key={index} word={word} />
-          ))}
-        </div>
+        {/* Word Tags - 2 rows, horizontally scrollable */}
+        <ScrollablePills words={lesson.sampleWords} rows={2} />
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3 p-6">
+      <div className="flex items-center gap-3 pt-8 pb-6">
         <Button asChild size="lg" className="flex-1 gap-2">
           <Link href={`/lesson/${lesson.id}/study`}>
             Study lesson

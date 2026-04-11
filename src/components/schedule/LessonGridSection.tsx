@@ -41,13 +41,8 @@ export function LessonGridSection({
   return (
     <section>
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl-semibold text-foreground">{heading}</h2>
-          {showTabs && (
-            <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-          )}
-        </div>
+      <div className={`${showTabs ? "mb-6" : "mb-8"} flex items-center justify-between`}>
+        <h2 className="text-xxl2-semibold text-foreground">{heading}</h2>
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link href={`/course/${courseId}`}>
             All lessons
@@ -55,6 +50,13 @@ export function LessonGridSection({
           </Link>
         </Button>
       </div>
+
+      {/* Filter tabs */}
+      {showTabs && (
+        <div className="mb-4">
+          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        </div>
+      )}
 
       {/* Lesson Grid */}
       {displayLessons.length > 0 ? (

@@ -294,6 +294,123 @@ export async function batchSaveUserNotes(
 }
 
 // ============================================================================
+// WORD STATUS TRANSITIONS (study mode)
+// ============================================================================
+
+/**
+ * Mark words as "learning" when the user submits an answer in study mode.
+ *
+ * Transition rules — NEVER demote:
+ *   - no existing row           → INSERT status='learning', learning_at=now()
+ *   - existing not-started row  → UPDATE status='learning', learning_at=now()
+ *   - existing learning row     → keep; backfill learning_at=now() if missing
+ *   - existing mastered row     → keep; backfill learning_at=now() if missing
+ *
+ * `correct_streak`, `mastered_at`, `times_tested`, etc. are owned by test
+ * mode and are intentionally NOT touched here. `learning_at` is only ever
+ * set once — existing values are preserved.
+ */
+export async function markWordsAsLearning(
+  wordIds: string[]
+): Promise<{ success: boolean; error: string | null }> {
+  if (wordIds.length === 0) {
+    return { success: true, error: null };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "User not authenticated" };
+  }
+
+  // De-dupe the incoming list
+  const uniqueWordIds = Array.from(new Set(wordIds));
+
+  // Fetch any existing rows for these words
+  const { data: existing, error: fetchError } = await supabase
+    .from("user_word_progress")
+    .select("id, word_id, status, learning_at")
+    .eq("user_id", user.id)
+    .in("word_id", uniqueWordIds);
+
+  if (fetchError) {
+    console.error("markWordsAsLearning: fetch failed", fetchError);
+    return { success: false, error: fetchError.message };
+  }
+
+  const nowIso = new Date().toISOString();
+  const existingByWordId = new Map(
+    (existing || []).map((row) => [row.word_id, row])
+  );
+
+  // Bucket each word by the action it needs
+  const toInsert: Array<{
+    user_id: string;
+    word_id: string;
+    status: "learning";
+    correct_streak: number;
+    learning_at: string;
+  }> = [];
+  const rowsToPromote: string[] = []; // not-started → learning
+  const rowsToBackfill: string[] = []; // learning/mastered missing learning_at
+
+  for (const wordId of uniqueWordIds) {
+    const row = existingByWordId.get(wordId);
+    if (!row) {
+      toInsert.push({
+        user_id: user.id,
+        word_id: wordId,
+        status: "learning",
+        correct_streak: 0,
+        learning_at: nowIso,
+      });
+    } else if (row.status === "not-started") {
+      rowsToPromote.push(row.id);
+    } else if (!row.learning_at) {
+      // Defensive backfill for pre-existing rows that predate the column
+      rowsToBackfill.push(row.id);
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase
+      .from("user_word_progress")
+      .insert(toInsert);
+    if (error) {
+      console.error("markWordsAsLearning: insert failed", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  if (rowsToPromote.length > 0) {
+    const { error } = await supabase
+      .from("user_word_progress")
+      .update({ status: "learning", learning_at: nowIso })
+      .in("id", rowsToPromote);
+    if (error) {
+      console.error("markWordsAsLearning: promote failed", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  if (rowsToBackfill.length > 0) {
+    const { error } = await supabase
+      .from("user_word_progress")
+      .update({ learning_at: nowIso })
+      .in("id", rowsToBackfill);
+    if (error) {
+      console.error("markWordsAsLearning: backfill failed", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  return { success: true, error: null };
+}
+
+// ============================================================================
 // LESSON PROGRESS ACTIONS
 // ============================================================================
 
@@ -411,9 +528,16 @@ export async function updateLessonProgress(
 }
 
 /**
- * Complete a study session - saves notes and records study time
- * Note: Study mode does NOT affect word mastery/streaks - only test mode does
- * Also sets the initial test milestone if this is the first time completing this lesson
+ * Complete a study session - saves notes, promotes answered words to
+ * "learning", and records study time.
+ *
+ * Study mode does NOT affect mastery or streaks (that's test mode), but any
+ * word the user submits an answer for transitions from "not-started" to
+ * "learning" and stamps `learning_at`. Mastered/learning rows are never
+ * demoted.
+ *
+ * Also sets the initial test milestone if this is the first time completing
+ * this lesson.
  */
 export async function completeStudySession(
   sessionId: string,
@@ -425,7 +549,8 @@ export async function completeStudySession(
   pendingNotes: Array<{
     wordId: string;
     userNotes?: string | null;
-  }>
+  }>,
+  answeredWordIds: string[] = []
 ): Promise<{ success: boolean; error: string | null }> {
   const supabase = await createClient();
   const {
@@ -476,6 +601,22 @@ export async function completeStudySession(
     const batchResult = await batchSaveUserNotes(pendingNotes);
     if (!batchResult.success) {
       console.error("Failed to save user notes:", batchResult.error);
+      // Continue anyway - we still want to record the session
+    }
+  }
+
+  // Promote any words the user submitted an answer for to "learning".
+  // Runs AFTER note-saving so it can safely promote any rows that
+  // `batchSaveUserNotes` inserted as "not-started" for notes-only updates.
+  // Runs BEFORE `updateLessonProgress` so its aggregation sees the new
+  // learning statuses.
+  if (answeredWordIds.length > 0) {
+    const learningResult = await markWordsAsLearning(answeredWordIds);
+    if (!learningResult.success) {
+      console.error(
+        "Failed to mark words as learning:",
+        learningResult.error
+      );
       // Continue anyway - we still want to record the session
     }
   }

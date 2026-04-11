@@ -8,33 +8,100 @@ export function formatNumber(n: number): string {
 }
 
 /**
- * Format seconds into a human-readable time string.
- * @param seconds - Total seconds to format
+ * Format a percentage value for display.
+ *
+ * @param value - Raw ratio (e.g., 0.42) OR percentage (e.g., 42) depending on `ratio`
  * @param options - Formatting options
- * @returns Formatted time string (e.g., "2h 30m" or "30m")
+ * @param options.decimals - Number of decimal places (default 0). Use 0 for
+ *   summary chips/pills and 1 for detailed popovers / stat breakdowns.
+ * @param options.ratio - When true, `value` is a 0..1 ratio and will be
+ *   multiplied by 100. When false (default), `value` is already a percentage.
+ * @returns Formatted percentage string including the `%` suffix (e.g., "42%").
+ *
+ * Examples:
+ *   formatPercent(42)                        // "42%"
+ *   formatPercent(42.678, { decimals: 1 })   // "42.7%"
+ *   formatPercent(0.42, { ratio: true })     // "42%"
  */
-export function formatTime(
-  seconds: number,
-  options?: { alwaysShowHours?: boolean }
+export function formatPercent(
+  value: number,
+  options?: { decimals?: 0 | 1; ratio?: boolean }
 ): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+  const decimals = options?.decimals ?? 0;
+  const pct = options?.ratio ? value * 100 : value;
+  if (!Number.isFinite(pct)) return "0%";
+  return `${pct.toFixed(decimals)}%`;
+}
 
+/**
+ * Safely compute a percentage from a numerator/denominator pair.
+ * Returns 0 when the denominator is 0 (avoids NaN).
+ *
+ * @param numerator - Part value
+ * @param denominator - Whole value
+ * @param options - Forwarded to `formatPercent`
+ */
+export function formatRatioPercent(
+  numerator: number,
+  denominator: number,
+  options?: { decimals?: 0 | 1 }
+): string {
+  if (!denominator || denominator <= 0) {
+    return formatPercent(0, options);
+  }
+  return formatPercent((numerator / denominator) * 100, options);
+}
+
+/**
+ * Format a duration in seconds using one of three canonical styles.
+ *
+ * Single source of truth for displaying elapsed/accumulated time.
+ *
+ * Styles:
+ *   - `"compact"` (default): "2h 30m" when hours > 0, else "30m".
+ *       Pass `alwaysShowHours: true` to force the "Xh Ym" form even when
+ *       hours is 0 (useful for aligned stat tables).
+ *   - `"timer"`: "MM:SS" zero-padded (e.g., "02:30"). Used for live timers
+ *       in study/test modes.
+ *   - `"hours"`: "2.5 hours" with one decimal place. Renders "0 hours"
+ *       for anything under 0.1h so rate popovers don't flash "0.0 hours".
+ *
+ * @param seconds - Total seconds to format. Non-finite or negative values
+ *   are coerced to 0.
+ * @param options - Formatting options
+ * @param options.style - Which output style to use (default `"compact"`)
+ * @param options.alwaysShowHours - Compact style only; force `Xh Ym` form
+ */
+export function formatDuration(
+  seconds: number,
+  options?: {
+    style?: "compact" | "timer" | "hours";
+    alwaysShowHours?: boolean;
+  }
+): string {
+  const style = options?.style ?? "compact";
+  const safeSeconds = Number.isFinite(seconds) && seconds > 0
+    ? Math.floor(seconds)
+    : 0;
+
+  if (style === "timer") {
+    const mins = Math.floor(safeSeconds / 60);
+    const secs = safeSeconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  if (style === "hours") {
+    const hours = safeSeconds / 3600;
+    return hours < 0.1 ? "0 hours" : `${hours.toFixed(1)} hours`;
+  }
+
+  // compact
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
   if (options?.alwaysShowHours || hours > 0) {
     return `${hours}h ${minutes}m`;
   }
   return `${minutes}m`;
-}
-
-/**
- * Format seconds into MM:SS format for timers.
- * @param seconds - Total seconds to format
- * @returns Formatted time string (e.g., "02:30")
- */
-export function formatTimerDisplay(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 /**

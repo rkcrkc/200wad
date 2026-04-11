@@ -23,6 +23,7 @@ import type {
 } from "@/lib/queries/leaderboard";
 import { fetchLeaderboardData } from "@/lib/mutations/leaderboard";
 import { PersonalBestsCard } from "./PersonalBestsCard";
+import { formatNumber } from "@/lib/utils/helpers";
 
 // ============================================================================
 // TYPES
@@ -112,8 +113,10 @@ function RankIcon({ rank }: { rank: number }) {
 }
 
 function formatMetricValue(value: number, metric: MetricType): string {
+  // Rate metric: 1 decimal place (not a percent, so we don't use formatPercent)
   if (metric === "avg_words_per_day") return value.toFixed(1);
-  return value.toLocaleString();
+  // Count metric: comma-separated
+  return formatNumber(value);
 }
 
 function getRewardForRank(rank: number, rewards: LeaderboardReward[]): number | null {

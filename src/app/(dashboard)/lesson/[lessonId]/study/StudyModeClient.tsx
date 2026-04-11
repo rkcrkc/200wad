@@ -665,8 +665,10 @@ export function StudyModeClient({
     [currentWord.id]
   );
 
-  // Handle finish lesson - save notes and show completion modal
-  // Note: Study mode does NOT affect word mastery/streaks - only test mode does
+  // Handle finish lesson - save notes, promote answered words to "learning",
+  // and show the completion modal.
+  // Note: Study mode does NOT affect mastery/streaks — that's test mode — but
+  // any submitted answer transitions the word from not-started to learning.
   const handleFinishLesson = useCallback(async () => {
     // Stop any playing audio immediately
     stopAudio();
@@ -680,7 +682,7 @@ export function StudyModeClient({
     }
 
     if (!isGuest && sessionId) {
-      // Only save user notes - study mode doesn't track progress/mastery
+      // Notes to persist
       const pendingNotes = Array.from(wordProgressMap.entries())
         .filter(([_, progress]) => progress.userNotes !== null)
         .map(([wordId, progress]) => ({
@@ -688,13 +690,25 @@ export function StudyModeClient({
           userNotes: progress.userNotes,
         }));
 
+      // Words the user submitted an answer for — these get promoted to
+      // "learning" status on the server (with learning_at stamped).
+      const answeredWordIds = Array.from(wordProgressMap.entries())
+        .filter(([_, progress]) => progress.hasAnswered)
+        .map(([wordId]) => wordId);
+
       // Count words that were viewed/practiced for session stats
       const wordsStudied = viewedWordIndices.length;
 
-      const result = await completeStudySession(sessionId, lesson.id, {
-        wordsStudied,
-        durationSeconds: elapsedSeconds,
-      }, pendingNotes);
+      const result = await completeStudySession(
+        sessionId,
+        lesson.id,
+        {
+          wordsStudied,
+          durationSeconds: elapsedSeconds,
+        },
+        pendingNotes,
+        answeredWordIds
+      );
 
       if (result.success) {
         // Clear localStorage after successful DB sync
@@ -1015,6 +1029,12 @@ export function StudyModeClient({
           words={localWords}
           wordProgressMap={wordProgressMap}
           elapsedSeconds={elapsedSeconds}
+          newWordsCount={
+            localWords.filter((word) => {
+              if (word.status !== "not-started") return false;
+              return wordProgressMap.get(word.id)?.hasAnswered === true;
+            }).length
+          }
           onStartTest={handleStartTest}
           onDismiss={handleDismissModal}
         />

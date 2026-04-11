@@ -7,7 +7,7 @@ import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { DictionaryList } from "@/components/DictionaryList";
 import { getFlagFromCode } from "@/lib/utils/flags";
-import { formatNumber } from "@/lib/utils/helpers";
+import { formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
 import { notFound } from "next/navigation";
 
 // Disable caching for this page to always show fresh data
@@ -81,7 +81,7 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-warning" />
                 <span className="text-regular-semibold">
-                  {formatNumber(stats.wordsStudied)} ({studiedPercentage}%)
+                  {formatNumber(stats.wordsStudied)} ({formatPercent(studiedPercentage)})
                 </span>
               </div>
             </div>
@@ -89,13 +89,13 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
             {/* Words mastered */}
             <div
               className="flex flex-col items-start"
-              title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${(stats.totalWords > 0 ? (stats.wordsMastered / stats.totalWords) * 100 : 0).toFixed(1)}%)`}
+              title={`${formatNumber(stats.wordsMastered)} of ${formatNumber(stats.totalWords)} words mastered (${formatRatioPercent(stats.wordsMastered, stats.totalWords, { decimals: 1 })})`}
             >
               <span className="text-xs text-muted-foreground">Words Mastered</span>
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-success" />
                 <span className="text-regular-semibold">
-                  {formatNumber(stats.wordsMastered)} ({masteredPercentage}%)
+                  {formatNumber(stats.wordsMastered)} ({formatPercent(masteredPercentage)})
                 </span>
               </div>
             </div>

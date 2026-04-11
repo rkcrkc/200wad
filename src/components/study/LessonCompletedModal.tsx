@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, ChevronRight, Eye, EyeOff, Zap, Image as ImageIcon, ImageOff } from "lucide-react";
-import Image from "next/image";
+import {
+  Clock,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Zap,
+  Image as ImageIcon,
+  LayoutGrid,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
+import { formatDuration, formatNumber } from "@/lib/utils/helpers";
+import { CompletedModalShell } from "./CompletedModalShell";
+import { WordGrid } from "./WordGrid";
 
 interface WordProgress {
   isCorrect: boolean;
@@ -18,60 +28,58 @@ interface LessonCompletedModalProps {
   words: WordWithDetails[];
   wordProgressMap: Map<string, WordProgress>;
   elapsedSeconds: number;
+  /** Number of words studied for the first time in this session (were not-started before). */
+  newWordsCount: number;
   onStartTest: () => void;
   onDismiss: () => void;
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function LessonCompletedModal({
   lesson,
   words,
-  wordProgressMap,
   elapsedSeconds,
+  newWordsCount,
   onStartTest,
   onDismiss,
 }: LessonCompletedModalProps) {
   const [showItalian, setShowItalian] = useState(true);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  const [columns, setColumns] = useState<4 | 5>(5);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div className="flex h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
-        {/* Header with background */}
-        <div className="shrink-0 bg-[#EDE8DF] px-8 pt-8 pb-6 text-center">
-          <p className="mb-2 text-sm text-muted-foreground">
-            Lesson #{lesson.number} · {lesson.title}
-          </p>
-          <h1 className="mb-3 text-3xl font-bold">Lesson completed!</h1>
-          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              <span>{formatDuration(elapsedSeconds)}</span>
-            </div>
-            <span>·</span>
-            <span>{words.length.toLocaleString("en-US")} words</span>
-            <span>·</span>
+    <CompletedModalShell onDismiss={onDismiss}>
+      <CompletedModalShell.Header
+        eyebrow={`Lesson #${lesson.number} · ${lesson.title}`}
+        title="Lesson completed!"
+      >
+        <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4" />
+            <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
+          </div>
+          <span>·</span>
+          <span>{formatNumber(words.length)} words</span>
+          <span>·</span>
+          <span>{formatNumber(newWordsCount)} new</span>
+          <span>·</span>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setShowItalian(!showItalian)}
-              className="cursor-pointer"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
               title={showItalian ? "Hide Italian" : "Show Italian"}
             >
-              {showItalian ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="h-4 w-4" />
-              )}
+              {showItalian ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
-            <span>·</span>
             <button
-              onClick={() => setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
-              className="cursor-pointer"
-              title={imageMode === "memory-trigger" ? "Switch to flashcards" : "Switch to memory triggers"}
+              onClick={() =>
+                setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
+              }
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+              title={
+                imageMode === "memory-trigger"
+                  ? "Switch to flashcards"
+                  : "Switch to memory triggers"
+              }
             >
               {imageMode === "memory-trigger" ? (
                 <Zap className="h-4 w-4" />
@@ -79,85 +87,40 @@ export function LessonCompletedModal({
                 <ImageIcon className="h-4 w-4" />
               )}
             </button>
-          </div>
-        </div>
-
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto bg-bone p-8">
-          {/* Word Grid */}
-          <div className="grid grid-cols-5 gap-4">
-            {words.map((word) => {
-              const imageUrl = imageMode === "memory-trigger"
-                ? word.memory_trigger_image_url
-                : word.flashcard_image_url;
-              const hasImage = !!imageUrl;
-
-              return (
-                <div
-                  key={word.id}
-                  className="overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-                >
-                  {/* Image */}
-                  <div className="relative h-28 w-full">
-                    {hasImage ? (
-                      <Image
-                        src={imageUrl!}
-                        alt={word.english}
-                        fill
-                        className="object-contain"
-                        sizes="200px"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-                        {imageMode === "flashcard" ? (
-                          <>
-                            <ImageOff className="h-8 w-8 text-gray-300" />
-                            <span className="text-xs text-muted-foreground">Coming soon</span>
-                          </>
-                        ) : (
-                          <span className="text-3xl">🗣️</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Word Info - Foreign first, English beneath */}
-                  <div className="p-3">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {word.headword}
-                    </p>
-                    {showItalian && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {word.english}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Fixed Actions */}
-        <div className="shrink-0 bg-[#EDE8DF] px-8 py-6">
-          <div className="flex flex-col items-center gap-3">
-            <Button
-              onClick={onStartTest}
-              size="xl"
-              className="w-full max-w-md"
-            >
-              Start Test
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
             <button
-              onClick={onDismiss}
-              className="text-sm text-primary hover:underline"
+              onClick={() => setColumns(columns === 5 ? 4 : 5)}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+              title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
             >
-              Not now
+              <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </CompletedModalShell.Header>
+
+      <CompletedModalShell.Body>
+        <WordGrid
+          words={words}
+          imageMode={imageMode}
+          showEnglish={showItalian}
+          columns={columns}
+        />
+      </CompletedModalShell.Body>
+
+      <CompletedModalShell.Footer>
+        <div className="flex flex-col items-center gap-3">
+          <Button onClick={onStartTest} size="xl" className="w-full max-w-md">
+            Start Test
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
+          <button
+            onClick={onDismiss}
+            className="text-sm text-primary hover:underline"
+          >
+            Not now
+          </button>
+        </div>
+      </CompletedModalShell.Footer>
+    </CompletedModalShell>
   );
 }

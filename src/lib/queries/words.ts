@@ -609,11 +609,14 @@ async function getAutoLessonWords(
     return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
   }
 
-  // Get user's test score IDs for filtering test_questions
+  // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
+  // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
+  // through PostgREST and silently return empty on long URLs).
   const { data: userTestScores } = await supabase
     .from("user_test_scores")
     .select("id")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .in("lesson_id", lessonIds);
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
@@ -636,11 +639,11 @@ async function getAutoLessonWords(
       return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
     }
 
+    // No word_id filter needed — test_score_ids are already scoped to this course.
     const { data: testQuestions } = await supabase
       .from("test_questions")
       .select("word_id, points_earned, max_points")
-      .in("test_score_id", testScoreIds)
-      .in("word_id", courseWordIds);
+      .in("test_score_id", testScoreIds);
 
     // Calculate average score per word
     const wordScores: Record<string, { totalEarned: number; totalMax: number; avgPercent: number }> = {};

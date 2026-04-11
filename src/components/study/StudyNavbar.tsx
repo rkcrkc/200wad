@@ -2,7 +2,7 @@
 
 import { Clock, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatTimerDisplay } from "@/lib/utils/helpers";
+import { formatDuration } from "@/lib/utils/helpers";
 import { WordTrackerDots, type TestResultGrade } from "./WordTrackerDots";
 
 interface StudyNavbarProps {
@@ -120,7 +120,7 @@ export function StudyNavbar({
             <Clock className="h-4 w-4" />
           )}
           <span className="text-regular-semibold">
-            {formatTimerDisplay(elapsedSeconds)}
+            {formatDuration(elapsedSeconds, { style: "timer" })}
             {isTimerPaused && " (paused)"}
           </span>
         </div>

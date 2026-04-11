@@ -6,7 +6,7 @@ import { ProgressRing } from "@/components/ui/progress-ring";
 import { StatusPill } from "@/components/ui/status-pill";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
-import { mapStatus } from "@/lib/utils/helpers";
+import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 interface LessonRowProps {
@@ -33,7 +33,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
   // Helper to format score display
   const formatScore = (score: number | null | undefined) => {
     if (score === null || score === undefined) return "-";
-    return `${score}%`;
+    return formatPercent(score);
   };
 
   // Stats view
@@ -181,7 +181,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
 
       {/* # Mastered */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {lesson.wordsMastered}
+        {formatNumber(lesson.wordsMastered)}
       </td>
 
       {/* Completion */}
@@ -189,7 +189,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         <div className="flex items-center justify-center gap-2">
           <ProgressRing value={lesson.completionPercent} size={24} />
           <span className="text-regular-medium text-foreground">
-            {lesson.completionPercent}%
+            {formatPercent(lesson.completionPercent)}
           </span>
         </div>
       </td>

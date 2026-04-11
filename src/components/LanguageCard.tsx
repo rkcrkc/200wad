@@ -3,7 +3,7 @@ import { ChevronRight, BookOpen } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
 import { StatusPill } from "@/components/ui/status-pill";
 import { LanguageWithProgress } from "@/lib/queries";
-import { mapStatus } from "@/lib/utils/helpers";
+import { mapStatus, formatNumber } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -34,7 +34,7 @@ export function LanguageCard({ language, isActive = false }: LanguageCardProps) 
             <StatusPill status={mapStatus(language.status)} />
           </div>
           <p className="text-sm text-muted-foreground">
-            {language.courseCount} {language.courseCount === 1 ? "course" : "courses"}
+            {formatNumber(language.courseCount)} {language.courseCount === 1 ? "course" : "courses"}
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@ export function LanguageCard({ language, isActive = false }: LanguageCardProps) 
           value={language.progressPercent}
           size={128}
           strokeWidth={8}
-          secondaryLabel={`${language.wordsLearned}/${language.totalWords} words`}
+          secondaryLabel={`${formatNumber(language.wordsLearned)}/${formatNumber(language.totalWords)} words`}
         />
       </div>
 
