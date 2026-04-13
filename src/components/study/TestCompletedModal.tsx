@@ -38,11 +38,8 @@ interface TestCompletedModalProps {
   scorePercent: number;
   newWordsCount: number;
   masteredWordsCount: number;
-  /**
-   * User's total mastered vocabulary across ALL lessons. Server-authoritative:
-   * `null` when unavailable (guest mode or server error) — rendered as "—".
-   */
-  totalVocabulary: number | null;
+  /** Mastered word count for the current course. null when unavailable (guest mode or server error). */
+  courseWordsMastered: number | null;
   onDone: () => void;
   onTestAgain: () => void;
   onRetestIncorrect: () => void;
@@ -59,7 +56,7 @@ export function TestCompletedModal({
   scorePercent,
   newWordsCount,
   masteredWordsCount,
-  totalVocabulary,
+  courseWordsMastered,
   onDone,
   onTestAgain,
   onRetestIncorrect,
@@ -92,64 +89,53 @@ export function TestCompletedModal({
             <span className="text-muted-foreground">You scored {formatPercent(scorePercent)}</span>
           </>
         }
-      />
-
-      <CompletedModalShell.StatsBar>
-        <div>
-          <p className="text-xs text-muted-foreground">Points</p>
-          <p className="font-semibold">
+      >
+        <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
+          <span>
             {formatNumber(totalPoints)}/{formatNumber(maxPoints)} ({formatPercent(scorePercent)})
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Time taken</p>
-          <p className="flex items-center gap-1.5 font-semibold">
+          </span>
+          <span>·</span>
+          <div className="flex items-center gap-1.5">
             <Clock className="h-4 w-4" />
-            {formatDuration(elapsedSeconds, { style: "timer" })}
-          </p>
+            <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
+          </div>
+          {newWordsCount > 0 && <span>{formatNumber(newWordsCount)} new words</span>}
+          {masteredWordsCount > 0 && <span>{formatNumber(masteredWordsCount)} mastered</span>}
+          {courseWordsMastered !== null && (
+            <div className="flex items-center gap-1.5">
+              <span>{formatNumber(courseWordsMastered)} words mastered</span>
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+          )}
+          <span>·</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() =>
+                setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
+              }
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+              title={
+                imageMode === "memory-trigger"
+                  ? "Switch to flashcards"
+                  : "Switch to memory triggers"
+              }
+            >
+              {imageMode === "memory-trigger" ? (
+                <Zap className="h-4 w-4" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              onClick={() => setColumns(columns === 5 ? 4 : 5)}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+              title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground">New words this test</p>
-          <p className="font-semibold">{formatNumber(newWordsCount)} words</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Mastered this test</p>
-          <p className="font-semibold">{formatNumber(masteredWordsCount)} words</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Your total vocabulary</p>
-          <p className="flex items-center gap-1.5 font-semibold">
-            {totalVocabulary !== null ? `${formatNumber(totalVocabulary)} words` : "—"}
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() =>
-              setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
-            }
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            title={
-              imageMode === "memory-trigger"
-                ? "Switch to flashcards"
-                : "Switch to memory triggers"
-            }
-          >
-            {imageMode === "memory-trigger" ? (
-              <Zap className="h-5 w-5 text-foreground" />
-            ) : (
-              <ImageIcon className="h-5 w-5 text-foreground" />
-            )}
-          </button>
-          <button
-            onClick={() => setColumns(columns === 5 ? 4 : 5)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
-            title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
-          >
-            <LayoutGrid className="h-5 w-5 text-foreground" />
-          </button>
-        </div>
-      </CompletedModalShell.StatsBar>
+      </CompletedModalShell.Header>
 
       <CompletedModalShell.Body>
         {/* Tabs - hidden on perfect score */}
@@ -165,7 +151,7 @@ export function TestCompletedModal({
           />
         )}
 
-        <WordGrid words={displayWords} imageMode={imageMode} columns={columns} />
+        <WordGrid words={displayWords} imageMode={imageMode} columns={columns} wordResults={wordResultsMap} />
       </CompletedModalShell.Body>
 
       <CompletedModalShell.Footer>
@@ -187,13 +173,13 @@ export function TestCompletedModal({
           <div className="flex justify-center gap-4">
             <CompletedModalActionCard
               icon={<RotateCcw className="h-6 w-6" />}
-              label="Retest incorrect"
+              label="Retest incorrect words"
               onClick={onRetestIncorrect}
               primary
             />
             <CompletedModalActionCard
               icon={<BookOpen className="h-6 w-6" />}
-              label="Study incorrect"
+              label="Study incorrect words"
               onClick={onStudyIncorrect}
             />
             <CompletedModalActionCard

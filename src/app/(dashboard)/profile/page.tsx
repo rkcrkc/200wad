@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { getUserSettings } from "@/lib/queries/settings";
 import {
-  SecuritySection,
-  PreferencesSection,
-  DangerZoneSection,
+  ProfileSection,
+  LearningLanguagesSection,
   ErrorState,
 } from "@/components/settings";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 
-export default async function SettingsPage() {
+export default async function ProfilePage() {
   const { settings, isGuest, error } = await getUserSettings();
 
   // Guest user prompt
@@ -19,7 +18,7 @@ export default async function SettingsPage() {
         <div className="rounded-2xl bg-white p-8 text-center shadow-card">
           <h1 className="mb-4 text-3xl font-semibold">Create an Account</h1>
           <p className="mb-6 text-gray-600">
-            Sign up to save your progress and access your settings from any
+            Sign up to save your progress and access your profile from any
             device.
           </p>
           <div className="flex justify-center gap-4">
@@ -46,16 +45,11 @@ export default async function SettingsPage() {
 
   return (
     <PageContainer size="sm">
-      <h1 className="mb-8 text-3xl font-semibold">Account Settings</h1>
+      <h1 className="mb-8 text-3xl font-semibold">Profile</h1>
 
-      <SecuritySection
-        email={settings.email}
-        twoFactorEnabled={settings.twoFactorEnabled}
-      />
+      <ProfileSection settings={settings} />
 
-      <PreferencesSection />
-
-      <DangerZoneSection />
+      <LearningLanguagesSection languages={settings.learningLanguages} />
     </PageContainer>
   );
 }

@@ -6,6 +6,8 @@ import { Tooltip } from "@/components/ui/tooltip";
 
 interface PageTopBarProps {
   backLink?: { href: string; label: string };
+  greeting?: string;
+  greetingTranslation?: string;
   width: "md" | "lg";
   onToggleWidth: () => void;
   mounted: boolean;
@@ -13,14 +15,30 @@ interface PageTopBarProps {
 
 export function PageTopBar({
   backLink,
+  greeting,
+  greetingTranslation,
   width,
   onToggleWidth,
   mounted,
 }: PageTopBarProps) {
   return (
     <div className="mb-8 flex items-center justify-between">
-      {/* Left: optional back link */}
-      {backLink ? (
+      {/* Left: greeting or back link */}
+      {greeting ? (
+        greetingTranslation ? (
+          <Tooltip label={greetingTranslation} position="below">
+            <p className="cursor-default text-[18px] font-medium text-muted-foreground">
+              <span className="mr-2">☀️</span>
+              {greeting}
+            </p>
+          </Tooltip>
+        ) : (
+          <p className="text-[18px] font-medium text-muted-foreground">
+            <span className="mr-2">☀️</span>
+            {greeting}
+          </p>
+        )
+      ) : backLink ? (
         <Link
           href={backLink.href}
           className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"

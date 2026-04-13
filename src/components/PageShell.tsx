@@ -6,6 +6,8 @@ import { PageContainer } from "@/components/PageContainer";
 
 interface PageShellProps {
   backLink?: { href: string; label: string };
+  greeting?: string;
+  greetingTranslation?: string;
   className?: string;
   withTopPadding?: boolean;
   children: React.ReactNode;
@@ -13,6 +15,8 @@ interface PageShellProps {
 
 export function PageShell({
   backLink,
+  greeting,
+  greetingTranslation,
   className,
   withTopPadding,
   children,
@@ -23,6 +27,8 @@ export function PageShell({
     <PageContainer size={width} className={className} withTopPadding={withTopPadding}>
       <PageTopBar
         backLink={backLink}
+        greeting={greeting}
+        greetingTranslation={greetingTranslation}
         width={width}
         onToggleWidth={toggle}
         mounted={mounted}

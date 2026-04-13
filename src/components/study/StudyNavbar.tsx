@@ -113,7 +113,7 @@ export function StudyNavbar({
       {/* Right side - Timer and Exit button */}
       <div className="flex items-center gap-4">
         {/* Timer */}
-        <div className={`flex items-center gap-1.5 ${isTimerPaused ? "text-muted-foreground" : "text-foreground"}`}>
+        <div className={`flex cursor-default items-center gap-1.5 ${isTimerPaused ? "text-muted-foreground" : "text-foreground"}`}>
           {isTimerPaused ? (
             <Pause className="h-4 w-4" />
           ) : (

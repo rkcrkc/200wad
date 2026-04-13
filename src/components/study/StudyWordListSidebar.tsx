@@ -18,6 +18,8 @@ interface StudyWordListSidebarProps {
   mode?: "study" | "test";
   /** For test mode: map of word index -> grade */
   testResults?: Map<number, "correct" | "half-correct" | "incorrect">;
+  /** Which word to show first: "foreign" (default) or "english" */
+  primaryField?: "foreign" | "english";
 }
 
 export function StudyWordListSidebar({
@@ -27,6 +29,7 @@ export function StudyWordListSidebar({
   onJumpToWord,
   mode = "study",
   testResults,
+  primaryField = "foreign",
 }: StudyWordListSidebarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentItemRef = useRef<HTMLButtonElement>(null);
@@ -81,6 +84,8 @@ export function StudyWordListSidebar({
               const isCurrent = index === currentWordIndex;
               const isCompleted = completedSet.has(index);
               const testResult = testResults?.get(index);
+              const primaryText = primaryField === "english" ? word.english : word.foreign;
+              const secondaryText = primaryField === "english" ? word.foreign : word.english;
 
               // In test mode, disable words not yet reached
               const isDisabled = isTestMode && index > maxReachedIndex;
@@ -94,7 +99,7 @@ export function StudyWordListSidebar({
                   className={cn(
                     "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
                     isCurrent
-                      ? "bg-secondary"
+                      ? "bg-bone-hover"
                       : isDisabled
                         ? "opacity-40 cursor-not-allowed"
                         : "hover:bg-[#FAF8F3]"
@@ -108,34 +113,42 @@ export function StudyWordListSidebar({
                     {index + 1}
                   </span>
 
-                  {/* Word text */}
-                  <div className="min-w-0 flex-1">
-                    <div className={cn(
-                      "truncate text-sm font-medium",
-                      "text-foreground"
-                    )}>
-                      {word.foreign}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {word.english}
-                    </div>
+                  {/* Word text – all states share the same fixed height */}
+                  <div className="min-w-0 flex-1 h-[36px] flex flex-col justify-center">
+                    {isDisabled ? (
+                      /* Upcoming words: skeleton placeholders */
+                      <>
+                        <div className="h-3.5 w-3/4 rounded bg-foreground/10" />
+                        <div className="h-2.5 w-1/2 rounded bg-foreground/10 mt-1" />
+                      </>
+                    ) : isTestMode && !testResult ? (
+                      /* Current word in test mode (not yet answered): show only primary (prompt) */
+                      <div className="truncate text-sm font-medium text-foreground">
+                        {primaryText}
+                      </div>
+                    ) : (
+                      <>
+                        <div className={cn(
+                          "truncate text-sm font-medium",
+                          "text-foreground"
+                        )}>
+                          {primaryText}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {secondaryText}
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  {/* Status indicator */}
-                  <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-                    {isTestMode && testResult ? (
-                      <div
-                        className={cn(
-                          "h-2.5 w-2.5 rounded-full",
-                          testResult === "correct" && "bg-success",
-                          testResult === "half-correct" && "bg-warning",
-                          testResult === "incorrect" && "bg-destructive"
-                        )}
-                      />
-                    ) : !isTestMode && isCompleted && !isCurrent ? (
-                      <Check className="h-3.5 w-3.5 text-success" />
-                    ) : null}
-                  </div>
+                  {/* Status indicator (study mode only) */}
+                  {!isTestMode && (
+                    <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                      {isCompleted && !isCurrent ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : null}
+                    </div>
+                  )}
                 </button>
               );
             })}

@@ -3,9 +3,16 @@
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { WordWithDetails } from "@/lib/queries/words";
+import { formatPercent } from "@/lib/utils/helpers";
 
 export type WordGridImageMode = "memory-trigger" | "flashcard";
 export type WordGridColumns = 4 | 5;
+
+export interface WordGridResult {
+  grade: "correct" | "half-correct" | "incorrect";
+  pointsEarned: number;
+  maxPoints: number;
+}
 
 interface WordGridProps {
   words: WordWithDetails[];
@@ -14,6 +21,8 @@ interface WordGridProps {
   showEnglish?: boolean;
   /** Number of grid columns. Defaults to 5. */
   columns?: WordGridColumns;
+  /** Optional test results keyed by word ID — shows score badge on each card. */
+  wordResults?: Map<string, WordGridResult>;
 }
 
 /**
@@ -25,6 +34,7 @@ export function WordGrid({
   imageMode,
   showEnglish = true,
   columns = 5,
+  wordResults,
 }: WordGridProps) {
   // Explicit classes so Tailwind's scanner picks them up
   const gridColsClass = columns === 4 ? "grid-cols-4" : "grid-cols-5";
@@ -32,19 +42,35 @@ export function WordGrid({
   const imageHeightClass = columns === 4 ? "h-[134px]" : "h-28";
 
   return (
-    <div className={`grid ${gridColsClass} gap-4 px-4`}>
+    <div className={`grid ${gridColsClass} gap-4`}>
       {words.map((word) => {
         const imageUrl =
           imageMode === "memory-trigger"
             ? word.memory_trigger_image_url
             : word.flashcard_image_url;
         const hasImage = !!imageUrl;
+        const result = wordResults?.get(word.id);
+        const scorePercent = result ? Math.round((result.pointsEarned / result.maxPoints) * 100) : null;
 
         return (
           <div
             key={word.id}
-            className="overflow-hidden rounded-xl bg-white px-3 pt-2 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+            className="relative overflow-hidden rounded-xl bg-white px-3 pt-2 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
           >
+            {/* Score badge */}
+            {result && scorePercent !== null && (
+              <div
+                className={`absolute top-2 right-2 z-10 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                  result.grade === "correct"
+                    ? "bg-success/10 text-success"
+                    : result.grade === "half-correct"
+                      ? "bg-warning/10 text-warning"
+                      : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {formatPercent(scorePercent)}
+              </div>
+            )}
             {/* Image */}
             <div className={`relative ${imageHeightClass} w-full`}>
               {hasImage ? (

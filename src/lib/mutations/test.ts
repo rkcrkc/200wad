@@ -106,7 +106,8 @@ export interface TestStats {
 export interface CompleteTestSessionResult {
   success: boolean;
   testScoreId: string | null;
-  totalVocabulary: number;
+  /** Mastered word count scoped to the current course. */
+  courseWordsMastered: number;
   error: string | null;
 }
 
@@ -127,7 +128,7 @@ export async function completeTestSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, testScoreId: null, totalVocabulary: 0, error: "User not authenticated" };
+    return { success: false, testScoreId: null, courseWordsMastered: 0, error: "User not authenticated" };
   }
 
   // Mutable copies so server-side re-scoring can override client values
@@ -147,7 +148,7 @@ export async function completeTestSession(
     .single();
 
   if (!lessonData) {
-    return { success: false, testScoreId: null, totalVocabulary: 0, error: "Lesson not found" };
+    return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Lesson not found" };
   }
 
   // Verify totalQuestions doesn't exceed lesson word count * 2 (testTwice mode)
@@ -186,7 +187,7 @@ export async function completeTestSession(
           session_id: isRealDbSession ? sessionId : null,
         });
       } catch { /* non-critical */ }
-      return { success: false, testScoreId: null, totalVocabulary: 0, error: "Invalid word IDs detected" };
+      return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Invalid word IDs detected" };
     }
   }
 
@@ -326,7 +327,7 @@ export async function completeTestSession(
 
   if (testScoreError) {
     console.error("Error creating test score:", testScoreError);
-    return { success: false, testScoreId: null, totalVocabulary: 0, error: testScoreError.message };
+    return { success: false, testScoreId: null, courseWordsMastered: 0, error: testScoreError.message };
   }
 
   // 4. Save individual test question results
@@ -377,15 +378,16 @@ export async function completeTestSession(
     );
   }
 
+  // Fetch course info for activity recording and mastered word count
+  const { data: lessonWithCourse } = await supabase
+    .from("lessons")
+    .select("course_id, courses(language_id)")
+    .eq("id", lessonId)
+    .single();
+
   // Record daily activity for leaderboard/streak tracking
   try {
-    const { data: lesson } = await supabase
-      .from("lessons")
-      .select("course_id, courses(language_id)")
-      .eq("id", lessonId)
-      .single();
-
-    const languageId = (lesson?.courses as { language_id: string } | null)?.language_id;
+    const languageId = (lessonWithCourse?.courses as { language_id: string } | null)?.language_id;
     if (languageId) {
       const { recordActivity } = await import("./activity");
       await recordActivity({
@@ -401,17 +403,32 @@ export async function completeTestSession(
     // Non-critical — don't fail the session completion
   }
 
-  // 7. Get total vocabulary count (all mastered words for this user)
-  const { count: totalVocabulary } = await supabase
-    .from("user_word_progress")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("status", "mastered");
+  // 7. Get mastered word count scoped to this course
+  const courseId = lessonWithCourse?.course_id;
+  let courseWordsMastered = 0;
+  if (courseId) {
+    // Get all word IDs in this course via lesson_words junction
+    const { data: courseWords } = await supabase
+      .from("lesson_words")
+      .select("word_id, lessons!inner(course_id)")
+      .eq("lessons.course_id", courseId);
+
+    if (courseWords && courseWords.length > 0) {
+      const courseWordIds = new Set(courseWords.map((cw) => cw.word_id));
+      const { count } = await supabase
+        .from("user_word_progress")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "mastered")
+        .in("word_id", [...courseWordIds]);
+      courseWordsMastered = count || 0;
+    }
+  }
 
   // Revalidate lesson pages
   revalidatePath(`/lesson/${lessonId}`);
 
-  return { success: true, testScoreId: testScore.id, totalVocabulary: totalVocabulary || 0, error: null };
+  return { success: true, testScoreId: testScore.id, courseWordsMastered, error: null };
 }
 
 /**

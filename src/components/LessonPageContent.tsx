@@ -91,7 +91,7 @@ export function LessonPageContent({
           </div>
 
           {/* Stats */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+          <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
             {/* Status */}
             <div className="flex flex-col items-start">
               <span className="text-xs text-muted-foreground">Status</span>

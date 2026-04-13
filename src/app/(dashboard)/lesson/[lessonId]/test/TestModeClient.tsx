@@ -115,7 +115,7 @@ export function TestModeClient({
 
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [serverTotalVocabulary, setServerTotalVocabulary] = useState<number | null>(null);
+  const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
@@ -486,7 +486,7 @@ export function TestModeClient({
 
       if (result.success) {
         clearSessionProgress("test", sessionId, lesson.id);
-        setServerTotalVocabulary(result.totalVocabulary);
+        setServerCourseWordsMastered(result.courseWordsMastered);
       } else {
         console.error("Failed to complete test session:", result.error);
       }
@@ -584,7 +584,7 @@ export function TestModeClient({
     setViewedWordIndices([0]);
     setShowCompletionModal(false);
     setElapsedSeconds(0);
-    setServerTotalVocabulary(null);
+    setServerCourseWordsMastered(null);
 
     // Create new session
     if (sessionId) {
@@ -613,7 +613,7 @@ export function TestModeClient({
     setTestProgressMap(new Map());
     setViewedWordIndices([0]);
     setShowCompletionModal(false);
-    setServerTotalVocabulary(null);
+    setServerCourseWordsMastered(null);
     setElapsedSeconds(0);
 
     if (sessionId) {
@@ -669,18 +669,34 @@ export function TestModeClient({
     // mastered words (+ this-test additions) and undercounted the user's real
     // total. Instead we propagate `null` when the server value isn't available
     // (guest mode, or a server error) and let the modal render a placeholder.
-    const totalVocabulary: number | null = serverTotalVocabulary;
+    const courseWordsMastered: number | null = serverCourseWordsMastered;
 
-    return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, totalVocabulary };
+    return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, courseWordsMastered };
   };
 
   // Build word results map for modal
   const getWordResultsMap = (): Map<string, TestWordResult> => {
     const resultsMap = new Map<string, TestWordResult>();
-    testProgressMap.forEach((progress, wordId) => {
-      if (progress.hasAnswered) {
-        resultsMap.set(wordId, {
-          wordId,
+    testProgressMap.forEach((progress, key) => {
+      if (!progress.hasAnswered) return;
+      // In testTwice mode, key is "wordId_attemptNum" — normalize to bare wordId
+      const actualWordId = testTwice ? key.split("_")[0] : key;
+      const existing = resultsMap.get(actualWordId);
+      // If we already have a result for this word (testTwice), combine:
+      // use the worst grade and sum points
+      if (existing) {
+        const gradeOrder = { correct: 0, "half-correct": 1, incorrect: 2 } as const;
+        const worstGrade = gradeOrder[progress.grade] > gradeOrder[existing.grade] ? progress.grade : existing.grade;
+        resultsMap.set(actualWordId, {
+          wordId: actualWordId,
+          pointsEarned: existing.pointsEarned + progress.pointsEarned,
+          maxPoints: existing.maxPoints + progress.maxPoints,
+          isCorrect: existing.isCorrect && progress.isCorrect,
+          grade: worstGrade,
+        });
+      } else {
+        resultsMap.set(actualWordId, {
+          wordId: actualWordId,
           pointsEarned: progress.pointsEarned,
           maxPoints: progress.maxPoints,
           isCorrect: progress.isCorrect,
@@ -740,6 +756,10 @@ export function TestModeClient({
       if (!currentWord) return false;
       const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
       if (result.success) {
+        // Update local state so the UI reflects the change immediately
+        setActiveWords((prev) =>
+          prev.map((w) => (w.id === currentWord.id ? { ...w, [field]: value } : w))
+        );
         return true;
       }
       console.error("Failed to update word array field:", result.error);
@@ -849,6 +869,7 @@ export function TestModeClient({
         onJumpToWord={handleJumpToWord}
         mode="test"
         testResults={testResults}
+        primaryField={testType === "foreign-to-english" ? "foreign" : "english"}
       />
 
       {/* Main content area */}
@@ -1036,7 +1057,7 @@ export function TestModeClient({
           scorePercent={testStats.scorePercent}
           newWordsCount={testStats.newWordsCount}
           masteredWordsCount={testStats.masteredWordsCount}
-          totalVocabulary={testStats.totalVocabulary}
+          courseWordsMastered={testStats.courseWordsMastered}
           onDone={handleDone}
           onTestAgain={handleTestAgain}
           onRetestIncorrect={handleRetestIncorrect}

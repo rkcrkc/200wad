@@ -17,6 +17,7 @@ import {
   deleteLanguage,
 } from "@/lib/mutations/admin/languages";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import type { LanguageGreetings } from "@/types/database";
 
 interface Language {
   id: string;
@@ -25,6 +26,7 @@ interface Language {
   code: string;
   sort_order: number | null;
   is_visible: boolean;
+  greetings: LanguageGreetings | null;
   courseCount: number;
   created_at: string | null;
 }
@@ -45,6 +47,12 @@ interface FormErrors {
   code?: string;
 }
 
+const emptyGreetings: LanguageGreetings = {
+  morning: { text: "", translation: "" },
+  afternoon: { text: "", translation: "" },
+  evening: { text: "", translation: "" },
+};
+
 type SortKey = "code" | "name" | "native_name" | "courseCount" | "is_visible";
 type SortDirection = "asc" | "desc";
 
@@ -63,6 +71,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     code: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [greetingsData, setGreetingsData] = useState<LanguageGreetings>(emptyGreetings);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -133,6 +142,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
 
   const resetForm = () => {
     setFormData({ name: "", native_name: "", code: "" });
+    setGreetingsData(emptyGreetings);
     setErrors({});
     setEditingLanguage(null);
   };
@@ -149,6 +159,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
       native_name: language.native_name,
       code: language.code,
     });
+    setGreetingsData(language.greetings ?? emptyGreetings);
     setErrors({});
     setIsModalOpen(true);
   };
@@ -183,14 +194,20 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
     setIsLoading(true);
 
     try {
+      // Check if greetings have any content — if so, include them
+      const hasGreetings = greetingsData.morning.text || greetingsData.afternoon.text || greetingsData.evening.text;
+      const payload = hasGreetings
+        ? { ...formData, greetings: greetingsData }
+        : formData;
+
       if (editingLanguage) {
-        const result = await updateLanguage(editingLanguage.id, formData);
+        const result = await updateLanguage(editingLanguage.id, payload);
         if (!result.success) {
           setErrors({ name: result.error || "Failed to update language" });
           return;
         }
       } else {
-        const result = await createLanguage(formData);
+        const result = await createLanguage(payload);
         if (!result.success) {
           setErrors({ name: result.error || "Failed to create language" });
           return;
@@ -346,6 +363,7 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
           setIsModalOpen(false);
           resetForm();
         }}
+        size="lg"
         title={editingLanguage ? "Edit Language" : "Add Language"}
         description={
           editingLanguage
@@ -437,6 +455,49 @@ export function LanguagesClient({ languages }: LanguagesClientProps) {
               )}
             </div>
           </AdminFormField>
+
+          {/* Greetings section */}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="mb-3 text-sm font-medium text-gray-700">
+              Schedule Page Greetings
+            </p>
+            <div className="space-y-3">
+              {(["morning", "afternoon", "evening"] as const).map((time) => (
+                <div key={time} className="grid grid-cols-[100px_1fr_1fr] items-center gap-2">
+                  <span className="text-xs font-medium capitalize text-gray-500">
+                    {time}
+                  </span>
+                  <AdminInput
+                    id={`greeting-${time}`}
+                    name={`greeting-${time}`}
+                    value={greetingsData[time].text}
+                    onChange={(e) =>
+                      setGreetingsData({
+                        ...greetingsData,
+                        [time]: { ...greetingsData[time], text: e.target.value },
+                      })
+                    }
+                    placeholder={`e.g., ${time === "morning" ? "Buongiorno" : time === "afternoon" ? "Buon pomeriggio" : "Buonasera"}`}
+                  />
+                  <AdminInput
+                    id={`translation-${time}`}
+                    name={`translation-${time}`}
+                    value={greetingsData[time].translation}
+                    onChange={(e) =>
+                      setGreetingsData({
+                        ...greetingsData,
+                        [time]: { ...greetingsData[time], translation: e.target.value },
+                      })
+                    }
+                    placeholder={`English: Good ${time}`}
+                  />
+                </div>
+              ))}
+              <p className="text-xs text-gray-400">
+                Left: greeting in target language. Right: English translation (shown on hover).
+              </p>
+            </div>
+          </div>
         </div>
       </AdminModal>
 

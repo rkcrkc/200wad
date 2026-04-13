@@ -95,6 +95,7 @@ export async function updateLanguage(
 
     revalidatePath("/admin/languages");
     revalidatePath("/dashboard");
+    revalidatePath("/schedule");
 
     return { success: true, error: null };
   } catch (err) {

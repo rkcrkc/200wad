@@ -3,7 +3,6 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import {
   User,
-  Mail,
   Calendar,
   Edit2,
   Globe,
@@ -399,15 +398,9 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
           </div>
 
           <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-gray-700">
-                <Mail className="h-4 w-4" />
-                <span>{settings.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <Calendar className="h-4 w-4" />
-                <span>Joined {joinDateFormatted}</span>
-              </div>
+            <div className="flex items-center gap-2 text-gray-700">
+              <Calendar className="h-4 w-4" />
+              <span>Joined {joinDateFormatted}</span>
             </div>
 
             <div className="pt-2">

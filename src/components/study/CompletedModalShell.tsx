@@ -66,7 +66,7 @@ function Header({ eyebrow, title, children }: HeaderProps) {
 
 function StatsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex shrink-0 items-center justify-between bg-bone px-8 py-5 text-sm">
+    <div className="flex shrink-0 cursor-default items-center justify-between bg-bone px-8 py-5 text-sm">
       {children}
     </div>
   );

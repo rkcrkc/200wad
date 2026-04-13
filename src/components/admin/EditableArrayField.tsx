@@ -26,6 +26,7 @@ export function EditableArrayField({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value.join(", "));
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const justStartedRef = useRef(false);
 
@@ -71,8 +72,10 @@ export function EditableArrayField({
       return;
     }
 
+    isSavingRef.current = true;
     setIsSaving(true);
     const success = await onSave(field, newValue);
+    isSavingRef.current = false;
     setIsSaving(false);
 
     if (success) {
@@ -134,7 +137,7 @@ export function EditableArrayField({
         onBlur={() => {
           if (justStartedRef.current) return;
           setTimeout(() => {
-            if (!isSaving) handleCancel();
+            if (!isSavingRef.current) handleCancel();
           }, 150);
         }}
         disabled={isSaving}

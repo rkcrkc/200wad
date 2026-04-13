@@ -790,6 +790,10 @@ export function StudyModeClient({
     async (field: string, value: string[]): Promise<boolean> => {
       const result = await updateWord(currentWord.id, { [field]: value }, lesson.id);
       if (result.success) {
+        // Update local state so the UI reflects the change immediately
+        setLocalWords((prev) =>
+          prev.map((w) => (w.id === currentWord.id ? { ...w, [field]: value } : w))
+        );
         return true;
       }
       console.error("Failed to update word array field:", result.error);

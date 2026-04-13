@@ -257,6 +257,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string | null
+          greetings: Json | null
           id: string
           is_visible: boolean
           name: string
@@ -267,6 +268,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string | null
+          greetings?: Json | null
           id?: string
           is_visible?: boolean
           name: string
@@ -277,6 +279,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string | null
+          greetings?: Json | null
           id?: string
           is_visible?: boolean
           name?: string
@@ -1628,6 +1631,17 @@ export const Constants = {
 // ============================================================================
 
 export type Language = Database["public"]["Tables"]["languages"]["Row"];
+
+// Greetings JSONB shape stored on languages
+export interface GreetingEntry {
+  text: string;
+  translation: string;
+}
+export interface LanguageGreetings {
+  morning: GreetingEntry;
+  afternoon: GreetingEntry;
+  evening: GreetingEntry;
+}
 export type Course = Database["public"]["Tables"]["courses"]["Row"];
 export type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 export type Word = Database["public"]["Tables"]["words"]["Row"];

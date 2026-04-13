@@ -26,7 +26,7 @@ export function CompletedModalActionCard({
   return (
     <button
       onClick={onClick}
-      className={`flex w-28 flex-col items-center gap-2 rounded-xl px-3 py-4 transition-colors ${
+      className={`flex w-full max-w-[160px] flex-col items-center gap-2 rounded-xl px-3 py-4 transition-colors ${
         primary
           ? "bg-primary text-white hover:bg-primary/90"
           : muted

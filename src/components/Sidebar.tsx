@@ -131,7 +131,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: Sideb
   return (
     <div className="fixed top-[72px] bottom-0 left-0 hidden w-[240px] flex-col bg-white lg:flex">
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 px-4 pt-4">
+      <nav className="flex flex-1 flex-col gap-1 px-4 pt-2">
         {getNavItems(courseId).map((item) => (
           <SidebarNavItem
             key={item.label}

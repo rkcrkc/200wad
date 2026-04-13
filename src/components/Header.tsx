@@ -86,7 +86,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             {showSidebar && showAsLoggedIn && (
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50 lg:hidden"
+                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover lg:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5 text-muted-foreground" />
@@ -129,14 +129,14 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             <div className="hidden h-9 w-20 shrink-0 items-center gap-2 md:flex">
               <button
                 onClick={() => window.history.back()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover"
                 title="Go back"
               >
                 <ChevronLeft className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
               </button>
               <button
                 onClick={() => window.history.forward()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover"
                 title="Go forward"
               >
                 <ChevronRight className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
@@ -146,62 +146,66 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
           {/* Stats Indicators - Course Progress & Words/Day - hide on small screens */}
           {showAsLoggedIn && effectiveStats && hasContext && (
-            <div className="ml-4 hidden shrink-0 items-center gap-5 md:flex">
+            <div className="ml-4 hidden shrink-0 cursor-default items-end gap-5 md:flex">
               {/* Course Progress Indicator */}
-              <Popover
-                className="flex flex-col cursor-default"
-                content={
-                  <span className="text-foreground text-[14px] leading-[1.4] font-medium">
-                    {formatNumber(effectiveStats.wordsMastered ?? 0)} of {formatNumber(effectiveStats.totalWords ?? 0)} words mastered ({formatRatioPercent(effectiveStats.wordsMastered ?? 0, effectiveStats.totalWords ?? 0, { decimals: 1 })})
+              <Link href={`/course/${courseId}/progress`} className="transition-opacity hover:opacity-70">
+                <Popover
+                  className="flex flex-col"
+                  content={
+                    <span className="text-foreground text-[14px] leading-[1.4] font-medium">
+                      {formatNumber(effectiveStats.wordsMastered ?? 0)} of {formatNumber(effectiveStats.totalWords ?? 0)} words mastered ({formatRatioPercent(effectiveStats.wordsMastered ?? 0, effectiveStats.totalWords ?? 0, { decimals: 1 })})
+                    </span>
+                  }
+                >
+                  <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
+                    {formatPercent(effectiveStats.courseProgressPercent)} complete
                   </span>
-                }
-              >
-                <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
-                  {formatPercent(effectiveStats.courseProgressPercent)} complete
-                </span>
-                <div className="mt-1 h-1.5 w-[100px] overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="bg-success h-full rounded-full transition-all duration-300"
-                    style={{ width: `${effectiveStats.courseProgressPercent}%` }}
-                  />
-                </div>
-              </Popover>
+                  <div className="mt-1 h-1.5 w-[100px] overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="bg-success h-full rounded-full transition-all duration-300"
+                      style={{ width: `${effectiveStats.courseProgressPercent}%` }}
+                    />
+                  </div>
+                </Popover>
+              </Link>
 
               {/* Words Per Day Indicator */}
-              <Popover
-                className="flex flex-col items-center"
-                content={(() => {
-                  const words = effectiveStats.totalWordsStudied ?? 0;
-                  const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
-                  const perHour = hours > 0 ? (words / hours) : 0;
-                  const perHourDisplay = perHour.toFixed(1);
-                  return (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
-                        Words per day rate
-                      </span>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {formatNumber(words)} words studied ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+              <Link href={`/course/${courseId}/progress`} className="transition-opacity hover:opacity-70">
+                <Popover
+                  className="flex flex-col items-center"
+                  content={(() => {
+                    const words = effectiveStats.totalWordsStudied ?? 0;
+                    const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
+                    const perHour = hours > 0 ? (words / hours) : 0;
+                    const perHourDisplay = perHour.toFixed(1);
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                          Words per day rate
                         </span>
-                        <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                          {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                            {formatNumber(words)} new words ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                          </span>
+                          <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
+                            {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
-              >
-                <div className="flex items-center gap-1">
-                  <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
-                    {formatNumber(effectiveStats.wordsPerDay ?? 0)}
+                    );
+                  })()}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
+                      {formatNumber(effectiveStats.wordsPerDay ?? 0)}
+                    </span>
+                    <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
+                  </div>
+                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
+                    words/day
                   </span>
-                  <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
-                </div>
-                <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
-                  words/day
-                </span>
-              </Popover>
+                </Popover>
+              </Link>
 
               {/* Leaderboard Rank Indicator */}
               {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (
@@ -254,7 +258,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               )}
 
               {/* Notification Bell */}
-              <button className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50">
+              <button className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover">
                 <Bell className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
                 {/* Notification badge */}
                 <div className="bg-destructive absolute top-1 right-1 h-2 w-2 rounded-full" />
@@ -262,8 +266,8 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
               {/* User Account Button */}
               <Link
-                href={isGuest ? "#" : "/settings"}
-                className="flex h-12 shrink-0 items-center gap-2 rounded-[10px] px-3 transition-all hover:bg-gray-50"
+                href={isGuest ? "#" : "/profile"}
+                className="flex h-12 shrink-0 items-center gap-2 px-3 transition-all hover:opacity-80"
                 onClick={isGuest ? (e) => e.preventDefault() : undefined}
               >
                 {/* Avatar with gradient */}

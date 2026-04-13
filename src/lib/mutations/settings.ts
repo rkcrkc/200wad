@@ -64,6 +64,38 @@ export async function updateProfile(
   }
 
   revalidatePath("/settings");
+  revalidatePath("/profile");
+  return { success: true, error: null };
+}
+
+// ============================================
+// Email Mutations
+// ============================================
+
+export async function updateEmail(
+  newEmail: string
+): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    email: newEmail,
+  });
+
+  if (error) {
+    console.error("Error updating email:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/profile");
   return { success: true, error: null };
 }
 

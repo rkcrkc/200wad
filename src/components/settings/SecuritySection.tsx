@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
-import { Shield } from "lucide-react";
+import { Mail, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  updateEmail,
   updatePassword,
   verifyCurrentPassword,
   toggleTwoFactor,
@@ -21,10 +22,17 @@ export function SecuritySection({
   twoFactorEnabled: initialTwoFactor,
 }: SecuritySectionProps) {
   const [isPending, startTransition] = useTransition();
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(initialTwoFactor);
 
+  // Email form state
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState(email);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+
   // Password form state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,6 +51,38 @@ export function SecuritySection({
       }
     };
   }, []);
+
+  const handleEmailChange = () => {
+    setEmailError(null);
+    setEmailSuccess(false);
+
+    const trimmed = newEmail.trim();
+    if (!trimmed) {
+      setEmailError("Please enter a new email address");
+      return;
+    }
+
+    if (trimmed === currentEmail) {
+      setEmailError("New email is the same as your current email");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateEmail(trimmed);
+      if (result.success) {
+        setEmailSuccess(true);
+        setCurrentEmail(trimmed);
+        setNewEmail("");
+        setShowEmailForm(false);
+        if (successTimeoutRef.current) {
+          clearTimeout(successTimeoutRef.current);
+        }
+        successTimeoutRef.current = setTimeout(() => setEmailSuccess(false), 5000);
+      } else {
+        setEmailError(result.error || "Failed to update email");
+      }
+    });
+  };
 
   const handlePasswordChange = () => {
     setPasswordError(null);
@@ -102,6 +142,69 @@ export function SecuritySection({
   return (
     <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
       <h2 className="mb-6 text-xl font-semibold">Security</h2>
+
+      {/* Email */}
+      <div className="mb-6 border-b border-gray-200 pb-6">
+        <h3 className="mb-2 font-medium">Email</h3>
+
+        {emailSuccess && (
+          <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-600">
+            Confirmation email sent to {currentEmail}. Please check your inbox to verify the change.
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 text-gray-700">
+          <Mail className="h-4 w-4 text-gray-500" />
+          <span>{currentEmail}</span>
+        </div>
+
+        {!showEmailForm ? (
+          <Button
+            variant="link"
+            onClick={() => setShowEmailForm(true)}
+            className="mt-1 h-auto p-0 text-primary"
+          >
+            Change email
+          </Button>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {emailError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {emailError}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1 block text-sm text-gray-600">
+                New Email
+              </label>
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Enter new email address"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEmailForm(false);
+                  setNewEmail("");
+                  setEmailError(null);
+                }}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEmailChange} disabled={isPending}>
+                {isPending ? "Updating..." : "Update Email"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Password Section */}
       <div className="mb-6 border-b border-gray-200 pb-6">

@@ -9,12 +9,24 @@ import { z } from "zod";
 // LANGUAGE SCHEMAS
 // ============================================================================
 
+const greetingEntrySchema = z.object({
+  text: z.string().min(1, "Greeting text is required").max(200),
+  translation: z.string().min(1, "Translation is required").max(200),
+});
+
+export const greetingsSchema = z.object({
+  morning: greetingEntrySchema,
+  afternoon: greetingEntrySchema,
+  evening: greetingEntrySchema,
+});
+
 export const createLanguageSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   native_name: z.string().min(1, "Native name is required").max(100),
   code: z.string().min(2, "Code is required").max(3).regex(/^[a-z]{2,3}$/, "Code must be 2-3 lowercase letters"),
   sort_order: z.number().int().min(0).optional().default(0),
   is_visible: z.boolean().optional().default(false),
+  greetings: greetingsSchema.optional().nullable(),
 });
 
 export const updateLanguageSchema = createLanguageSchema.partial();

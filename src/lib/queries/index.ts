@@ -28,8 +28,16 @@ export type {
 
 export { getScheduleData, getDueTestsCount, getCurrentCourse } from "./schedule";
 
-export { getUserLearningStats, getCourseProgress } from "./stats";
-export type { UserLearningStats, CourseProgressStats } from "./stats";
+export { getUserLearningStats, getCourseProgress, getProgressStats } from "./stats";
+export type {
+  UserLearningStats,
+  CourseProgressStats,
+  ProgressPageStats,
+  WordsPerDayRates,
+  StreakStats,
+  CumulativeProgress,
+  HeatmapDay,
+} from "./stats";
 export type {
   LessonForScheduler,
   ScheduleData,

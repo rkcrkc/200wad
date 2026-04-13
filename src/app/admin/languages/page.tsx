@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { LanguagesClient } from "./LanguagesClient";
+import type { LanguageGreetings } from "@/types/database";
 
 async function getLanguages() {
   const supabase = await createClient();
@@ -17,9 +18,10 @@ async function getLanguages() {
     return [];
   }
 
-  // Transform the count from the nested query
+  // Transform the count from the nested query and cast greetings
   return languages.map((lang) => ({
     ...lang,
+    greetings: lang.greetings as LanguageGreetings | null,
     courseCount: ((lang as any).courses as any)?.[0]?.count || 0,
   }));
 }

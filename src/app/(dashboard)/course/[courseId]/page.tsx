@@ -60,7 +60,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <h1 className="text-page-header">All Lessons</h1>
 
         {/* Stats */}
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+        <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
           {/* Total words */}
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground">Total words</span>

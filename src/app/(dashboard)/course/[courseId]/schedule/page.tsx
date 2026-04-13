@@ -8,8 +8,10 @@ import { SchedulerSection, LessonGridSection } from "@/components/schedule";
 import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/PageContainer";
+import { PageShell } from "@/components/PageShell";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
+import type { LanguageGreetings } from "@/types/database";
 
 interface SchedulePageProps {
   params: Promise<{ courseId: string }>;
@@ -84,7 +86,10 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   const languages = isGuest ? await getLanguagesWithCourses() : [];
 
   // Generate greeting based on language and time
-  const greeting = getGreeting(language?.name || "your language", userName);
+  const { greeting, translation } = getGreeting(
+    language?.greetings as LanguageGreetings | null,
+    userName
+  );
 
   // Check if we have any content to show
   const hasContent =
@@ -123,15 +128,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
       courseName={course.name}
       dueTestsCount={dueTestsCount}
     >
-      <PageContainer size="ms" className="pb-24">
-        {/* Greeting */}
-        <div className="mb-8">
-          <p className="text-[18px] font-medium text-muted-foreground">
-            <span className="mr-2">☀️</span>
-            {greeting}
-          </p>
-        </div>
-
+      <PageShell greeting={greeting} greetingTranslation={translation} className="pb-24">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}
@@ -165,73 +162,40 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
           isGuest={isGuest}
           languages={languages}
         />
-      </PageContainer>
+      </PageShell>
     </SetCourseContext>
   );
 }
 
 /**
- * Generate a greeting based on language and time of day
+ * Generate a greeting based on language greetings from DB and time of day.
+ * Returns both the foreign-language greeting and its English translation.
  */
-function getGreeting(languageName: string, userName: string | null): string {
+function getGreeting(
+  greetings: LanguageGreetings | null,
+  userName: string | null
+): { greeting: string; translation: string | undefined } {
   const hour = new Date().getHours();
   const name = userName || "there";
+  const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
 
-  // Language-specific greetings
-  const greetings: Record<string, { morning: string; afternoon: string; evening: string }> = {
-    Italian: {
-      morning: "Buongiorno",
-      afternoon: "Buon pomeriggio",
-      evening: "Buonasera",
-    },
-    Spanish: {
-      morning: "Buenos días",
-      afternoon: "Buenas tardes",
-      evening: "Buenas noches",
-    },
-    French: {
-      morning: "Bonjour",
-      afternoon: "Bon après-midi",
-      evening: "Bonsoir",
-    },
-    German: {
-      morning: "Guten Morgen",
-      afternoon: "Guten Tag",
-      evening: "Guten Abend",
-    },
-    Portuguese: {
-      morning: "Bom dia",
-      afternoon: "Boa tarde",
-      evening: "Boa noite",
-    },
-    Japanese: {
-      morning: "おはよう",
-      afternoon: "こんにちは",
-      evening: "こんばんは",
-    },
-  };
-
-  const langGreetings = greetings[languageName];
-  let greeting: string;
-
-  if (langGreetings) {
-    if (hour < 12) {
-      greeting = langGreetings.morning;
-    } else if (hour < 18) {
-      greeting = langGreetings.afternoon;
-    } else {
-      greeting = langGreetings.evening;
-    }
-  } else {
-    // Default English greetings
-    if (hour < 12) {
-      greeting = "Good morning";
-    } else if (hour < 18) {
-      greeting = "Good afternoon";
-    } else {
-      greeting = "Good evening";
-    }
+  if (greetings?.[timeOfDay]) {
+    const entry = greetings[timeOfDay];
+    return {
+      greeting: `${entry.text}, ${name}`,
+      translation: entry.translation ? `${entry.translation}, ${name}` : undefined,
+    };
   }
 
-  return `${greeting}, ${name}`;
+  // Fallback: English only (no translation needed)
+  const english: Record<string, string> = {
+    morning: "Good morning",
+    afternoon: "Good afternoon",
+    evening: "Good evening",
+  };
+
+  return {
+    greeting: `${english[timeOfDay]}, ${name}`,
+    translation: undefined,
+  };
 }
