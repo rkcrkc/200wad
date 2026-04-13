@@ -318,9 +318,17 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       const totalWords = lesson.word_count || 0;
       const liveCompletion = totalWords > 0 ? Math.round((liveMastered / totalWords) * 100) : 0;
 
+      // Derive status from live word progress instead of potentially stale DB value
+      const derivedStatus: LessonStatus =
+        liveCompletion >= 100 && totalWords > 0
+          ? "mastered"
+          : progress?.status === "learning" || progress?.status === "mastered"
+            ? "learning"
+            : "not-started";
+
       return {
         ...lesson,
-        status: (progress?.status as LessonStatus) || "not-started",
+        status: derivedStatus,
         completionPercent: liveCompletion,
         wordsMastered: liveMastered,
         totalStudyTimeSeconds: progress?.total_study_time_seconds || 0,
