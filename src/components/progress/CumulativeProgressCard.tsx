@@ -1,3 +1,5 @@
+"use client";
+
 import { Clock } from "lucide-react";
 import type { CumulativeProgress } from "@/lib/queries/stats";
 import { Popover } from "@/components/ui/popover";
@@ -6,6 +8,7 @@ import {
   formatNumber,
   formatPercent,
 } from "@/lib/utils/helpers";
+import { useText } from "@/context/TextContext";
 
 interface CumulativeProgressCardProps {
   progress: CumulativeProgress;
@@ -14,6 +17,7 @@ interface CumulativeProgressCardProps {
 export function CumulativeProgressCard({
   progress,
 }: CumulativeProgressCardProps) {
+  const { t } = useText();
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
       <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
@@ -68,17 +72,17 @@ export function CumulativeProgressCard({
           content={
             <div className="flex flex-col gap-1">
               <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
-                Time breakdown
+                {t("pop_time_breakdown")}
               </span>
               <div className="flex flex-col gap-0.5">
                 <span className="text-foreground text-[13px] leading-[1.4]">
-                  Study time:{" "}
+                  {t("pop_study_time")}{" "}
                   <span className="font-semibold">
                     {formatDuration(progress.studyTimeSeconds)}
                   </span>
                 </span>
                 <span className="text-foreground text-[13px] leading-[1.4]">
-                  Test time:{" "}
+                  {t("pop_test_time")}{" "}
                   <span className="font-semibold">
                     {formatDuration(progress.testTimeSeconds)}
                   </span>

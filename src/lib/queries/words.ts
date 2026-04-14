@@ -67,6 +67,8 @@ export interface WordScoreStats {
   totalMaxPoints: number;
   /** Historical score as percentage (0-100) */
   scorePercent: number;
+  /** Number of times this word has been tested */
+  timesTested: number;
 }
 
 export interface WordWithDetails extends Word {
@@ -173,34 +175,107 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         ? orderedLessons[0]
         : null;
 
-  // Fetch words for this lesson via lesson_words join table
-  const { data: lessonWords, error: wordsError } = await supabase
-    .from("lesson_words")
-    .select("sort_order, words(*, example_sentences(*))")
-    .eq("lesson_id", lessonId)
-    .order("sort_order");
+  // Admin test lesson (lesson #0): dynamically pick the 4 lowest-scoring
+  // studied words from the course instead of using static lesson_words.
+  const isAdminTestLesson = lesson.number === 0 && user;
 
-  if (wordsError) {
-    console.error("Error fetching words:", wordsError);
-    return {
-      language,
-      course: course ? extractCourse(course) : null,
-      lesson: extractedLesson,
-      words: [],
-      previousLesson,
-      nextLesson,
-      courseLessons: orderedLessons,
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
-      isGuest: !user,
-      userId: user?.id ?? null,
-    };
+  let words: (Word & { example_sentences: ExampleSentence[]; sort_order: number })[];
+
+  if (isAdminTestLesson && lesson.course_id) {
+    // Get all word IDs in this course
+    const allLessonIds = orderedLessons.map((l) => l.id);
+    const { data: allLessonWords } = await supabase
+      .from("lesson_words")
+      .select("word_id")
+      .in("lesson_id", allLessonIds);
+
+    const courseWordIds = allLessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
+
+    // Get test scores scoped to this course
+    const { data: userTestScores } = await supabase
+      .from("user_test_scores")
+      .select("id")
+      .eq("user_id", user.id)
+      .in("lesson_id", allLessonIds);
+
+    const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
+
+    let targetWordIds: string[] = [];
+
+    if (testScoreIds.length > 0) {
+      const { data: testQuestions } = await supabase
+        .from("test_questions")
+        .select("word_id, points_earned, max_points")
+        .in("test_score_id", testScoreIds);
+
+      const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
+      testQuestions?.forEach((tq) => {
+        if (!tq.word_id) return;
+        if (!wordScores[tq.word_id]) {
+          wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
+        }
+        wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
+        wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+      });
+
+      // Pick 4 words with worst average score (only from studied words)
+      targetWordIds = Object.entries(wordScores)
+        .filter(([id]) => courseWordIds.includes(id))
+        .map(([wordId, scores]) => ({
+          wordId,
+          avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
+        }))
+        .sort((a, b) => a.avgPercent - b.avgPercent)
+        .slice(0, 4)
+        .map((w) => w.wordId);
+    }
+
+    if (targetWordIds.length > 0) {
+      const { data: dynamicWords } = await supabase
+        .from("words")
+        .select("*, example_sentences(*)")
+        .in("id", targetWordIds);
+
+      // Maintain worst-first order
+      const wordMap = new Map((dynamicWords || []).map((w) => [w.id, w]));
+      words = targetWordIds
+        .map((id, i) => {
+          const w = wordMap.get(id);
+          return w ? { ...w, example_sentences: w.example_sentences as ExampleSentence[], sort_order: i } : null;
+        })
+        .filter((w): w is NonNullable<typeof w> => w !== null);
+    } else {
+      words = [];
+    }
+  } else {
+    // Standard path: fetch words from lesson_words join table
+    const { data: lessonWords, error: wordsError } = await supabase
+      .from("lesson_words")
+      .select("sort_order, words(*, example_sentences(*))")
+      .eq("lesson_id", lessonId)
+      .order("sort_order");
+
+    if (wordsError) {
+      console.error("Error fetching words:", wordsError);
+      return {
+        language,
+        course: course ? extractCourse(course) : null,
+        lesson: extractedLesson,
+        words: [],
+        previousLesson,
+        nextLesson,
+        courseLessons: orderedLessons,
+        stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+        isGuest: !user,
+        userId: user?.id ?? null,
+      };
+    }
+
+    words = lessonWords?.map((lw) => ({
+      ...(lw.words as Word & { example_sentences: ExampleSentence[] }),
+      sort_order: lw.sort_order ?? 0,
+    })) || [];
   }
-
-  // Extract words from join table results
-  const words = lessonWords?.map((lw) => ({
-    ...(lw.words as Word & { example_sentences: ExampleSentence[] }),
-    sort_order: lw.sort_order,
-  })) || [];
 
   // Collect all related word IDs
   const allRelatedWordIds = new Set<string>();
@@ -313,21 +388,20 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         testHistoryByWord[wordId] = [];
       }
       if (!scoreStatsByWord[wordId]) {
-        scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+        scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
       }
 
       // Accumulate total points for historical score
       scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
       scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
+      scoreStatsByWord[wordId].timesTested += 1;
 
-      // Keep last 3 attempts for traffic lights
-      if (testHistoryByWord[wordId].length < 3) {
-        testHistoryByWord[wordId].push({
-          pointsEarned,
-          maxPoints,
-          answeredAt: tq.answered_at ?? new Date().toISOString(),
-        });
-      }
+      // All attempts (ordered most-recent-first from query)
+      testHistoryByWord[wordId].push({
+        pointsEarned,
+        maxPoints,
+        answeredAt: tq.answered_at ?? new Date().toISOString(),
+      });
     });
 
     // Calculate score percentages
@@ -344,6 +418,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     totalPointsEarned: 0,
     totalMaxPoints: 0,
     scorePercent: 0,
+    timesTested: 0,
   };
 
   // Combine data
@@ -431,7 +506,7 @@ export async function getWord(wordId: string): Promise<{
   // Get user's progress for this word
   let progress: UserWordProgress | null = null;
   let testHistory: TestAttempt[] = [];
-  let scoreStats: WordScoreStats = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+  let scoreStats: WordScoreStats = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
 
   if (user) {
     const { data: wordProgress } = await supabase
@@ -461,20 +536,18 @@ export async function getWord(wordId: string): Promise<{
       totalPointsEarned += pointsEarned;
       totalMaxPoints += maxPoints;
 
-      // Keep last 3 for traffic lights
-      if (index < 3) {
-        testHistory.push({
-          pointsEarned,
-          maxPoints,
-          answeredAt: tq.answered_at ?? new Date().toISOString(),
-        });
-      }
+      testHistory.push({
+        pointsEarned,
+        maxPoints,
+        answeredAt: tq.answered_at ?? new Date().toISOString(),
+      });
     });
 
     scoreStats = {
       totalPointsEarned,
       totalMaxPoints,
       scorePercent: totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0,
+      timesTested: (testQuestions || []).length,
     };
   }
 
@@ -507,6 +580,7 @@ export async function getWord(wordId: string): Promise<{
     picture_wrong_notes: word.picture_wrong_notes,
     picture_missing: word.picture_missing,
     picture_bad_svg: word.picture_bad_svg,
+    notes_in_memory_trigger: word.notes_in_memory_trigger,
     memory_trigger_text: word.memory_trigger_text,
     memory_trigger_image_url: word.memory_trigger_image_url,
     flashcard_image_url: word.flashcard_image_url,
@@ -754,19 +828,18 @@ async function getAutoLessonWords(
       testHistoryByWord[wordId] = [];
     }
     if (!scoreStatsByWord[wordId]) {
-      scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+      scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
     }
 
     scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
     scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
+    scoreStatsByWord[wordId].timesTested += 1;
 
-    if (testHistoryByWord[wordId].length < 3) {
-      testHistoryByWord[wordId].push({
-        pointsEarned,
-        maxPoints,
-        answeredAt: tq.answered_at ?? new Date().toISOString(),
-      });
-    }
+    testHistoryByWord[wordId].push({
+      pointsEarned,
+      maxPoints,
+      answeredAt: tq.answered_at ?? new Date().toISOString(),
+    });
   });
 
   // Calculate score percentages
@@ -781,6 +854,7 @@ async function getAutoLessonWords(
     totalPointsEarned: 0,
     totalMaxPoints: 0,
     scorePercent: 0,
+    timesTested: 0,
   };
 
   // Build words with details

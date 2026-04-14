@@ -40,7 +40,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
       courseId={course.id}
       courseName={course.name}
     >
-      <PageShell withTopPadding={false} className="-mt-6 md:-mt-10 lg:-mt-[60px] pt-[80px]">
+      <PageShell withTopPadding={false} className="pt-8">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-page-header">Tests</h1>

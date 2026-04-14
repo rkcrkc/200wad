@@ -79,7 +79,7 @@ export function WordCard({
         {showEnglish ? (
           <button
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
-            className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
+            className="flex min-h-[42px] cursor-pointer items-center gap-4 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingEnglish} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (
@@ -118,18 +118,14 @@ export function WordCard({
           />
         )}
 
-        {/* Divider - show when both words are visible or will be visible */}
-        <div
-          className={`h-px w-full bg-black/10 transition-opacity ${
-            (showEnglish && showForeign) ? "opacity-100" : "opacity-0"
-          }`}
-        />
+        {/* Divider */}
+        <div className="h-px w-full bg-black/10" />
 
         {/* Foreign word row or skeleton */}
         {showForeign ? (
           <button
             onClick={isEditMode ? undefined : onPlayForeignAudio}
-            className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
+            className="flex min-h-[42px] cursor-pointer items-center gap-4 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingForeign} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (

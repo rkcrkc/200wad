@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -5,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
+import { useText } from "@/context/TextContext";
 
 interface LessonPreviewCardProps {
   lesson: LessonForScheduler;
 }
 
 export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
+  const { t } = useText();
   return (
     <div className="flex flex-col overflow-hidden pt-2 px-6 rounded-2xl bg-white shadow-card">
       <Link href={`/lesson/${lesson.id}`}>
@@ -64,7 +68,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
           </Link>
         </Button>
 
-        <Tooltip label="Preview lesson">
+        <Tooltip label={t("tip_preview_lesson")}>
           <Button asChild variant="ghost" size="icon-lg">
             <Link href={`/lesson/${lesson.id}`}>
               <Eye className="size-5" />

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { WordWithDetails } from "@/lib/queries/words";
-import { formatPercent } from "@/lib/utils/helpers";
 
 export type WordGridImageMode = "memory-trigger" | "flashcard";
 export type WordGridColumns = 4 | 5;
@@ -50,27 +49,12 @@ export function WordGrid({
             : word.flashcard_image_url;
         const hasImage = !!imageUrl;
         const result = wordResults?.get(word.id);
-        const scorePercent = result ? Math.round((result.pointsEarned / result.maxPoints) * 100) : null;
 
         return (
           <div
             key={word.id}
             className="relative overflow-hidden rounded-xl bg-white px-3 pt-2 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
           >
-            {/* Score badge */}
-            {result && scorePercent !== null && (
-              <div
-                className={`absolute top-2 right-2 z-10 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                  result.grade === "correct"
-                    ? "bg-success/10 text-success"
-                    : result.grade === "half-correct"
-                      ? "bg-warning/10 text-warning"
-                      : "bg-destructive/10 text-destructive"
-                }`}
-              >
-                {formatPercent(scorePercent)}
-              </div>
-            )}
             {/* Image */}
             <div className={`relative ${imageHeightClass} w-full`}>
               {hasImage ? (
@@ -95,7 +79,7 @@ export function WordGrid({
               )}
             </div>
 
-            {/* Word Info - Foreign first, English beneath */}
+            {/* Word Info - Foreign first, English beneath, then score */}
             <div className="mt-3">
               <p className="truncate text-sm font-medium text-foreground">
                 {word.headword}
@@ -104,6 +88,19 @@ export function WordGrid({
                 <p className="truncate text-xs text-muted-foreground">
                   {word.english}
                 </p>
+              )}
+              {result && (
+                <div
+                  className={`mt-1.5 text-[11px] font-medium ${
+                    result.grade === "correct"
+                      ? "text-success"
+                      : result.grade === "half-correct"
+                        ? "text-warning"
+                        : "text-destructive"
+                  }`}
+                >
+                  {result.pointsEarned} {result.pointsEarned === 1 ? "point" : "points"}
+                </div>
               )}
             </div>
           </div>

@@ -199,7 +199,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
       return {
         icon: "✅",
         text: `Correct! ${pointsText}`,
-        emoji: "🙌",
+        emoji: pointsEarned > 0 ? "🙌" : "",
         borderColor: "border-green-200",
         textColor: "text-green-600",
         inputTextColor: "text-foreground",
@@ -216,7 +216,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
       return {
         icon: "✅",
         text,
-        emoji: "🙌",
+        emoji: pointsEarned > 0 ? "🙌" : "",
         borderColor: "border-amber-200",
         textColor: "text-amber-600",
         inputTextColor: "text-amber-600",

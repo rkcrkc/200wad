@@ -18,6 +18,7 @@ export interface StreakStats {
 
 export interface CumulativeProgress {
   wordsMastered: number;
+  wordsLearning: number;
   totalWords: number;
   wordsStudied: number;
   lessonsCompleted: number;
@@ -33,11 +34,28 @@ export interface HeatmapDay {
   count: number;
 }
 
+export interface ChartDailyRow {
+  date: string;              // "YYYY-MM-DD"
+  newWordsStarted: number;   // words with learning_at on this day
+  newlyMastered: number;     // words with mastered_at on this day
+  cumulativeVocab: number;   // running sum of started
+  cumulativeMastered: number;// running sum of mastered
+  studyTimeSeconds: number;  // study + test time on this day
+  cumulativeStudyTimeSeconds: number; // running sum of study time
+}
+
+export interface ChartServerData {
+  dailyRows: ChartDailyRow[];
+  totalCourseWords: number;
+  firstActivityDate: string | null;
+}
+
 export interface ProgressPageStats {
   wordsPerDayRates: WordsPerDayRates;
   streaks: StreakStats;
   cumulative: CumulativeProgress;
   heatmapData: HeatmapDay[];
+  chartData: ChartServerData;
 }
 
 // ============================================================================
@@ -49,6 +67,10 @@ export interface UserLearningStats {
   totalWordsStudied: number;
   /** Total time spent studying in seconds */
   totalTimeSeconds: number;
+  /** Study-only time in seconds */
+  studyTimeSeconds: number;
+  /** Test-only time in seconds */
+  testTimeSeconds: number;
   /** Calculated words per 8-hour day rate */
   wordsPerDay: number;
 }
@@ -70,6 +92,8 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
     return {
       totalWordsStudied: 0,
       totalTimeSeconds: 0,
+      studyTimeSeconds: 0,
+      testTimeSeconds: 0,
       wordsPerDay: 0,
     };
   }
@@ -113,6 +137,8 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
   return {
     totalWordsStudied,
     totalTimeSeconds,
+    studyTimeSeconds,
+    testTimeSeconds,
     wordsPerDay,
   };
 }
@@ -256,6 +282,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     streaks: { currentStreak: 0, longestStreak: 0 },
     cumulative: {
       wordsMastered: 0,
+      wordsLearning: 0,
       totalWords: 0,
       wordsStudied: 0,
       lessonsCompleted: 0,
@@ -266,6 +293,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       testTimeSeconds: 0,
     },
     heatmapData: [],
+    chartData: { dailyRows: [], totalCourseWords: 0, firstActivityDate: null },
   };
 
   const supabase = await createClient();
@@ -284,8 +312,36 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
 
   if (!course || !course.language_id) return emptyStats;
 
-  // Step 2: Fetch all data in parallel
-  const [activityResult, userResult, courseProgress, wordProgressResult, sessionsResult, testsResult] =
+  // Step 2: Get lesson IDs for course (needed for chart data filtering)
+  const { data: courseLessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .eq("course_id", courseId);
+
+  const courseLessonIds = (courseLessons || []).map((l) => l.id);
+
+  // Paginated fetch of course word IDs (same pattern as getCourseProgress)
+  const fetchCourseWordIds = async (): Promise<Set<string>> => {
+    if (courseLessonIds.length === 0) return new Set();
+    const pageSize = 1000;
+    const ids = new Set<string>();
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("lesson_words")
+        .select("word_id")
+        .in("lesson_id", courseLessonIds)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      for (const row of data) {
+        if (row.word_id) ids.add(row.word_id);
+      }
+      if (data.length < pageSize) break;
+    }
+    return ids;
+  };
+
+  // Step 3: Fetch all data in parallel
+  const [activityResult, userResult, courseProgress, wordProgressResult, sessionsResult, testsResult, courseWordIds] =
     await Promise.all([
       // All daily activity rows for this user + language
       supabase
@@ -302,10 +358,10 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .single(),
       // Reuse existing course progress function
       getCourseProgress(courseId),
-      // New words encountered (learning_at timestamps) for per-period rate
+      // Word progress with timestamps for chart + per-period rate
       supabase
         .from("user_word_progress")
-        .select("learning_at")
+        .select("word_id, learning_at, mastered_at")
         .eq("user_id", user.id)
         .not("learning_at", "is", null),
       // Study sessions for time totals
@@ -318,6 +374,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .from("user_test_scores")
         .select("duration_seconds, taken_at")
         .eq("user_id", user.id),
+      // Course word IDs for filtering
+      fetchCourseWordIds(),
     ]);
 
   const activityRows = activityResult.data || [];
@@ -399,8 +457,15 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   // We'll compute it as: total words that have any progress
   const wordsStudied = activityRows.reduce((sum, r) => sum + (r.words_studied || 0), 0);
 
+  // wordsLearning = words the user has started in this course but not yet mastered
+  const totalVocab = wordProgressRows.filter(
+    (w) => w.word_id && courseWordIds.has(w.word_id)
+  ).length;
+  const wordsLearning = Math.max(0, totalVocab - courseProgress.wordsMastered);
+
   const cumulative: CumulativeProgress = {
     wordsMastered: courseProgress.wordsMastered,
+    wordsLearning,
     totalWords: courseProgress.totalWords,
     wordsStudied,
     lessonsCompleted: courseProgress.lessonsCompleted,
@@ -430,10 +495,80 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     });
   }
 
+  // --- Chart data ---
+  // Filter word progress to course words only, then group by date
+  const courseWordProgressRows = wordProgressRows.filter(
+    (w) => w.word_id && courseWordIds.has(w.word_id)
+  );
+
+  const startedByDate = new Map<string, number>();
+  const masteredByDate = new Map<string, number>();
+  for (const row of courseWordProgressRows) {
+    if (row.learning_at) {
+      const d = row.learning_at.slice(0, 10);
+      startedByDate.set(d, (startedByDate.get(d) || 0) + 1);
+    }
+    if (row.mastered_at) {
+      const d = row.mastered_at.slice(0, 10);
+      masteredByDate.set(d, (masteredByDate.get(d) || 0) + 1);
+    }
+  }
+
+  // Group session time by date
+  const sessionTimeByDate = new Map<string, number>();
+  for (const s of sessions) {
+    if (s.started_at) {
+      const d = s.started_at.slice(0, 10);
+      sessionTimeByDate.set(d, (sessionTimeByDate.get(d) || 0) + (s.duration_seconds || 0));
+    }
+  }
+  for (const t of tests) {
+    if (t.taken_at) {
+      const d = t.taken_at.slice(0, 10);
+      sessionTimeByDate.set(d, (sessionTimeByDate.get(d) || 0) + (t.duration_seconds || 0));
+    }
+  }
+
+  // Collect all unique dates
+  const allDates = new Set<string>();
+  for (const d of startedByDate.keys()) allDates.add(d);
+  for (const d of masteredByDate.keys()) allDates.add(d);
+  for (const d of sessionTimeByDate.keys()) allDates.add(d);
+
+  const sortedDates = Array.from(allDates).sort();
+  let cumulativeVocab = 0;
+  let cumulativeMastered = 0;
+  let cumulativeStudyTime = 0;
+
+  const dailyRows: ChartDailyRow[] = sortedDates.map((date) => {
+    const newWordsStarted = startedByDate.get(date) || 0;
+    const newlyMastered = masteredByDate.get(date) || 0;
+    const dayStudyTime = sessionTimeByDate.get(date) || 0;
+    cumulativeVocab += newWordsStarted;
+    cumulativeMastered += newlyMastered;
+    cumulativeStudyTime += dayStudyTime;
+    return {
+      date,
+      newWordsStarted,
+      newlyMastered,
+      cumulativeVocab,
+      cumulativeMastered,
+      studyTimeSeconds: dayStudyTime,
+      cumulativeStudyTimeSeconds: cumulativeStudyTime,
+    };
+  });
+
+  const chartData: ChartServerData = {
+    dailyRows,
+    totalCourseWords: courseWordIds.size,
+    firstActivityDate: sortedDates.length > 0 ? sortedDates[0] : null,
+  };
+
   return {
     wordsPerDayRates,
     streaks,
     cumulative,
     heatmapData,
+    chartData,
   };
 }

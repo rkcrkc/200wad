@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { HeatmapDay } from "@/lib/queries/stats";
+import { useText } from "@/context/TextContext";
 
 interface ActivityHeatmapProps {
   data: HeatmapDay[];
@@ -35,6 +36,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
+  const { tt } = useText();
   const { weeks, months, max } = useMemo(() => {
     // Group data into weeks (columns). Each week is an array of 7 days (Sun=0..Sat=6).
     const weeksArr: HeatmapDay[][] = [];
@@ -143,7 +145,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                   {week.map((day) => (
                     <Tooltip
                       key={day.date}
-                      label={`${day.count} words mastered on ${formatDate(day.date)}`}
+                      label={tt("tip_heatmap_day", { count: day.count, date: formatDate(day.date) })}
                     >
                       <div
                         className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max)}`}

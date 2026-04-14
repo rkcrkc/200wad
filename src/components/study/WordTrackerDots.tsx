@@ -37,9 +37,11 @@ export function WordTrackerDots({
             // Current word is always blue
             fillColor = "#0B6CFF"; // Primary blue
           } else if (testResults) {
-            // Test mode: green for any points (1-3), red for 0 points
-            if (testResult === "correct" || testResult === "half-correct") {
-              fillColor = "#00C950"; // Green - got points
+            // Test mode: green for correct, orange for half-correct, red for incorrect
+            if (testResult === "correct") {
+              fillColor = "#00C950"; // Green - fully correct
+            } else if (testResult === "half-correct") {
+              fillColor = "#FF9224"; // Orange/warning - half correct
             } else if (testResult === "incorrect") {
               fillColor = "#FB2C36"; // Red - 0 points
             }

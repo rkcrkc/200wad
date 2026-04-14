@@ -128,7 +128,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
       courseName={course.name}
       dueTestsCount={dueTestsCount}
     >
-      <PageShell greeting={greeting} greetingTranslation={translation} className="pb-24">
+      <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-8 pb-24">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}

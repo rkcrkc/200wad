@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -10,32 +9,26 @@ import { cn } from "@/lib/utils";
 
 interface DictionaryRowProps {
   word: DictionaryWord;
+  onClick?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
   isHighlighted?: boolean;
+  isSelected?: boolean;
 }
 
-export function DictionaryRow({ word, isFirst, isLast, isHighlighted }: DictionaryRowProps) {
-  const router = useRouter();
+export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, isSelected }: DictionaryRowProps) {
   const statusType = mapStatus(word.status);
-
-  const handleClick = () => {
-    // Navigate to the word page via the lesson route
-    if (word.lessonId) {
-      router.push(`/lesson/${word.lessonId}?word=${word.id}&from=dictionary`);
-    }
-  };
-
   const hasImage = !!word.imageUrl;
 
   return (
     <tr
       data-word-id={word.id}
-      onClick={handleClick}
+      onClick={onClick}
       className={cn(
         "group cursor-pointer transition-colors hover:bg-bone-hover",
         !isFirst && "border-t border-bone-hover",
-        isHighlighted && "ring-2 ring-primary ring-inset"
+        isHighlighted && "ring-2 ring-primary ring-inset",
+        isSelected && "bg-bone-hover"
       )}
     >
       {/* Thumbnail */}
@@ -62,17 +55,17 @@ export function DictionaryRow({ word, isFirst, isLast, isHighlighted }: Dictiona
       </td>
 
       {/* English */}
-      <td className="bg-white px-2 py-4 text-regular-semibold text-foreground transition-colors group-hover:bg-bone-hover">
-        {word.english}
+      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+        <div className="truncate text-regular-semibold text-foreground" title={word.english}>{word.english}</div>
       </td>
 
       {/* Headword (foreign) */}
-      <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {word.headword}
+      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+        <div className="truncate text-regular-medium text-foreground" title={word.headword}>{word.headword}</div>
       </td>
 
       {/* Word Type */}
-      <td className="bg-white px-2 py-4 text-regular-medium text-muted-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="bg-white px-2 py-4 text-small-medium text-muted-foreground transition-colors group-hover:bg-bone-hover">
         {word.category === "word" ? (word.partOfSpeech || "—") : (word.category || "—")}
       </td>
 
@@ -82,8 +75,17 @@ export function DictionaryRow({ word, isFirst, isLast, isHighlighted }: Dictiona
       </td>
 
       {/* Lesson */}
-      <td className="bg-white px-2 py-4 text-regular-medium text-muted-foreground transition-colors group-hover:bg-bone-hover">
-        {word.lessonNumber ? `#${word.lessonNumber}` : "—"}
+      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+        {word.lessonNumber ? (
+          <div
+            className="truncate text-small-medium text-muted-foreground"
+            title={word.lessonTitle ? `#${word.lessonNumber} · ${word.lessonTitle}` : undefined}
+          >
+            #{word.lessonNumber}{word.lessonTitle ? ` · ${word.lessonTitle}` : ""}
+          </div>
+        ) : (
+          <span className="text-small-medium text-muted-foreground">—</span>
+        )}
       </td>
 
       {/* Chevron - sticky on horizontal scroll */}

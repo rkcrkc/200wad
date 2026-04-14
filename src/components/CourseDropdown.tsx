@@ -104,7 +104,7 @@ export function CourseDropdown({
       onMouseLeave={handleMouseLeave}
     >
       {/* Trigger */}
-      <div className="flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-[#FAF8F3]">
+      <div className="flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover">
         <div className="flex h-full min-w-0 items-center gap-3 pl-4">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
             {languageFlag}
@@ -145,7 +145,7 @@ export function CourseDropdown({
                     <button
                       key={course.id}
                       onClick={() => handleSelectCourse(course.id)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#FAF8F3]"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover"
                     >
                       {/* Course info */}
                       <div className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export function CourseDropdown({
           <div className="border-t border-gray-100">
             <button
               onClick={handleSwitchLanguage}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#FAF8F3]"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover"
             >
               <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.67} />
               <span className="text-foreground text-[14px] font-medium">

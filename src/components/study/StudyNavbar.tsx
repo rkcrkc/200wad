@@ -119,7 +119,7 @@ export function StudyNavbar({
           ) : (
             <Clock className="h-4 w-4" />
           )}
-          <span className="text-regular-semibold">
+          <span className="text-regular-semibold tabular-nums">
             {formatDuration(elapsedSeconds, { style: "timer" })}
             {isTimerPaused && " (paused)"}
           </span>

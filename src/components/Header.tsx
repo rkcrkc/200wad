@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronLeft, ChevronRight, Medal, Menu, TrendingUp } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Menu, TrendingUp } from "lucide-react";
 import { SearchBar } from "./SearchBar";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
@@ -13,6 +13,7 @@ import { MobileMenu } from "./MobileMenu";
 import { CourseDropdown } from "./CourseDropdown";
 import type { HeaderStats } from "./DashboardContent";
 import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
+import { useText } from "@/context/TextContext";
 
 interface HeaderProps {
   showSidebar?: boolean;
@@ -33,10 +34,13 @@ const PREVIEW_STATS: HeaderStats = {
   totalWords: 200,
   totalWordsStudied: 48,
   totalTimeSeconds: 3600, // 1 hour
+  studyTimeSeconds: 2400,
+  testTimeSeconds: 1200,
   leaderboardRank: 42,
 };
 
 export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans }: HeaderProps) {
+  const { t } = useText();
   const { user, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
@@ -105,7 +109,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             ) : (
               <Link
                 href={courseSelectorHref}
-                className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-[#FAF8F3]"
+                className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-bone-hover"
               >
                 <div className="flex h-full min-w-0 items-center gap-3 pl-4">
                   <div className="bg-primary relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
@@ -146,15 +150,18 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
           {/* Stats Indicators - Course Progress & Words/Day - hide on small screens */}
           {showAsLoggedIn && effectiveStats && hasContext && (
-            <div className="ml-4 hidden shrink-0 cursor-default items-end gap-5 md:flex">
+            <div className="ml-4 hidden shrink-0 cursor-default items-center gap-5 md:flex">
               {/* Course Progress Indicator */}
-              <Link href={`/course/${courseId}/progress`} className="transition-opacity hover:opacity-70">
+              <Link href={`/course/${courseId}/progress`}>
                 <Popover
                   className="flex flex-col"
                   content={
-                    <span className="text-foreground text-[14px] leading-[1.4] font-medium">
-                      {formatNumber(effectiveStats.wordsMastered ?? 0)} of {formatNumber(effectiveStats.totalWords ?? 0)} words mastered ({formatRatioPercent(effectiveStats.wordsMastered ?? 0, effectiveStats.totalWords ?? 0, { decimals: 1 })})
-                    </span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_course_completion")}</span>
+                      <span className="text-foreground text-[13px] leading-[1.4]">
+                        <span className="font-semibold">{formatNumber(effectiveStats.wordsMastered ?? 0)}</span> mastered / <span className="font-semibold">{formatNumber(effectiveStats.totalWords ?? 0)}</span> total = {formatRatioPercent(effectiveStats.wordsMastered ?? 0, effectiveStats.totalWords ?? 0, { decimals: 1 })}
+                      </span>
+                    </div>
                   }
                 >
                   <span className="text-foreground text-[14px] leading-[1.35] font-semibold tracking-[-0.14px]">
@@ -170,7 +177,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               </Link>
 
               {/* Words Per Day Indicator */}
-              <Link href={`/course/${courseId}/progress`} className="transition-opacity hover:opacity-70">
+              <Link href={`/course/${courseId}/progress`}>
                 <Popover
                   className="flex flex-col items-center"
                   content={(() => {
@@ -181,11 +188,11 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="text-foreground text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
-                          Words per day rate
+                          {t("pop_words_per_day_rate")}
                         </span>
                         <div className="flex flex-col gap-0.5">
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                            {formatNumber(words)} new words ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                            {formatNumber(words)} words studied ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
                           </span>
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
                             {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>
@@ -196,7 +203,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   })()}
                 >
                   <div className="flex items-center gap-1">
-                    <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
+                    <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
                       {formatNumber(effectiveStats.wordsPerDay ?? 0)}
                     </span>
                     <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
@@ -209,17 +216,39 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
               {/* Leaderboard Rank Indicator */}
               {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (
-                <Link href="/community" className="flex flex-col items-center transition-opacity hover:opacity-70">
-                  <div className="flex items-center gap-1">
-                    <span className="text-foreground text-[20px] leading-[1.2] font-semibold tracking-[-0.2px]">
-                      #{formatNumber(effectiveStats.leaderboardRank)}
-                    </span>
-                    <Medal className="text-warning h-4 w-4" strokeWidth={2} />
-                  </div>
+                <Link href="/community" className="flex flex-col items-center">
+                  <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
+                    #{formatNumber(effectiveStats.leaderboardRank)}
+                  </span>
                   <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
                     rank
                   </span>
                 </Link>
+              )}
+
+              {/* Total Time Indicator */}
+              {(effectiveStats.totalTimeSeconds ?? 0) > 0 && (
+                <Popover
+                  className="flex flex-col items-center cursor-default"
+                  content={
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_time_breakdown")}</span>
+                      <span className="text-foreground text-[13px] leading-[1.4]">
+                        {t("pop_study_time")} <span className="font-semibold">{formatDuration(effectiveStats.studyTimeSeconds ?? 0)}</span>
+                      </span>
+                      <span className="text-foreground text-[13px] leading-[1.4]">
+                        {t("pop_test_time")} <span className="font-semibold">{formatDuration(effectiveStats.testTimeSeconds ?? 0)}</span>
+                      </span>
+                    </div>
+                  }
+                >
+                  <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
+                    {formatDuration(effectiveStats.totalTimeSeconds ?? 0)}
+                  </span>
+                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
+                    total time
+                  </span>
+                </Popover>
               )}
             </div>
           )}

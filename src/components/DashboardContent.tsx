@@ -7,6 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { UpgradeModal } from "./UpgradeModal";
 import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
 import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context/CourseContext";
+import { TextProvider } from "@/context/TextContext";
 import type { PricingPlan } from "@/types/database";
 
 interface DefaultCourseContext {
@@ -24,6 +25,8 @@ export interface HeaderStats {
   totalWords?: number;
   totalWordsStudied?: number;
   totalTimeSeconds?: number;
+  studyTimeSeconds?: number;
+  testTimeSeconds?: number;
   leaderboardRank?: number | null;
 }
 
@@ -36,6 +39,7 @@ interface DashboardContentProps {
   showPreviewMode?: boolean;
   plans?: PricingPlan[];
   enabledTiers?: string[];
+  textOverrides?: Record<string, string>;
 }
 
 /**
@@ -99,6 +103,7 @@ export function DashboardContent({
   showPreviewMode,
   plans = [],
   enabledTiers = [],
+  textOverrides = {},
 }: DashboardContentProps) {
   const pathname = usePathname();
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -120,8 +125,10 @@ export function DashboardContent({
     // Still wrap in CourseProvider for consistency
     return (
       <CourseProvider>
-        <DefaultContextSetter context={defaultCourseContext} />
-        {children}
+        <TextProvider overrides={textOverrides}>
+          <DefaultContextSetter context={defaultCourseContext} />
+          {children}
+        </TextProvider>
       </CourseProvider>
     );
   }
@@ -133,14 +140,16 @@ export function DashboardContent({
     // No sidebar - full width content with fixed header; only main scrolls
     return (
       <CourseProvider>
-        <DefaultContextSetter context={defaultCourseContext} />
-        <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
-        <div className="h-screen overflow-hidden pt-[72px]">
-          <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
-            {children}
-          </main>
-        </div>
-        {!showPreviewMode && <EmailVerificationReminder />}
+        <TextProvider overrides={textOverrides}>
+          <DefaultContextSetter context={defaultCourseContext} />
+          <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
+          <div className="h-screen overflow-hidden pt-[72px]">
+            <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
+              {children}
+            </main>
+          </div>
+          {!showPreviewMode && <EmailVerificationReminder />}
+        </TextProvider>
       </CourseProvider>
     );
   }
@@ -148,21 +157,23 @@ export function DashboardContent({
   // With sidebar - fixed header, sidebar and main; only main scrolls
   return (
     <CourseProvider>
-      <DefaultContextSetter context={defaultCourseContext} />
-      <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
-      <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
-      <div className="h-screen overflow-hidden pt-[72px]">
-        <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
-          {children}
-        </main>
-      </div>
-      <UpgradeModalWithContext
-        isOpen={upgradeModalOpen}
-        onClose={handleCloseUpgradeModal}
-        plans={plans}
-        enabledTiers={enabledTiers}
-      />
-      {!showPreviewMode && <EmailVerificationReminder />}
+      <TextProvider overrides={textOverrides}>
+        <DefaultContextSetter context={defaultCourseContext} />
+        <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
+        <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
+        <div className="h-screen overflow-hidden pt-[72px]">
+          <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
+            {children}
+          </main>
+        </div>
+        <UpgradeModalWithContext
+          isOpen={upgradeModalOpen}
+          onClose={handleCloseUpgradeModal}
+          plans={plans}
+          enabledTiers={enabledTiers}
+        />
+        {!showPreviewMode && <EmailVerificationReminder />}
+      </TextProvider>
     </CourseProvider>
   );
 }

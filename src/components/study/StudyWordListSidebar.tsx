@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WordListItem {
@@ -130,25 +129,25 @@ export function StudyWordListSidebar({
                       <>
                         <div className={cn(
                           "truncate text-sm font-medium",
-                          "text-foreground"
+                          isCurrent || isCompleted || isTestMode
+                            ? "text-foreground"
+                            : "text-foreground/40"
                         )}>
                           {primaryText}
                         </div>
-                        <div className="truncate text-xs text-muted-foreground">
+                        <div className={cn(
+                          "truncate text-xs",
+                          isCurrent || isCompleted || isTestMode
+                            ? "text-muted-foreground"
+                            : "text-foreground/30"
+                        )}>
                           {secondaryText}
                         </div>
                       </>
                     )}
                   </div>
 
-                  {/* Status indicator (study mode only) */}
-                  {!isTestMode && (
-                    <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-                      {isCompleted && !isCurrent ? (
-                        <Check className="h-3.5 w-3.5 text-success" />
-                      ) : null}
-                    </div>
-                  )}
+                  {/* Status indicator (test mode only) */}
                 </button>
               );
             })}

@@ -118,12 +118,13 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: Sideb
     if (path.includes("/dictionary")) {
       return pathname === "/dictionary" || pathname.endsWith("/dictionary");
     }
-    // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, or /dictionary) and /lesson routes
+    // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, /dictionary, or /progress) and /lesson routes
     if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary")) {
       const isSchedulePage = pathname.endsWith("/schedule");
       const isTestsPage = pathname.endsWith("/tests");
       const isDictionaryPage = pathname.endsWith("/dictionary");
-      return !isSchedulePage && !isTestsPage && !isDictionaryPage && (pathname.includes("/lesson") || pathname.includes("/course/"));
+      const isProgressPage = pathname.endsWith("/progress");
+      return !isSchedulePage && !isTestsPage && !isDictionaryPage && !isProgressPage && (pathname.includes("/lesson") || pathname.includes("/course/"));
     }
     return pathname === path || pathname.startsWith(path);
   };

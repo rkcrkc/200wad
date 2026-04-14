@@ -960,6 +960,7 @@ export function StudyModeClient({
                   pictureWrongNotes={currentWord.picture_wrong_notes}
                   pictureMissing={currentWord.picture_missing}
                   pictureBadSvg={currentWord.picture_bad_svg}
+                  notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                 />
               </div>
             </div>

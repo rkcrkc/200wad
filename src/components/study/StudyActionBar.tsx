@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Popover } from "@/components/ui/popover";
 import { BreathingIndicator, type BreathingPhase } from "./BreathingIndicator";
+import { useText } from "@/context/TextContext";
 
 /** Accented characters for European languages */
 const ACCENTED_CHARACTERS: Record<string, string[]> = {
@@ -107,6 +109,7 @@ interface WordScoreStats {
   totalPointsEarned: number;
   totalMaxPoints: number;
   scorePercent: number;
+  timesTested: number;
 }
 
 interface WordListItem {
@@ -282,6 +285,7 @@ export function StudyActionBar({
   breathingSecond = 0,
   breathingActive = false,
 }: StudyActionBarProps) {
+  const { t, tt } = useText();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccentsOpen, setIsAccentsOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
@@ -344,7 +348,13 @@ export function StudyActionBar({
   const posDisplay = label && genderAbbrev && showGender
     ? `${label} ${genderAbbrev}`
     : label;
-  const posTooltipLabel = posAbbrev ? `Word type: ${fullPartOfSpeech(partOfSpeech)}` : "Word type";
+  const fullGenderName = gender === "m" ? "masculine" : gender === "f" ? "feminine" : gender === "n" ? "neuter" : gender === "mf" ? "mixed" : null;
+  const isNoun = partOfSpeech?.toLowerCase().includes("noun");
+  const posTooltipLabel = posAbbrev
+    ? isNoun && fullGenderName && showGender
+      ? `${fullPartOfSpeech(partOfSpeech)} (${fullGenderName})`
+      : fullPartOfSpeech(partOfSpeech)
+    : "";
   return (
     <div className="px-4 py-4 sm:px-6">
       <div className="flex items-center justify-between gap-4">
@@ -370,20 +380,45 @@ export function StudyActionBar({
 
           {/* Traffic lights (last 3 test attempts) + historical score percentage */}
           {/* Display order: oldest on left, newest on right, empty slots on right */}
-          <Tooltip label="Average test score">
+          <Popover
+            position="above"
+            align="left"
+            className="flex items-center cursor-default"
+            content={
+              <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{t("pop_score_history")}</span>
+                <span>
+                  {tt("pop_score_breakdown", {
+                    pts: scoreStats?.totalPointsEarned ?? 0,
+                    total: scoreStats?.totalMaxPoints ?? 0,
+                    pct: scoreStats && scoreStats.totalMaxPoints > 0
+                      ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
+                      : "0.0",
+                  })}
+                </span>
+                <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
+              </div>
+            }
+          >
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map((i) => {
-                  // testHistory is ordered newest-first, so reverse for display
-                  // Position 0 (left) = oldest, Position 2 (right) = newest
-                  const historyLength = testHistory.length;
-                  const reversedIndex = historyLength - 1 - i;
-                  const attempt = reversedIndex >= 0 ? testHistory[reversedIndex] : undefined;
+                  // testHistory is ordered newest-first; take most recent 3 and
+                  // reverse so left=oldest, right=newest
+                  const recent = testHistory.slice(0, 3);
+                  const reversedIndex = recent.length - 1 - i;
+                  const attempt = reversedIndex >= 0 ? recent[reversedIndex] : undefined;
 
-                  // Green = got points, Red = 0 points, Gray = no attempt yet
+                  // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt
                   let bgColor = "bg-gray-300"; // No attempt
                   if (attempt) {
-                    bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
+                    if (attempt.pointsEarned >= attempt.maxPoints) {
+                      bgColor = "bg-success";
+                    } else if (attempt.pointsEarned > 0) {
+                      bgColor = "bg-[#F5D245]";
+                    } else {
+                      bgColor = "bg-destructive";
+                    }
                   }
                   return (
                     <div
@@ -397,7 +432,7 @@ export function StudyActionBar({
                 {wordScorePercent}%
               </span>
             </div>
-          </Tooltip>
+          </Popover>
         </div>
 
         {/* Right section - Breathing indicator, Accents + Clue button (grouped), Navigation controls, divider, toggle icons */}
@@ -414,87 +449,34 @@ export function StudyActionBar({
             </>
           )}
 
-          {/* Accents + Clue button group */}
-          {(showAccentsButton || isTestMode) && (
+          {/* Test mode clue button */}
+          {isTestMode && (
             <>
-              <div className="flex items-center gap-2">
-                {/* Accented characters button */}
-                {showAccentsButton && (
-                  <div className="relative" ref={accentsRef}>
-                    <button
-                      onClick={() => setIsAccentsOpen(!isAccentsOpen)}
-                      className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-                        isAccentsOpen ? "bg-primary/10 text-primary" : "text-foreground"
-                      )}
-                      title="Accented characters"
-                    >
-                      <Languages className="h-5 w-5" />
-                    </button>
-
-                    {/* Accented characters panel */}
-                    {isAccentsOpen && (
-                      <div className="absolute bottom-full left-0 mb-2 -translate-x-1/2">
-                        <div className="w-[340px] rounded-xl bg-white p-3 shadow-panel">
-                          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                            Accented characters
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            {accentedChars.map((char) => (
-                              <button
-                                key={char}
-                                onClick={() => {
-                                  onInsertCharacter?.(char);
-                                  setIsAccentsOpen(false);
-                                }}
-                                className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-left"
-                              >
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-base font-medium text-foreground transition-colors group-hover:bg-primary group-hover:text-white">
-                                  {char}
-                                </span>
-                                {shortcuts[char] && (
-                                  <span className="truncate text-xs text-foreground/50">
-                                    {shortcuts[char]}
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <button
+                onClick={onRevealClue}
+                disabled={!canRevealClue}
+                className={cn(
+                  "relative flex h-6 w-6 items-center justify-center",
+                  canRevealClue
+                    ? "text-foreground"
+                    : "text-foreground opacity-30 cursor-not-allowed"
                 )}
-
-                {/* Test mode clue button */}
-                {isTestMode && (
-                  <button
-                    onClick={onRevealClue}
-                    disabled={!canRevealClue}
-                    className={cn(
-                      "relative flex h-6 w-6 items-center justify-center",
-                      canRevealClue
-                        ? "text-foreground"
-                        : "text-foreground opacity-30 cursor-not-allowed"
-                    )}
-                    title={canRevealClue ? `Reveal clue (${2 - clueLevel} remaining)` : "0 clues remaining"}
-                  >
-                    <Puzzle className="h-5 w-5" />
-                    {canRevealClue && (
-                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                        {2 - clueLevel}
-                      </span>
-                    )}
-                  </button>
+                title={canRevealClue ? tt("msg_reveal_clue", { remaining: 2 - clueLevel }) : t("msg_no_clues")}
+              >
+                <Puzzle className="h-5 w-5" />
+                {canRevealClue && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                    {2 - clueLevel}
+                  </span>
                 )}
-              </div>
+              </button>
               <span className="text-foreground/25">|</span>
             </>
           )}
 
           {/* Navigation controls */}
           <div className="flex items-center gap-2">
-            <Tooltip label="Replay audio sequence">
+            <Tooltip label={t("tip_replay_audio")}>
               <button
                 onClick={onRestart}
                 disabled={isTestMode && !hasSubmittedAnswer}
@@ -505,7 +487,7 @@ export function StudyActionBar({
             </Tooltip>
             {/* Skip to first - study mode only */}
             {!isTestMode && (
-              <Tooltip label="First word">
+              <Tooltip label={t("tip_first_word")}>
                 <button
                   onClick={() => onJumpToWord(0)}
                   className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
@@ -515,7 +497,7 @@ export function StudyActionBar({
               </Tooltip>
             )}
             {/* Previous word */}
-            <Tooltip label="Previous word">
+            <Tooltip label={t("tip_previous_word")}>
               <button
                 onClick={onPreviousWord}
                 disabled={!canGoPrevious}
@@ -525,7 +507,7 @@ export function StudyActionBar({
               </button>
             </Tooltip>
             {/* Next word */}
-            <Tooltip label="Next word">
+            <Tooltip label={t("tip_next_word")}>
               <button
                 onClick={onNextWord}
                 disabled={!canGoNext}
@@ -536,7 +518,7 @@ export function StudyActionBar({
             </Tooltip>
             {/* Skip to last - study mode only */}
             {!isTestMode && (
-              <Tooltip label="Last word">
+              <Tooltip label={t("tip_last_word")}>
                 <button
                   onClick={() => onJumpToWord(totalWords - 1)}
                   className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
@@ -554,7 +536,7 @@ export function StudyActionBar({
           <div className="flex items-center gap-3">
             {/* Admin edit mode toggle */}
             {isAdmin && onEditModeToggle && (
-              <Tooltip label={isEditMode ? "Exit edit mode" : "Edit word"}>
+              <Tooltip label={isEditMode ? t("tip_exit_edit") : t("tip_edit_word")}>
                 <button
                   onClick={onEditModeToggle}
                   className={cn(
@@ -568,7 +550,55 @@ export function StudyActionBar({
                 </button>
               </Tooltip>
             )}
-            <Tooltip label={imageMode === "memory-trigger" ? "Show flashcard image" : "Show memory trigger"}>
+            {/* Accented characters button */}
+            {showAccentsButton && (
+              <div className="relative" ref={accentsRef}>
+                <Tooltip label={t("tip_accents")}>
+                  <button
+                    onClick={() => setIsAccentsOpen(!isAccentsOpen)}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                      isAccentsOpen ? "bg-primary/10 text-primary" : "text-foreground"
+                    )}
+                  >
+                    <Languages className="h-5 w-5" />
+                  </button>
+                </Tooltip>
+
+                {/* Accented characters panel */}
+                {isAccentsOpen && (
+                  <div className="absolute bottom-full right-0 mb-2">
+                    <div className="w-[340px] rounded-xl bg-white p-3 shadow-panel">
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
+                        {t("label_accented_chars")}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                        {accentedChars.map((char) => (
+                          <button
+                            key={char}
+                            onClick={() => {
+                              onInsertCharacter?.(char);
+                              setIsAccentsOpen(false);
+                            }}
+                            className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+                          >
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-base font-medium text-foreground transition-colors group-hover:bg-primary group-hover:text-white">
+                              {char}
+                            </span>
+                            {shortcuts[char] && (
+                              <span className="truncate text-xs text-foreground/50">
+                                {shortcuts[char]}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <Tooltip label={imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")}>
               <button
                 onClick={() => onImageModeChange?.(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
                 className="flex h-6 w-6 items-center justify-center text-foreground transition-colors hover:text-primary"
@@ -588,7 +618,7 @@ export function StudyActionBar({
                   "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
                   isMusicOpen || musicEnabled ? "text-primary" : "text-foreground"
                 )}
-                title="Background music"
+                title={t("label_background_music")}
               >
                 {musicEnabled && !musicHasError ? (
                   <AudioWaveIcon />
@@ -601,7 +631,7 @@ export function StudyActionBar({
               {isMusicOpen && (
                 <div className="absolute bottom-full right-0 mb-2 w-[320px] rounded-xl bg-white p-4 shadow-panel">
                   <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                    Study Music
+                    {t("label_study_music")}
                   </div>
 
                   {/* Track list */}
@@ -653,7 +683,7 @@ export function StudyActionBar({
                   <div className="mb-4 space-y-3">
                     <div>
                       <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">Music volume</span>
+                        <span className="text-sm font-medium text-foreground">{t("label_music_volume")}</span>
                         <span className="text-xs text-muted-foreground">
                           {Math.round(musicVolume * 100)}%
                         </span>
@@ -669,7 +699,7 @@ export function StudyActionBar({
                     </div>
                     <div>
                       <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">Word volume</span>
+                        <span className="text-sm font-medium text-foreground">{t("label_word_volume")}</span>
                         <span className="text-xs text-muted-foreground">
                           {Math.round(wordVolume * 100)}%
                         </span>
@@ -689,8 +719,7 @@ export function StudyActionBar({
                   {musicHasError && (
                     <div className="mb-4 rounded-lg bg-destructive/10 p-3">
                       <p className="text-xs leading-relaxed text-destructive">
-                        <span className="font-medium">Unable to play music.</span> The audio file may not be available yet.
-                        Please try again later.
+                        {t("msg_music_error")}
                       </p>
                     </div>
                   )}
@@ -698,9 +727,7 @@ export function StudyActionBar({
                   {/* Explainer */}
                   <div className="rounded-lg bg-bone p-3">
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground">Alpha wave music</span> is tuned to
-                      frequencies (around 432-528 Hz) that help induce alpha brainwaves — the optimal
-                      state for learning, focus, and memory retention.
+                      <span className="font-medium text-foreground">{t("msg_alpha_wave_title")}</span> {t("msg_alpha_wave_desc")}
                     </p>
                   </div>
                 </div>
@@ -723,7 +750,7 @@ export function StudyActionBar({
               {isSettingsOpen && (
                 <div className="absolute bottom-full right-0 mb-2 w-[280px] rounded-xl bg-white p-4 shadow-panel">
                   <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                    {isTestMode ? "Test Settings" : "Lesson Settings"}
+                    {isTestMode ? t("label_test_settings") : t("label_lesson_settings")}
                   </div>
 
                   {isTestMode ? (
@@ -738,10 +765,10 @@ export function StudyActionBar({
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-foreground">
-                            Nerves of steel mode
+                            {t("msg_nerves_of_steel")}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Punctuation and capitalization must be correct for full points
+                            {t("msg_nerves_of_steel_desc")}
                           </div>
                         </div>
                       </label>
@@ -762,10 +789,10 @@ export function StudyActionBar({
                         </div>
                         <div className="flex-1 opacity-60">
                           <div className="text-sm font-medium text-foreground">
-                            Test twice
+                            {t("btn_test_twice")}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {testTwice ? "Enabled" : "Disabled"} · Set before starting test
+                            {testTwice ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
                           </div>
                         </div>
                       </div>
@@ -783,10 +810,10 @@ export function StudyActionBar({
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-foreground">
-                            Strict study mode
+                            {t("label_strict_study_mode")}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Requires typing the correct answer before moving to the next word
+                            {t("msg_strict_study_desc")}
                           </div>
                         </div>
                       </label>
@@ -801,10 +828,10 @@ export function StudyActionBar({
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-foreground">
-                            Breathing mode
+                            {t("msg_breathing_mode")}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Guides your breathing rhythm during word reveals for deeper focus
+                            {t("msg_breathing_mode_desc")}
                           </div>
                         </div>
                       </label>

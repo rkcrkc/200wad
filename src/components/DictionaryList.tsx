@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { InlineSearch } from "@/components/InlineSearch";
 import { DictionaryRow } from "@/components/DictionaryRow";
+import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { DictionaryWord } from "@/lib/queries/dictionary";
+import { WordWithDetails } from "@/lib/queries/words";
+import { fetchWordDetails } from "@/lib/actions/words";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
 
@@ -78,13 +81,19 @@ export function DictionaryList({
 
   const [filter, setFilter] = useState<FilterType>(() => {
     // If navigating to a specific word, start on "course" tab (most likely to contain it)
-    return "course";
+    if (highlightWordId) return "course";
+    return "my-words";
   });
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>("english");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedWordId, setHighlightedWordId] = useState<string | null>(highlightWordId);
+
+  // Word sidebar state
+  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [selectedWordDetails, setSelectedWordDetails] = useState<WordWithDetails | null>(null);
+  const [, startTransition] = useTransition();
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -160,6 +169,59 @@ export function DictionaryList({
     });
     return sorted;
   }, [searchFilteredWords, sortColumn, sortDirection]);
+
+  // Word selection handlers (must be after sortedWords)
+  const handleSelectWord = useCallback((index: number) => {
+    if (selectedWordIndex === index) {
+      setSelectedWordIndex(null);
+      setSelectedWordDetails(null);
+    } else {
+      setSelectedWordIndex(index);
+      startTransition(async () => {
+        const { word } = await fetchWordDetails(sortedWords[index].id);
+        if (word) setSelectedWordDetails(word);
+      });
+    }
+  }, [selectedWordIndex, sortedWords]);
+
+  const handleCloseSidebar = useCallback(() => {
+    setSelectedWordIndex(null);
+    setSelectedWordDetails(null);
+  }, []);
+
+  const handlePreviousWord = useCallback(() => {
+    if (selectedWordIndex === null || selectedWordIndex <= 0) return;
+    const newIndex = selectedWordIndex - 1;
+    setSelectedWordIndex(newIndex);
+    startTransition(async () => {
+      const { word } = await fetchWordDetails(sortedWords[newIndex].id);
+      if (word) setSelectedWordDetails(word);
+    });
+  }, [selectedWordIndex, sortedWords]);
+
+  const handleNextWord = useCallback(() => {
+    if (selectedWordIndex === null || selectedWordIndex >= sortedWords.length - 1) return;
+    const newIndex = selectedWordIndex + 1;
+    setSelectedWordIndex(newIndex);
+    startTransition(async () => {
+      const { word } = await fetchWordDetails(sortedWords[newIndex].id);
+      if (word) setSelectedWordDetails(word);
+    });
+  }, [selectedWordIndex, sortedWords]);
+
+  const handleJumpToWord = useCallback((index: number) => {
+    setSelectedWordIndex(index);
+    startTransition(async () => {
+      const { word } = await fetchWordDetails(sortedWords[index].id);
+      if (word) setSelectedWordDetails(word);
+    });
+  }, [sortedWords]);
+
+  // Close sidebar when filter/search changes
+  useEffect(() => {
+    setSelectedWordIndex(null);
+    setSelectedWordDetails(null);
+  }, [filter, letterFilter, searchQuery]);
 
   // Handle filter changes
   const handleFilterChange = (newFilter: FilterType) => {
@@ -297,12 +359,21 @@ export function DictionaryList({
 
       {/* Words Table */}
       <div className="overflow-x-auto rounded-xl pb-16">
-        <table className="min-w-[800px] w-full border-collapse">
+        <table className="min-w-[800px] w-full table-fixed border-collapse">
+          <colgroup>
+            <col style={{ width: 72 }} />
+            <col />
+            <col />
+            <col style={{ width: 120 }} />
+            <col style={{ width: 140 }} />
+            <col style={{ width: 160 }} />
+            <col style={{ width: 60 }} />
+          </colgroup>
           {/* Table Header */}
           <thead>
             <tr className="whitespace-nowrap">
-              <th className="w-12 px-6 py-3"></th>
-              <th className="min-w-[150px] px-2 py-3 text-left">
+              <th className="px-6 py-3"></th>
+              <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label="English"
                   column="english"
@@ -311,7 +382,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="min-w-[150px] px-2 py-3 text-left">
+              <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label={languageName || "Translation"}
                   column="headword"
@@ -320,7 +391,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[120px] px-2 py-3 text-left">
+              <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label="Word Type"
                   column="partOfSpeech"
@@ -329,7 +400,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[140px] px-2 py-3 text-left">
+              <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label="Status"
                   column="status"
@@ -338,7 +409,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[140px] px-2 py-3 text-left">
+              <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label="Lesson"
                   column="lessonNumber"
@@ -347,7 +418,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="sticky right-0 w-[40px] bg-background px-2 py-3"></th>
+              <th className="sticky right-0 bg-background px-2 py-3"></th>
             </tr>
           </thead>
 
@@ -378,9 +449,11 @@ export function DictionaryList({
                 <DictionaryRow
                   key={word.id}
                   word={word}
+                  onClick={() => handleSelectWord(index)}
                   isFirst={index === 0}
                   isLast={index === visibleWords.length - 1 && !hasMore}
                   isHighlighted={word.id === highlightedWordId}
+                  isSelected={selectedWordIndex === index}
                 />
               ))
             )}
@@ -391,7 +464,7 @@ export function DictionaryList({
       </div>
 
       {/* Floating Footer */}
-      <div className="fixed bottom-0 left-[240px] right-0 z-10 border-t border-gray-200 bg-white px-6 py-3">
+      <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar px-6 py-3">
         <div className="mx-auto max-w-[1200px]">
           <span className="text-sm text-muted-foreground">
             {sortedWords.length === 0
@@ -400,6 +473,29 @@ export function DictionaryList({
           </span>
         </div>
       </div>
+
+      {/* Word Detail Sidebar */}
+      {selectedWordDetails && selectedWordIndex !== null && (
+        <WordDetailSidebar
+          word={selectedWordDetails}
+          lessonTitle={sortedWords[selectedWordIndex]?.lessonTitle || ""}
+          lessonNumber={sortedWords[selectedWordIndex]?.lessonNumber || 0}
+          onClose={handleCloseSidebar}
+          onPrevious={handlePreviousWord}
+          onNext={handleNextWord}
+          onJumpToWord={handleJumpToWord}
+          hasPrevious={selectedWordIndex > 0}
+          hasNext={selectedWordIndex < sortedWords.length - 1}
+          currentIndex={selectedWordIndex}
+          totalWords={sortedWords.length}
+          wordList={sortedWords.map((w) => ({
+            id: w.id,
+            english: w.english,
+            foreign: w.headword,
+          }))}
+          showProgress={false}
+        />
+      )}
     </>
   );
 }

@@ -26,15 +26,17 @@ export function CompletedModalActionCard({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full max-w-[160px] flex-col items-center gap-2 rounded-xl px-3 py-4 transition-colors ${
+      className={`group flex w-full max-w-[160px] flex-col items-center gap-2 rounded-xl border px-3 py-4 transition-colors ${
         primary
-          ? "bg-primary text-white hover:bg-primary/90"
+          ? "border-primary bg-primary text-white hover:border-blue-dark"
           : muted
-            ? "bg-white text-muted-foreground hover:bg-gray-50"
-            : "bg-white text-foreground hover:bg-gray-50"
+            ? "border-transparent bg-white text-muted-foreground"
+            : "border-transparent bg-white text-foreground"
       }`}
     >
-      {icon}
+      <span className={primary ? "transition-transform duration-200 group-hover:-rotate-90" : ""}>
+        {icon}
+      </span>
       <span className="text-center text-xs font-medium leading-tight">{label}</span>
     </button>
   );

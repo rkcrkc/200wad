@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Trophy,
   HelpCircle,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,11 @@ const navItems: NavItem[] = [
     label: "Music",
     href: "/admin/music",
     icon: <Music className="h-5 w-5" />,
+  },
+  {
+    label: "Text & Labels",
+    href: "/admin/text-labels",
+    icon: <FileText className="h-5 w-5" />,
   },
   {
     label: "Help",

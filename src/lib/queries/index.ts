@@ -37,6 +37,8 @@ export type {
   StreakStats,
   CumulativeProgress,
   HeatmapDay,
+  ChartDailyRow,
+  ChartServerData,
 } from "./stats";
 export type {
   LessonForScheduler,
@@ -61,3 +63,6 @@ export { getLeaderboard, getLeaderboardRewards, getLeagueConfig, getPersonalBest
 export type { LeaderboardEntry, LeaderboardMetric, LeaderboardPeriod, LeaderboardData, LeaderboardReward } from "./leaderboard";
 
 export { getHelpEntries, getHelpEntriesAdmin } from "./help";
+
+export { getTextOverrides } from "./text";
+export type { GetTextOverridesResult } from "./text";

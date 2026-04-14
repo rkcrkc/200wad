@@ -951,6 +951,7 @@ export type Database = {
           correct_answers: number
           duration_seconds: number | null
           id: string
+          is_retest: boolean
           lesson_id: string | null
           mastered_words_count: number | null
           max_points: number
@@ -966,6 +967,7 @@ export type Database = {
           correct_answers: number
           duration_seconds?: number | null
           id?: string
+          is_retest?: boolean
           lesson_id?: string | null
           mastered_words_count?: number | null
           max_points?: number
@@ -981,6 +983,7 @@ export type Database = {
           correct_answers?: number
           duration_seconds?: number | null
           id?: string
+          is_retest?: boolean
           lesson_id?: string | null
           mastered_words_count?: number | null
           max_points?: number
@@ -1317,6 +1320,7 @@ export type Database = {
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
           notes: string | null
+          notes_in_memory_trigger: boolean | null
           part_of_speech: string | null
           phrase_type: string | null
           picture_bad_svg: boolean | null
@@ -1357,6 +1361,7 @@ export type Database = {
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
+          notes_in_memory_trigger?: boolean | null
           part_of_speech?: string | null
           phrase_type?: string | null
           picture_bad_svg?: boolean | null
@@ -1397,6 +1402,7 @@ export type Database = {
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
           notes?: string | null
+          notes_in_memory_trigger?: boolean | null
           part_of_speech?: string | null
           phrase_type?: string | null
           picture_bad_svg?: boolean | null

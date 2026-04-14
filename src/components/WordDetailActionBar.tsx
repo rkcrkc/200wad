@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Popover } from "@/components/ui/popover";
+import { useText } from "@/context/TextContext";
 
 interface TestAttempt {
   pointsEarned: number;
@@ -25,6 +27,7 @@ interface WordScoreStats {
   totalPointsEarned: number;
   totalMaxPoints: number;
   scorePercent: number;
+  timesTested: number;
 }
 
 interface WordListItem {
@@ -117,6 +120,7 @@ export function WordDetailActionBar({
   fromDictionary = false,
   variant = "page",
 }: WordDetailActionBarProps) {
+  const { t, tt } = useText();
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -245,15 +249,39 @@ export function WordDetailActionBar({
             )}
 
             {/* Traffic lights (last 3 test attempts) + historical score percentage */}
-            <Tooltip label="Average test score">
+            <Popover
+              position="above"
+              align="left"
+              className="flex items-center cursor-default"
+              content={
+                <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                  <span>
+                    {tt("pop_score_breakdown", {
+                      pts: scoreStats?.totalPointsEarned ?? 0,
+                      total: scoreStats?.totalMaxPoints ?? 0,
+                      pct: scoreStats && scoreStats.totalMaxPoints > 0
+                        ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
+                        : "0.0",
+                    })}
+                  </span>
+                  <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
+                </div>
+              }
+            >
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5">
                   {[0, 1, 2].map((i) => {
                     const attempt = testHistory[i];
-                    // Green = got points, Red = 0 points, Gray = no attempt yet
+                    // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt
                     let bgColor = "bg-gray-300"; // No attempt
                     if (attempt) {
-                      bgColor = attempt.pointsEarned > 0 ? "bg-success" : "bg-destructive";
+                      if (attempt.pointsEarned >= attempt.maxPoints) {
+                        bgColor = "bg-success";
+                      } else if (attempt.pointsEarned > 0) {
+                        bgColor = "bg-warning";
+                      } else {
+                        bgColor = "bg-destructive";
+                      }
                     }
                     return (
                       <div
@@ -267,7 +295,7 @@ export function WordDetailActionBar({
                   {wordScorePercent}%
                 </span>
               </div>
-            </Tooltip>
+            </Popover>
           </div>
 
           {/* Right section - Navigation controls, divider, toggle icons */}
@@ -276,7 +304,7 @@ export function WordDetailActionBar({
             {!fromDictionary && (
               <>
                 <div className="flex items-center gap-2">
-                  <Tooltip label="Replay audio sequence">
+                  <Tooltip label={t("tip_replay_audio")}>
                     <button
                       onClick={onReplay}
                       className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
@@ -284,7 +312,7 @@ export function WordDetailActionBar({
                       <RefreshCw className="h-5 w-5" />
                     </button>
                   </Tooltip>
-                  <Tooltip label="First word">
+                  <Tooltip label={t("tip_first_word")}>
                     <button
                       onClick={() => onJumpToWord(0)}
                       className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
@@ -292,7 +320,7 @@ export function WordDetailActionBar({
                       <ChevronsLeft className="h-5 w-5" />
                     </button>
                   </Tooltip>
-                  <Tooltip label="Previous word">
+                  <Tooltip label={t("tip_previous_word")}>
                     <button
                       onClick={onPreviousWord}
                       disabled={!hasPrevious}
@@ -301,7 +329,7 @@ export function WordDetailActionBar({
                       <ChevronLeft className="h-5 w-5" />
                     </button>
                   </Tooltip>
-                  <Tooltip label="Next word">
+                  <Tooltip label={t("tip_next_word")}>
                     <button
                       onClick={onNextWord}
                       disabled={!hasNext}
@@ -310,7 +338,7 @@ export function WordDetailActionBar({
                       <ChevronRight className="h-5 w-5" />
                     </button>
                   </Tooltip>
-                  <Tooltip label="Last word">
+                  <Tooltip label={t("tip_last_word")}>
                     <button
                       onClick={() => onJumpToWord(totalWords - 1)}
                       className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
@@ -327,7 +355,7 @@ export function WordDetailActionBar({
 
             {/* Replay button - show when nav controls are hidden */}
             {fromDictionary && (
-              <Tooltip label="Replay audio sequence">
+              <Tooltip label={t("tip_replay_audio")}>
                 <button
                   onClick={onReplay}
                   className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
@@ -339,7 +367,7 @@ export function WordDetailActionBar({
 
             {/* Toggle icons */}
             <div className="flex items-center gap-3">
-              <Tooltip label={imageMode === "memory-trigger" ? "Show flashcard image" : "Show memory trigger"}>
+              <Tooltip label={imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")}>
                 <button
                   onClick={() => {
                     const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
 import { status as statusTokens } from "@/lib/design-tokens";
+import { useText } from "@/context/TextContext";
 
 interface AdjacentLesson {
   id: string;
@@ -61,6 +62,7 @@ export function LessonPageContent({
   nextLesson,
   activityHistory,
 }: LessonPageContentProps) {
+  const { t } = useText();
   const router = useRouter();
   const [, setIsWordSelected] = useState(false);
   const [showStartTestModal, setShowStartTestModal] = useState(false);
@@ -119,7 +121,7 @@ export function LessonPageContent({
               content={
                 <div className="flex flex-col gap-1">
                   <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
-                    Words mastered
+                    {t("pop_words_mastered")}
                   </span>
                   <span className="text-foreground text-[13px] leading-[1.4]">
                     <span className="font-semibold">{formatNumber(wordsMastered)}</span> mastered / <span className="font-semibold">{formatNumber(words.length)}</span> total = <span className="font-semibold">{formatPercent(masteredPercentage, { decimals: 1 })}</span>
@@ -173,14 +175,14 @@ export function LessonPageContent({
               content={
                 <div className="flex flex-col gap-1">
                   <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
-                    Time breakdown
+                    {t("pop_time_breakdown")}
                   </span>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-foreground text-[13px] leading-[1.4]">
-                      Study time: <span className="font-semibold">{formatDuration(studyTimeSeconds)}</span>
+                      {t("pop_study_time")} <span className="font-semibold">{formatDuration(studyTimeSeconds)}</span>
                     </span>
                     <span className="text-foreground text-[13px] leading-[1.4]">
-                      Test time: <span className="font-semibold">{formatDuration(testTimeSeconds)}</span>
+                      {t("pop_test_time")} <span className="font-semibold">{formatDuration(testTimeSeconds)}</span>
                     </span>
                   </div>
                 </div>
@@ -203,7 +205,7 @@ export function LessonPageContent({
             activities={activityHistory.activities}
             counts={activityHistory.counts}
             rightContent={
-              <Tooltip label="Show words">
+              <Tooltip label={t("tip_show_words")}>
                 <button
                   onClick={() => setShowHistory(false)}
                   className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
@@ -226,7 +228,7 @@ export function LessonPageContent({
             onWordSelected={setIsWordSelected}
             rightContent={
               activityHistory && (
-                <Tooltip label="Show test history">
+                <Tooltip label={t("tip_show_test_history")}>
                   <button
                     onClick={() => setShowHistory(true)}
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
@@ -270,7 +272,7 @@ export function LessonPageContent({
               <Button
                 variant="outline"
                 size="xl"
-                className="flex-1 max-w-[240px] border-primary text-primary hover:bg-primary/5"
+                className="flex-1 max-w-[240px] border-primary text-primary"
                 onClick={() => setShowStartTestModal(true)}
               >
                 Take test

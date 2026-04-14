@@ -99,12 +99,15 @@ export function TestCompletedModal({
             <Clock className="h-4 w-4" />
             <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
           </div>
+          {(newWordsCount > 0 || masteredWordsCount > 0 || courseWordsMastered !== null) && (
+            <span>·</span>
+          )}
           {newWordsCount > 0 && <span>{formatNumber(newWordsCount)} new words</span>}
           {masteredWordsCount > 0 && <span>{formatNumber(masteredWordsCount)} mastered</span>}
           {courseWordsMastered !== null && (
             <div className="flex items-center gap-1.5">
               <span>{formatNumber(courseWordsMastered)} words mastered</span>
-              <TrendingUp className="h-4 w-4 text-primary" />
+              {masteredWordsCount > 0 && <TrendingUp className="h-4 w-4 text-primary" />}
             </div>
           )}
           <span>·</span>

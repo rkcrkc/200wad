@@ -59,7 +59,6 @@ export function LessonCompletedModal({
           </div>
           <span>·</span>
           <span>{formatNumber(words.length)} words</span>
-          <span>·</span>
           <span>{formatNumber(newWordsCount)} new</span>
           <span>·</span>
           <div className="flex items-center gap-1">
@@ -115,7 +114,7 @@ export function LessonCompletedModal({
           </Button>
           <button
             onClick={onDismiss}
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-primary"
           >
             Not now
           </button>

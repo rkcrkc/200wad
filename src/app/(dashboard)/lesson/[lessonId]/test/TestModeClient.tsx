@@ -116,6 +116,7 @@ export function TestModeClient({
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
+  const [isRetest, setIsRetest] = useState(false);
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
@@ -181,7 +182,7 @@ export function TestModeClient({
   })();
 
   const mergedScoreStats = (() => {
-    const historicalStats = currentWord?.scoreStats || { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0 };
+    const historicalStats = currentWord?.scoreStats || { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
     if (currentProgress?.hasAnswered) {
       const newTotalPoints = historicalStats.totalPointsEarned + currentProgress.pointsEarned;
       const newTotalMax = historicalStats.totalMaxPoints + currentProgress.maxPoints;
@@ -189,6 +190,7 @@ export function TestModeClient({
         totalPointsEarned: newTotalPoints,
         totalMaxPoints: newTotalMax,
         scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
+        timesTested: historicalStats.timesTested + 1,
       };
     }
     return historicalStats;
@@ -480,6 +482,7 @@ export function TestModeClient({
         durationSeconds: elapsedSeconds,
         newWordsCount,
         masteredWordsCount,
+        isRetest,
       };
 
       const result = await completeTestSession(sessionId, lesson.id, stats, questionResults, milestone);
@@ -493,7 +496,7 @@ export function TestModeClient({
     }
 
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone]);
+  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest]);
 
   // Track viewed words when navigating
   useEffect(() => {
@@ -575,9 +578,54 @@ export function TestModeClient({
     }
   }, [router, lesson.id, course?.id]);
 
+  /** Build updated word objects that fold current test results into testHistory/scoreStats */
+  const buildUpdatedWords = useCallback(
+    (sourceWords: WordWithDetails[]): WordWithDetails[] => {
+      return sourceWords.map((w) => {
+        // Gather all attempts for this word from the current session
+        const attempts: { pointsEarned: number; maxPoints: number }[] = [];
+        const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+        for (const key of keys) {
+          const p = testProgressMap.get(key);
+          if (p?.hasAnswered) {
+            attempts.push({ pointsEarned: p.pointsEarned, maxPoints: p.maxPoints });
+          }
+        }
+        if (attempts.length === 0) return w;
+
+        // Prepend new attempts (newest first) to existing history, cap at 3
+        const updatedHistory = [
+          ...attempts.map((a) => ({
+            pointsEarned: a.pointsEarned,
+            maxPoints: a.maxPoints,
+            answeredAt: new Date().toISOString(),
+          })),
+          ...w.testHistory,
+        ].slice(0, 3);
+
+        // Recalculate score stats
+        const addedPoints = attempts.reduce((s, a) => s + a.pointsEarned, 0);
+        const addedMax = attempts.reduce((s, a) => s + a.maxPoints, 0);
+        const prev = w.scoreStats;
+        const newTotalPoints = prev.totalPointsEarned + addedPoints;
+        const newTotalMax = prev.totalMaxPoints + addedMax;
+        const updatedStats = {
+          totalPointsEarned: newTotalPoints,
+          totalMaxPoints: newTotalMax,
+          scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
+          timesTested: prev.timesTested + attempts.length,
+        };
+
+        return { ...w, testHistory: updatedHistory, scoreStats: updatedStats };
+      });
+    },
+    [testProgressMap, testTwice]
+  );
+
   const handleTestAgain = useCallback(() => {
-    // Reset all state and start fresh with all words
-    setActiveWords(words);
+    // Update words with current test results folded into history, then reset
+    const updatedWords = buildUpdatedWords(words);
+    setActiveWords(updatedWords);
     setCurrentWordIndex(0);
     setClueLevel(0);
     setTestProgressMap(new Map());
@@ -585,12 +633,13 @@ export function TestModeClient({
     setShowCompletionModal(false);
     setElapsedSeconds(0);
     setServerCourseWordsMastered(null);
+    setIsRetest(true);
 
     // Create new session
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-  }, [sessionId, lesson.id, words]);
+  }, [sessionId, lesson.id, words, buildUpdatedWords]);
 
   const handleRetestIncorrect = useCallback(() => {
     // Filter to only words that were not fully correct
@@ -603,7 +652,9 @@ export function TestModeClient({
       }
     });
 
-    const incorrectWords = words.filter((w) => incorrectWordIds.has(w.id));
+    // Update words with current test results folded into history, then filter
+    const updatedWords = buildUpdatedWords(words);
+    const incorrectWords = updatedWords.filter((w) => incorrectWordIds.has(w.id));
     if (incorrectWords.length === 0) return;
 
     // Reset state with filtered words
@@ -615,16 +666,16 @@ export function TestModeClient({
     setShowCompletionModal(false);
     setServerCourseWordsMastered(null);
     setElapsedSeconds(0);
+    setIsRetest(true);
 
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-  }, [testProgressMap, testTwice, words, sessionId, lesson.id]);
+  }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords]);
 
   const handleStudyIncorrect = useCallback(() => {
-    // Placeholder - redirect to study mode
-    router.push(`/lesson/${lesson.id}/study`);
-  }, [router, lesson.id]);
+    window.location.href = `/lesson/${lesson.id}/study`;
+  }, [lesson.id]);
 
   // Handle inserting accented character into answer input
   const handleInsertCharacter = useCallback((char: string) => {
@@ -976,6 +1027,7 @@ export function TestModeClient({
                   pictureWrongNotes={currentWord?.picture_wrong_notes}
                   pictureMissing={currentWord?.picture_missing}
                   pictureBadSvg={currentWord?.picture_bad_svg}
+                  notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
                 />
               </div>
             </div>

@@ -101,6 +101,7 @@ export interface TestStats {
   durationSeconds: number;
   newWordsCount: number;
   masteredWordsCount: number;
+  isRetest: boolean;
 }
 
 export interface CompleteTestSessionResult {
@@ -320,6 +321,7 @@ export async function completeTestSession(
       duration_seconds: stats.durationSeconds,
       new_words_count: stats.newWordsCount,
       mastered_words_count: stats.masteredWordsCount,
+      is_retest: stats.isRetest,
       taken_at: new Date().toISOString(),
     })
     .select("id")

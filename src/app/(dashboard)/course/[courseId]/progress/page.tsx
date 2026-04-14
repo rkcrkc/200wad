@@ -39,7 +39,7 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
       courseId={courseId}
       courseName={course.name}
     >
-      <PageShell>
+      <PageShell backLink={{ href: `/course/${courseId}/schedule`, label: "Schedule" }} withTopPadding={false} className="pt-8">
         <h1 className="text-page-header mb-6">Progress</h1>
         <ProgressClient stats={stats} isGuest={isGuest} />
       </PageShell>

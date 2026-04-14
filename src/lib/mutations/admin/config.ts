@@ -34,6 +34,7 @@ export async function updatePlatformConfig(
     }
 
     revalidatePath("/admin/settings");
+    revalidatePath("/admin/text-labels");
     return { success: true, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

@@ -26,6 +26,7 @@ interface StudySidebarProps {
   pictureWrongNotes?: string | null;
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
+  notesInMemoryTrigger?: boolean | null;
 }
 
 export function StudySidebar({
@@ -43,6 +44,7 @@ export function StudySidebar({
   pictureWrongNotes: initialPictureWrongNotes,
   pictureMissing: initialPictureMissing,
   pictureBadSvg: initialPictureBadSvg,
+  notesInMemoryTrigger: initialNotesInMemoryTrigger,
 }: StudySidebarProps) {
   // User notes state
   const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
@@ -63,6 +65,7 @@ export function StudySidebar({
   const [pictureWrongNotes, setPictureWrongNotes] = useState(initialPictureWrongNotes || null);
   const [pictureMissing, setPictureMissing] = useState(initialPictureMissing || false);
   const [pictureBadSvg, setPictureBadSvg] = useState(initialPictureBadSvg || false);
+  const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(initialNotesInMemoryTrigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
 
   const prevWordIdRef = useRef(wordId);
@@ -85,9 +88,10 @@ export function StudySidebar({
       setPictureWrongNotes(initialPictureWrongNotes || null);
       setPictureMissing(initialPictureMissing || false);
       setPictureBadSvg(initialPictureBadSvg || false);
+      setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
       prevWordIdRef.current = wordId;
     }
-  }, [wordId, userNotes, systemNotes, initialDeveloperNotes, initialPictureWrong, initialPictureWrongNotes, initialPictureMissing, initialPictureBadSvg]);
+  }, [wordId, userNotes, systemNotes, initialDeveloperNotes, initialPictureWrong, initialPictureWrongNotes, initialPictureMissing, initialPictureBadSvg, initialNotesInMemoryTrigger]);
 
   // User notes handlers
   const handleSaveUserNotes = () => {
@@ -127,6 +131,7 @@ export function StudySidebar({
       picture_wrong_notes: pictureWrongNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
@@ -163,6 +168,7 @@ export function StudySidebar({
       picture_wrong_notes: field === "wrong" && !checked ? null : pictureWrongNotes,
       picture_missing: field === "missing" ? checked : pictureMissing,
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
@@ -178,6 +184,26 @@ export function StudySidebar({
       picture_wrong_notes: trimmedNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
+    };
+    await saveDeveloperData(wordId, data);
+    setIsSavingDeveloperData(false);
+  };
+
+  // Text checkbox handler
+  const handleTextCheckboxChange = async (
+    field: "notes_in_memory_trigger",
+    checked: boolean
+  ) => {
+    setNotesInMemoryTrigger(checked);
+    setIsSavingDeveloperData(true);
+    const data: DeveloperData = {
+      developer_notes: developerNotes,
+      picture_wrong: pictureWrong,
+      picture_wrong_notes: pictureWrongNotes,
+      picture_missing: pictureMissing,
+      picture_bad_svg: pictureBadSvg,
+      notes_in_memory_trigger: checked,
     };
     await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
@@ -468,6 +494,24 @@ export function StudySidebar({
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                   <span className="text-small-regular text-foreground">Bad SVG</span>
+                </label>
+              </div>
+
+              <div className="h-px w-full bg-black/10" />
+
+              {/* Text Section */}
+              <div className="flex flex-col gap-3">
+                <span className="text-xs font-medium text-foreground/70">Text</span>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notesInMemoryTrigger}
+                    onChange={(e) => handleTextCheckboxChange("notes_in_memory_trigger", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Notes appearing in memory trigger</span>
                 </label>
               </div>
             </div>

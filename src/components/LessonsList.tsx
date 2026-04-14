@@ -10,6 +10,7 @@ import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { PricingPlan } from "@/types/database";
+import { useText } from "@/context/TextContext";
 
 type FilterType = "all" | "not-started" | "learning" | "mastered";
 type SortColumn = "number" | "title" | "word_count" | "wordsMastered" | "completionPercent" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
@@ -67,6 +68,7 @@ function SortableHeader({
 }
 
 export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers }: LessonsListProps) {
+  const { t } = useText();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>("number");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -182,7 +184,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
             placeholder="Filter lessons..."
           />
           {/* Stats toggle button */}
-          <Tooltip label={showStats ? "Show progress view" : "Show test scores"}>
+          <Tooltip label={showStats ? t("tip_show_progress_view") : t("tip_show_test_scores")}>
             <button
               onClick={() => setShowStats(!showStats)}
               className={cn(
@@ -306,7 +308,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="sticky right-0 w-[90px] bg-background px-2 py-3"></th>
+                  <th className="sticky right-0 z-10 w-[110px] bg-background px-2 py-3"></th>
                 </>
               ) : (
                 <>
@@ -360,7 +362,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="sticky right-0 w-[140px] bg-background px-2 py-3"></th>
+                  <th className="sticky right-0 z-10 w-[140px] bg-background px-2 py-3"></th>
                 </>
               )}
             </tr>

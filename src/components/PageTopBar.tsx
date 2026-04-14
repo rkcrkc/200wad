@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useText } from "@/context/TextContext";
 
 interface PageTopBarProps {
   backLink?: { href: string; label: string };
@@ -21,6 +22,7 @@ export function PageTopBar({
   onToggleWidth,
   mounted,
 }: PageTopBarProps) {
+  const { t } = useText();
   return (
     <div className="mb-8 flex items-center justify-between">
       {/* Left: greeting or back link */}
@@ -51,7 +53,7 @@ export function PageTopBar({
       )}
 
       {/* Right: width toggle */}
-      <Tooltip label={width === "md" ? "Expand" : "Shrink"} position="below">
+      <Tooltip label={width === "md" ? t("tip_expand_width") : t("tip_shrink_width")} position="below">
         <button
           onClick={onToggleWidth}
           className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-beige hover:text-foreground ${

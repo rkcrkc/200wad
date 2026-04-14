@@ -195,6 +195,7 @@ export function WordDetailView({
   const [pictureWrongNotes, setPictureWrongNotes] = useState(word.picture_wrong_notes || null);
   const [pictureMissing, setPictureMissing] = useState(word.picture_missing || false);
   const [pictureBadSvg, setPictureBadSvg] = useState(word.picture_bad_svg || false);
+  const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(word.notes_in_memory_trigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
 
   // Image display mode state
@@ -221,7 +222,8 @@ export function WordDetailView({
     setPictureWrongNotes(word.picture_wrong_notes || null);
     setPictureMissing(word.picture_missing || false);
     setPictureBadSvg(word.picture_bad_svg || false);
-  }, [word.id, word.progress?.user_notes, word.notes, word.developer_notes, word.picture_wrong, word.picture_wrong_notes, word.picture_missing, word.picture_bad_svg]);
+    setNotesInMemoryTrigger(word.notes_in_memory_trigger || false);
+  }, [word.id, word.progress?.user_notes, word.notes, word.developer_notes, word.picture_wrong, word.picture_wrong_notes, word.picture_missing, word.picture_bad_svg, word.notes_in_memory_trigger]);
 
   // User notes handlers
   const handleSaveUserNotes = async () => {
@@ -261,6 +263,7 @@ export function WordDetailView({
       picture_wrong_notes: pictureWrongNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     await saveDeveloperData(word.id, data);
     setIsSavingDeveloperData(false);
@@ -297,6 +300,7 @@ export function WordDetailView({
       picture_wrong_notes: field === "wrong" && !checked ? null : pictureWrongNotes,
       picture_missing: field === "missing" ? checked : pictureMissing,
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     await saveDeveloperData(word.id, data);
     setIsSavingDeveloperData(false);
@@ -312,6 +316,7 @@ export function WordDetailView({
       picture_wrong_notes: trimmedNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     await saveDeveloperData(word.id, data);
     setIsSavingDeveloperData(false);
@@ -755,6 +760,64 @@ export function WordDetailView({
               )}
             </div>
           </div>
+
+          {/* Test History - sidebar only */}
+          {isSidebar && word.testHistory.length > 0 && (
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+              <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
+                TEST HISTORY
+              </span>
+              {/* Score summary */}
+              <div className="mb-4 flex items-baseline gap-2">
+                <span className="text-xxl2-semibold text-foreground">
+                  {word.scoreStats.scorePercent}%
+                </span>
+                <span className="text-sm text-foreground/50">
+                  {word.scoreStats.totalPointsEarned}/{word.scoreStats.totalMaxPoints} pts
+                </span>
+              </div>
+              <div className="flex flex-col gap-3">
+                {word.testHistory.map((attempt, index) => {
+                  const date = new Date(attempt.answeredAt);
+                  const dateStr = date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                  const timeStr = date.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  });
+                  const isPass = attempt.pointsEarned > 0;
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 text-right text-xs tabular-nums text-foreground/40">
+                            {word.testHistory.length - index}
+                          </span>
+                          <div
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              isPass ? "bg-success" : "bg-destructive"
+                            }`}
+                          />
+                          <span className="text-sm text-foreground">
+                            {attempt.pointsEarned}/{attempt.maxPoints}
+                          </span>
+                        </div>
+                        <span className="text-sm text-foreground/50">
+                          {dateStr}, {timeStr}
+                        </span>
+                      </div>
+                      {index < word.testHistory.length - 1 && (
+                        <div className="mt-3 h-px w-full bg-black/10" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Developer Section - Admin only */}
           {isAdmin && (

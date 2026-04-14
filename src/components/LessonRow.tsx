@@ -110,7 +110,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
 
         {/* Take test button / Lock icon - sticky on horizontal scroll */}
         <td className={cn(
-          "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+          "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
           isFirst && "rounded-tr-xl",
           isLast && "rounded-br-xl"
         )}>
@@ -125,7 +125,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
                 }}
                 className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
               >
-                Take test
+                Test
               </button>
             )}
           </div>
@@ -196,7 +196,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
 
       {/* Actions / Lock - sticky on horizontal scroll */}
       <td className={cn(
-        "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl"
       )}>

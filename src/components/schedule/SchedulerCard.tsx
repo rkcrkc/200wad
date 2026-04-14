@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
+import { useText } from "@/context/TextContext";
 
 interface SchedulerCardProps {
   lesson: LessonForScheduler;
@@ -14,6 +15,7 @@ interface SchedulerCardProps {
 }
 
 export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
+  const { t } = useText();
   const isTest = mode === "test";
 
   return (
@@ -73,7 +75,7 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
               </Link>
             </Button>
 
-            <Tooltip label="Preview lesson">
+            <Tooltip label={t("tip_preview_lesson")}>
               <Button asChild variant="ghost" size="icon-lg">
                 <Link href={`/lesson/${lesson.id}`}>
                   <Eye className="size-5" />

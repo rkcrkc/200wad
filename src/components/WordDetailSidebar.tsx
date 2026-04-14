@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
-import { X, RectangleVertical, Square, RectangleHorizontal } from "lucide-react";
+import { X, ChevronsRightLeft, ChevronsLeftRight } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { WordDetailView } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { WordWithDetails } from "@/lib/queries/words";
+import { useText } from "@/context/TextContext";
 
 interface WordListItem {
   id: string;
@@ -27,12 +28,13 @@ interface WordDetailSidebarProps {
   totalWords: number;
   wordList: WordListItem[];
   isAdmin?: boolean;
+  showProgress?: boolean;
 }
 
 const SIDEBAR_SIZES = [
-  { key: "sm", width: 420, label: "Small", Icon: RectangleVertical },
-  { key: "md", width: 580, label: "Medium", Icon: Square },
-  { key: "lg", width: 800, label: "Large", Icon: RectangleHorizontal },
+  { key: "sm", width: 420, label: "Small", Icon: ChevronsLeftRight },
+  { key: "md", width: 580, label: "Medium", Icon: ChevronsLeftRight },
+  { key: "lg", width: 800, label: "Large", Icon: ChevronsRightLeft },
 ] as const;
 
 type SidebarSizeKey = (typeof SIDEBAR_SIZES)[number]["key"];
@@ -58,7 +60,9 @@ export function WordDetailSidebar({
   totalWords,
   wordList,
   isAdmin = false,
+  showProgress = true,
 }: WordDetailSidebarProps) {
+  const { t, tt } = useText();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const [sizeKey, setSizeKey] = useState<SidebarSizeKey>(() => {
@@ -122,44 +126,46 @@ export function WordDetailSidebar({
         {/* Header */}
         <div className="bg-white px-6 py-4 shadow-[0_1px_3px_0_rgba(0,0,0,0.05)]">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center overflow-hidden">
-              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                Word <span style={{ display: "inline-block", width: `${String(totalWords).length}ch`, textAlign: "right" }}>{currentIndex + 1}</span> of {totalWords}
-              </span>
-              <div
-                className={`flex min-w-0 items-center gap-1.5 overflow-hidden transition-[opacity,max-width,padding] duration-200 ${
-                  sizeKey === "sm" ? "max-w-0 pl-0 opacity-0" : "max-w-[500px] pl-3 opacity-100"
-                }`}
-              >
-                {Array.from({ length: totalWords }).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      if (index !== currentIndex) {
-                        onJumpToWord?.(index);
-                      }
-                    }}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      index === currentIndex
-                        ? "bg-primary"
-                        : "bg-gray-300 hover:bg-gray-400"
-                    }`}
-                    title={`Word ${index + 1}`}
-                  />
-                ))}
+            {showProgress ? (
+              <div className="flex min-w-0 items-center overflow-hidden">
+                <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                  Word <span style={{ display: "inline-block", width: `${String(totalWords).length}ch`, textAlign: "right" }}>{currentIndex + 1}</span> of {totalWords}
+                </span>
+                <div
+                  className={`flex min-w-0 items-center gap-1.5 overflow-hidden transition-[opacity,max-width,padding] duration-200 ${
+                    sizeKey === "sm" ? "max-w-0 pl-0 opacity-0" : "max-w-[500px] pl-3 opacity-100"
+                  }`}
+                >
+                  {Array.from({ length: totalWords }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (index !== currentIndex) {
+                          onJumpToWord?.(index);
+                        }
+                      }}
+                      className={`h-2 w-2 rounded-full transition-colors ${
+                        index === currentIndex
+                          ? "bg-primary"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      }`}
+                      title={`Word ${index + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div />
+            )}
 
             <div className="flex shrink-0 items-center gap-1">
-              <Tooltip label={`Sidebar size: ${sizeLabel}`}>
-                <button
-                  onClick={cycleSize}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-beige hover:text-foreground"
-                >
-                  <SizeIcon className="h-4 w-4" />
-                </button>
-              </Tooltip>
-              <Tooltip label="Close">
+              <button
+                onClick={cycleSize}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-beige hover:text-foreground"
+              >
+                <SizeIcon className="h-4 w-4" />
+              </button>
+              <Tooltip label={t("tip_close")} position="below">
                 <button
                   onClick={handleClose}
                   className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-beige"
