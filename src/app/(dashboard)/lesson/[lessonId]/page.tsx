@@ -70,7 +70,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         withTopPadding={false}
         className="pt-8"
       >
-        {words.length === 0 ? (
+        {testableWords.length === 0 ? (
           // Empty state - show header with informative message
           <div>
             {/* Header */}
@@ -90,7 +90,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         ) : (
           <LessonPageContent
             lesson={lesson}
-            words={words}
+            words={testableWords}
             languageFlag={languageFlag}
             languageName={language?.name ?? undefined}
             courseId={course?.id}
@@ -109,7 +109,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         )}
 
         {/* Guest CTA */}
-        {isGuest && words.length > 0 && (
+        {isGuest && testableWords.length > 0 && (
           <GuestCTA title="Sign up to save your learning progress" />
         )}
       </PageShell>
