@@ -30,7 +30,7 @@ export function StatusPill({
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs-medium"
+      className="inline-flex cursor-default items-center gap-1.5 rounded-full px-3 py-1.5 text-xs-medium"
       style={{
         backgroundColor: style.bg,
         color: style.color,

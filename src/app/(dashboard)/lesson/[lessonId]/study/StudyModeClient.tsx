@@ -1056,12 +1056,14 @@ export function StudyModeClient({
             <div className="flex gap-3 justify-end">
               <Button
                 variant="outline"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowExitModal(false)}
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleConfirmExit}
               >
                 Exit lesson

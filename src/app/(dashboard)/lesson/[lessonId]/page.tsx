@@ -39,10 +39,11 @@ export default async function LessonPage({ params }: LessonPageProps) {
     }
   }
 
-  // Calculate progress stats — canonical statuses only
-  const wordsNotStarted = words.filter((w) => w.status === "not-started").length;
-  const wordsLearning = words.filter((w) => w.status === "learning").length;
-  const wordsMastered = words.filter((w) => w.status === "mastered").length;
+  // Calculate progress stats — canonical statuses only, excluding info pages
+  const testableWords = words.filter((w) => w.category !== "information");
+  const wordsNotStarted = testableWords.filter((w) => w.status === "not-started").length;
+  const wordsLearning = testableWords.filter((w) => w.status === "learning").length;
+  const wordsMastered = testableWords.filter((w) => w.status === "mastered").length;
   const masteredPercentage =
     stats.totalWords > 0
       ? Math.round((stats.wordsMastered / stats.totalWords) * 100)

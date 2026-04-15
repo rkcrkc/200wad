@@ -135,7 +135,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       // Full lesson → word map so we can bucket user progress by course
       supabase
         .from("lesson_words")
-        .select("lesson_id, word_id")
+        .select("lesson_id, word_id, words(category)")
         .in("lesson_id", lessonIds)
         .limit(SUPABASE_ALL_ROWS),
       // All of this user's progress on any word — we intersect client-side
@@ -156,9 +156,10 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       }
     });
 
-    // Build courseId → Set<wordId>
+    // Build courseId → Set<wordId>, excluding information pages
     const courseWordSets: Record<string, Set<string>> = {};
     lessonWordsResult.data?.forEach((lw) => {
+      if ((lw.words as unknown as { category: string | null })?.category === "information") return;
       const courseId = lessonIdToCourse[lw.lesson_id];
       if (courseId && lw.word_id) {
         if (!courseWordSets[courseId]) courseWordSets[courseId] = new Set();

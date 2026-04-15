@@ -214,17 +214,17 @@ export async function getCourseProgress(
   // Fetch mastered lessons, lesson_words (paginated), and user progress in parallel.
   // lesson_words can exceed PostgREST's default 1000-row page for large courses, so
   // we page through it explicitly rather than relying on a fixed limit.
-  const fetchAllLessonWords = async (): Promise<{ word_id: string | null }[]> => {
+  const fetchAllLessonWords = async (): Promise<{ word_id: string | null; words: { category: string | null } | null }[]> => {
     const pageSize = 1000;
-    const rows: { word_id: string | null }[] = [];
+    const rows: { word_id: string | null; words: { category: string | null } | null }[] = [];
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await supabase
         .from("lesson_words")
-        .select("word_id")
+        .select("word_id, words(category)")
         .in("lesson_id", lessonIds)
         .range(offset, offset + pageSize - 1);
       if (error || !data) break;
-      rows.push(...data);
+      rows.push(...(data as typeof rows));
       if (data.length < pageSize) break;
     }
     return rows;
@@ -247,9 +247,12 @@ export async function getCourseProgress(
 
   const completed = lessonsCompletedResult.count || 0;
 
-  // Calculate word stats
+  // Calculate word stats — exclude information pages
   const courseWordIds = new Set(
-    lessonWordsRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+    lessonWordsRows
+      .filter((lw) => (lw.words as unknown as { category: string | null })?.category !== "information")
+      .map((lw) => lw.word_id)
+      .filter((id): id is string => id !== null)
   );
   const totalWords = courseWordIds.size;
   const wordsMastered = (userProgressResult.data || []).filter(
@@ -320,7 +323,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
 
   const courseLessonIds = (courseLessons || []).map((l) => l.id);
 
-  // Paginated fetch of course word IDs (same pattern as getCourseProgress)
+  // Paginated fetch of course word IDs (same pattern as getCourseProgress), excluding info pages
   const fetchCourseWordIds = async (): Promise<Set<string>> => {
     if (courseLessonIds.length === 0) return new Set();
     const pageSize = 1000;
@@ -328,12 +331,14 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await supabase
         .from("lesson_words")
-        .select("word_id")
+        .select("word_id, words(category)")
         .in("lesson_id", courseLessonIds)
         .range(offset, offset + pageSize - 1);
       if (error || !data) break;
       for (const row of data) {
-        if (row.word_id) ids.add(row.word_id);
+        if (row.word_id && (row.words as unknown as { category: string | null })?.category !== "information") {
+          ids.add(row.word_id);
+        }
       }
       if (data.length < pageSize) break;
     }

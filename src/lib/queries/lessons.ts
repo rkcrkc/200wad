@@ -273,16 +273,21 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .in("status", ["learning", "mastered"]),
       supabase
         .from("lesson_words")
-        .select("lesson_id, word_id")
+        .select("lesson_id, word_id, words(category)")
         .in("lesson_id", lessonIds)
         .limit(SUPABASE_ALL_ROWS),
     ]);
     warnIfTruncated("getLessons:lesson_words", lessonWordsResult.data?.length ?? 0);
 
     if (lessonWordsResult.data && userProgressResult.data) {
+      // Filter out information pages — they're non-testable
+      const testableRows = lessonWordsResult.data.filter(
+        (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+      );
+
       // Create a set of course word IDs for fast lookup
       const courseWordIds = new Set(
-        lessonWordsResult.data.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+        testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
       );
 
       // Build per-word status lookup
@@ -300,7 +305,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       ).length;
 
       // Build per-lesson mastered counts from live data
-      for (const lw of lessonWordsResult.data) {
+      for (const lw of testableRows) {
         if (!lw.lesson_id || !lw.word_id) continue;
         const status = wordStatusMap.get(lw.word_id);
         if (status === "mastered") {

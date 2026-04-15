@@ -365,6 +365,16 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
                   className="border-border bg-white text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
                   placeholder="••••••••"
                 />
+                {authMode === "signin" && (
+                  <div className="mt-1 text-right">
+                    <a
+                      href="/forgot-password"
+                      className="text-primary text-sm hover:underline"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
+                )}
               </div>
 
               {authMode === "signup" && (

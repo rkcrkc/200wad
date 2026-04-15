@@ -63,7 +63,7 @@ export async function getCoursesForDropdown(
   const [lessonWordsResult, userProgressResult] = await Promise.all([
     supabase
       .from("lesson_words")
-      .select("lesson_id, word_id")
+      .select("lesson_id, word_id, words(category)")
       .in("lesson_id", lessonIds)
       .limit(10000),
     supabase
@@ -81,6 +81,8 @@ export async function getCoursesForDropdown(
   }
   for (const lw of lessonWordsResult.data || []) {
     if (!lw.word_id || !lw.lesson_id) continue;
+    // Exclude information pages from word counts
+    if ((lw.words as unknown as { category: string | null })?.category === "information") continue;
     const cId = lessonToCourse[lw.lesson_id];
     if (!cId) continue;
     if (!wordsByCourse[cId]) wordsByCourse[cId] = new Set();

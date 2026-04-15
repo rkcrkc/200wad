@@ -12,10 +12,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Zap,
+  Star,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
+import { StatusPill, type StatusType } from "@/components/ui/status-pill";
 import { useText } from "@/context/TextContext";
 
 interface TestAttempt {
@@ -60,10 +63,14 @@ interface WordDetailActionBarProps {
   imageMode?: "memory-trigger" | "flashcard";
   /** Callback when image mode changes */
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
+  /** Word learning status */
+  wordStatus?: "not-started" | "learning" | "mastered";
   /** Whether accessed from dictionary (hides word navigation) */
   fromDictionary?: boolean;
   /** Layout variant: "page" uses fixed positioning, "sidebar" uses relative positioning */
   variant?: "page" | "sidebar";
+  /** Collapse nav + image toggle into ellipsis menu */
+  compact?: boolean;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -117,32 +124,39 @@ export function WordDetailActionBar({
   hasNext = false,
   imageMode = "memory-trigger",
   onImageModeChange,
+  wordStatus,
   fromDictionary = false,
   variant = "page",
+  compact = false,
 }: WordDetailActionBarProps) {
   const { t, tt } = useText();
   const [isWordListOpen, setIsWordListOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsWordListOpen(false);
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
     }
-    if (isWordListOpen) {
+    if (isWordListOpen || isMoreMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [isWordListOpen]);
+  }, [isWordListOpen, isMoreMenuOpen]);
 
   const wordScorePercent = scoreStats?.scorePercent ?? 0;
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
   const label = category === "word" || posAbbrev ? posAbbrev : "";
   const posDisplay = label && genderAbbrev ? `${label} ${genderAbbrev}` : label;
-  const posTooltipLabel = posAbbrev ? `Word type: ${fullPartOfSpeech(partOfSpeech)}` : "Word type";
+  const posTooltipLabel = posAbbrev ? fullPartOfSpeech(partOfSpeech) : (category || "Word");
 
   const handleWordSelect = (index: number) => {
     onJumpToWord(index);
@@ -254,17 +268,20 @@ export function WordDetailActionBar({
               align="left"
               className="flex items-center cursor-default"
               content={
-                <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-                  <span>
-                    {tt("pop_score_breakdown", {
-                      pts: scoreStats?.totalPointsEarned ?? 0,
-                      total: scoreStats?.totalMaxPoints ?? 0,
-                      pct: scoreStats && scoreStats.totalMaxPoints > 0
-                        ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
-                        : "0.0",
-                    })}
-                  </span>
-                  <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-foreground">{t("pop_score_history")}</span>
+                  <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                    <span>
+                      {tt("pop_score_breakdown", {
+                        pts: scoreStats?.totalPointsEarned ?? 0,
+                        total: scoreStats?.totalMaxPoints ?? 0,
+                        pct: scoreStats && scoreStats.totalMaxPoints > 0
+                          ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
+                          : "0.0",
+                      })}
+                    </span>
+                    <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
+                  </div>
                 </div>
               }
             >
@@ -286,8 +303,12 @@ export function WordDetailActionBar({
                     return (
                       <div
                         key={i}
-                        className={cn("h-3 w-3 rounded-full", bgColor)}
-                      />
+                        className={cn("flex h-3 w-3 items-center justify-center rounded-full", bgColor)}
+                      >
+                        {wordStatus === "mastered" && (
+                          <Star className="h-2 w-2 fill-white text-white" />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -296,93 +317,174 @@ export function WordDetailActionBar({
                 </span>
               </div>
             </Popover>
+
+            {/* Word status pill */}
+            {wordStatus && (
+              <Tooltip label={t(
+                wordStatus === "not-started" ? "tip_status_not_started"
+                  : wordStatus === "learning" ? "tip_status_learning"
+                  : "tip_status_mastered"
+              )}>
+                <StatusPill
+                  status={wordStatus === "not-started" ? "notStarted" : wordStatus as StatusType}
+                  showDot={false}
+                />
+              </Tooltip>
+            )}
           </div>
 
           {/* Right section - Navigation controls, divider, toggle icons */}
           <div className="flex items-center gap-4">
-            {/* Navigation controls - hidden when from dictionary */}
-            {!fromDictionary && (
+            {/* Replay audio - always visible */}
+            <Tooltip label={t("tip_replay_audio")}>
+              <button
+                onClick={onReplay}
+                className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+            </Tooltip>
+
+            {/* Compact: ellipsis menu for nav + image toggle */}
+            {compact && !fromDictionary && (
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
+                    isMoreMenuOpen ? "text-primary" : "text-foreground"
+                  )}
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+
+                {isMoreMenuOpen && (
+                  <div className="absolute bottom-full right-0 mb-2 rounded-xl bg-white p-2 shadow-panel">
+                    <div className="flex items-center gap-2">
+                      <Tooltip label={t("tip_first_word")}>
+                        <button
+                          onClick={() => { onJumpToWord(0); setIsMoreMenuOpen(false); }}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                        >
+                          <ChevronsLeft className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_previous_word")}>
+                        <button
+                          onClick={() => { onPreviousWord(); setIsMoreMenuOpen(false); }}
+                          disabled={!hasPrevious}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_next_word")}>
+                        <button
+                          onClick={() => { onNextWord(); setIsMoreMenuOpen(false); }}
+                          disabled={!hasNext}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_last_word")}>
+                        <button
+                          onClick={() => { onJumpToWord(totalWords - 1); setIsMoreMenuOpen(false); }}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                        >
+                          <ChevronsRight className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <span className="text-foreground/25">|</span>
+                      <Tooltip label={imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")} align="right">
+                        <button
+                          onClick={() => {
+                            const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";
+                            onImageModeChange?.(newMode);
+                            setIsMoreMenuOpen(false);
+                          }}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                        >
+                          {imageMode === "memory-trigger" ? (
+                            <Zap className="h-5 w-5" />
+                          ) : (
+                            <ImageIcon className="h-5 w-5" />
+                          )}
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Full: inline nav controls + image toggle */}
+            {!compact && (
               <>
-                <div className="flex items-center gap-2">
-                  <Tooltip label={t("tip_replay_audio")}>
+                {!fromDictionary && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Tooltip label={t("tip_first_word")}>
+                        <button
+                          onClick={() => onJumpToWord(0)}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                        >
+                          <ChevronsLeft className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_previous_word")}>
+                        <button
+                          onClick={onPreviousWord}
+                          disabled={!hasPrevious}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_next_word")}>
+                        <button
+                          onClick={onNextWord}
+                          disabled={!hasNext}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip label={t("tip_last_word")}>
+                        <button
+                          onClick={() => onJumpToWord(totalWords - 1)}
+                          className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
+                        >
+                          <ChevronsRight className="h-5 w-5" />
+                        </button>
+                      </Tooltip>
+                    </div>
+
+                    {/* Divider */}
+                    <span className="text-foreground/25">|</span>
+                  </>
+                )}
+
+                {/* Toggle icons */}
+                <div className="flex items-center gap-3">
+                  <Tooltip label={imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")} align="right">
                     <button
-                      onClick={onReplay}
+                      onClick={() => {
+                        const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";
+                        onImageModeChange?.(newMode);
+                      }}
                       className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
                     >
-                      <RefreshCw className="h-5 w-5" />
-                    </button>
-                  </Tooltip>
-                  <Tooltip label={t("tip_first_word")}>
-                    <button
-                      onClick={() => onJumpToWord(0)}
-                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                    >
-                      <ChevronsLeft className="h-5 w-5" />
-                    </button>
-                  </Tooltip>
-                  <Tooltip label={t("tip_previous_word")}>
-                    <button
-                      onClick={onPreviousWord}
-                      disabled={!hasPrevious}
-                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                  </Tooltip>
-                  <Tooltip label={t("tip_next_word")}>
-                    <button
-                      onClick={onNextWord}
-                      disabled={!hasNext}
-                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </Tooltip>
-                  <Tooltip label={t("tip_last_word")}>
-                    <button
-                      onClick={() => onJumpToWord(totalWords - 1)}
-                      className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                    >
-                      <ChevronsRight className="h-5 w-5" />
+                      {imageMode === "memory-trigger" ? (
+                        <Zap className="h-5 w-5" />
+                      ) : (
+                        <ImageIcon className="h-5 w-5" />
+                      )}
                     </button>
                   </Tooltip>
                 </div>
-
-                {/* Divider */}
-                <span className="text-foreground/25">|</span>
               </>
             )}
-
-            {/* Replay button - show when nav controls are hidden */}
-            {fromDictionary && (
-              <Tooltip label={t("tip_replay_audio")}>
-                <button
-                  onClick={onReplay}
-                  className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                >
-                  <RefreshCw className="h-5 w-5" />
-                </button>
-              </Tooltip>
-            )}
-
-            {/* Toggle icons */}
-            <div className="flex items-center gap-3">
-              <Tooltip label={imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")}>
-                <button
-                  onClick={() => {
-                    const newMode = imageMode === "memory-trigger" ? "flashcard" : "memory-trigger";
-                    onImageModeChange?.(newMode);
-                  }}
-                  className="flex h-6 w-6 items-center justify-center text-foreground transition-opacity hover:opacity-70"
-                >
-                  {imageMode === "memory-trigger" ? (
-                    <Zap className="h-5 w-5" />
-                  ) : (
-                    <ImageIcon className="h-5 w-5" />
-                  )}
-                </button>
-              </Tooltip>
-            </div>
           </div>
         </div>
       </div>

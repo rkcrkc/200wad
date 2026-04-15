@@ -413,13 +413,17 @@ export async function completeTestSession(
     // Get all word IDs in this course via lesson_words junction
     const { data: courseWords } = await supabase
       .from("lesson_words")
-      .select("word_id, lessons!inner(course_id)")
+      .select("word_id, lessons!inner(course_id), words(category)")
       .eq("lessons.course_id", courseId)
       .limit(SUPABASE_ALL_ROWS);
     warnIfTruncated("completeTestSession:lesson_words", courseWords?.length ?? 0);
 
     if (courseWords && courseWords.length > 0) {
-      const courseWordIds = new Set(courseWords.map((cw) => cw.word_id));
+      // Exclude information pages from course word count
+      const testableWords = courseWords.filter(
+        (cw) => (cw.words as unknown as { category: string | null })?.category !== "information"
+      );
+      const courseWordIds = new Set(testableWords.map((cw) => cw.word_id));
       const { count } = await supabase
         .from("user_word_progress")
         .select("id", { count: "exact", head: true })

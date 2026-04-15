@@ -314,11 +314,18 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         words.map((w) => w.id)
       );
 
+    // Build set of info page word IDs to exclude from stats
+    const infoWordIds = new Set(
+      (words || []).filter((w) => w.category === "information").map((w) => w.id)
+    );
+
     wordProgress?.forEach((wp) => {
       const wordId = wp.word_id;
       if (wordId) {
         progressByWord[wordId] = wp;
       }
+      // Exclude information pages from studied/mastered counts
+      if (wordId && infoWordIds.has(wordId)) return;
       if (wp.status === "learning" || wp.status === "mastered") {
         wordsStudied++;
       }
@@ -456,7 +463,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     nextLesson,
     courseLessons: orderedLessons,
     stats: {
-      totalWords: words?.length || 0,
+      totalWords: words?.filter((w) => w.category !== "information").length || 0,
       wordsStudied,
       wordsMastered,
       totalTimeSeconds,
@@ -797,10 +804,17 @@ async function getAutoLessonWords(
   let wordsStudied = 0;
   let wordsMastered = 0;
 
+  // Build set of info page word IDs to exclude from stats
+  const autoInfoWordIds = new Set(
+    (words || []).filter((w) => w.category === "information").map((w) => w.id)
+  );
+
   wordProgress?.forEach((wp) => {
     if (wp.word_id) {
       progressByWord[wp.word_id] = wp;
     }
+    // Exclude information pages from studied/mastered counts
+    if (wp.word_id && autoInfoWordIds.has(wp.word_id)) return;
     if (wp.status === "learning" || wp.status === "mastered") {
       wordsStudied++;
     }
@@ -886,7 +900,7 @@ async function getAutoLessonWords(
   });
 
   return buildAutoLessonResult(type, courseId, course, language, orderedLessons, wordsWithDetails, userId, {
-    totalWords: wordsWithDetails.length,
+    totalWords: wordsWithDetails.filter((w) => w.category !== "information").length,
     wordsStudied,
     wordsMastered,
     totalTimeSeconds: 0,

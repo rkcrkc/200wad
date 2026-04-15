@@ -448,32 +448,33 @@ export async function updateLessonProgress(
     return { success: false, error: "Lesson not found" };
   }
 
-  // Get all words in this lesson via junction table
+  // Get all words in this lesson via junction table, including category
   const { data: lessonWords } = await supabase
     .from("lesson_words")
-    .select("word_id")
+    .select("word_id, words(category)")
     .eq("lesson_id", lessonId);
 
   if (!lessonWords || lessonWords.length === 0) {
     return { success: false, error: "No words found in lesson" };
   }
 
-  const words = lessonWords.map((lw) => ({ id: lw.word_id }));
+  // Filter to testable words (exclude information pages)
+  const testableWords = lessonWords.filter(
+    (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+  );
+  const testableWordIds = testableWords.map((lw) => lw.word_id);
 
-  // Get user's progress for all words in this lesson
+  // Get user's progress for testable words only
   const { data: wordProgress } = await supabase
     .from("user_word_progress")
     .select("status")
     .eq("user_id", user.id)
-    .in(
-      "word_id",
-      words.map((w) => w.id)
-    );
+    .in("word_id", testableWordIds);
 
-  // Calculate stats
+  // Calculate stats using testable words as denominator
   const wordsMastered = wordProgress?.filter((wp) => wp.status === "mastered").length || 0;
   const wordsStudied = wordProgress?.filter((wp) => wp.status !== "not-started").length || 0;
-  const totalWords = lesson.word_count || words.length;
+  const totalWords = testableWords.length;
   const completionPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
 
   // Determine lesson status

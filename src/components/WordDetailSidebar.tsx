@@ -32,8 +32,8 @@ interface WordDetailSidebarProps {
 }
 
 const SIDEBAR_SIZES = [
-  { key: "sm", width: 420, label: "Small", Icon: ChevronsLeftRight },
-  { key: "md", width: 580, label: "Medium", Icon: ChevronsLeftRight },
+  { key: "sm", width: 480, label: "Small", Icon: ChevronsLeftRight },
+  { key: "md", width: 600, label: "Medium", Icon: ChevronsLeftRight },
   { key: "lg", width: 800, label: "Large", Icon: ChevronsRightLeft },
 ] as const;
 
@@ -216,7 +216,9 @@ export function WordDetailSidebar({
           onReplay={() => {}}
           hasPrevious={hasPrevious}
           hasNext={hasNext}
+          wordStatus={word.status}
           variant="sidebar"
+          compact={sizeKey === "sm"}
         />
       </div>
     </>

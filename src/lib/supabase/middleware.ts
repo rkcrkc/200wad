@@ -36,14 +36,23 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes - redirect to login if not authenticated
+  // Routes accessible without authentication
+  const pathname = request.nextUrl.pathname;
   const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/join");
+  // Allow guests to reach the default course schedule (root redirects there for onboarding)
+  const DEFAULT_COURSE_ID = "6d60eb7e-7317-4c18-a0a9-6123cc37d5b8";
+  const isGuestSchedule = pathname === `/course/${DEFAULT_COURSE_ID}/schedule`;
+  const isPublicRoute = pathname === "/" || isAuthRoute || isGuestSchedule;
 
   // Admin routes require both authentication AND admin role
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/admin");
 
   if (isAdminRoute) {
     if (!user) {
@@ -61,6 +70,13 @@ export async function updateSession(request: NextRequest) {
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
+  }
+
+  // Redirect unauthenticated users to root (onboarding flow)
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
   }
 
   // Redirect authenticated users away from auth pages

@@ -1034,6 +1034,7 @@ export function WordDetailView({
           hasNext={hasNext}
           imageMode={imageMode}
           onImageModeChange={setImageMode}
+          wordStatus={word.status}
           fromDictionary={fromDictionary}
         />
       )}

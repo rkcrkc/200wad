@@ -1132,14 +1132,16 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log("\nStep 10: Updating word counts...");
 
-  // Update lesson word counts
+  // Update lesson word counts (excluding information pages)
   const { data: lessonCounts } = await supabase
     .from("lesson_words")
-    .select("lesson_id")
+    .select("lesson_id, words(category)")
     .in("lesson_id", Array.from(lessonSortOrders.keys()));
 
   const lessonWordCounts = new Map<string, number>();
   for (const lw of lessonCounts || []) {
+    // Skip information pages — they're non-testable
+    if ((lw.words as unknown as { category: string | null })?.category === "information") continue;
     lessonWordCounts.set(lw.lesson_id, (lessonWordCounts.get(lw.lesson_id) || 0) + 1);
   }
 

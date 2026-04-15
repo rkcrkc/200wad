@@ -126,7 +126,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Score history popover title",
     category: "tooltips_popovers",
     group: "Study Action Bar",
-    defaultValue: "Score history",
+    defaultValue: "Average score",
   },
   pop_times_tested: {
     label: "Times tested popover label",
@@ -152,7 +152,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Score breakdown popover line",
     category: "tooltips_popovers",
     group: "Word Detail",
-    defaultValue: "{pts} pts / {total} available = {pct}%",
+    defaultValue: "{pts} points total / {total} available = {pct}%",
   },
 
   // Word Detail Sidebar
@@ -765,6 +765,26 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     category: "greetings_messages",
     group: "Study Action Bar",
     defaultValue: "Set before starting test",
+  },
+
+  // Word Status Tooltips
+  tip_status_not_started: {
+    label: "Not started status tooltip",
+    category: "tooltips_popovers",
+    group: "Word Detail",
+    defaultValue: "You haven't studied this word yet",
+  },
+  tip_status_learning: {
+    label: "Learning status tooltip",
+    category: "tooltips_popovers",
+    group: "Word Detail",
+    defaultValue: "Get correct 3x tests in a row to master this word",
+  },
+  tip_status_mastered: {
+    label: "Mastered status tooltip",
+    category: "tooltips_popovers",
+    group: "Word Detail",
+    defaultValue: "Last 3x tests correct",
   },
 
   // ── Definitions ──────────────────────────────────────────────────────
