@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { revalidatePath } from "next/cache";
 import {
   type Milestone,
@@ -413,7 +414,9 @@ export async function completeTestSession(
     const { data: courseWords } = await supabase
       .from("lesson_words")
       .select("word_id, lessons!inner(course_id)")
-      .eq("lessons.course_id", courseId);
+      .eq("lessons.course_id", courseId)
+      .limit(SUPABASE_ALL_ROWS);
+    warnIfTruncated("completeTestSession:lesson_words", courseWords?.length ?? 0);
 
     if (courseWords && courseWords.length > 0) {
       const courseWordIds = new Set(courseWords.map((cw) => cw.word_id));

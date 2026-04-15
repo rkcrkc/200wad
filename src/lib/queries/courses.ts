@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Course, Language } from "@/types/database";
 
 export interface GetCourseByIdResult {
@@ -135,7 +136,8 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       supabase
         .from("lesson_words")
         .select("lesson_id, word_id")
-        .in("lesson_id", lessonIds),
+        .in("lesson_id", lessonIds)
+        .limit(SUPABASE_ALL_ROWS),
       // All of this user's progress on any word — we intersect client-side
       supabase
         .from("user_word_progress")
@@ -143,6 +145,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         .eq("user_id", user.id)
         .in("status", ["learning", "mastered"]),
     ]);
+    warnIfTruncated("getCourses:lesson_words", lessonWordsResult.data?.length ?? 0);
 
     // lessonsCompleted per course
     lessonProgressResult.data?.forEach((lp) => {

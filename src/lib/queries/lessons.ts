@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { getLessonAccessMap } from "@/lib/utils/accessControl";
 
@@ -74,7 +75,9 @@ async function generateAutoLessons(
   const { data: lessonWords } = await supabase
     .from("lesson_words")
     .select("word_id")
-    .in("lesson_id", lessonIds);
+    .in("lesson_id", lessonIds)
+    .limit(SUPABASE_ALL_ROWS);
+  warnIfTruncated("generateAutoLessons:lesson_words", lessonWords?.length ?? 0);
 
   const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
 
@@ -271,8 +274,10 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       supabase
         .from("lesson_words")
         .select("lesson_id, word_id")
-        .in("lesson_id", lessonIds),
+        .in("lesson_id", lessonIds)
+        .limit(SUPABASE_ALL_ROWS),
     ]);
+    warnIfTruncated("getLessons:lesson_words", lessonWordsResult.data?.length ?? 0);
 
     if (lessonWordsResult.data && userProgressResult.data) {
       // Create a set of course word IDs for fast lookup
@@ -322,7 +327,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       const derivedStatus: LessonStatus =
         liveCompletion >= 100 && totalWords > 0
           ? "mastered"
-          : progress?.status === "learning" || progress?.status === "mastered"
+          : liveMastered > 0 || progress?.status === "learning" || progress?.status === "mastered"
             ? "learning"
             : "not-started";
 

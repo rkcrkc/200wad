@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 
 // Helper function to extract course without nested relations
@@ -182,7 +183,9 @@ async function getLessonSampleWords(
     .from("lesson_words")
     .select("lesson_id, words(english, category)")
     .in("lesson_id", lessonIds)
-    .order("sort_order");
+    .order("sort_order")
+    .limit(SUPABASE_ALL_ROWS);
+  warnIfTruncated("getLessonSampleWords:lesson_words", lessonWords?.length ?? 0);
 
   const samplesByLesson: Record<string, string[]> = {};
   lessonWords?.forEach((lw) => {
@@ -213,7 +216,9 @@ async function getLessonImages(
     .from("lesson_words")
     .select("lesson_id, words(memory_trigger_image_url)")
     .in("lesson_id", lessonIds)
-    .order("sort_order");
+    .order("sort_order")
+    .limit(SUPABASE_ALL_ROWS);
+  warnIfTruncated("getLessonImages:lesson_words", lessonWords?.length ?? 0);
 
   const imagesByLesson: Record<string, string | null> = {};
   lessonWords?.forEach((lw) => {

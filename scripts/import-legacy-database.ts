@@ -247,6 +247,24 @@ function safeParseInt(value: string): number | null {
 }
 
 /**
+ * Strip binary control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) from text.
+ * Preserves tabs (0x09), newlines (0x0A), and carriage returns (0x0D).
+ * Also replaces curly/smart quotes with straight apostrophes and
+ * normalises Italian elided articles (l' x → l'x).
+ */
+function sanitizeText(text: string | null): string | null {
+  if (!text) return text;
+  let cleaned = text
+    // Strip binary control characters (keep \t, \n, \r)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    // Replace curly/smart quotes with straight apostrophes
+    .replace(/[\u2018\u2019]/g, "'")
+    // Normalise Italian elided articles: l' x → l'x
+    .replace(/l' /gi, (m) => m[0] + "'");
+  return cleaned;
+}
+
+/**
  * Extract clean filename from legacy file reference
  */
 function cleanFilename(filename: string): string | null {
@@ -678,14 +696,14 @@ async function main() {
       continue;
     }
 
-    // Build word insert object
+    // Build word insert object (sanitize all text fields to strip control chars)
     const wordInsert: WordInsert = {
       language_id: language.id,
-      english: english.trim(),
-      headword: headword.trim(),
-      lemma: lemma.trim() || headword.trim(),
-      notes: row.notes || row.Notes || null,
-      memory_trigger_text: row.memory_trigger_text || row.Trigger || null,
+      english: sanitizeText(english.trim()) || english.trim(),
+      headword: sanitizeText(headword.trim()) || headword.trim(),
+      lemma: sanitizeText(lemma.trim() || headword.trim()) || headword.trim(),
+      notes: sanitizeText(row.notes || row.Notes || null),
+      memory_trigger_text: sanitizeText(row.memory_trigger_text || row.Trigger || null),
       memory_trigger_image_url: cleanFilename(row.memory_trigger_image || row.FileFgnPic),
       audio_url_english: cleanFilename(row.audio_url_english || row.FileEngSouRTF),
       audio_url_foreign: cleanFilename(row.audio_url_foreign || row.FileFgnSouRTF),

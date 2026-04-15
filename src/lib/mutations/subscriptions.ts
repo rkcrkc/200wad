@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { createCheckoutSchema, type CreateCheckoutInput } from "@/lib/validations/admin";
@@ -222,7 +223,9 @@ export async function getLanguageCoursesAction(
       const { data: lessonWords } = await supabase
         .from("lesson_words")
         .select("lesson_id")
-        .in("lesson_id", allLessonIds);
+        .in("lesson_id", allLessonIds)
+        .limit(SUPABASE_ALL_ROWS);
+      warnIfTruncated("getLanguageCoursesAction:lesson_words", lessonWords?.length ?? 0);
 
       lessonWords?.forEach((lw) => {
         const lesson = lessons?.find((l) => l.id === lw.lesson_id);

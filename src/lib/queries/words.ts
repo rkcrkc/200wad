@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import {
   Course,
   ExampleSentence,
@@ -187,7 +188,9 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     const { data: allLessonWords } = await supabase
       .from("lesson_words")
       .select("word_id")
-      .in("lesson_id", allLessonIds);
+      .in("lesson_id", allLessonIds)
+      .limit(SUPABASE_ALL_ROWS);
+    warnIfTruncated("getWords:adminTest:lesson_words", allLessonWords?.length ?? 0);
 
     const courseWordIds = allLessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
 
@@ -675,7 +678,9 @@ async function getAutoLessonWords(
   const { data: lessonWords } = await supabase
     .from("lesson_words")
     .select("word_id")
-    .in("lesson_id", lessonIds);
+    .in("lesson_id", lessonIds)
+    .limit(SUPABASE_ALL_ROWS);
+  warnIfTruncated("getAutoLessonWords:lesson_words", lessonWords?.length ?? 0);
 
   const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
 

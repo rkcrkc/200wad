@@ -49,7 +49,7 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
 
       {/* Test Name (milestone) */}
       <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {test.milestone}
+        {test.milestone.replace(/\b\w/g, (c) => c.toUpperCase())}
       </td>
 
       {/* Test # */}

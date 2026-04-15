@@ -49,6 +49,12 @@ export const TEXT_CATEGORIES: TextCategory[] = [
     description: "Modal titles, empty states, explainer text and messages.",
     configKey: "text_greetings_messages",
   },
+  {
+    id: "definitions",
+    label: "Definitions",
+    description: "Plain-English definitions of statuses, metrics, and concepts used throughout the app.",
+    configKey: "text_definitions",
+  },
 ];
 
 // ============================================================================
@@ -759,6 +765,262 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     category: "greetings_messages",
     group: "Study Action Bar",
     defaultValue: "Set before starting test",
+  },
+
+  // ── Definitions ──────────────────────────────────────────────────────
+
+  // Word Statuses
+  def_status_not_started: {
+    label: "Not Started definition",
+    category: "definitions",
+    group: "Word Statuses",
+    defaultValue: "The word has never been studied. It appears in a lesson but the user hasn't seen it yet.",
+  },
+  def_status_learning: {
+    label: "Learning definition",
+    category: "definitions",
+    group: "Word Statuses",
+    defaultValue: "The word has been studied at least once but hasn't been mastered yet. The user is still practising it.",
+  },
+  def_status_mastered: {
+    label: "Mastered definition",
+    category: "definitions",
+    group: "Word Statuses",
+    defaultValue: "The word has been answered correctly 3 times in a row during tests. It's considered fully learned.",
+  },
+
+  // Lesson Statuses
+  def_lesson_not_started: {
+    label: "Lesson Not Started definition",
+    category: "definitions",
+    group: "Lesson Statuses",
+    defaultValue: "No words in this lesson have been studied yet.",
+  },
+  def_lesson_learning: {
+    label: "Lesson Learning definition",
+    category: "definitions",
+    group: "Lesson Statuses",
+    defaultValue: "At least one word has been studied, but not all words are mastered yet.",
+  },
+  def_lesson_mastered: {
+    label: "Lesson Mastered definition",
+    category: "definitions",
+    group: "Lesson Statuses",
+    defaultValue: "Every word in the lesson has been mastered (3 correct answers in a row each).",
+  },
+  def_lesson_locked: {
+    label: "Lesson Locked definition",
+    category: "definitions",
+    group: "Lesson Statuses",
+    defaultValue: "This lesson is not yet available. The user needs to upgrade their plan or complete prerequisite lessons to unlock it.",
+  },
+
+  // Scoring & Tests
+  def_score_percent: {
+    label: "Score % definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "The percentage of total available points the user has earned across all test attempts for a word. Calculated as (points earned / points available) x 100.",
+  },
+  def_traffic_lights: {
+    label: "Traffic lights definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "The 3 coloured dots next to each word's score. They show the last 3 test results: green = full marks, yellow = partial marks, red = zero marks, grey = not yet tested.",
+  },
+  def_times_tested: {
+    label: "Times tested definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "The total number of times this word has appeared as a test question, across all test types and sessions.",
+  },
+  def_test_foreign: {
+    label: "Test Foreign definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "A test where the user sees the English word and must type the foreign-language translation.",
+  },
+  def_test_english: {
+    label: "Test English definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "A test where the user sees the foreign word and must type the English translation.",
+  },
+  def_test_picture: {
+    label: "Test Picture definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "A test where the user sees only the memory trigger image and must type the foreign word from memory.",
+  },
+  def_test_twice: {
+    label: "Test Twice definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "When enabled, each word appears twice in the test for extra practice. Set before starting the test — cannot be changed mid-test.",
+  },
+  def_nerves_of_steel: {
+    label: "Nerves of Steel definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "A strict scoring mode where punctuation and capitalisation must be exactly correct to earn full points.",
+  },
+  def_half_correct: {
+    label: "Half-correct definition",
+    category: "definitions",
+    group: "Scoring & Tests",
+    defaultValue: "The answer was mostly right but the gender article was missing or wrong. Half points are awarded.",
+  },
+
+  // Progress Metrics
+  def_completion: {
+    label: "Completion % definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "The percentage of words in a lesson (or course) that have been mastered. Calculated as (words mastered / total words) x 100.",
+  },
+  def_words_studied: {
+    label: "Words Studied definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "The number of words the user has seen at least once, whether in study mode or a test. Includes both learning and mastered words.",
+  },
+  def_words_mastered: {
+    label: "Words Mastered definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "The number of words answered correctly 3 times in a row during tests.",
+  },
+  def_words_per_day: {
+    label: "Words Per Day definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "An estimated daily learning rate. Calculated as (words studied / total study hours) x 8 hours, projecting how many words could be learned in a full study day.",
+  },
+  def_course_completion: {
+    label: "Course Completion definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "The percentage of all words in the course that have been mastered. Reaching 100% means every word in every lesson has been mastered.",
+  },
+  def_total_time: {
+    label: "Total Time definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "The combined study time and test time the user has spent on this lesson or course.",
+  },
+  def_study_time: {
+    label: "Study Time definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "Time spent in study mode, where the user reviews words with flashcards and memory triggers.",
+  },
+  def_test_time: {
+    label: "Test Time definition",
+    category: "definitions",
+    group: "Progress Metrics",
+    defaultValue: "Time spent taking tests, where the user types answers and earns points.",
+  },
+
+  // Study Features
+  def_strict_study_mode: {
+    label: "Strict Study Mode definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "When enabled, the user must type the correct answer before they can move to the next word. Prevents skipping words.",
+  },
+  def_breathing_mode: {
+    label: "Breathing Mode definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "Guides the user through a breathing rhythm (inhale / hold / exhale) during word reveals, designed to enhance focus and memory retention.",
+  },
+  def_memory_trigger: {
+    label: "Memory Trigger definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "An illustrated image that creates a visual association between the English word and its foreign translation, making it easier to remember.",
+  },
+  def_flashcard: {
+    label: "Flashcard definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "A photograph or realistic image representing the word, used as an alternative to the memory trigger illustration.",
+  },
+  def_clue: {
+    label: "Clue definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "A hint revealed during a test that shows part of the correct answer. Each word allows up to 2 clues. Using a clue reduces the maximum points available.",
+  },
+  def_alpha_wave_music: {
+    label: "Alpha Wave Music definition",
+    category: "definitions",
+    group: "Study Features",
+    defaultValue: "Background music tuned to 432-528 Hz frequencies, designed to induce alpha brainwaves — the optimal mental state for learning and memory retention.",
+  },
+
+  // League Badges
+  def_league_bronze: {
+    label: "Bronze League definition",
+    category: "definitions",
+    group: "League Badges",
+    defaultValue: "The starting league. All new users begin here.",
+  },
+  def_league_silver: {
+    label: "Silver League definition",
+    category: "definitions",
+    group: "League Badges",
+    defaultValue: "The second league tier, reached by consistent study progress.",
+  },
+  def_league_gold: {
+    label: "Gold League definition",
+    category: "definitions",
+    group: "League Badges",
+    defaultValue: "The third league tier, for dedicated learners with strong progress.",
+  },
+  def_league_diamond: {
+    label: "Diamond League definition",
+    category: "definitions",
+    group: "League Badges",
+    defaultValue: "The top league tier, for the most committed learners.",
+  },
+
+  // Milestones
+  def_milestone_initial: {
+    label: "Initial Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "The first test taken on a lesson, establishing a baseline score.",
+  },
+  def_milestone_day: {
+    label: "Day Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "A retest taken roughly 1 day after the initial test, measuring short-term retention.",
+  },
+  def_milestone_week: {
+    label: "Week Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "A retest taken roughly 1 week later, measuring medium-term retention.",
+  },
+  def_milestone_month: {
+    label: "Month Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "A retest taken roughly 1 month later, measuring long-term retention.",
+  },
+  def_milestone_qtr: {
+    label: "Quarter Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "A retest taken roughly 3 months later, measuring deep retention.",
+  },
+  def_milestone_year: {
+    label: "Year Milestone definition",
+    category: "definitions",
+    group: "Milestones",
+    defaultValue: "A retest taken roughly 1 year later, measuring permanent retention.",
   },
 };
 
