@@ -96,12 +96,12 @@ async function generateAutoLessons(
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
-  // Get word counts for each auto-lesson type in parallel
-  const [notesCount, bestWorstData] = await Promise.all([
-    // Count words with user notes
+  // Get word IDs and test data for each auto-lesson type in parallel
+  const [notesResult, bestWorstData] = await Promise.all([
+    // Fetch word IDs with user notes (need IDs for mastery lookup)
     supabase
       .from("user_word_progress")
-      .select("word_id", { count: "exact", head: true })
+      .select("word_id")
       .eq("user_id", userId)
       .in("word_id", courseWordIds)
       .not("user_notes", "is", null),
@@ -116,7 +116,9 @@ async function generateAutoLessons(
       : Promise.resolve({ data: [] }),
   ]);
 
-  // Calculate best/worst word counts
+  const notesWordIds = notesResult.data?.map((w) => w.word_id).filter((id): id is string => id !== null) || [];
+
+  // Calculate best/worst word scores and extract sorted word IDs
   const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
   bestWorstData.data?.forEach((tq) => {
     if (!tq.word_id) return;
@@ -127,40 +129,73 @@ async function generateAutoLessons(
     wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
   });
 
-  const testedWordCount = Object.keys(wordScores).length;
-  const bestCount = Math.min(20, testedWordCount);
-  const worstCount = Math.min(20, testedWordCount);
+  const sortedByScore = Object.entries(wordScores)
+    .map(([wordId, scores]) => ({
+      wordId,
+      avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
+    }))
+    .sort((a, b) => a.avgPercent - b.avgPercent);
 
-  const wordCounts: Record<AutoLessonType, number> = {
-    notes: notesCount.count || 0,
-    best: bestCount,
-    worst: worstCount,
+  const worstWordIds = sortedByScore.slice(0, 20).map((w) => w.wordId);
+  const bestWordIds = [...sortedByScore].reverse().slice(0, 20).map((w) => w.wordId);
+
+  const wordIdsByType: Record<AutoLessonType, string[]> = {
+    notes: notesWordIds,
+    best: bestWordIds,
+    worst: worstWordIds,
   };
 
-  // Generate auto-lesson objects
+  // Query mastery status for all auto-lesson words
+  const allAutoWordIds = [...new Set([...notesWordIds, ...bestWordIds, ...worstWordIds])];
+  const masteredWordIds = new Set<string>();
+
+  if (allAutoWordIds.length > 0) {
+    const { data: masteredProgress } = await supabase
+      .from("user_word_progress")
+      .select("word_id")
+      .eq("user_id", userId)
+      .in("word_id", allAutoWordIds)
+      .eq("status", "mastered");
+
+    masteredProgress?.forEach((wp) => {
+      if (wp.word_id) masteredWordIds.add(wp.word_id);
+    });
+  }
+
+  // Generate auto-lesson objects with live mastery data
   const now = new Date().toISOString();
-  return AUTO_LESSON_DEFINITIONS.map((def) => ({
-    id: createAutoLessonId(def.type, courseId),
-    course_id: courseId,
-    number: def.number,
-    title: def.title,
-    emoji: def.emoji,
-    word_count: wordCounts[def.type],
-    is_published: true,
-    sort_order: def.number,
-    legacy_lesson_id: null,
-    created_at: now,
-    updated_at: now,
-    created_by: null,
-    updated_by: null,
-    // Progress fields - auto-lessons don't track progress traditionally
-    status: "not-started" as LessonStatus,
-    completionPercent: 0,
-    wordsMastered: 0,
-    totalStudyTimeSeconds: 0,
-    lastStudiedAt: null,
-    isAutoLesson: true,
-  }));
+  return AUTO_LESSON_DEFINITIONS.map((def) => {
+    const ids = wordIdsByType[def.type];
+    const totalWords = ids.length;
+    const mastered = ids.filter((id) => masteredWordIds.has(id)).length;
+    const completion = totalWords > 0 ? Math.round((mastered / totalWords) * 100) : 0;
+    const status: LessonStatus =
+      completion >= 100 && totalWords > 0 ? "mastered"
+      : mastered > 0 ? "learning"
+      : "not-started";
+
+    return {
+      id: createAutoLessonId(def.type, courseId),
+      course_id: courseId,
+      number: def.number,
+      title: def.title,
+      emoji: def.emoji,
+      word_count: totalWords,
+      is_published: true,
+      sort_order: def.number,
+      legacy_lesson_id: null,
+      created_at: now,
+      updated_at: now,
+      created_by: null,
+      updated_by: null,
+      status,
+      completionPercent: completion,
+      wordsMastered: mastered,
+      totalStudyTimeSeconds: 0,
+      lastStudiedAt: null,
+      isAutoLesson: true,
+    };
+  });
 }
 
 export async function getLessons(courseId: string): Promise<GetLessonsResult> {
