@@ -156,9 +156,16 @@ export const defaultHighlightColorDark = "#00A040"; // Dark green
 
 export const status = {
   mastered: {
-    bg: "#E6F9F0",
-    color: "#00C950",
-    dotColor: "#00C950",
+    bg: "#D8A94D",
+    color: "#FFFFFF",
+    inlineColor: "#D8A94D",
+    icon: "star" as const,
+  },
+  learned: {
+    bg: "#00C950",
+    color: "#FFFFFF",
+    inlineColor: "#00C950",
+    icon: "check" as const,
   },
   learning: {
     bg: "#FFF6DA",

@@ -115,6 +115,8 @@ export function mapStatus(status: string, isLocked?: boolean): StatusType {
   switch (status) {
     case "mastered":
       return "mastered";
+    case "learned":
+      return "learned";
     case "learning":
       return "learning";
     default:

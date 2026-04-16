@@ -16,6 +16,8 @@ import {
   StudySidebar,
   AnswerInput,
   LessonCompletedModal,
+  InformationCard,
+  InformationNextButton,
   type AnswerInputHandle,
   type BreathingPhase,
 } from "@/components/study";
@@ -155,6 +157,7 @@ export function StudyModeClient({
 
   const currentWord = localWords[currentWordIndex];
   const isLastWord = currentWordIndex === localWords.length - 1;
+  const isInformationPage = currentWord.category === "information";
 
   // Initialize study session (always fresh - study mode is sandboxed)
   useEffect(() => {
@@ -343,6 +346,11 @@ export function StudyModeClient({
 
   // Phase auto-advance with audio (only when breathing mode is OFF)
   useEffect(() => {
+    // Skip for information pages - no audio phases needed
+    if (isInformationPage) {
+      setPhase("show-input");
+      return;
+    }
     // Skip if breathing mode is enabled - it has its own timing
     if (breathingModeEnabled) return;
 
@@ -417,7 +425,7 @@ export function StudyModeClient({
         clearTimeout(phaseTimeoutRef.current);
       }
     };
-  }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled]);
+  }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled, isInformationPage]);
 
   // Breathing mode phase control (only when breathing mode is ON)
   // Uses a ref for cancellation to persist across effect re-runs
@@ -425,8 +433,8 @@ export function StudyModeClient({
 
   // Trigger breathing cycle when word changes or restart is pressed
   useEffect(() => {
-    // Skip if breathing mode is disabled
-    if (!breathingModeEnabled) {
+    // Skip if breathing mode is disabled or for information pages
+    if (!breathingModeEnabled || isInformationPage) {
       return;
     }
 
@@ -524,7 +532,7 @@ export function StudyModeClient({
       clearTimeout(startTimeout);
       breathingCancelledRef.current = true;
     };
-  }, [currentWordIndex, breathingCycleTrigger, breathingModeEnabled, currentWord, playAudio]);
+  }, [currentWordIndex, breathingCycleTrigger, breathingModeEnabled, currentWord, playAudio, isInformationPage]);
 
   // Handle Escape key to stop audio and skip reveal phases
   useEffect(() => {
@@ -597,6 +605,33 @@ export function StudyModeClient({
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [isLastWord]);
+
+  // Handle information page "Next" — mark as answered and advance
+  const handleInformationNext = useCallback(() => {
+    const existingNotes = wordProgressMap.get(currentWord.id)?.userNotes || null;
+
+    setWordProgressMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(currentWord.id, {
+        isCorrect: true,
+        userNotes: existingNotes,
+        hasAnswered: true,
+      });
+      return newMap;
+    });
+
+    // Save to localStorage
+    if (sessionId) {
+      const progressEntry: WordProgressEntry = {
+        isCorrect: true,
+        userNotes: existingNotes,
+        answeredAt: new Date().toISOString(),
+      };
+      updateWordProgressStorage("study", sessionId, currentWord.id, progressEntry, currentWordIndex);
+    }
+
+    handleNextWord();
+  }, [currentWord.id, currentWordIndex, sessionId, wordProgressMap, handleNextWord]);
 
   // Handle jump to word
   const handleJumpToWord = useCallback(
@@ -853,6 +888,9 @@ export function StudyModeClient({
     .map((w, i) => (wordProgressMap.get(w.id)?.hasAnswered ? i : -1))
     .filter((i) => i !== -1);
 
+  // Categories array for tracker dots and sidebar numbering
+  const wordCategories = localWords.map((w) => w.category);
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Word list sidebar */}
@@ -862,6 +900,7 @@ export function StudyModeClient({
         completedWordIndices={answeredWordIndices}
         onJumpToWord={handleJumpToWord}
         mode="study"
+        categories={wordCategories}
       />
 
       {/* Main content area */}
@@ -879,109 +918,131 @@ export function StudyModeClient({
           completedWordIndices={answeredWordIndices}
           onJumpToWord={handleJumpToWord}
           isTimerPaused={isTimerPaused}
+          categories={wordCategories}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
           <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
-            {/* Word Card - full width */}
-            <div className="w-full">
-              <WordCard
-                englishWord={currentWord.english}
-                foreignWord={currentWord.headword}
-                gender={currentWord.gender}
-                showForeign={showForeign}
-                playingAudioType={currentAudioType}
-                onPlayEnglishAudio={() => {
-                  if (currentWord.audio_url_english) {
-                    playAudio(currentWord.audio_url_english, "english");
-                  }
-                }}
-                onPlayForeignAudio={() => {
-                  if (currentWord.audio_url_foreign) {
-                    playAudio(currentWord.audio_url_foreign, "foreign");
-                  }
-                }}
+            {isInformationPage ? (
+              <InformationCard
+                title={currentWord.english}
+                subheading={currentWord.headword}
+                body={currentWord.information_body}
+                imageUrl={currentWord.memory_trigger_image_url}
                 wordId={currentWord.id}
                 isEditMode={isEditMode}
                 onFieldSave={handleFieldSave}
-                onArrayFieldSave={handleArrayFieldSave}
-                alternateAnswers={currentWord.alternate_answers || []}
-                alternateEnglishAnswers={currentWord.alternate_english_answers || []}
               />
-            </div>
-
-            {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-            <div className="flex gap-6">
-              <div className="flex w-[800px] flex-col gap-6">
-                {imageMode === "memory-trigger" ? (
-                  <MemoryTriggerCard
-                    key={currentWord.id}
-                    imageUrl={currentWord.memory_trigger_image_url}
-                    triggerText={currentWord.memory_trigger_text}
+            ) : (
+              <>
+                {/* Word Card - full width */}
+                <div className="w-full">
+                  <WordCard
                     englishWord={currentWord.english}
                     foreignWord={currentWord.headword}
                     gender={currentWord.gender}
-                    showImage={true}
-                    showTriggerText={showTrigger}
+                    showForeign={showForeign}
                     playingAudioType={currentAudioType}
-                    onPlayTriggerAudio={() => {
-                      if (currentWord.audio_url_trigger) {
-                        playAudio(currentWord.audio_url_trigger, "trigger");
+                    onPlayEnglishAudio={() => {
+                      if (currentWord.audio_url_english) {
+                        playAudio(currentWord.audio_url_english, "english");
+                      }
+                    }}
+                    onPlayForeignAudio={() => {
+                      if (currentWord.audio_url_foreign) {
+                        playAudio(currentWord.audio_url_foreign, "foreign");
                       }
                     }}
                     wordId={currentWord.id}
                     isEditMode={isEditMode}
                     onFieldSave={handleFieldSave}
-                    onImageUpload={handleImageUpload}
+                    onArrayFieldSave={handleArrayFieldSave}
+                    alternateAnswers={currentWord.alternate_answers || []}
+                    alternateEnglishAnswers={currentWord.alternate_english_answers || []}
                   />
-                ) : (
-                  <FlashcardCard
-                    key={currentWord.id}
-                    imageUrl={currentWord.flashcard_image_url}
-                    englishWord={currentWord.english}
-                    isVisible={showTrigger}
-                  />
-                )}
-              </div>
-              <div className="flex-1">
-                <StudySidebar
-                  wordId={currentWord.id}
-                  systemNotes={currentWord.notes}
-                  userNotes={currentUserNotes}
-                  exampleSentences={currentWord.exampleSentences}
-                  relatedWords={currentWord.relatedWords}
-                  isEnabled={sidebarEnabled}
-                  onUserNotesChange={handleUserNotesChange}
-                  isAdmin={isAdmin}
-                  onSystemNotesChange={handleSystemNotesChange}
-                  developerNotes={currentWord.developer_notes}
-                  pictureWrong={currentWord.picture_wrong}
-                  pictureWrongNotes={currentWord.picture_wrong_notes}
-                  pictureMissing={currentWord.picture_missing}
-                  pictureBadSvg={currentWord.picture_bad_svg}
-                  notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
-                />
-              </div>
-            </div>
+                </div>
+
+                {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
+                <div className="flex gap-6">
+                  <div className="flex w-[800px] flex-col gap-6">
+                    {imageMode === "memory-trigger" ? (
+                      <MemoryTriggerCard
+                        key={currentWord.id}
+                        imageUrl={currentWord.memory_trigger_image_url}
+                        triggerText={currentWord.memory_trigger_text}
+                        englishWord={currentWord.english}
+                        foreignWord={currentWord.headword}
+                        gender={currentWord.gender}
+                        showImage={true}
+                        showTriggerText={showTrigger}
+                        playingAudioType={currentAudioType}
+                        onPlayTriggerAudio={() => {
+                          if (currentWord.audio_url_trigger) {
+                            playAudio(currentWord.audio_url_trigger, "trigger");
+                          }
+                        }}
+                        wordId={currentWord.id}
+                        isEditMode={isEditMode}
+                        onFieldSave={handleFieldSave}
+                        onImageUpload={handleImageUpload}
+                      />
+                    ) : (
+                      <FlashcardCard
+                        key={currentWord.id}
+                        imageUrl={currentWord.flashcard_image_url}
+                        englishWord={currentWord.english}
+                        isVisible={showTrigger}
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <StudySidebar
+                      wordId={currentWord.id}
+                      systemNotes={currentWord.notes}
+                      userNotes={currentUserNotes}
+                      exampleSentences={currentWord.exampleSentences}
+                      relatedWords={currentWord.relatedWords}
+                      isEnabled={sidebarEnabled}
+                      onUserNotesChange={handleUserNotesChange}
+                      isAdmin={isAdmin}
+                      onSystemNotesChange={handleSystemNotesChange}
+                      developerNotes={currentWord.developer_notes}
+                      pictureWrong={currentWord.picture_wrong}
+                      pictureWrongNotes={currentWord.picture_wrong_notes}
+                      pictureMissing={currentWord.picture_missing}
+                      pictureBadSvg={currentWord.picture_bad_svg}
+                      notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Fixed bottom container - stacked input and action bar */}
         <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
-          {/* Answer Input Row */}
-          <AnswerInput
-            ref={answerInputRef}
-            wordId={currentWord.id}
-            languageName={language?.name || "Italian"}
-            languageCode={language?.code}
-            validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
-            isVisible={showInput}
-            isLastWord={isLastWord}
-            onSubmit={handleSubmit}
-            onNextWord={handleNextWord}
-            strictMode={strictMode}
-          />
+          {/* Answer Input Row (or Information Next Button) */}
+          {isInformationPage ? (
+            <InformationNextButton
+              isLastWord={isLastWord}
+              onNext={handleInformationNext}
+            />
+          ) : (
+            <AnswerInput
+              ref={answerInputRef}
+              wordId={currentWord.id}
+              languageName={language?.name || "Italian"}
+              languageCode={language?.code}
+              validAnswers={[currentWord.headword, ...(currentWord.alternate_answers || [])]}
+              isVisible={showInput}
+              isLastWord={isLastWord}
+              onSubmit={handleSubmit}
+              onNextWord={handleNextWord}
+              strictMode={strictMode}
+            />
+          )}
 
           {/* Action Bar Row */}
           <StudyActionBar

@@ -179,6 +179,11 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         />
       </td>
 
+      {/* # Learned */}
+      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+        {formatNumber(lesson.wordsLearned)}
+      </td>
+
       {/* # Mastered */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
         {formatNumber(lesson.wordsMastered)}

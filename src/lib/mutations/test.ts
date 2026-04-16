@@ -572,7 +572,7 @@ async function updateWordTestProgress(
   const currentTotalPoints = existingProgress?.total_points_earned || 0;
   const currentBestClueLevel = existingProgress?.best_clue_level ?? 2;
   const currentStreak = existingProgress?.correct_streak || 0;
-  const currentStatus = (existingProgress?.status as "not-started" | "learning" | "mastered" | undefined) || "not-started";
+  const currentStatus = (existingProgress?.status as "not-started" | "learning" | "learned" | "mastered" | undefined) || "not-started";
 
   // Best clue level is the minimum clue level used for a correct answer
   // Lower is better (0 = no clues needed)
@@ -587,32 +587,36 @@ async function updateWordTestProgress(
   // Determine new status
   // Rules:
   //   - 3+ correct in a row → mastered
-  //   - Correct answer on a not-started word → learning (test-mode backup to study-mode path)
+  //   - Correct answer → learned (first correct = learned)
+  //   - Was learned/mastered + wrong answer → learned (floor — never drops below learned)
+  //   - Was learning + wrong answer → learning (floor)
   //   - Wrong answer on a not-started word → stay not-started (prevents gibberish-test promotion)
-  //   - Any attempt on a learning/mastered word → stays at least learning (streak reset on wrong,
-  //     which demotes mastered → learning by design)
-  let newStatus: "not-started" | "learning" | "mastered";
+  let newStatus: "not-started" | "learning" | "learned" | "mastered";
   if (newStreak >= 3) {
     newStatus = "mastered";
-  } else if (isCorrect || currentStatus !== "not-started") {
-    newStatus = "learning";
+  } else if (isCorrect) {
+    newStatus = "learned";
+  } else if (currentStatus === "learned" || currentStatus === "mastered") {
+    newStatus = "learned"; // floor: never drop below learned
+  } else if (currentStatus === "learning") {
+    newStatus = "learning"; // floor: never drop below learning
   } else {
     newStatus = "not-started";
   }
 
   // Preserve the first-time mastery timestamp — never overwrite once set.
-  // If the word is currently mastered (or becoming mastered for the first time),
-  // keep the earliest mastered_at we have.
   const masteredAt =
     newStatus === "mastered"
       ? existingProgress?.mastered_at || now.toISOString()
       : existingProgress?.mastered_at || null;
 
+  // Preserve the first-time learned timestamp — immutable once set.
+  const learnedAt =
+    (newStatus === "learned" || newStatus === "mastered")
+      ? existingProgress?.learned_at || now.toISOString()
+      : existingProgress?.learned_at || null;
+
   // Preserve the first-time learning timestamp — never overwrite once set.
-  // Any promotion out of "not-started" counts as a learning transition.
-  // Test mode is a backup path: study mode is the primary writer of
-  // learning_at, but a correct test answer on a not-started word also
-  // transitions to "learning".
   const learningAt =
     newStatus !== "not-started"
       ? existingProgress?.learning_at || now.toISOString()
@@ -629,6 +633,7 @@ async function updateWordTestProgress(
     last_mistake_count: mistakeCount,
     last_studied_at: now.toISOString(),
     mastered_at: masteredAt,
+    learned_at: learnedAt,
     learning_at: learningAt,
   };
 

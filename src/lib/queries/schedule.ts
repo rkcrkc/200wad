@@ -45,6 +45,8 @@ export interface LessonForScheduler extends Lesson {
   nextMilestone?: string;
   /** When this test became due */
   nextTestDueAt?: string;
+  /** Lesson status from user progress */
+  status: string | null;
 }
 
 export interface ScheduleData {
@@ -241,12 +243,14 @@ function transformToSchedulerFormat(
   lessons: Lesson[],
   sampleWords: Record<string, string[]>,
   images: Record<string, string | null>,
+  progressByLesson?: Map<string, UserLessonProgress>,
   milestoneInfo?: Record<string, { nextMilestone: string; nextTestDueAt: string }>
 ): LessonForScheduler[] {
   return lessons.map((lesson) => ({
     ...lesson,
     sampleWords: sampleWords[lesson.id] || [],
     imageUrl: images[lesson.id] || null,
+    status: progressByLesson?.get(lesson.id)?.status ?? null,
     nextMilestone: milestoneInfo?.[lesson.id]?.nextMilestone,
     nextTestDueAt: milestoneInfo?.[lesson.id]?.nextTestDueAt,
   }));
@@ -353,7 +357,8 @@ export async function getScheduleData(
     const schedulerLessons = transformToSchedulerFormat(
       allLessons,
       sampleWords,
-      images
+      images,
+      undefined
     );
 
     return {
@@ -430,6 +435,7 @@ export async function getScheduleData(
         dueLessons,
         sampleWords,
         images,
+        progressByLesson,
         milestoneInfo
       );
     }
@@ -451,7 +457,8 @@ export async function getScheduleData(
     const transformed = transformToSchedulerFormat(
       [nextLessonData],
       sampleWords,
-      images
+      images,
+      progressByLesson
     );
     nextLesson = transformed[0] || null;
   }
@@ -490,12 +497,14 @@ export async function getScheduleData(
   const newLessons = transformToSchedulerFormat(
     newLessonsData,
     gridSampleWords,
-    gridImages
+    gridImages,
+    progressByLesson
   );
   const recentLessons = transformToSchedulerFormat(
     recentLessonsData,
     gridSampleWords,
-    gridImages
+    gridImages,
+    progressByLesson
   );
 
   return {

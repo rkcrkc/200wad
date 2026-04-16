@@ -62,7 +62,7 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-white">
+    <div className="h-screen overflow-visible bg-white">
       <TooltipInit />
       <DashboardContent
         dueTestsCount={dueTestsCount}

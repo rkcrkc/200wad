@@ -4,10 +4,12 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
 import { useText } from "@/context/TextContext";
+import { mapStatus } from "@/lib/utils/helpers";
 
 interface SchedulerCardProps {
   lesson: LessonForScheduler;
@@ -17,6 +19,7 @@ interface SchedulerCardProps {
 export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
   const { t } = useText();
   const isTest = mode === "test";
+  const statusType = mapStatus(lesson.status || "");
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-card">
@@ -43,11 +46,14 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
             <p className="text-regular-semibold text-muted-foreground">
               Lesson #{lesson.number}
             </p>
-            <WordsPreviewTooltip
-              lessonId={lesson.id}
-              wordCount={lesson.word_count || lesson.sampleWords.length}
-              variant="pill"
-            />
+            <div className="flex items-center gap-2">
+              <WordsPreviewTooltip
+                lessonId={lesson.id}
+                wordCount={lesson.word_count || lesson.sampleWords.length}
+                variant="pill"
+              />
+              <StatusPill status={statusType} />
+            </div>
           </div>
 
           <div className="flex flex-1 flex-col justify-center">

@@ -31,6 +31,8 @@ interface StudyNavbarProps {
   testPointsEarned?: number;
   /** Test mode: running score - max possible points so far */
   testMaxPoints?: number;
+  /** Category per word index — for tracker dots and word count */
+  categories?: (string | null)[];
 }
 
 export function StudyNavbar({
@@ -49,6 +51,7 @@ export function StudyNavbar({
   testResults,
   testPointsEarned = 0,
   testMaxPoints = 0,
+  categories,
 }: StudyNavbarProps) {
   const isTestMode = mode === "test";
   const testScorePercent = testMaxPoints > 0 ? Math.round((testPointsEarned / testMaxPoints) * 100) : 0;
@@ -83,21 +86,35 @@ export function StudyNavbar({
         )}
 
         {/* Word progress with dots */}
-        {showWordProgress && (
-          <div className="flex items-center gap-1.5">
-            <span className="w-[100px] text-small-semibold text-foreground">
-              Word {currentWordIndex + 1} of {totalWords}
-            </span>
-            <WordTrackerDots
-              totalWords={totalWords}
-              currentIndex={currentWordIndex}
-              completedIndices={completedWordIndices}
-              onDotClick={onJumpToWord}
-              disabled={isTestMode}
-              testResults={testResults}
-            />
-          </div>
-        )}
+        {showWordProgress && (() => {
+          // Count only non-information words for display
+          const nonInfoCount = categories
+            ? categories.filter((c) => c !== "information").length
+            : totalWords;
+          // Compute the current word's sequential number (excluding info pages)
+          let wordNumber = 0;
+          for (let i = 0; i <= currentWordIndex; i++) {
+            if (categories?.[i] !== "information") wordNumber++;
+          }
+          const isCurrentInfo = categories?.[currentWordIndex] === "information";
+
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="w-[100px] text-small-semibold text-foreground">
+                {isCurrentInfo ? `Word – of ${nonInfoCount}` : `Word ${wordNumber} of ${nonInfoCount}`}
+              </span>
+              <WordTrackerDots
+                totalWords={totalWords}
+                currentIndex={currentWordIndex}
+                completedIndices={completedWordIndices}
+                onDotClick={onJumpToWord}
+                disabled={isTestMode}
+                testResults={testResults}
+                categories={categories}
+              />
+            </div>
+          );
+        })()}
 
         {/* Test score (test mode only) */}
         {isTestMode && (

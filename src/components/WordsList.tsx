@@ -10,6 +10,7 @@ import { WordCard } from "@/components/WordCard";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
+import { formatPercent } from "@/lib/utils/helpers";
 
 interface WordsListProps {
   words: WordWithDetails[];
@@ -17,14 +18,16 @@ interface WordsListProps {
   languageName?: string;
   wordsNotStarted: number;
   wordsLearning: number;
+  wordsLearned: number;
   wordsMastered: number;
+  averageTestScore?: number | null;
   lessonTitle: string;
   lessonNumber: number;
   onWordSelected?: (isSelected: boolean) => void;
   rightContent?: ReactNode;
 }
 
-type FilterTab = "all" | "not-started" | "learning" | "mastered";
+type FilterTab = "all" | "not-started" | "learning" | "learned" | "mastered";
 type ViewMode = "list" | "grid";
 
 export function WordsList({
@@ -33,7 +36,9 @@ export function WordsList({
   languageName,
   wordsNotStarted,
   wordsLearning,
+  wordsLearned,
   wordsMastered,
+  averageTestScore,
   lessonTitle,
   lessonNumber,
   onWordSelected,
@@ -69,6 +74,7 @@ export function WordsList({
     { id: "all", label: "All words", count: words.length },
     { id: "not-started", label: "Not started", count: wordsNotStarted },
     { id: "learning", label: "Learning", count: wordsLearning },
+    { id: "learned", label: "Learned", count: wordsLearned },
     { id: "mastered", label: "Mastered", count: wordsMastered },
   ];
 
@@ -87,6 +93,9 @@ export function WordsList({
         break;
       case "learning":
         if (word.status !== "learning") return false;
+        break;
+      case "learned":
+        if (word.status !== "learned") return false;
         break;
       case "mastered":
         if (word.status !== "mastered") return false;
@@ -110,9 +119,11 @@ export function WordsList({
       ? "No words are Not started."
       : effectiveActiveTab === "learning"
         ? "No words are Learning."
-        : effectiveActiveTab === "mastered"
-          ? "No words are Mastered yet."
-          : "No words found.";
+        : effectiveActiveTab === "learned"
+          ? "No words are Learned yet."
+          : effectiveActiveTab === "mastered"
+            ? "No words are Mastered yet."
+            : "No words found.";
 
   // Navigation handlers - navigate within filtered list
   const handleSelectWord = useCallback((index: number) => {
@@ -210,7 +221,7 @@ export function WordsList({
           </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="overflow-hidden rounded-xl">
+        <div className="overflow-x-auto overflow-y-visible rounded-xl">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
               <col style={{ width: 72 }} />
@@ -218,11 +229,12 @@ export function WordsList({
               <col />
               <col />
               <col style={{ width: 140 }} />
+              <col style={{ width: 140 }} />
               <col style={{ width: 60 }} />
             </colgroup>
             {/* Table Header */}
             <thead>
-              <tr className="whitespace-nowrap text-xs-medium text-muted-foreground">
+              <tr className="cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
                 <th className="px-6 py-3 text-left font-medium">#</th>
                 <th className="px-2 py-3"></th>
                 <th className="px-2 py-3 text-left font-medium">English</th>
@@ -230,6 +242,16 @@ export function WordsList({
                   {languageName ?? "Translation"}
                 </th>
                 <th className="px-2 py-3 text-left font-medium">Status</th>
+                <th className="px-2 py-3 text-left font-medium">
+                  <div className="flex items-center gap-2">
+                    Avg. score
+                    {averageTestScore !== null && averageTestScore !== undefined && (
+                      <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                        {formatPercent(averageTestScore)}
+                      </span>
+                    )}
+                  </div>
+                </th>
                 <th className="sticky right-0 bg-background px-2 py-3"></th>
               </tr>
             </thead>

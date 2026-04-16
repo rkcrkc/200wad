@@ -43,6 +43,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const testableWords = words.filter((w) => w.category !== "information");
   const wordsNotStarted = testableWords.filter((w) => w.status === "not-started").length;
   const wordsLearning = testableWords.filter((w) => w.status === "learning").length;
+  const wordsLearned = testableWords.filter((w) => w.status === "learned").length;
   const wordsMastered = testableWords.filter((w) => w.status === "mastered").length;
   const masteredPercentage =
     stats.totalWords > 0
@@ -96,6 +97,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             courseId={course?.id}
             wordsNotStarted={wordsNotStarted}
             wordsLearning={wordsLearning}
+            wordsLearned={wordsLearned}
             wordsMastered={wordsMastered}
             masteredPercentage={masteredPercentage}
             averageTestScore={stats.averageTestScore}

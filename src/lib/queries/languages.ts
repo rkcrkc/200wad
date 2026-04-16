@@ -99,7 +99,7 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       `
       )
       .eq("user_id", user.id)
-      .in("status", ["learning", "mastered"]);
+      .in("status", ["learning", "learned", "mastered"]);
 
     wordProgress?.forEach((wp) => {
       const langId = (wp.words as { language_id: string } | null)?.language_id;

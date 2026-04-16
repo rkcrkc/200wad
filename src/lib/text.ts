@@ -778,6 +778,12 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Learning status tooltip",
     category: "tooltips_popovers",
     group: "Word Detail",
+    defaultValue: "You've studied this word — get it correct in a test to learn it",
+  },
+  tip_status_learned: {
+    label: "Learned status tooltip",
+    category: "tooltips_popovers",
+    group: "Word Detail",
     defaultValue: "Get correct 3x tests in a row to master this word",
   },
   tip_status_mastered: {

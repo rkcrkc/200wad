@@ -473,14 +473,17 @@ export async function updateLessonProgress(
 
   // Calculate stats using testable words as denominator
   const wordsMastered = wordProgress?.filter((wp) => wp.status === "mastered").length || 0;
+  const wordsLearnedOrMastered = wordProgress?.filter((wp) => wp.status === "learned" || wp.status === "mastered").length || 0;
   const wordsStudied = wordProgress?.filter((wp) => wp.status !== "not-started").length || 0;
   const totalWords = testableWords.length;
   const completionPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
 
   // Determine lesson status
-  let lessonStatus: "not-started" | "learning" | "mastered" = "not-started";
+  let lessonStatus: "not-started" | "learning" | "learned" | "mastered" = "not-started";
   if (completionPercent >= 100) {
     lessonStatus = "mastered";
+  } else if (wordsLearnedOrMastered >= totalWords && totalWords > 0) {
+    lessonStatus = "learned";
   } else if (wordsStudied > 0) {
     lessonStatus = "learning";
   }

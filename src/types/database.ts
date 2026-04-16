@@ -1020,6 +1020,7 @@ export type Database = {
           id: string
           last_mistake_count: number | null
           last_studied_at: string | null
+          learned_at: string | null
           learning_at: string | null
           mastered_at: string | null
           next_review_at: string | null
@@ -1038,6 +1039,7 @@ export type Database = {
           id?: string
           last_mistake_count?: number | null
           last_studied_at?: string | null
+          learned_at?: string | null
           learning_at?: string | null
           mastered_at?: string | null
           next_review_at?: string | null
@@ -1056,6 +1058,7 @@ export type Database = {
           id?: string
           last_mistake_count?: number | null
           last_studied_at?: string | null
+          learned_at?: string | null
           learning_at?: string | null
           mastered_at?: string | null
           next_review_at?: string | null
@@ -1309,6 +1312,7 @@ export type Database = {
           grammatical_number: string | null
           headword: string
           id: string
+          information_body: string | null
           is_false_friend: boolean | null
           is_irregular: boolean | null
           is_plural_only: boolean | null
@@ -1350,6 +1354,7 @@ export type Database = {
           grammatical_number?: string | null
           headword: string
           id?: string
+          information_body?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
@@ -1391,6 +1396,7 @@ export type Database = {
           grammatical_number?: string | null
           headword?: string
           id?: string
+          information_body?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null

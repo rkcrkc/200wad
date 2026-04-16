@@ -4,10 +4,12 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import type { LessonForScheduler } from "@/lib/queries";
 import { useText } from "@/context/TextContext";
+import { mapStatus } from "@/lib/utils/helpers";
 
 interface LessonPreviewCardProps {
   lesson: LessonForScheduler;
@@ -15,6 +17,8 @@ interface LessonPreviewCardProps {
 
 export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
   const { t } = useText();
+  const statusType = mapStatus(lesson.status || "");
+
   return (
     <div className="flex flex-col overflow-hidden pt-2 px-6 rounded-2xl bg-white shadow-card">
       <Link href={`/lesson/${lesson.id}`}>
@@ -41,11 +45,14 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
           <p className="text-regular-semibold text-muted-foreground">
             Lesson #{lesson.number}
           </p>
-          <WordsPreviewTooltip
-            lessonId={lesson.id}
-            wordCount={lesson.word_count || lesson.sampleWords.length}
-            variant="pill"
-          />
+          <div className="flex items-center gap-2">
+            <WordsPreviewTooltip
+              lessonId={lesson.id}
+              wordCount={lesson.word_count || lesson.sampleWords.length}
+              variant="pill"
+            />
+            <StatusPill status={statusType} />
+          </div>
         </div>
 
         {/* Title */}

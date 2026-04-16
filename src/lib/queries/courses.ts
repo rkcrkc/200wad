@@ -143,7 +143,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         .from("user_word_progress")
         .select("word_id, status")
         .eq("user_id", user.id)
-        .in("status", ["learning", "mastered"]),
+        .in("status", ["learning", "learned", "mastered"]),
     ]);
     warnIfTruncated("getCourses:lesson_words", lessonWordsResult.data?.length ?? 0);
 
@@ -181,7 +181,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         if (status === "mastered") {
           mastered++;
           studied++;
-        } else if (status === "learning") {
+        } else if (status === "learned" || status === "learning") {
           studied++;
         }
       }

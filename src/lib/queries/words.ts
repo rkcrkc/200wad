@@ -53,7 +53,7 @@ function extractLesson(lesson: Lesson & { courses?: unknown }): Lesson {
   };
 }
 
-export type WordStatus = "not-started" | "learning" | "mastered";
+export type WordStatus = "not-started" | "learning" | "learned" | "mastered";
 
 export interface TestAttempt {
   pointsEarned: number;
@@ -102,6 +102,7 @@ export interface GetWordsResult {
   stats: {
     totalWords: number;
     wordsStudied: number;
+    wordsLearned: number;
     wordsMastered: number;
     totalTimeSeconds: number;
     studyTimeSeconds: number;
@@ -139,7 +140,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+      stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !user,
       userId: user?.id ?? null,
     };
@@ -268,7 +269,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         previousLesson,
         nextLesson,
         courseLessons: orderedLessons,
-        stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+        stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
         isGuest: !user,
         userId: user?.id ?? null,
       };
@@ -302,6 +303,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   // Get user's word progress if authenticated
   let progressByWord: Record<string, UserWordProgress> = {};
   let wordsStudied = 0;
+  let wordsLearned = 0;
   let wordsMastered = 0;
 
   if (user && words && words.length > 0) {
@@ -326,8 +328,11 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       }
       // Exclude information pages from studied/mastered counts
       if (wordId && infoWordIds.has(wordId)) return;
-      if (wp.status === "learning" || wp.status === "mastered") {
+      if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
         wordsStudied++;
+      }
+      if (wp.status === "learned") {
+        wordsLearned++;
       }
       if (wp.status === "mastered") {
         wordsMastered++;
@@ -465,6 +470,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     stats: {
       totalWords: words?.filter((w) => w.category !== "information").length || 0,
       wordsStudied,
+      wordsLearned,
       wordsMastered,
       totalTimeSeconds,
       studyTimeSeconds,
@@ -583,6 +589,7 @@ export async function getWord(wordId: string): Promise<{
     legacy_refn: word.legacy_refn,
     legacy_gender_code: word.legacy_gender_code,
     legacy_image_suffix: word.legacy_image_suffix,
+    information_body: word.information_body,
     notes: word.notes,
     admin_notes: word.admin_notes,
     developer_notes: word.developer_notes,
@@ -637,7 +644,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+      stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !userId,
       userId,
     };
@@ -661,7 +668,7 @@ async function getAutoLessonWords(
       previousLesson: null,
       nextLesson: null,
       courseLessons: [],
-      stats: { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+      stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: false,
       userId,
     };
@@ -748,10 +755,26 @@ async function getAutoLessonWords(
         wordId,
         avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
       }))
-      .sort((a, b) => type === "best" ? b.avgPercent - a.avgPercent : a.avgPercent - b.avgPercent)
-      .slice(0, 20);
+      .sort((a, b) => type === "best" ? b.avgPercent - a.avgPercent : a.avgPercent - b.avgPercent);
 
-    targetWordIds = sortedWords.map((w) => w.wordId);
+    // For worst words, exclude mastered words before taking top 20
+    if (type === "worst") {
+      const allWordIds = sortedWords.map((w) => w.wordId);
+      const { data: masteredProgress } = await supabase
+        .from("user_word_progress")
+        .select("word_id")
+        .eq("user_id", userId)
+        .in("word_id", allWordIds)
+        .eq("status", "mastered");
+
+      const masteredIds = new Set(masteredProgress?.map((wp) => wp.word_id) ?? []);
+      targetWordIds = sortedWords
+        .filter((w) => !masteredIds.has(w.wordId))
+        .slice(0, 20)
+        .map((w) => w.wordId);
+    } else {
+      targetWordIds = sortedWords.slice(0, 20).map((w) => w.wordId);
+    }
   }
 
   if (targetWordIds.length === 0) {
@@ -802,6 +825,7 @@ async function getAutoLessonWords(
 
   const progressByWord: Record<string, UserWordProgress> = {};
   let wordsStudied = 0;
+  let wordsLearned = 0;
   let wordsMastered = 0;
 
   // Build set of info page word IDs to exclude from stats
@@ -815,8 +839,11 @@ async function getAutoLessonWords(
     }
     // Exclude information pages from studied/mastered counts
     if (wp.word_id && autoInfoWordIds.has(wp.word_id)) return;
-    if (wp.status === "learning" || wp.status === "mastered") {
+    if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
       wordsStudied++;
+    }
+    if (wp.status === "learned") {
+      wordsLearned++;
     }
     if (wp.status === "mastered") {
       wordsMastered++;
@@ -902,6 +929,7 @@ async function getAutoLessonWords(
   return buildAutoLessonResult(type, courseId, course, language, orderedLessons, wordsWithDetails, userId, {
     totalWords: wordsWithDetails.filter((w) => w.category !== "information").length,
     wordsStudied,
+    wordsLearned,
     wordsMastered,
     totalTimeSeconds: 0,
     studyTimeSeconds: 0,
@@ -921,7 +949,7 @@ function buildAutoLessonResult(
   courseLessons: AdjacentLesson[],
   words: WordWithDetails[],
   userId: string | null,
-  stats?: { totalWords: number; wordsStudied: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number; averageTestScore: number | null }
+  stats?: { totalWords: number; wordsStudied: number; wordsLearned: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number; averageTestScore: number | null }
 ): GetWordsResult {
   const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
     notes: { number: 800, title: "My Notes", emoji: "📝" },
@@ -979,7 +1007,7 @@ function buildAutoLessonResult(
     previousLesson: null, // Auto-lessons don't have prev/next
     nextLesson: null,
     courseLessons,
-    stats: stats || { totalWords: 0, wordsStudied: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+    stats: stats || { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
     isGuest: false,
     userId,
   };

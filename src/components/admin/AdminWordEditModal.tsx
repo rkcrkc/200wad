@@ -58,6 +58,7 @@ export interface WordWithDetails {
   transitivity: string | null;
   is_irregular: boolean | null;
   grammatical_number: string | null;
+  information_body: string | null;
   notes: string | null;
   developer_notes: string | null;
   alternate_answers: string[] | null;
@@ -167,6 +168,7 @@ interface FormData {
   notes: string;
   developer_notes: string;
   memory_trigger_text: string;
+  information_body: string;
 }
 
 interface FormErrors {
@@ -199,6 +201,7 @@ const INITIAL_FORM_DATA: FormData = {
   notes: "",
   developer_notes: "",
   memory_trigger_text: "",
+  information_body: "",
 };
 
 const INITIAL_FILE_UPLOADS: FileUploads = {
@@ -289,6 +292,7 @@ export function AdminWordEditModal({
         notes: editingWord.notes || "",
         developer_notes: editingWord.developer_notes || "",
         memory_trigger_text: editingWord.memory_trigger_text || "",
+        information_body: editingWord.information_body || "",
       });
       setPreviewUrls({
         triggerImage: editingWord.memory_trigger_image_url,
@@ -402,6 +406,7 @@ export function AdminWordEditModal({
         notes: formData.notes || null,
         developer_notes: formData.developer_notes || null,
         memory_trigger_text: formData.memory_trigger_text || null,
+        information_body: formData.information_body || null,
       };
 
       let wordId = editingWord?.id;
@@ -622,15 +627,26 @@ export function AdminWordEditModal({
     }
   };
 
+  const isInformation = formData.category === "information";
+
   // ---- Build tab list ----
   const tabs: { id: TabId; label: string }[] = [
-    { id: "word", label: "Word" },
-    { id: "trigger", label: "Memory Trigger" },
-    { id: "audio", label: "Audio Files" },
+    { id: "word", label: isInformation ? "Information" : "Word" },
   ];
+  if (!isInformation) {
+    tabs.push({ id: "trigger", label: "Memory Trigger" });
+  }
+  tabs.push({ id: "audio", label: "Audio Files" });
   if (lessons) {
     tabs.push({ id: "lessons", label: "Lessons" });
   }
+
+  // If switching to information while on trigger tab, reset to word tab
+  useEffect(() => {
+    if (isInformation && activeTab === "trigger") {
+      setActiveTab("word");
+    }
+  }, [isInformation, activeTab]);
 
   // ---- Render ----
   return (
@@ -709,6 +725,90 @@ export function AdminWordEditModal({
           {/* ============================================================ */}
           {activeTab === "word" && (
             <div className="space-y-6">
+              {/* Category selector - always at top */}
+              <AdminFormField label="Category" name="category">
+                <AdminSelect
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  options={categoryOptions}
+                />
+              </AdminFormField>
+
+              {/* ---- Information category: simplified form ---- */}
+              {isInformation ? (
+                <div className="space-y-6">
+                  <AdminFormField label="Title" name="english" required error={errors.english}>
+                    <AdminInput
+                      id="english"
+                      name="english"
+                      value={formData.english}
+                      onChange={(e) =>
+                        setFormData({ ...formData, english: e.target.value })
+                      }
+                      placeholder="e.g., Italian Greetings"
+                      error={!!errors.english}
+                    />
+                  </AdminFormField>
+
+                  <AdminFormField label="Subheading" name="headword" required error={errors.headword}>
+                    <AdminInput
+                      id="headword"
+                      name="headword"
+                      value={formData.headword}
+                      onChange={(e) =>
+                        setFormData({ ...formData, headword: e.target.value })
+                      }
+                      placeholder="e.g., Saluti italiani"
+                      error={!!errors.headword}
+                    />
+                  </AdminFormField>
+
+                  <AdminFormField label="Body" name="information_body" hint="Supports Markdown">
+                    <AdminTextarea
+                      id="information_body"
+                      name="information_body"
+                      value={formData.information_body}
+                      onChange={(e) =>
+                        setFormData({ ...formData, information_body: e.target.value })
+                      }
+                      placeholder="Write the information page content..."
+                      rows={10}
+                    />
+                  </AdminFormField>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Image
+                    </label>
+                    <AdminFileUpload
+                      type="image"
+                      value={previewUrls.triggerImage}
+                      onChange={(file, url) => {
+                        setFileUploads({ ...fileUploads, triggerImage: file });
+                        setPreviewUrls({ ...previewUrls, triggerImage: url });
+                      }}
+                    />
+                  </div>
+
+                  <AdminFormField label="Developer Notes" name="developer_notes" hint="The student will NOT see these">
+                    <AdminTextarea
+                      id="developer_notes"
+                      name="developer_notes"
+                      value={formData.developer_notes}
+                      onChange={(e) =>
+                        setFormData({ ...formData, developer_notes: e.target.value })
+                      }
+                      placeholder="Private notes for administrators only..."
+                    />
+                  </AdminFormField>
+                </div>
+              ) : (
+              <>
+              {/* ---- Standard word form ---- */}
               {/* Foreign Word subgroup */}
               <div className="space-y-4 rounded-lg border border-gray-200 p-4">
                 <h4 className="text-sm font-medium text-gray-500">
@@ -964,43 +1064,27 @@ export function AdminWordEditModal({
                 </div>
               </div>
 
-              {/* Classifications subgroup */}
-              <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-                <h4 className="text-sm font-medium text-gray-500">
-                  Classifications
-                </h4>
+              {/* Grammar fields (conditional on category/part of speech) */}
+              {formData.category === "word" && (
+                <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <AdminFormField label="Category" name="category">
+                  <AdminFormField
+                    label="Part of Speech"
+                    name="part_of_speech"
+                  >
                     <AdminSelect
-                      id="category"
-                      name="category"
-                      value={formData.category}
+                      id="part_of_speech"
+                      name="part_of_speech"
+                      value={formData.part_of_speech}
                       onChange={(e) =>
-                        setFormData({ ...formData, category: e.target.value })
+                        setFormData({
+                          ...formData,
+                          part_of_speech: e.target.value,
+                        })
                       }
-                      options={categoryOptions}
+                      options={partOfSpeechOptions}
                     />
                   </AdminFormField>
-
-                  {formData.category === "word" && (
-                    <AdminFormField
-                      label="Part of Speech"
-                      name="part_of_speech"
-                    >
-                      <AdminSelect
-                        id="part_of_speech"
-                        name="part_of_speech"
-                        value={formData.part_of_speech}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            part_of_speech: e.target.value,
-                          })
-                        }
-                        options={partOfSpeechOptions}
-                      />
-                    </AdminFormField>
-                  )}
 
                   {(formData.part_of_speech === "noun" ||
                     formData.part_of_speech === "adjective") && (
@@ -1018,9 +1102,8 @@ export function AdminWordEditModal({
                   )}
                 </div>
 
-                {formData.category === "word" && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {formData.part_of_speech === "verb" && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {formData.part_of_speech === "verb" && (
                       <AdminFormField
                         label="Transitivity"
                         name="transitivity"
@@ -1081,9 +1164,9 @@ export function AdminWordEditModal({
                         </label>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
+                </div>
+                </>
+              )}
 
               {/* Notes subgroup */}
               <div className="space-y-4 rounded-lg border border-gray-200 p-4">
@@ -1336,6 +1419,8 @@ export function AdminWordEditModal({
                     </div>
                   </div>
                 </div>
+              )}
+              </>
               )}
             </div>
           )}

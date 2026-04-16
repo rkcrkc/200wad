@@ -19,6 +19,8 @@ interface StudyWordListSidebarProps {
   testResults?: Map<number, "correct" | "half-correct" | "incorrect">;
   /** Which word to show first: "foreign" (default) or "english" */
   primaryField?: "foreign" | "english";
+  /** Category per word index — information pages get no number */
+  categories?: (string | null)[];
 }
 
 export function StudyWordListSidebar({
@@ -29,6 +31,7 @@ export function StudyWordListSidebar({
   mode = "study",
   testResults,
   primaryField = "foreign",
+  categories,
 }: StudyWordListSidebarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentItemRef = useRef<HTMLButtonElement>(null);
@@ -37,6 +40,18 @@ export function StudyWordListSidebar({
 
   const isTestMode = mode === "test";
   const completedSet = new Set(completedWordIndices);
+
+  // Build word number mapping (info pages get null, words get sequential numbers)
+  const wordNumbers: (number | null)[] = [];
+  let wordCount = 0;
+  wordList.forEach((_, i) => {
+    if (categories?.[i] === "information") {
+      wordNumbers.push(null);
+    } else {
+      wordCount++;
+      wordNumbers.push(wordCount);
+    }
+  });
 
   // In test mode, can only navigate to words that have been reached
   const maxReachedIndex = completedWordIndices.length > 0
@@ -83,6 +98,7 @@ export function StudyWordListSidebar({
               const isCurrent = index === currentWordIndex;
               const isCompleted = completedSet.has(index);
               const testResult = testResults?.get(index);
+              const isInfoPage = categories?.[index] === "information";
               const primaryText = primaryField === "english" ? word.english : word.foreign;
               const secondaryText = primaryField === "english" ? word.foreign : word.english;
 
@@ -104,12 +120,12 @@ export function StudyWordListSidebar({
                         : "hover:bg-[#FAF8F3]"
                   )}
                 >
-                  {/* Number */}
+                  {/* Number (info pages get no number) */}
                   <span className={cn(
                     "flex h-5 w-5 shrink-0 items-center justify-center text-xs font-medium",
                     isCurrent ? "text-foreground" : "text-foreground/40"
                   )}>
-                    {index + 1}
+                    {wordNumbers[index] ?? ""}
                   </span>
 
                   {/* Word text – all states share the same fixed height */}
@@ -120,6 +136,16 @@ export function StudyWordListSidebar({
                         <div className="h-3.5 w-3/4 rounded bg-foreground/10" />
                         <div className="h-2.5 w-1/2 rounded bg-foreground/10 mt-1" />
                       </>
+                    ) : isInfoPage ? (
+                      /* Information pages: show only english title */
+                      <div className={cn(
+                        "truncate text-sm font-medium",
+                        isCurrent || isCompleted
+                          ? "text-foreground"
+                          : "text-foreground/40"
+                      )}>
+                        {word.english}
+                      </div>
                     ) : isTestMode && !testResult ? (
                       /* Current word in test mode (not yet answered): show only primary (prompt) */
                       <div className="truncate text-sm font-medium text-foreground">

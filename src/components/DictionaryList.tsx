@@ -157,7 +157,7 @@ export function DictionaryList({
           comparison = (a.partOfSpeech || "").localeCompare(b.partOfSpeech || "");
           break;
         case "status":
-          const statusOrder = { mastered: 0, learning: 1, "not-started": 2 };
+          const statusOrder = { mastered: 0, learned: 1, learning: 2, "not-started": 3 };
           comparison = statusOrder[a.status] - statusOrder[b.status];
           break;
         case "lessonNumber":

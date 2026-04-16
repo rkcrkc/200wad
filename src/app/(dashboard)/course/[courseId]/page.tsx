@@ -36,10 +36,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
     setCurrentCourse(courseId);
   }
 
-  // Lesson-level stats
-  const totalLessons = lessons.length;
-  const lessonsStudied = lessons.filter((l) => l.status !== "not-started").length;
-  const lessonsMastered = lessons.filter((l) => l.status === "mastered").length;
+  // Lesson-level stats (exclude auto-lessons: My Notes, Best Words, Worst Words)
+  const realLessons = lessons.filter((l) => !l.isAutoLesson);
+  const totalLessons = realLessons.length;
+  const lessonsLearned = realLessons.filter((l) => l.status === "learned" || l.status === "mastered").length;
+  const lessonsMastered = realLessons.filter((l) => l.status === "mastered").length;
 
   const languageFlag = getFlagFromCode(language?.code);
 
@@ -47,15 +48,15 @@ export default async function CoursePage({ params }: CoursePageProps) {
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
     <PageShell withTopPadding={false} className="pt-8">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-page-header">All Lessons</h1>
 
         {/* Stats */}
         <CourseStatsBar
-          wordsStudied={stats.wordsStudied}
+          wordsLearned={stats.wordsLearned}
           wordsMastered={stats.wordsMastered}
           totalWords={stats.totalWords}
-          lessonsStudied={lessonsStudied}
+          lessonsLearned={lessonsLearned}
           lessonsMastered={lessonsMastered}
           totalLessons={totalLessons}
         />

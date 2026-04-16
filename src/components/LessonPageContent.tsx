@@ -16,6 +16,8 @@ import { TestType } from "@/types/test";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
+import { StatusPill } from "@/components/ui/status-pill";
+import { ProgressRing } from "@/components/ui/progress-ring";
 import { status as statusTokens } from "@/lib/design-tokens";
 import { useText } from "@/context/TextContext";
 
@@ -33,6 +35,7 @@ interface LessonPageContentProps {
   courseId?: string;
   wordsNotStarted: number;
   wordsLearning: number;
+  wordsLearned: number;
   wordsMastered: number;
   masteredPercentage: number;
   averageTestScore: number | null;
@@ -52,6 +55,7 @@ export function LessonPageContent({
   courseId,
   wordsNotStarted,
   wordsLearning,
+  wordsLearned,
   wordsMastered,
   masteredPercentage,
   averageTestScore,
@@ -81,96 +85,89 @@ export function LessonPageContent({
   return (
     <>
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 text-regular-semibold text-black-80">
-              Lesson #{lesson.number}
-            </p>
-            <h1 className="flex items-center gap-4 text-xxl-semibold">
-              {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
-              {lesson.title}
-            </h1>
-          </div>
+      <div className="mb-8 flex flex-col gap-4">
+        {/* Row 1: Lesson # + Status pill */}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-regular-semibold text-black-80">
+            Lesson #{lesson.number}
+          </p>
+          {(() => {
+            const lessonStatus = masteredPercentage === 100
+              ? "mastered" as const
+              : (wordsLearned + wordsMastered) >= words.length && words.length > 0
+                ? "learned" as const
+                : wordsNotStarted === words.length
+                  ? "notStarted" as const
+                  : "learning" as const;
+            return (
+              <StatusPill
+                status={lessonStatus}
+                bgOverride={lessonStatus === "notStarted" ? "#FFFFFF" : undefined}
+              />
+            );
+          })()}
+        </div>
+
+        {/* Row 2: Title + Stats */}
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between xl:gap-8">
+          <h1 className="flex items-center gap-4 text-xxl-semibold">
+            {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
+            {lesson.title}
+          </h1>
 
           {/* Stats */}
           <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
-            {/* Status */}
-            <div className="flex flex-col items-start">
-              <span className="text-xs text-muted-foreground">Status</span>
-              <span
-                className="text-small-semibold"
-                style={{
-                  color: masteredPercentage === 100
-                    ? statusTokens.mastered.color
-                    : wordsNotStarted === words.length
-                      ? statusTokens.notStarted.color
-                      : statusTokens.learning.color,
-                }}
-              >
-                {masteredPercentage === 100
-                  ? "Mastered"
-                  : wordsNotStarted === words.length
-                    ? "Not started"
-                    : "Learning"}
-              </span>
-            </div>
-
-            {/* Lesson completion */}
+            {/* Words learned */}
             <Popover
-              className="flex flex-col items-start cursor-default"
+              className="flex flex-col items-start gap-1.5 cursor-default"
               content={
-                <div className="flex flex-col gap-1">
-                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">
-                    {t("pop_words_mastered")}
-                  </span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">Words learned</span>
                   <span className="text-foreground text-[13px] leading-[1.4]">
-                    <span className="font-semibold">{formatNumber(wordsMastered)}</span> mastered / <span className="font-semibold">{formatNumber(words.length)}</span> total = <span className="font-semibold">{formatPercent(masteredPercentage, { decimals: 1 })}</span>
+                    <span className="font-semibold">{formatNumber(wordsLearned + wordsMastered)}</span> learned / <span className="font-semibold">{formatNumber(words.length)}</span> total = {formatPercent(words.length > 0 ? ((wordsLearned + wordsMastered) / words.length) * 100 : 0, { decimals: 1 })}
                   </span>
                 </div>
               }
             >
-              <span className="text-xs text-muted-foreground">Completion</span>
+              <span className="text-xs text-muted-foreground">Words learned</span>
               <div className="flex items-center gap-2">
-                <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0">
-                  <circle
-                    cx="10" cy="10" r="8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    className="text-black/10"
-                  />
-                  <circle
-                    cx="10" cy="10" r="8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    className="text-primary"
-                    strokeDasharray={`${2 * Math.PI * 8}`}
-                    strokeDashoffset={`${2 * Math.PI * 8 * (1 - masteredPercentage / 100)}`}
-                    transform="rotate(-90 10 10)"
-                    style={{ transition: "stroke-dashoffset 0.3s" }}
-                  />
-                </svg>
-                <span className="text-regular-semibold">{formatPercent(masteredPercentage)}</span>
+                <ProgressRing value={words.length > 0 ? ((wordsLearned + wordsMastered) / words.length) * 100 : 0} size={20} />
+                <span className="text-regular-semibold">
+                  {formatNumber(wordsLearned + wordsMastered)} / {formatNumber(words.length)}
+                </span>
+                <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                  {formatPercent(words.length > 0 ? ((wordsLearned + wordsMastered) / words.length) * 100 : 0)}
+                </span>
               </div>
             </Popover>
 
-            {/* Average score */}
-            <div className="flex flex-col items-start">
-              <span className="text-xs text-muted-foreground">Average score</span>
-              {averageTestScore !== null ? (
-                <div className="flex items-center gap-1.5 text-success">
-                  <span className="text-regular-semibold">✓ {formatPercent(averageTestScore)}</span>
+            {/* Words mastered */}
+            <Popover
+              className="flex flex-col items-start gap-1.5 cursor-default"
+              content={
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_words_mastered")}</span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    <span className="font-semibold">{formatNumber(wordsMastered)}</span> mastered / <span className="font-semibold">{formatNumber(words.length)}</span> total = {formatPercent(masteredPercentage, { decimals: 1 })}
+                  </span>
                 </div>
-              ) : (
-                <span className="text-regular-semibold text-muted-foreground">—</span>
-              )}
-            </div>
+              }
+            >
+              <span className="text-xs text-muted-foreground">Words mastered</span>
+              <div className="flex items-center gap-2">
+                <ProgressRing value={masteredPercentage} size={20} />
+                <span className="text-regular-semibold">
+                  {formatNumber(wordsMastered)} / {formatNumber(words.length)}
+                </span>
+                <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                  {formatPercent(masteredPercentage)}
+                </span>
+              </div>
+            </Popover>
 
             {/* Total time */}
             <Popover
-              className="flex flex-col items-start cursor-default"
+              className="flex flex-col items-start gap-1.5 cursor-default"
               align="right"
               content={
                 <div className="flex flex-col gap-1">
@@ -196,6 +193,7 @@ export function LessonPageContent({
             </Popover>
           </div>
         </div>
+      </div>
 
       {/* Content - Words List or Activity History */}
 
@@ -222,7 +220,9 @@ export function LessonPageContent({
             languageName={languageName}
             wordsNotStarted={wordsNotStarted}
             wordsLearning={wordsLearning}
+            wordsLearned={wordsLearned}
             wordsMastered={wordsMastered}
+            averageTestScore={averageTestScore}
             lessonTitle={lesson.title}
             lessonNumber={lesson.number}
             onWordSelected={setIsWordSelected}

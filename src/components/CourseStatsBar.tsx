@@ -5,19 +5,19 @@ import { formatNumber, formatRatioPercent } from "@/lib/utils/helpers";
 import { useText } from "@/context/TextContext";
 
 interface CourseStatsBarProps {
-  wordsStudied: number;
+  wordsLearned: number;
   wordsMastered: number;
   totalWords: number;
-  lessonsStudied: number;
+  lessonsLearned: number;
   lessonsMastered: number;
   totalLessons: number;
 }
 
 export function CourseStatsBar({
-  wordsStudied,
+  wordsLearned,
   wordsMastered,
   totalWords,
-  lessonsStudied,
+  lessonsLearned,
   lessonsMastered,
   totalLessons,
 }: CourseStatsBarProps) {
@@ -25,29 +25,32 @@ export function CourseStatsBar({
 
   return (
     <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
-      {/* Words studied */}
+      {/* Words learned */}
       <Popover
-        className="flex flex-col items-start gap-1 cursor-default"
+        className="flex flex-col items-start gap-1.5 cursor-default"
         content={
           <div className="flex flex-col gap-0.5">
-            <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_words_studied")}</span>
+            <span className="text-foreground text-[14px] leading-[1.4] font-semibold">Words learned</span>
             <span className="text-foreground text-[13px] leading-[1.4]">
-              <span className="font-semibold">{formatNumber(wordsStudied)}</span> studied / <span className="font-semibold">{formatNumber(totalWords)}</span> total = {formatRatioPercent(wordsStudied, totalWords, { decimals: 1 })}
+              <span className="font-semibold">{formatNumber(wordsLearned)}</span> learned / <span className="font-semibold">{formatNumber(totalWords)}</span> total = {formatRatioPercent(wordsLearned, totalWords, { decimals: 1 })}
             </span>
           </div>
         }
       >
-        <span className="text-xs text-muted-foreground">{t("pop_words_studied")}</span>
-        <div className="flex items-center">
+        <span className="text-xs text-muted-foreground">Words learned</span>
+        <div className="flex items-center gap-2">
           <span className="text-regular-semibold">
-            {formatNumber(wordsStudied)} ({formatRatioPercent(wordsStudied, totalWords)})
+            {formatNumber(wordsLearned)} / {formatNumber(totalWords)}
+          </span>
+          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatRatioPercent(wordsLearned, totalWords)}
           </span>
         </div>
       </Popover>
 
       {/* Words mastered */}
       <Popover
-        className="flex flex-col items-start gap-1 cursor-default"
+        className="flex flex-col items-start gap-1.5 cursor-default"
         content={
           <div className="flex flex-col gap-0.5">
             <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_words_mastered")}</span>
@@ -58,36 +61,42 @@ export function CourseStatsBar({
         }
       >
         <span className="text-xs text-muted-foreground">{t("pop_words_mastered")}</span>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <span className="text-regular-semibold">
-            {formatNumber(wordsMastered)} ({formatRatioPercent(wordsMastered, totalWords)})
+            {formatNumber(wordsMastered)} / {formatNumber(totalWords)}
+          </span>
+          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatRatioPercent(wordsMastered, totalWords)}
           </span>
         </div>
       </Popover>
 
-      {/* Lessons studied */}
+      {/* Lessons learned */}
       <Popover
-        className="flex flex-col items-start gap-1 cursor-default"
+        className="flex flex-col items-start gap-1.5 cursor-default"
         content={
           <div className="flex flex-col gap-0.5">
-            <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_lessons_studied")}</span>
+            <span className="text-foreground text-[14px] leading-[1.4] font-semibold">Lessons learned</span>
             <span className="text-foreground text-[13px] leading-[1.4]">
-              <span className="font-semibold">{formatNumber(lessonsStudied)}</span> studied / <span className="font-semibold">{formatNumber(totalLessons)}</span> total = {formatRatioPercent(lessonsStudied, totalLessons, { decimals: 1 })}
+              <span className="font-semibold">{formatNumber(lessonsLearned)}</span> learned / <span className="font-semibold">{formatNumber(totalLessons)}</span> total = {formatRatioPercent(lessonsLearned, totalLessons, { decimals: 1 })}
             </span>
           </div>
         }
       >
-        <span className="text-xs text-muted-foreground">{t("pop_lessons_studied")}</span>
-        <div className="flex items-center">
+        <span className="text-xs text-muted-foreground">Lessons learned</span>
+        <div className="flex items-center gap-2">
           <span className="text-regular-semibold">
-            {formatNumber(lessonsStudied)} / {formatNumber(totalLessons)}
+            {formatNumber(lessonsLearned)} / {formatNumber(totalLessons)}
+          </span>
+          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatRatioPercent(lessonsLearned, totalLessons)}
           </span>
         </div>
       </Popover>
 
       {/* Lessons mastered */}
       <Popover
-        className="flex flex-col items-start gap-1 cursor-default"
+        className="flex flex-col items-start gap-1.5 cursor-default"
         content={
           <div className="flex flex-col gap-0.5">
             <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_lessons_mastered")}</span>
@@ -98,9 +107,12 @@ export function CourseStatsBar({
         }
       >
         <span className="text-xs text-muted-foreground">{t("pop_lessons_mastered")}</span>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <span className="text-regular-semibold">
             {formatNumber(lessonsMastered)} / {formatNumber(totalLessons)}
+          </span>
+          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatRatioPercent(lessonsMastered, totalLessons)}
           </span>
         </div>
       </Popover>

@@ -1,13 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 /**
  * White-background hover popover for content expansion
  * (e.g. time breakdowns, mastery stats, rate calculations).
  *
- * Auto-flips alignment when the popover would overflow the viewport edge.
+ * Auto-flips alignment and position when the popover would overflow the viewport edge.
+ * Uses fixed positioning to avoid clipping by overflow containers.
  * For simple functional explainers (button labels), use <Tooltip> instead.
  */
 export function Popover({
@@ -29,45 +30,101 @@ export function Popover({
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [resolvedAlign, setResolvedAlign] = useState(align);
+  const [resolvedPosition, setResolvedPosition] = useState(position);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+  const [isHovered, setIsHovered] = useState(false);
 
-  const handleMouseEnter = useCallback(() => {
+  const updatePosition = useCallback(() => {
     const container = containerRef.current;
     const panel = panelRef.current;
     if (!container || !panel) return;
 
     const triggerRect = container.getBoundingClientRect();
     const panelWidth = panel.scrollWidth;
+    const panelHeight = panel.scrollHeight;
 
+    let finalAlign = align;
+    let finalPosition = position;
+
+    // Handle horizontal overflow
     if (align === "left") {
-      // Would overflow right edge?
       if (triggerRect.left + panelWidth > window.innerWidth - 16) {
-        setResolvedAlign("right");
-      } else {
-        setResolvedAlign("left");
+        finalAlign = "right";
       }
     } else {
-      // Would overflow left edge?
       if (triggerRect.right - panelWidth < 16) {
-        setResolvedAlign("left");
-      } else {
-        setResolvedAlign("right");
+        finalAlign = "left";
       }
     }
-  }, [align]);
+
+    // Handle vertical overflow
+    if (position === "above") {
+      if (triggerRect.top - panelHeight < 16) {
+        finalPosition = "below";
+      }
+    } else {
+      if (triggerRect.bottom + panelHeight > window.innerHeight - 16) {
+        finalPosition = "above";
+      }
+    }
+
+    setResolvedAlign(finalAlign);
+    setResolvedPosition(finalPosition);
+
+    // Calculate fixed position
+    const style: React.CSSProperties = {};
+
+    // Horizontal position
+    if (finalAlign === "left") {
+      style.left = triggerRect.left;
+    } else {
+      style.right = window.innerWidth - triggerRect.right;
+    }
+
+    // Vertical position
+    if (finalPosition === "above") {
+      style.bottom = window.innerHeight - triggerRect.top + 4;
+    } else {
+      style.top = triggerRect.bottom + 4;
+    }
+
+    setPanelStyle(style);
+  }, [align, position]);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    updatePosition();
+  }, [updatePosition]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
+  // Update position on scroll
+  useEffect(() => {
+    if (!isHovered) return;
+
+    const handleScroll = () => {
+      updatePosition();
+    };
+
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [isHovered, updatePosition]);
 
   return (
     <div
       ref={containerRef}
       className={cn("group/pop relative", className)}
       onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {children}
       <div
         ref={panelRef}
+        style={panelStyle}
         className={cn(
-          "pointer-events-none absolute z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover/pop:opacity-100",
-          position === "above" ? "bottom-full mb-1" : "top-full mt-1",
-          resolvedAlign === "left" ? "left-0" : "right-0"
+          "pointer-events-none fixed z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover/pop:opacity-100"
         )}
       >
         {content}

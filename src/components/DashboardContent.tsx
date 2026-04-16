@@ -143,7 +143,7 @@ export function DashboardContent({
         <TextProvider overrides={textOverrides}>
           <DefaultContextSetter context={defaultCourseContext} />
           <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
-          <div className="h-screen overflow-hidden pt-[72px]">
+          <div className="h-screen overflow-visible pt-[72px]">
             <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
               {children}
             </main>
@@ -161,7 +161,7 @@ export function DashboardContent({
         <DefaultContextSetter context={defaultCourseContext} />
         <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
         <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
-        <div className="h-screen overflow-hidden pt-[72px]">
+        <div className="h-screen overflow-visible pt-[72px]">
           <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
             {children}
           </main>

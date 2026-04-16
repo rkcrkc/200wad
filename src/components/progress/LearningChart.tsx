@@ -11,6 +11,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
+  ReferenceLine,
 } from "recharts";
 import type { ChartServerData } from "@/lib/queries/stats";
 import {
@@ -246,20 +247,47 @@ export function LearningChart({ data }: LearningChartProps) {
     return (
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart data={chartPoints}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
           <XAxis {...xAxisProps} />
           <YAxis
             yAxisId="left"
             domain={[0, 100]}
+            ticks={[0, 20, 40, 60, 80, 100]}
             tickFormatter={(v: number) => `${v}%`}
             {...yAxisProps}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
+            domain={[0, 250]}
+            ticks={[0, 50, 100, 150, 200, 250]}
             {...yAxisProps}
           />
           <RechartsTooltip content={<CustomTooltip />} />
+          {/* Grid lines — CartesianGrid doesn't work with dual Y-axes */}
+          {[20, 40, 60, 80].map((v) => (
+            <ReferenceLine
+              key={v}
+              yAxisId="left"
+              y={v}
+              stroke="#e5e5e5"
+              strokeDasharray="3 3"
+            />
+          ))}
+          <ReferenceLine
+            yAxisId="right"
+            y={200}
+            stroke="#0b6cff"
+            strokeDasharray="4 4"
+            strokeOpacity={0.5}
+            label={{
+              value: "200 wpd",
+              position: "insideTopRight",
+              fill: "#0b6cff",
+              fontSize: 11,
+              fontWeight: 500,
+              opacity: 0.7,
+            }}
+          />
           <Line
             yAxisId="left"
             type="monotone"

@@ -3,11 +3,12 @@ import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { getLessonAccessMap } from "@/lib/utils/accessControl";
 
-export type LessonStatus = "not-started" | "learning" | "mastered";
+export type LessonStatus = "not-started" | "learning" | "learned" | "mastered";
 
 export interface LessonWithProgress extends Lesson {
   status: LessonStatus;
   completionPercent: number;
+  wordsLearned: number;
   wordsMastered: number;
   totalStudyTimeSeconds: number;
   lastStudiedAt: string | null;
@@ -45,6 +46,7 @@ export interface GetLessonsResult {
     studyTimeSeconds: number;
     testTimeSeconds: number;
     wordsStudied: number;
+    wordsLearned: number;
     wordsMastered: number;
   };
   isGuest: boolean;
@@ -136,7 +138,7 @@ async function generateAutoLessons(
     }))
     .sort((a, b) => a.avgPercent - b.avgPercent);
 
-  const worstWordIds = sortedByScore.slice(0, 20).map((w) => w.wordId);
+  const worstWordIds = sortedByScore.map((w) => w.wordId);
   const bestWordIds = [...sortedByScore].reverse().slice(0, 20).map((w) => w.wordId);
 
   const wordIdsByType: Record<AutoLessonType, string[]> = {
@@ -145,22 +147,32 @@ async function generateAutoLessons(
     worst: worstWordIds,
   };
 
-  // Query mastery status for all auto-lesson words
+  // Query word progress for all auto-lesson words (learning, learned, mastered)
   const allAutoWordIds = [...new Set([...notesWordIds, ...bestWordIds, ...worstWordIds])];
   const masteredWordIds = new Set<string>();
+  const learnedWordIds = new Set<string>();
+  const learningWordIds = new Set<string>();
 
   if (allAutoWordIds.length > 0) {
-    const { data: masteredProgress } = await supabase
+    const { data: wordProgress } = await supabase
       .from("user_word_progress")
-      .select("word_id")
+      .select("word_id, status")
       .eq("user_id", userId)
       .in("word_id", allAutoWordIds)
-      .eq("status", "mastered");
+      .in("status", ["learning", "learned", "mastered"]);
 
-    masteredProgress?.forEach((wp) => {
-      if (wp.word_id) masteredWordIds.add(wp.word_id);
+    wordProgress?.forEach((wp) => {
+      if (!wp.word_id) return;
+      if (wp.status === "mastered") masteredWordIds.add(wp.word_id);
+      if (wp.status === "learned") learnedWordIds.add(wp.word_id);
+      if (wp.status === "learning") learningWordIds.add(wp.word_id);
     });
   }
+
+  // Exclude mastered words from worst words and cap at 20
+  wordIdsByType.worst = worstWordIds
+    .filter((id) => !masteredWordIds.has(id))
+    .slice(0, 20);
 
   // Generate auto-lesson objects with live mastery data
   const now = new Date().toISOString();
@@ -168,10 +180,13 @@ async function generateAutoLessons(
     const ids = wordIdsByType[def.type];
     const totalWords = ids.length;
     const mastered = ids.filter((id) => masteredWordIds.has(id)).length;
+    const learned = ids.filter((id) => learnedWordIds.has(id) || masteredWordIds.has(id)).length;
+    const studying = ids.filter((id) => learningWordIds.has(id)).length;
     const completion = totalWords > 0 ? Math.round((mastered / totalWords) * 100) : 0;
     const status: LessonStatus =
       completion >= 100 && totalWords > 0 ? "mastered"
-      : mastered > 0 ? "learning"
+      : learned >= totalWords && totalWords > 0 ? "learned"
+      : mastered > 0 || learned > 0 || studying > 0 ? "learning"
       : "not-started";
 
     return {
@@ -190,6 +205,7 @@ async function generateAutoLessons(
       updated_by: null,
       status,
       completionPercent: completion,
+      wordsLearned: learned,
       wordsMastered: mastered,
       totalStudyTimeSeconds: 0,
       lastStudiedAt: null,
@@ -247,7 +263,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       language,
       course: courseWithoutRelations,
       lessons: [],
-      stats: { totalWords: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, wordsStudied: 0, wordsMastered: 0 },
+      stats: { totalWords: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0 },
       isGuest: !user,
     };
   }
@@ -257,8 +273,10 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   let totalStudyTimeSeconds = 0;
   let totalTestTimeSeconds = 0;
   let wordsMastered = 0;
+  let wordsLearned = 0;
   let wordsStudied = 0;
   const liveMasteredByLesson: Record<string, number> = {};
+  const liveLearnedByLesson: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
@@ -305,7 +323,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .from("user_word_progress")
         .select("word_id, status")
         .eq("user_id", user.id)
-        .in("status", ["learning", "mastered"]),
+        .in("status", ["learning", "learned", "mastered"]),
       supabase
         .from("lesson_words")
         .select("lesson_id, word_id, words(category)")
@@ -334,17 +352,23 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       // Count user progress that matches course words
       wordsStudied = userProgressResult.data.filter((p) => p.word_id && courseWordIds.has(p.word_id)).length;
 
-      // Also count mastered words from user_word_progress (more accurate than lesson progress)
+      // Also count learned and mastered words from user_word_progress
+      wordsLearned = userProgressResult.data.filter(
+        (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "learned"
+      ).length;
       wordsMastered = userProgressResult.data.filter(
         (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "mastered"
       ).length;
 
-      // Build per-lesson mastered counts from live data
+      // Build per-lesson mastered and learned counts from live data
       for (const lw of testableRows) {
         if (!lw.lesson_id || !lw.word_id) continue;
         const status = wordStatusMap.get(lw.word_id);
         if (status === "mastered") {
           liveMasteredByLesson[lw.lesson_id] = (liveMasteredByLesson[lw.lesson_id] || 0) + 1;
+        }
+        if (status === "learned" || status === "mastered") {
+          liveLearnedByLesson[lw.lesson_id] = (liveLearnedByLesson[lw.lesson_id] || 0) + 1;
         }
       }
     }
@@ -358,23 +382,29 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     (lesson) => {
       const progress = progressByLesson[lesson.id];
 
-      // Use live mastered count from user_word_progress (more accurate than stale lesson progress)
+      // Use live mastered/learned counts from user_word_progress (more accurate than stale lesson progress)
       const liveMastered = liveMasteredByLesson[lesson.id] || 0;
+      const liveLearned = liveLearnedByLesson[lesson.id] || 0;
       const totalWords = lesson.word_count || 0;
       const liveCompletion = totalWords > 0 ? Math.round((liveMastered / totalWords) * 100) : 0;
 
       // Derive status from live word progress instead of potentially stale DB value
+      const allMastered = liveCompletion >= 100 && totalWords > 0;
+      const allLearnedOrMastered = liveLearned >= totalWords && totalWords > 0;
       const derivedStatus: LessonStatus =
-        liveCompletion >= 100 && totalWords > 0
+        allMastered
           ? "mastered"
-          : liveMastered > 0 || progress?.status === "learning" || progress?.status === "mastered"
-            ? "learning"
-            : "not-started";
+          : allLearnedOrMastered
+            ? "learned"
+            : liveMastered > 0 || liveLearned > 0 || progress?.status === "learning" || progress?.status === "learned" || progress?.status === "mastered"
+              ? "learning"
+              : "not-started";
 
       return {
         ...lesson,
         status: derivedStatus,
         completionPercent: liveCompletion,
+        wordsLearned: liveLearned,
         wordsMastered: liveMastered,
         totalStudyTimeSeconds: progress?.total_study_time_seconds || 0,
         lastStudiedAt: progress?.last_studied_at || null,
@@ -443,6 +473,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       studyTimeSeconds: totalStudyTimeSeconds,
       testTimeSeconds: totalTestTimeSeconds,
       wordsStudied,
+      wordsLearned,
       wordsMastered,
     },
     isGuest: !user,

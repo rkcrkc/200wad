@@ -36,7 +36,7 @@ async function fetchAllRows<T>(
 // Types
 // ============================================================================
 
-export type WordStatus = "not-started" | "learning" | "mastered";
+export type WordStatus = "not-started" | "learning" | "learned" | "mastered";
 
 export interface DictionaryWord {
   id: string;

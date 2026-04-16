@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
+import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { WordWithDetails } from "@/lib/queries/words";
 import { mapStatus } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,17 @@ export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFir
       {/* Status pill */}
       <td className={cn("whitespace-nowrap px-2 py-4 transition-colors group-hover:bg-bone-hover", "bg-white")}>
         <StatusPill status={mapStatus(word.status)} />
+      </td>
+
+      {/* Average score */}
+      <td className={cn("whitespace-nowrap px-2 py-4 transition-colors group-hover:bg-bone-hover", "bg-white")}>
+        <ScoreIndicator
+          testHistory={word.testHistory}
+          scoreStats={word.scoreStats}
+          wordStatus={word.status}
+          size="sm"
+          showPopover={true}
+        />
       </td>
 
       {/* Chevron - sticky on horizontal scroll */}

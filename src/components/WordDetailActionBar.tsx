@@ -64,7 +64,7 @@ interface WordDetailActionBarProps {
   /** Callback when image mode changes */
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
   /** Word learning status */
-  wordStatus?: "not-started" | "learning" | "mastered";
+  wordStatus?: "not-started" | "learning" | "learned" | "mastered";
   /** Whether accessed from dictionary (hides word navigation) */
   fromDictionary?: boolean;
   /** Layout variant: "page" uses fixed positioning, "sidebar" uses relative positioning */
@@ -323,6 +323,7 @@ export function WordDetailActionBar({
               <Tooltip label={t(
                 wordStatus === "not-started" ? "tip_status_not_started"
                   : wordStatus === "learning" ? "tip_status_learning"
+                  : wordStatus === "learned" ? "tip_status_learned"
                   : "tip_status_mastered"
               )}>
                 <StatusPill

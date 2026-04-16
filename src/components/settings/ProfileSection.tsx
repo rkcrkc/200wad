@@ -104,7 +104,6 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
   const [nationalities, setNationalities] = useState<string[]>(
     settings.nationalities || []
   );
-  const [wordsPerDay, setWordsPerDay] = useState(settings.wordsPerDay);
   const [selectedCountry, setSelectedCountry] = useState("");
 
   const getCountryFlag = (countryName: string) => {
@@ -136,7 +135,6 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
         hometown: hometown || undefined,
         location: location || undefined,
         nationalities,
-        wordsPerDay,
       });
 
       if (result.success) {
@@ -162,7 +160,6 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
     setHometown(settings.hometown || "");
     setLocation(settings.location || "");
     setNationalities(settings.nationalities || []);
-    setWordsPerDay(settings.wordsPerDay);
     setIsEditing(false);
     setError(null);
   };
@@ -349,30 +346,6 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
             />
           </div>
 
-          {/* Learning Preferences */}
-          <div className="border-t border-gray-200 pt-4">
-            <h3 className="mb-3 font-medium">Learning Preferences</h3>
-            <div>
-              <label className="mb-1 block text-sm text-gray-600">
-                Words per day goal
-              </label>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={wordsPerDay}
-                  onChange={(e) =>
-                    setWordsPerDay(
-                      Math.min(100, Math.max(1, parseInt(e.target.value) || 10))
-                    )
-                  }
-                  className="w-24"
-                />
-                <span className="text-sm text-gray-500">words per day</span>
-              </div>
-            </div>
-          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -482,13 +455,6 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
-              <p className="mb-1 text-sm text-gray-500">Learning Preferences</p>
-              <p className="text-gray-700">
-                <span className="font-medium">{settings.wordsPerDay}</span>{" "}
-                words per day goal
-              </p>
-            </div>
           </div>
         </div>
       )}

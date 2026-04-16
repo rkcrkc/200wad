@@ -171,6 +171,7 @@ interface WordInsert {
   category: string;
   phrase_type: string | null;
   tags: string[] | null;
+  information_body: string | null;
   is_false_friend: boolean;
   legacy_refn: number;
   legacy_gender_code: string | null;
@@ -697,13 +698,16 @@ async function main() {
     }
 
     // Build word insert object (sanitize all text fields to strip control chars)
+    const rawTriggerText = sanitizeText(row.memory_trigger_text || row.Trigger || null);
     const wordInsert: WordInsert = {
       language_id: language.id,
       english: sanitizeText(english.trim()) || english.trim(),
       headword: sanitizeText(headword.trim()) || headword.trim(),
       lemma: sanitizeText(lemma.trim() || headword.trim()) || headword.trim(),
       notes: sanitizeText(row.notes || row.Notes || null),
-      memory_trigger_text: sanitizeText(row.memory_trigger_text || row.Trigger || null),
+      // For information pages, migrate trigger text to information_body
+      memory_trigger_text: category === "information" ? null : rawTriggerText,
+      information_body: category === "information" ? rawTriggerText : null,
       memory_trigger_image_url: cleanFilename(row.memory_trigger_image || row.FileFgnPic),
       audio_url_english: cleanFilename(row.audio_url_english || row.FileEngSouRTF),
       audio_url_foreign: cleanFilename(row.audio_url_foreign || row.FileFgnSouRTF),
