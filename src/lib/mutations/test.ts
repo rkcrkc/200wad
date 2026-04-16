@@ -48,10 +48,11 @@ export async function createTestSession(
     return { sessionId: null, error: "Rate limit exceeded. Please wait before starting another session." };
   }
 
-  // Auto-end orphaned test sessions for this lesson
+  // Delete orphaned test sessions for this lesson (incomplete sessions that were never finished)
+  // These are sessions where the user clicked "Take Test" but left before completing
   await supabase
     .from("study_sessions")
-    .update({ ended_at: new Date().toISOString() })
+    .delete()
     .eq("user_id", user.id)
     .eq("lesson_id", lessonId)
     .eq("session_type", "test")
@@ -139,6 +140,38 @@ export async function completeTestSession(
 
   // Check if this is a real DB session (not a local/guest fallback)
   const isRealDbSession = !sessionId.startsWith("local_") && !sessionId.startsWith("guest_");
+
+  // Log and normalize zero-duration tests
+  const originalDuration = stats.durationSeconds;
+  if (originalDuration === 0) {
+    console.warn(`[Test Session] Zero-duration test detected`, {
+      sessionId,
+      lessonId,
+      userId: user.id,
+      totalQuestions: stats.totalQuestions,
+      scorePercent: stats.scorePercent,
+    });
+
+    // Round up to minimum 1 second
+    stats.durationSeconds = 1;
+
+    // Flag for analytics
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "zero_duration_test",
+        severity: "low",
+        details: {
+          sessionId,
+          lessonId,
+          totalQuestions: stats.totalQuestions,
+          scorePercent: stats.scorePercent,
+          originalDuration,
+          normalizedDuration: stats.durationSeconds,
+        },
+      });
+    } catch { /* non-critical */ }
+  }
 
   // --- Anti-gaming validations ---
 
@@ -307,7 +340,23 @@ export async function completeTestSession(
     intendedMilestone
   );
 
-  // 3. Create test score record
+  // 3. Idempotency guard: check if a test score was already saved for this session
+  if (isRealDbSession) {
+    const { data: existingScore } = await supabase
+      .from("user_test_scores")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("lesson_id", lessonId)
+      .gte("taken_at", new Date(Date.now() - 30_000).toISOString()) // within last 30s
+      .limit(1)
+      .maybeSingle();
+
+    if (existingScore) {
+      return { success: true, testScoreId: existingScore.id, courseWordsMastered: 0, error: null };
+    }
+  }
+
+  // 4. Create test score record
   const { data: testScore, error: testScoreError } = await supabase
     .from("user_test_scores")
     .insert({
@@ -565,7 +614,8 @@ async function updateWordTestProgress(
     .maybeSingle();
 
   const now = new Date();
-  const isCorrect = mistakeCount === 0;
+  // Full marks only: no mistakes AND no clues used (3/3 points)
+  const isCorrect = mistakeCount === 0 && clueLevel === 0;
 
   // Calculate new values
   const currentTimesTested = existingProgress?.times_tested || 0;

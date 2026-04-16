@@ -168,9 +168,9 @@ export const status = {
     icon: "check" as const,
   },
   learning: {
-    bg: "#FFF6DA",
-    color: "#FF9224",
-    dotColor: "#FF9224",
+    bg: "#D5F3E5",
+    color: "#06AB48",
+    dotColor: "#06AB48",
   },
   notStarted: {
     bg: "#FAF8F3",

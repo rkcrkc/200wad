@@ -8,7 +8,7 @@ import { useText } from "@/context/TextContext";
 interface TestAttempt {
   pointsEarned: number;
   maxPoints: number;
-  answeredAt: string;
+  answeredAt?: string;
 }
 
 interface WordScoreStats {
@@ -49,7 +49,7 @@ export function ScoreIndicator({
   const content = (
     <div className="flex items-center gap-2">
       {/* Traffic lights (last 3 test attempts) */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         {[0, 1, 2].map((i) => {
           const attempt = testHistory[i];
           // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt

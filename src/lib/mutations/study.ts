@@ -40,10 +40,11 @@ export async function createStudySession(
     return { sessionId: null, error: "Rate limit exceeded. Please wait before starting another session." };
   }
 
-  // Auto-end orphaned sessions for this lesson
+  // Delete orphaned sessions for this lesson (incomplete sessions that were never finished)
+  // These are sessions where the user clicked "Study" but left before completing
   await supabase
     .from("study_sessions")
-    .update({ ended_at: new Date().toISOString() })
+    .delete()
     .eq("user_id", user.id)
     .eq("lesson_id", lessonId)
     .is("ended_at", null);
@@ -565,6 +566,36 @@ export async function completeStudySession(
 
   if (!user) {
     return { success: false, error: "User not authenticated" };
+  }
+
+  // Log and normalize zero-duration sessions
+  const originalDuration = stats.durationSeconds;
+  if (originalDuration === 0) {
+    console.warn(`[Study Session] Zero-duration session detected`, {
+      sessionId,
+      lessonId,
+      userId: user.id,
+      wordsStudied: stats.wordsStudied,
+    });
+
+    // Round up to minimum 1 second
+    stats.durationSeconds = 1;
+
+    // Flag for analytics
+    try {
+      await supabase.from("activity_flags").insert({
+        user_id: user.id,
+        flag_type: "zero_duration_session",
+        severity: "low",
+        details: {
+          sessionId,
+          lessonId,
+          wordsStudied: stats.wordsStudied,
+          originalDuration,
+          normalizedDuration: stats.durationSeconds,
+        },
+      });
+    } catch { /* non-critical */ }
   }
 
   // Validate lesson exists and word count

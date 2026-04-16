@@ -172,7 +172,7 @@ export function WordsList({
   return (
     <div>
       {/* Filter Tabs + Page controls */}
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
         <Tabs
           tabs={tabs}
           activeTab={effectiveActiveTab}
@@ -234,7 +234,7 @@ export function WordsList({
             </colgroup>
             {/* Table Header */}
             <thead>
-              <tr className="cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
+              <tr className="h-12 cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
                 <th className="px-6 py-3 text-left font-medium">#</th>
                 <th className="px-2 py-3"></th>
                 <th className="px-2 py-3 text-left font-medium">English</th>

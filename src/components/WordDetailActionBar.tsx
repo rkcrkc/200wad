@@ -12,12 +12,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Zap,
-  Star,
   MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
-import { Popover } from "@/components/ui/popover";
+import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { StatusPill, type StatusType } from "@/components/ui/status-pill";
 import { useText } from "@/context/TextContext";
 
@@ -151,7 +150,6 @@ export function WordDetailActionBar({
     }
   }, [isWordListOpen, isMoreMenuOpen]);
 
-  const wordScorePercent = scoreStats?.scorePercent ?? 0;
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
   const label = category === "word" || posAbbrev ? posAbbrev : "";
@@ -263,60 +261,11 @@ export function WordDetailActionBar({
             )}
 
             {/* Traffic lights (last 3 test attempts) + historical score percentage */}
-            <Popover
-              position="above"
-              align="left"
-              className="flex items-center cursor-default"
-              content={
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-semibold text-foreground">{t("pop_score_history")}</span>
-                  <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-                    <span>
-                      {tt("pop_score_breakdown", {
-                        pts: scoreStats?.totalPointsEarned ?? 0,
-                        total: scoreStats?.totalMaxPoints ?? 0,
-                        pct: scoreStats && scoreStats.totalMaxPoints > 0
-                          ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
-                          : "0.0",
-                      })}
-                    </span>
-                    <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
-                  </div>
-                </div>
-              }
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  {[0, 1, 2].map((i) => {
-                    const attempt = testHistory[i];
-                    // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt
-                    let bgColor = "bg-gray-300"; // No attempt
-                    if (attempt) {
-                      if (attempt.pointsEarned >= attempt.maxPoints) {
-                        bgColor = "bg-success";
-                      } else if (attempt.pointsEarned > 0) {
-                        bgColor = "bg-warning";
-                      } else {
-                        bgColor = "bg-destructive";
-                      }
-                    }
-                    return (
-                      <div
-                        key={i}
-                        className={cn("flex h-3 w-3 items-center justify-center rounded-full", bgColor)}
-                      >
-                        {wordStatus === "mastered" && (
-                          <Star className="h-2 w-2 fill-white text-white" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <span className="text-regular-semibold text-foreground">
-                  {wordScorePercent}%
-                </span>
-              </div>
-            </Popover>
+            <ScoreIndicator
+              testHistory={testHistory}
+              scoreStats={scoreStats ?? { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 }}
+              wordStatus={wordStatus}
+            />
 
             {/* Word status pill */}
             {wordStatus && (
@@ -328,7 +277,6 @@ export function WordDetailActionBar({
               )}>
                 <StatusPill
                   status={wordStatus === "not-started" ? "notStarted" : wordStatus as StatusType}
-                  showDot={false}
                 />
               </Tooltip>
             )}

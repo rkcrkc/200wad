@@ -114,6 +114,7 @@ export function TestModeClient({
   const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
 
   // Completion modal state
+  const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
   const [isRetest, setIsRetest] = useState(false);
@@ -415,6 +416,10 @@ export function TestModeClient({
 
   // Handle finish test (defined before handleNextWord to avoid stale reference)
   const handleFinishTest = useCallback(async () => {
+    // Guard: prevent double submission
+    if (isFinishingRef.current) return;
+    isFinishingRef.current = true;
+
     // Stop any playing audio immediately
     stopAudio();
 
@@ -484,6 +489,16 @@ export function TestModeClient({
         masteredWordsCount,
         isRetest,
       };
+
+      // Log if duration is zero (shouldn't happen if timer is working correctly)
+      if (elapsedSeconds === 0) {
+        console.warn("[Test Client] Completing test with 0 duration", {
+          sessionId,
+          lessonId: lesson.id,
+          totalQuestions,
+          scorePercent: stats.scorePercent,
+        });
+      }
 
       const result = await completeTestSession(sessionId, lesson.id, stats, questionResults, milestone);
 

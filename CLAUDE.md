@@ -47,9 +47,13 @@ npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/datab
 
 Types auto-generated in `src/types/database.ts` with convenience aliases (User, Course, Word, etc.)
 
-**Progress Tracking:**
-- Word mastery: 3 correct answers in a row = mastered
-- Status progression: "not-started" → "studying" → "mastered"
+**Progress Tracking (Word Status):**
+- `not-started` → word has no progress record
+- `learning` → word has been studied (seen in a study session)
+- `learned` → word answered with full marks in a test (3/3 points: no mistakes, no clues)
+- `mastered` → 3 full-mark answers in a row (`correct_streak >= 3`)
+- "Correct" for streak/status purposes = `mistakeCount === 0 && clueLevel === 0`
+- Floors: learned/mastered never drops below `learned`; learning never drops below `learning`
 - Session storage for pending updates, batch writes on session completion
 
 ## Design System

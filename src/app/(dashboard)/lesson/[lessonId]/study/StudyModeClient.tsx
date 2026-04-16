@@ -116,6 +116,7 @@ export function StudyModeClient({
   const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
   
   // Completion modal state
+  const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   // Exit confirmation modal state
@@ -705,6 +706,10 @@ export function StudyModeClient({
   // Note: Study mode does NOT affect mastery/streaks — that's test mode — but
   // any submitted answer transitions the word from not-started to learning.
   const handleFinishLesson = useCallback(async () => {
+    // Guard: prevent double submission
+    if (isFinishingRef.current) return;
+    isFinishingRef.current = true;
+
     // Stop any playing audio immediately
     stopAudio();
     if (phaseTimeoutRef.current) {
@@ -733,6 +738,16 @@ export function StudyModeClient({
 
       // Count words that were viewed/practiced for session stats
       const wordsStudied = viewedWordIndices.length;
+
+      // Log if duration is zero (shouldn't happen if timer is working correctly)
+      if (elapsedSeconds === 0) {
+        console.warn("[Study Client] Completing session with 0 duration", {
+          sessionId,
+          lessonId: lesson.id,
+          wordsStudied,
+          viewedWordIndicesCount: viewedWordIndices.length,
+        });
+      }
 
       const result = await completeStudySession(
         sessionId,

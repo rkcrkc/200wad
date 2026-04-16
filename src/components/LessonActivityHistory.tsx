@@ -62,20 +62,47 @@ function SortableHeader({
   );
 }
 
-function formatDate(dateString: string): string {
-  if (!dateString) return "-";
+function formatDate(dateString: string): { date: string; time: string } {
+  if (!dateString) return { date: "-", time: "" };
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
+  const dateStr = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+  const timeStr = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return { date: dateStr, time: timeStr };
 }
 
 function formatMilestone(milestone?: string): string | null {
   if (!milestone || milestone === "other") return null;
   // Capitalize first letter
   return milestone.charAt(0).toUpperCase() + milestone.slice(1) + " test";
+}
+
+function formatTestScore(pointsEarned?: number, maxPoints?: number, scorePercent?: number): string {
+  if (pointsEarned !== undefined && maxPoints !== undefined && maxPoints > 0) {
+    return `${pointsEarned} / ${maxPoints} (${formatPercent(scorePercent ?? 0)})`;
+  }
+  return formatPercent(scorePercent ?? 0);
+}
+
+function formatDetailedDuration(seconds: number): string {
+  if (seconds === 0) return "0s";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+  return parts.join(" ");
 }
 
 export function LessonActivityHistory({
@@ -98,8 +125,8 @@ export function LessonActivityHistory({
 
   const tabs: Tab[] = [
     { id: "all", label: "All sessions", count: counts.all },
-    { id: "study", label: "Study Sessions", count: counts.study },
-    { id: "test", label: "Tests", count: counts.test },
+    { id: "test", label: "Test sessions", count: counts.test },
+    { id: "study", label: "Study sessions", count: counts.study },
   ];
 
   const filteredAndSortedActivities = useMemo(() => {
@@ -147,24 +174,34 @@ export function LessonActivityHistory({
   }, [activities, filter, sortColumn, sortDirection]);
 
   return (
-    <>
+    <div>
       {/* Filter tabs with optional right content */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
         <Tabs
           tabs={tabs}
           activeTab={filter}
           onChange={(tabId) => setFilter(tabId as FilterType)}
         />
-        {rightContent}
+        <div className="flex items-center gap-1">
+          {rightContent}
+        </div>
       </div>
 
       {/* Activity Table */}
       <div className="overflow-x-auto rounded-xl">
-        <table className="min-w-[700px] w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: "60px" }} />
+            <col style={{ width: "240px" }} />
+            <col style={{ width: "200px" }} />
+            <col style={{ width: "140px" }} />
+            <col style={{ width: "180px" }} />
+            <col />
+          </colgroup>
           {/* Table Header */}
           <thead>
-            <tr className="whitespace-nowrap">
-              <th className="w-[50px] px-6 py-3 text-left">
+            <tr className="h-12 whitespace-nowrap">
+              <th className="px-6 py-3 text-left">
                 <SortableHeader
                   label="#"
                   column="index"
@@ -173,7 +210,7 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[140px] px-2 py-3 text-left">
+              <th className="px-3 py-3 text-left">
                 <SortableHeader
                   label="Date"
                   column="date"
@@ -182,21 +219,10 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="w-[160px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">
+              <th className="px-3 py-3 text-left text-xs-medium font-medium text-muted-foreground">
                 Session Type
               </th>
-              {filter !== "study" && (
-                <th className="w-[100px] px-2 py-3 text-left">
-                  <SortableHeader
-                    label="Score"
-                    column="score"
-                    currentColumn={sortColumn}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  />
-                </th>
-              )}
-              <th className="w-[100px] px-2 py-3 text-left">
+              <th className="px-3 py-3 text-left">
                 <SortableHeader
                   label="Duration"
                   column="duration"
@@ -205,6 +231,22 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
+              <th className="px-3 py-3 text-left">
+                {filter !== "study" ? (
+                  <SortableHeader
+                    label="Score"
+                    column="score"
+                    currentColumn={sortColumn}
+                    direction={sortDirection}
+                    onSort={handleSort}
+                  />
+                ) : (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-xs-medium font-medium text-muted-foreground opacity-0">Score</span>
+                  </div>
+                )}
+              </th>
+              <th className="px-3 py-3 text-left"></th>
             </tr>
           </thead>
 
@@ -212,7 +254,7 @@ export function LessonActivityHistory({
           <tbody>
             {filteredAndSortedActivities.length === 0 ? (
               <tr>
-                <td colSpan={filter === "study" ? 4 : 5} className="px-6 py-12 text-center">
+                <td colSpan={6} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     {filter === "all"
                       ? "No activity yet for this lesson."
@@ -234,21 +276,30 @@ export function LessonActivityHistory({
                   {/* Index (chronological order) */}
                   <td
                     className={cn(
-                      "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+                      "bg-white px-6 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover",
                       index === 0 && "rounded-tl-xl",
                       index === filteredAndSortedActivities.length - 1 && "rounded-bl-xl"
                     )}
+                    style={{ fontVariantNumeric: "normal", fontWeight: 500, fontSize: "14px" }}
                   >
                     {activity.chronologicalIndex}
                   </td>
 
                   {/* Date */}
-                  <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-                    {formatDate(activity.date)}
+                  <td className="bg-white px-3 py-5 text-small-medium transition-colors group-hover:bg-bone-hover">
+                    {(() => {
+                      const { date, time } = formatDate(activity.date);
+                      return (
+                        <span className="text-foreground">
+                          {date}
+                          {time && <span className="text-xs text-muted-foreground"> • {time}</span>}
+                        </span>
+                      );
+                    })()}
                   </td>
 
                   {/* Session Type */}
-                  <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+                  <td className="bg-white px-3 py-5 text-small-medium transition-colors group-hover:bg-bone-hover">
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
@@ -256,42 +307,52 @@ export function LessonActivityHistory({
                           activity.type === "study" ? "bg-primary" : "bg-success"
                         )}
                       />
-                      <div className="flex flex-col">
-                        <span className="text-regular-medium text-foreground">
-                          {activity.type === "study" ? "Study" : "Test"}
-                        </span>
+                      <span className="text-foreground">
+                        {activity.type === "study" ? "Study" : "Test"}
                         {activity.type === "test" && formatMilestone(activity.milestone) && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatMilestone(activity.milestone)}
-                          </span>
+                          <span className="text-xs text-muted-foreground"> • {formatMilestone(activity.milestone)}</span>
                         )}
-                      </div>
+                      </span>
                     </div>
                   </td>
 
-                  {/* Score - only shown when not filtering to study sessions */}
-                  {filter !== "study" && (
-                    <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-                      {activity.type === "test" ? formatPercent(activity.scorePercent ?? 0) : "-"}
-                    </td>
-                  )}
-
                   {/* Duration */}
+                  <td className="bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover">
+                    {formatDetailedDuration(activity.durationSeconds)}
+                  </td>
+
+                  {/* Score - always present but content hidden for study filter */}
+                  <td className="bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover">
+                    {filter !== "study" ? (
+                      activity.type === "test" && activity.pointsEarned !== undefined && activity.maxPoints !== undefined ? (
+                        <div className="flex items-center gap-2">
+                          <span>{activity.pointsEarned} / {activity.maxPoints}</span>
+                          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                            {formatPercent(activity.scorePercent ?? 0)}
+                          </span>
+                        </div>
+                      ) : (
+                        "-"
+                      )
+                    ) : (
+                      <span className="opacity-0">-</span>
+                    )}
+                  </td>
+
+                  {/* Empty column for remaining space */}
                   <td
                     className={cn(
-                      "bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+                      "bg-white px-3 py-5 transition-colors group-hover:bg-bone-hover",
                       index === 0 && "rounded-tr-xl",
                       index === filteredAndSortedActivities.length - 1 && "rounded-br-xl"
                     )}
-                  >
-                    {formatDuration(activity.durationSeconds)}
-                  </td>
+                  ></td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }

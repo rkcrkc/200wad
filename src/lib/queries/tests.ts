@@ -335,6 +335,8 @@ export interface LessonActivity {
   // Test-specific
   milestone?: string;
   scorePercent?: number;
+  pointsEarned?: number;
+  maxPoints?: number;
   wordsMastered?: number;
 }
 
@@ -375,7 +377,7 @@ export async function getLessonActivityHistory(
       .order("started_at", { ascending: false }),
     supabase
       .from("user_test_scores")
-      .select("id, taken_at, duration_seconds, milestone, score_percent, mastered_words_count")
+      .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count")
       .eq("user_id", user.id)
       .eq("lesson_id", lessonId)
       .order("taken_at", { ascending: false }),
@@ -383,26 +385,50 @@ export async function getLessonActivityHistory(
 
   const activities: LessonActivity[] = [];
 
-  // Add study sessions
+  // Add study sessions (filter out orphaned sessions and deduplicate)
+  const seenTimestamps = new Set<string>();
   (studyResult.data || []).forEach((session) => {
+    const timestamp = session.started_at || "";
+
+    // Skip orphaned sessions (NULL duration means session was never completed)
+    if (session.duration_seconds === null || session.duration_seconds === undefined) {
+      console.warn(`Orphaned study session skipped for lesson ${lessonId}:`, session.id);
+      return;
+    }
+
+    // Skip duplicates (same timestamp) - keep only the first one
+    if (timestamp && seenTimestamps.has(timestamp)) {
+      console.warn(`Duplicate study session detected for lesson ${lessonId} at ${timestamp}`);
+      return;
+    }
+    if (timestamp) seenTimestamps.add(timestamp);
+
     activities.push({
       id: session.id,
       type: "study",
-      date: session.started_at || "",
-      durationSeconds: session.duration_seconds || 0,
+      date: timestamp,
+      durationSeconds: session.duration_seconds,
       wordsStudied: session.words_studied || 0,
     });
   });
 
-  // Add test scores
+  // Add test scores (filter out any with NULL duration)
   (testResult.data || []).forEach((test) => {
+    // Skip tests with NULL duration (shouldn't happen but safety check)
+    if (test.duration_seconds === null || test.duration_seconds === undefined) {
+      console.warn(`Test with NULL duration skipped for lesson ${lessonId}:`, test.id);
+      return;
+    }
+
     activities.push({
       id: test.id,
       type: "test",
       date: test.taken_at || "",
-      durationSeconds: test.duration_seconds || 0,
+      durationSeconds: test.duration_seconds,
       milestone: test.milestone || undefined,
       scorePercent: test.score_percent || 0,
+      pointsEarned: test.points_earned || 0,
+      maxPoints: test.max_points || 0,
       wordsMastered: test.mastered_words_count || 0,
     });
   });

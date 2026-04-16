@@ -88,10 +88,12 @@ export function Popover({
       style.top = triggerRect.bottom + 4;
     }
 
+    console.log('[Popover] Panel style:', style);
     setPanelStyle(style);
   }, [align, position]);
 
   const handleMouseEnter = useCallback(() => {
+    console.log('[Popover] Mouse enter');
     setIsHovered(true);
     updatePosition();
   }, [updatePosition]);
@@ -124,7 +126,8 @@ export function Popover({
         ref={panelRef}
         style={panelStyle}
         className={cn(
-          "pointer-events-none fixed z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 opacity-0 shadow-xl ring-1 ring-black/5 transition-opacity group-hover/pop:opacity-100"
+          "pointer-events-none fixed z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 shadow-xl ring-1 ring-black/5 transition-opacity duration-150",
+          isHovered ? "opacity-100" : "opacity-0"
         )}
       >
         {content}

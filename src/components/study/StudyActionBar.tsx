@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
-import { Popover } from "@/components/ui/popover";
+import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { BreathingIndicator, type BreathingPhase } from "./BreathingIndicator";
 import { useText } from "@/context/TextContext";
 
@@ -334,9 +334,6 @@ export function StudyActionBar({
     }
   }, [isSettingsOpen, isAccentsOpen, isMusicOpen]);
 
-  // Use historical score percentage from scoreStats
-  const wordScorePercent = scoreStats?.scorePercent ?? 0;
-
   // For test mode: can reveal clue if not at max level (2) and answer not yet submitted
   const canRevealClue = isTestMode && clueLevel < 2 && !hasSubmittedAnswer;
 
@@ -375,66 +372,14 @@ export function StudyActionBar({
             )}
           </div>
 
-          {/* Traffic lights (last 3 test attempts) + historical score percentage — hidden for info pages */}
-          {category !== "information" && (
+          {/* Traffic lights + score — hidden for info pages */}
+          {category !== "information" && scoreStats && (
             <>
-              {/* Divider */}
               <span className="text-foreground/25">|</span>
-
-              {/* Display order: oldest on left, newest on right, empty slots on right */}
-              <Popover
-                position="above"
-                align="left"
-                className="flex items-center cursor-default"
-                content={
-                  <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">{t("pop_score_history")}</span>
-                    <span>
-                      {tt("pop_score_breakdown", {
-                        pts: scoreStats?.totalPointsEarned ?? 0,
-                        total: scoreStats?.totalMaxPoints ?? 0,
-                        pct: scoreStats && scoreStats.totalMaxPoints > 0
-                          ? ((scoreStats.totalPointsEarned / scoreStats.totalMaxPoints) * 100).toFixed(1)
-                          : "0.0",
-                      })}
-                    </span>
-                    <span>{tt("pop_times_tested", { count: scoreStats?.timesTested ?? 0 })}</span>
-                  </div>
-                }
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5">
-                    {[0, 1, 2].map((i) => {
-                      // testHistory is ordered newest-first; take most recent 3 and
-                      // reverse so left=oldest, right=newest
-                      const recent = testHistory.slice(0, 3);
-                      const reversedIndex = recent.length - 1 - i;
-                      const attempt = reversedIndex >= 0 ? recent[reversedIndex] : undefined;
-
-                      // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt
-                      let bgColor = "bg-gray-300"; // No attempt
-                      if (attempt) {
-                        if (attempt.pointsEarned >= attempt.maxPoints) {
-                          bgColor = "bg-success";
-                        } else if (attempt.pointsEarned > 0) {
-                          bgColor = "bg-[#F5D245]";
-                        } else {
-                          bgColor = "bg-destructive";
-                        }
-                      }
-                      return (
-                        <div
-                          key={i}
-                          className={cn("h-3 w-3 rounded-full", bgColor)}
-                        />
-                      );
-                    })}
-                  </div>
-                  <span className="text-regular-semibold text-foreground">
-                    {wordScorePercent}%
-                  </span>
-                </div>
-              </Popover>
+              <ScoreIndicator
+                testHistory={testHistory}
+                scoreStats={scoreStats}
+              />
             </>
           )}
         </div>

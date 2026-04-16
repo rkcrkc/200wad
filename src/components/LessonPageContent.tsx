@@ -198,22 +198,28 @@ export function LessonPageContent({
       {/* Content - Words List or Activity History */}
 
       <div className={words.length > 0 && !showHistory ? "pb-24" : ""}>
-        {showHistory && activityHistory ? (
-          <LessonActivityHistory
-            activities={activityHistory.activities}
-            counts={activityHistory.counts}
-            rightContent={
-              <Tooltip label={t("tip_show_words")}>
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
-                >
-                  <ClipboardCheck className="h-5 w-5" />
-                </button>
-              </Tooltip>
-            }
-          />
-        ) : (
+        {/* Activity History - keep mounted, toggle visibility */}
+        {activityHistory && (
+          <div className={showHistory ? "" : "hidden"}>
+            <LessonActivityHistory
+              activities={activityHistory.activities}
+              counts={activityHistory.counts}
+              rightContent={
+                <Tooltip label={t("tip_show_words")}>
+                  <button
+                    onClick={() => setShowHistory(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white transition-colors"
+                  >
+                    <ClipboardCheck className="h-5 w-5" />
+                  </button>
+                </Tooltip>
+              }
+            />
+          </div>
+        )}
+
+        {/* Words List - keep mounted, toggle visibility */}
+        <div className={showHistory ? "hidden" : ""}>
           <WordsList
             words={words}
             languageFlag={languageFlag}
@@ -228,7 +234,7 @@ export function LessonPageContent({
             onWordSelected={setIsWordSelected}
             rightContent={
               activityHistory && (
-                <Tooltip label={t("tip_show_test_history")}>
+                <Tooltip label="Show study history">
                   <button
                     onClick={() => setShowHistory(true)}
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
@@ -239,7 +245,7 @@ export function LessonPageContent({
               )
             }
           />
-        )}
+        </div>
       </div>
 
       {/* Fixed footer bar - hidden when showing history */}
