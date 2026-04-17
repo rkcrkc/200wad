@@ -9,6 +9,7 @@ import {
   Word,
 } from "@/types/database";
 import { isAutoLesson, parseAutoLessonId, AutoLessonType } from "./lessons";
+import { getTipsForWords, type TipForWord } from "./tips";
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -83,6 +84,8 @@ export interface WordWithDetails extends Word {
   testHistory: TestAttempt[];
   /** Historical score stats across all test attempts */
   scoreStats: WordScoreStats;
+  /** Contextual tips linked to this word */
+  tips: TipForWord[];
 }
 
 /** Minimal lesson info for previous/next navigation */
@@ -111,6 +114,8 @@ export interface GetWordsResult {
   };
   isGuest: boolean;
   userId: string | null;
+  /** Tip IDs the user has dismissed (for filtering in study mode) */
+  dismissedTipIds: string[];
 }
 
 export async function getWords(lessonId: string): Promise<GetWordsResult> {
@@ -143,6 +148,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !user,
       userId: user?.id ?? null,
+      dismissedTipIds: [],
     };
   }
 
@@ -272,6 +278,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
         isGuest: !user,
         userId: user?.id ?? null,
+        dismissedTipIds: [],
       };
     }
 
@@ -299,6 +306,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       relatedWordsMap[rw.id] = rw;
     });
   }
+
+  // Fetch tips for all words in this lesson
+  const wordIds = (words || []).map((w) => w.id);
+  const { tipsByWordId, dismissedTipIds } = await getTipsForWords(wordIds, user?.id ?? null);
 
   // Get user's word progress if authenticated
   let progressByWord: Record<string, UserWordProgress> = {};
@@ -445,6 +456,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       .filter(Boolean);
     const testHistory = testHistoryByWord[word.id] || [];
     const scoreStats = scoreStatsByWord[word.id] || defaultScoreStats;
+    const tips = tipsByWordId[word.id] || [];
 
     return {
       ...word,
@@ -456,6 +468,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       status: (progress?.status as WordStatus) || "not-started",
       testHistory,
       scoreStats,
+      tips,
     };
   });
 
@@ -479,6 +492,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     },
     isGuest: !user,
     userId: user?.id ?? null,
+    dismissedTipIds,
   };
 }
 
@@ -616,6 +630,7 @@ export async function getWord(wordId: string): Promise<{
     status: (progress?.status as WordStatus) || "not-started",
     testHistory,
     scoreStats,
+    tips: [],
   };
 
   return {
@@ -647,6 +662,7 @@ async function getAutoLessonWords(
       stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: !userId,
       userId,
+      dismissedTipIds: [],
     };
   }
 
@@ -671,6 +687,7 @@ async function getAutoLessonWords(
       stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
       isGuest: false,
       userId,
+      dismissedTipIds: [],
     };
   }
 
@@ -923,6 +940,7 @@ async function getAutoLessonWords(
       status: (progress?.status as WordStatus) || "not-started",
       testHistory,
       scoreStats,
+      tips: [],
     };
   });
 
@@ -1010,5 +1028,6 @@ function buildAutoLessonResult(
     stats: stats || { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
     isGuest: false,
     userId,
+    dismissedTipIds: [],
   };
 }

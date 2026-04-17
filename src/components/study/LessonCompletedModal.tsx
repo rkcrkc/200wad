@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Clock,
+  ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
@@ -11,11 +12,14 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration, formatNumber } from "@/lib/utils/helpers";
 import { CompletedModalShell } from "./CompletedModalShell";
 import { WordGrid } from "./WordGrid";
+import { WordDetailView, type WordListItem } from "@/components/WordDetailView";
+import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 
 interface WordProgress {
   isCorrect: boolean;
@@ -45,81 +49,164 @@ export function LessonCompletedModal({
   const [showItalian, setShowItalian] = useState(true);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
+  const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
+
+  const selectedWordIndex = selectedWordId ? words.findIndex((w) => w.id === selectedWordId) : -1;
+  const selectedWord = selectedWordIndex >= 0 ? words[selectedWordIndex] : null;
+
+  const wordList: WordListItem[] = words.map((w) => ({
+    id: w.id,
+    english: w.english,
+    foreign: w.headword,
+  }));
 
   return (
     <CompletedModalShell onDismiss={onDismiss}>
-      <CompletedModalShell.Header
-        eyebrow={`Lesson #${lesson.number} · ${lesson.title}`}
-        title="Lesson completed!"
-      >
-        <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4" />
-            <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
+      {!selectedWord && (
+        <CompletedModalShell.Header
+          eyebrow={`Lesson #${lesson.number} · ${lesson.title}`}
+          title="Lesson completed!"
+        >
+          <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
+              <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
+            </div>
+            {newWordsCount > 0 && <><span>·</span><span><span className="font-medium text-foreground">{formatNumber(newWordsCount)}</span> new</span></>}
+            <span>·</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowItalian(!showItalian)}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+                title={showItalian ? "Hide Italian" : "Show Italian"}
+              >
+                {showItalian ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() =>
+                  setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
+                }
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+                title={
+                  imageMode === "memory-trigger"
+                    ? "Switch to flashcards"
+                    : "Switch to memory triggers"
+                }
+              >
+                {imageMode === "memory-trigger" ? (
+                  <Zap className="h-4 w-4" />
+                ) : (
+                  <ImageIcon className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                onClick={() => setColumns(columns === 5 ? 4 : 5)}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+                title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <span>·</span>
-          <span>{formatNumber(words.length)} words</span>
-          <span>{formatNumber(newWordsCount)} new</span>
-          <span>·</span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowItalian(!showItalian)}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-              title={showItalian ? "Hide Italian" : "Show Italian"}
-            >
-              {showItalian ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            </button>
-            <button
-              onClick={() =>
-                setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
-              }
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-              title={
-                imageMode === "memory-trigger"
-                  ? "Switch to flashcards"
-                  : "Switch to memory triggers"
-              }
-            >
-              {imageMode === "memory-trigger" ? (
-                <Zap className="h-4 w-4" />
-              ) : (
-                <ImageIcon className="h-4 w-4" />
-              )}
-            </button>
-            <button
-              onClick={() => setColumns(columns === 5 ? 4 : 5)}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-              title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </CompletedModalShell.Header>
+        </CompletedModalShell.Header>
+      )}
 
       <CompletedModalShell.Body>
-        <WordGrid
-          words={words}
-          imageMode={imageMode}
-          showEnglish={showItalian}
-          columns={columns}
-        />
+        {selectedWord ? (
+          <>
+            <button
+              onClick={() => setSelectedWordId(null)}
+              className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </button>
+            <WordDetailView
+              word={selectedWord}
+              lessonTitle={lesson.title}
+              lessonNumber={lesson.number}
+              onBack={() => setSelectedWordId(null)}
+              onPrevious={
+                selectedWordIndex > 0
+                  ? () => setSelectedWordId(words[selectedWordIndex - 1].id)
+                  : undefined
+              }
+              onNext={
+                selectedWordIndex < words.length - 1
+                  ? () => setSelectedWordId(words[selectedWordIndex + 1].id)
+                  : undefined
+              }
+              onJumpToWord={(index) => setSelectedWordId(words[index].id)}
+              hasPrevious={selectedWordIndex > 0}
+              hasNext={selectedWordIndex < words.length - 1}
+              currentIndex={selectedWordIndex}
+              totalWords={words.length}
+              wordList={wordList}
+              layout="sidebar"
+              autoPlayAudio={false}
+              showTabs={false}
+            />
+          </>
+        ) : (
+          <>
+            <Tabs
+              tabs={[
+                { id: "all", label: "All words", count: words.length },
+              ]}
+              activeTab="all"
+              onChange={() => {}}
+              className="mb-4"
+            />
+            <WordGrid
+              words={words}
+              imageMode={imageMode}
+              showEnglish={showItalian}
+              columns={columns}
+              onWordClick={setSelectedWordId}
+            />
+          </>
+        )}
       </CompletedModalShell.Body>
 
-      <CompletedModalShell.Footer>
-        <div className="flex flex-col items-center gap-3">
-          <Button onClick={onStartTest} size="xl" className="w-full max-w-md">
-            Start Test
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-          <button
-            onClick={onDismiss}
-            className="text-sm text-primary"
-          >
-            Not now
-          </button>
+      {selectedWord ? (
+        <div className="shrink-0 [&>div]:!static">
+          <WordDetailActionBar
+            currentWordIndex={selectedWordIndex}
+            totalWords={words.length}
+            englishWord={selectedWord.english}
+            foreignWord={selectedWord.headword}
+            partOfSpeech={selectedWord.part_of_speech}
+            gender={selectedWord.gender}
+            category={selectedWord.category}
+            wordList={wordList}
+            testHistory={selectedWord.testHistory}
+            scoreStats={selectedWord.scoreStats}
+            onJumpToWord={(index) => setSelectedWordId(words[index].id)}
+            onPreviousWord={() => selectedWordIndex > 0 && setSelectedWordId(words[selectedWordIndex - 1].id)}
+            onNextWord={() => selectedWordIndex < words.length - 1 && setSelectedWordId(words[selectedWordIndex + 1].id)}
+            onReplay={() => {}}
+            hasPrevious={selectedWordIndex > 0}
+            hasNext={selectedWordIndex < words.length - 1}
+            wordStatus={selectedWord.status}
+            variant="sidebar"
+          />
         </div>
-      </CompletedModalShell.Footer>
+      ) : (
+        <CompletedModalShell.Footer>
+          <div className="flex flex-col items-center gap-3">
+            <Button onClick={onStartTest} size="xl" className="w-full max-w-md">
+              Start Test
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+            <button
+              onClick={onDismiss}
+              className="text-sm text-primary"
+            >
+              Not now
+            </button>
+          </div>
+        </CompletedModalShell.Footer>
+      )}
     </CompletedModalShell>
   );
 }

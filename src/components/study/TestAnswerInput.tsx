@@ -236,10 +236,10 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   const feedback = getFeedback();
 
   return (
-    <div className="px-6 pt-3 pb-0">
+    <div className="px-6 pt-2 pb-0">
       <div
         className={cn(
-          "flex items-center gap-4 rounded-2xl border-2 bg-white px-5 py-3 transition-colors",
+          "flex items-center gap-4 rounded-2xl border-2 bg-white pl-4 pr-2 py-2 transition-colors",
           feedback?.borderColor || "border-primary"
         )}
       >

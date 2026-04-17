@@ -31,6 +31,7 @@ import {
   saveUserNotes,
   saveSystemNotes,
 } from "@/lib/mutations/study";
+import { dismissTip } from "@/lib/mutations/tips";
 import { updateWord } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
@@ -54,6 +55,7 @@ interface WordProgress {
   isCorrect: boolean;
   userNotes: string | null;
   hasAnswered: boolean;
+  userAnswer?: string;
 }
 
 interface StudyModeClientProps {
@@ -63,6 +65,7 @@ interface StudyModeClientProps {
   words: WordWithDetails[];
   isGuest: boolean;
   courseLessons?: AdjacentLesson[];
+  dismissedTipIds?: string[];
 }
 
 export function StudyModeClient({
@@ -72,6 +75,7 @@ export function StudyModeClient({
   words,
   isGuest,
   courseLessons = [],
+  dismissedTipIds: initialDismissedTipIds = [],
 }: StudyModeClientProps) {
   const router = useRouter();
   const { isAdmin } = useUser();
@@ -108,6 +112,7 @@ export function StudyModeClient({
   // Word navigation state
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [phase, setPhase] = useState<StudyPhase>("reveal-first");
+  const [showEnglishWord, setShowEnglishWord] = useState(false);
 
   // Progress tracking (keyed by word ID)
   const [wordProgressMap, setWordProgressMap] = useState<Map<string, WordProgress>>(
@@ -115,6 +120,11 @@ export function StudyModeClient({
   );
   const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
   
+  // Tips dismissal state
+  const [dismissedTipIds, setDismissedTipIds] = useState<Set<string>>(
+    () => new Set(initialDismissedTipIds)
+  );
+
   // Completion modal state
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -360,6 +370,14 @@ export function StudyModeClient({
 
     const advancePhase = async () => {
       if (phase === "reveal-first") {
+        console.log(`[Phase] reveal-first - waiting 0.5s before showing English`);
+        // Wait 0.5s before revealing English word
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (cancelled) {
+          console.log(`[Phase] Cancelled during English delay`);
+          return;
+        }
+        setShowEnglishWord(true);
         console.log(`[Phase] reveal-first - playing English audio`);
         if (currentWord.audio_url_english) {
           await playAudio(currentWord.audio_url_english, "english");
@@ -454,6 +472,11 @@ export function StudyModeClient({
         setBreathingSecond(0);
         setPhase("reveal-second"); // Show foreign word immediately
 
+        // Wait 0.5s before revealing English word
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (isCancelled()) return;
+        setShowEnglishWord(true);
+
         // Play English audio and wait for it
         if (currentWord.audio_url_english) {
           await playAudio(currentWord.audio_url_english, "english");
@@ -547,6 +570,7 @@ export function StudyModeClient({
           if (phaseTimeoutRef.current) {
             clearTimeout(phaseTimeoutRef.current);
           }
+          setShowEnglishWord(true); // Ensure English word is visible when skipping
           setPhase("show-input");
         }
       }
@@ -560,17 +584,18 @@ export function StudyModeClient({
   const handleSubmit = useCallback(
     (isCorrect: boolean, userAnswer: string) => {
       const existingNotes = wordProgressMap.get(currentWord.id)?.userNotes || null;
-      
+
       setWordProgressMap((prev) => {
         const newMap = new Map(prev);
         newMap.set(currentWord.id, {
           isCorrect,
           userNotes: existingNotes,
           hasAnswered: true,
+          userAnswer,
         });
         return newMap;
       });
-      
+
       // Save to localStorage
       if (sessionId) {
         const progressEntry: WordProgressEntry = {
@@ -580,7 +605,7 @@ export function StudyModeClient({
         };
         updateWordProgressStorage("study", sessionId, currentWord.id, progressEntry, currentWordIndex);
       }
-      
+
       setPhase("show-feedback");
     },
     [currentWord.id, currentWordIndex, sessionId, wordProgressMap]
@@ -600,6 +625,7 @@ export function StudyModeClient({
       handleFinishLesson();
     } else {
       // Move to next word
+      setShowEnglishWord(false);
       setCurrentWordIndex((prev) => prev + 1);
       setPhase("reveal-first");
       // Scroll to top
@@ -642,13 +668,27 @@ export function StudyModeClient({
         if (phaseTimeoutRef.current) {
           clearTimeout(phaseTimeoutRef.current);
         }
-        setCurrentWordIndex(index);
-        setPhase("reveal-first");
+
+        const targetWord = localWords[index];
+        const hasAnswered = wordProgressMap.get(targetWord.id)?.hasAnswered;
+
+        if (hasAnswered) {
+          // Skip reveal sequence for already-answered words
+          setShowEnglishWord(true);
+          setCurrentWordIndex(index);
+          setPhase("show-input");
+        } else {
+          // Normal reveal sequence for unanswered words
+          setShowEnglishWord(false);
+          setCurrentWordIndex(index);
+          setPhase("reveal-first");
+        }
+
         // Scroll to top
         scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
       }
     },
-    [currentWordIndex, localWords.length, stopAudio]
+    [currentWordIndex, localWords, wordProgressMap, stopAudio]
   );
 
   // Handle user notes change
@@ -699,6 +739,19 @@ export function StudyModeClient({
       }
     },
     [currentWord.id]
+  );
+
+  // Handle tip dismissal
+  const handleDismissTip = useCallback(
+    async (tipId: string) => {
+      // Optimistic local update
+      setDismissedTipIds((prev) => new Set([...prev, tipId]));
+      // Persist to server for authenticated users
+      if (!isGuest) {
+        dismissTip(tipId);
+      }
+    },
+    [isGuest]
   );
 
   // Handle finish lesson - save notes, promote answered words to "learning",
@@ -811,6 +864,7 @@ export function StudyModeClient({
     breathingCancelledRef.current = true;
     setBreathingPhase(null);
     setBreathingSecond(0);
+    setShowEnglishWord(false);
     setPhase("reveal-first");
     // Trigger new breathing cycle if enabled
     if (breathingModeEnabled) {
@@ -937,8 +991,8 @@ export function StudyModeClient({
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
-          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[90px]">
+          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-4">
             {isInformationPage ? (
               <InformationCard
                 title={currentWord.english}
@@ -957,6 +1011,7 @@ export function StudyModeClient({
                     englishWord={currentWord.english}
                     foreignWord={currentWord.headword}
                     gender={currentWord.gender}
+                    showEnglish={showEnglishWord}
                     showForeign={showForeign}
                     playingAudioType={currentAudioType}
                     onPlayEnglishAudio={() => {
@@ -979,8 +1034,8 @@ export function StudyModeClient({
                 </div>
 
                 {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-                <div className="flex gap-6">
-                  <div className="flex w-[800px] flex-col gap-6">
+                <div className="flex gap-4">
+                  <div className="flex w-[800px] flex-col gap-4">
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         key={currentWord.id}
@@ -1028,6 +1083,9 @@ export function StudyModeClient({
                       pictureMissing={currentWord.picture_missing}
                       pictureBadSvg={currentWord.picture_bad_svg}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
+                      tips={currentWord.tips}
+                      dismissedTipIds={Array.from(dismissedTipIds)}
+                      onDismissTip={handleDismissTip}
                     />
                   </div>
                 </div>
@@ -1056,6 +1114,8 @@ export function StudyModeClient({
               onSubmit={handleSubmit}
               onNextWord={handleNextWord}
               strictMode={strictMode}
+              previousAnswer={currentWordProgress?.userAnswer}
+              isAlreadyAnswered={currentWordProgress?.hasAnswered}
             />
           )}
 

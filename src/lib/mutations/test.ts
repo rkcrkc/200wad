@@ -102,6 +102,7 @@ export interface TestStats {
   scorePercent: number;
   durationSeconds: number;
   newWordsCount: number;
+  newlyLearnedCount: number;
   masteredWordsCount: number;
   isRetest: boolean;
 }
@@ -370,6 +371,7 @@ export async function completeTestSession(
       score_percent: stats.scorePercent,
       duration_seconds: stats.durationSeconds,
       new_words_count: stats.newWordsCount,
+      learned_words_count: stats.newlyLearnedCount,
       mastered_words_count: stats.masteredWordsCount,
       is_retest: stats.isRetest,
       taken_at: new Date().toISOString(),
@@ -477,7 +479,7 @@ export async function completeTestSession(
         .from("user_word_progress")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .eq("status", "mastered")
+        .in("status", ["learned", "mastered"])
         .in("word_id", [...courseWordIds]);
       courseWordsMastered = count || 0;
     }

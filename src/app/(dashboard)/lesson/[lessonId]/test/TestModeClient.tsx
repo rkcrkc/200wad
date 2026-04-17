@@ -321,8 +321,10 @@ export function TestModeClient({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [stopAudio]);
 
-  // Warn user before leaving/refreshing the page
+  // Warn user before leaving/refreshing the page (disabled after test completion)
   useEffect(() => {
+    if (showCompletionModal) return; // No need to warn after test is done
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       // Modern browsers ignore custom messages, but this triggers the dialog
@@ -335,7 +337,7 @@ export function TestModeClient({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
+  }, [showCompletionModal]);
 
   // Intercept browser back/forward navigation (e.g. Option+Arrow, Cmd+[, back button)
   useEffect(() => {
@@ -461,6 +463,17 @@ export function TestModeClient({
         return !wasTestedBefore && answered;
       }).length;
 
+      // Newly learned: words that weren't already learned/mastered and got perfect score
+      const newlyLearnedCount = words.filter((w) => {
+        const wasAlreadyLearned = w.status === "learned" || w.status === "mastered";
+        if (wasAlreadyLearned) return false;
+        const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+        return keys.some((key) => {
+          const p = testProgressMap.get(key);
+          return p?.hasAnswered && p.mistakeCount === 0 && p.clueLevel === 0;
+        });
+      }).length;
+
       // Calculate mastered words: words that reach streak >= 3 during this test
       const masteredWordsCount = words.filter((w) => {
         const priorStreak = w.progress?.correct_streak || 0;
@@ -486,6 +499,7 @@ export function TestModeClient({
         scorePercent: calculateScorePercent(totalPoints, maxPoints),
         durationSeconds: elapsedSeconds,
         newWordsCount,
+        newlyLearnedCount,
         masteredWordsCount,
         isRetest,
       };
@@ -637,7 +651,10 @@ export function TestModeClient({
     [testProgressMap, testTwice]
   );
 
-  const handleTestAgain = useCallback(() => {
+  const handleTestAgain = useCallback(async () => {
+    // Reset finishing guard so handleFinishTest works again
+    isFinishingRef.current = false;
+
     // Update words with current test results folded into history, then reset
     const updatedWords = buildUpdatedWords(words);
     setActiveWords(updatedWords);
@@ -650,13 +667,36 @@ export function TestModeClient({
     setServerCourseWordsMastered(null);
     setIsRetest(true);
 
-    // Create new session
+    // Clear old session and create a new one
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-  }, [sessionId, lesson.id, words, buildUpdatedWords]);
 
-  const handleRetestIncorrect = useCallback(() => {
+    if (!isGuest) {
+      const result = await createTestSession(lesson.id);
+      if (result.sessionId) {
+        setSessionId(result.sessionId);
+        initSessionProgress("test", result.sessionId, lesson.id);
+      }
+    } else {
+      const newSessionId = `guest_test_${lesson.id}_${Date.now()}`;
+      setSessionId(newSessionId);
+      initSessionProgress("test", newSessionId, lesson.id);
+    }
+
+    // Restart timer (was stopped by handleFinishTest)
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+  }, [sessionId, lesson.id, words, buildUpdatedWords, isGuest]);
+
+  const handleRetestIncorrect = useCallback(async () => {
+    // Reset finishing guard so handleFinishTest works again
+    isFinishingRef.current = false;
+
     // Filter to only words that were not fully correct
     const incorrectWordIds = new Set<string>();
     testProgressMap.forEach((progress, key) => {
@@ -683,14 +723,35 @@ export function TestModeClient({
     setElapsedSeconds(0);
     setIsRetest(true);
 
+    // Clear old session and create a new one
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-  }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords]);
+
+    if (!isGuest) {
+      const result = await createTestSession(lesson.id);
+      if (result.sessionId) {
+        setSessionId(result.sessionId);
+        initSessionProgress("test", result.sessionId, lesson.id);
+      }
+    } else {
+      const newSessionId = `guest_test_${lesson.id}_${Date.now()}`;
+      setSessionId(newSessionId);
+      initSessionProgress("test", newSessionId, lesson.id);
+    }
+
+    // Restart timer (was stopped by handleFinishTest)
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+  }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords, isGuest]);
 
   const handleStudyIncorrect = useCallback(() => {
-    window.location.href = `/lesson/${lesson.id}/study`;
-  }, [lesson.id]);
+    router.push(`/lesson/${lesson.id}/study`);
+  }, [lesson.id, router]);
 
   // Handle inserting accented character into answer input
   const handleInsertCharacter = useCallback((char: string) => {
@@ -712,8 +773,22 @@ export function TestModeClient({
       return !wasTestedBefore && answered;
     }).length;
 
+    // Newly learned: words that weren't already learned/mastered and got perfect score
+    // (no mistakes, no clues → 3/3 points) in this test
+    const newlyLearnedWords = words.filter((w) => {
+      const wasAlreadyLearned = w.status === "learned" || w.status === "mastered";
+      if (wasAlreadyLearned) return false;
+      const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+      return keys.some((key) => {
+        const p = testProgressMap.get(key);
+        return p?.hasAnswered && p.mistakeCount === 0 && p.clueLevel === 0;
+      });
+    });
+    const newlyLearnedCount = newlyLearnedWords.length;
+    const newlyLearnedWordIds = newlyLearnedWords.map((w) => w.id);
+
     // Mastered this test: words that reach streak >= 3 during this test (weren't already mastered)
-    const masteredWordsCount = words.filter((w) => {
+    const masteredWordsList = words.filter((w) => {
       const priorStreak = w.progress?.correct_streak || 0;
       const wasAlreadyMastered = w.status === "mastered";
       if (wasAlreadyMastered) return false;
@@ -726,7 +801,9 @@ export function TestModeClient({
         }
       }
       return streak >= 3;
-    }).length;
+    });
+    const masteredWordsCount = masteredWordsList.length;
+    const masteredWordIds = masteredWordsList.map((w) => w.id);
 
     // Total vocabulary is server-authoritative: `completeTestSession` runs
     // `user_word_progress` updates first and then COUNTs `status='mastered'`
@@ -737,7 +814,7 @@ export function TestModeClient({
     // (guest mode, or a server error) and let the modal render a placeholder.
     const courseWordsMastered: number | null = serverCourseWordsMastered;
 
-    return { totalPoints, maxPoints, scorePercent, newWordsCount, masteredWordsCount, courseWordsMastered };
+    return { totalPoints, maxPoints, scorePercent, newWordsCount, newlyLearnedCount, masteredWordsCount, courseWordsMastered, newlyLearnedWordIds, masteredWordIds };
   };
 
   // Build word results map for modal
@@ -959,8 +1036,8 @@ export function TestModeClient({
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[96px]">
-          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-6">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[90px]">
+          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-4">
             {/* Word Card - full width (hidden in picture-only mode) */}
             {testType !== "picture-only" && (
               <div className="w-full">
@@ -994,8 +1071,8 @@ export function TestModeClient({
             )}
 
             {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-            <div className="flex gap-6">
-              <div className="flex w-[700px] flex-col gap-6">
+            <div className="flex gap-4">
+              <div className="flex w-[700px] flex-col gap-4">
                 {imageMode === "memory-trigger" ? (
                   <MemoryTriggerCard
                     imageUrl={currentWord?.memory_trigger_image_url}
@@ -1122,9 +1199,11 @@ export function TestModeClient({
           totalPoints={testStats.totalPoints}
           maxPoints={testStats.maxPoints}
           scorePercent={testStats.scorePercent}
-          newWordsCount={testStats.newWordsCount}
+          newlyLearnedCount={testStats.newlyLearnedCount}
           masteredWordsCount={testStats.masteredWordsCount}
           courseWordsMastered={testStats.courseWordsMastered}
+          newlyLearnedWordIds={testStats.newlyLearnedWordIds}
+          masteredWordIds={testStats.masteredWordIds}
           onDone={handleDone}
           onTestAgain={handleTestAgain}
           onRetestIncorrect={handleRetestIncorrect}

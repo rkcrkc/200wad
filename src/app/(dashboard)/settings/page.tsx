@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { getUserSettings } from "@/lib/queries/settings";
 import {
-  SecuritySection,
-  PreferencesSection,
-  DangerZoneSection,
   ErrorState,
+  SettingsClient,
 } from "@/components/settings";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -46,16 +44,10 @@ export default async function SettingsPage() {
 
   return (
     <PageContainer size="sm">
-      <h1 className="mb-8 text-3xl font-semibold">Account Settings</h1>
-
-      <SecuritySection
+      <SettingsClient
         email={settings.email}
         twoFactorEnabled={settings.twoFactorEnabled}
       />
-
-      <PreferencesSection />
-
-      <DangerZoneSection />
     </PageContainer>
   );
 }

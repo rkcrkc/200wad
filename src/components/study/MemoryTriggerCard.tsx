@@ -227,7 +227,7 @@ export function MemoryTriggerCard({
     return (
       <div className="w-full rounded-2xl bg-white shadow-card">
         <div className="flex flex-col gap-5 p-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
             <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
           </div>
@@ -239,10 +239,10 @@ export function MemoryTriggerCard({
 
   return (
     <div className="w-full rounded-2xl bg-white shadow-card">
-      <div className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-5 px-6 py-5">
         {/* Picture-only mode: Show English word as clue 1 */}
         {pictureOnlyMode && showEnglishLabel && (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-[32px] font-semibold leading-tight tracking-tight text-primary">
               {englishWord}
             </span>
@@ -250,16 +250,11 @@ export function MemoryTriggerCard({
         )}
 
         {/* Trigger text row - audio button on left, matching word card layout */}
-        {showTriggerTextProp !== undefined && triggerText ? (
-          // Study mode: always render real container, toggle visibility to prevent layout shift
+        {showTriggerTextProp !== undefined && triggerText && showTrigger ? (
+          // Study mode: show trigger text when visible
           <button
-            onClick={isEditMode ? undefined : showTrigger ? onPlayTriggerAudio : undefined}
-            className="flex items-center gap-4 text-left"
-            style={{
-              visibility: showTrigger ? "visible" : "hidden",
-              pointerEvents: showTrigger ? "auto" : "none",
-              cursor: showTrigger ? "pointer" : "default",
-            }}
+            onClick={isEditMode ? undefined : onPlayTriggerAudio}
+            className="flex items-center gap-3 text-left cursor-pointer"
           >
             <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
             {isEditMode && wordId && onFieldSave ? (
@@ -269,21 +264,27 @@ export function MemoryTriggerCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-2xl font-medium leading-relaxed"
-                inputClassName="text-xl font-medium w-full"
+                className="text-[22px] font-medium leading-normal"
+                inputClassName="text-[22px] font-medium w-full"
                 multiline
               />
             ) : (
-              <p className="text-2xl font-medium leading-relaxed">
+              <p className="text-[22px] font-medium leading-normal">
                 {parseAndHighlightText(triggerText, foreignWord, isPlayingTrigger, gender)}
               </p>
             )}
           </button>
+        ) : showTriggerTextProp !== undefined && triggerText && !showTrigger ? (
+          // Study mode: show skeleton when trigger not yet revealed
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 flex-shrink-0 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-[33px] flex-1 animate-pulse rounded-lg bg-gray-100" />
+          </div>
         ) : showTrigger && triggerText ? (
           // Test mode / edit mode: render normally when visible
           <button
             onClick={isEditMode ? undefined : onPlayTriggerAudio}
-            className="flex cursor-pointer items-center gap-4 text-left"
+            className="flex cursor-pointer items-center gap-3 text-left"
           >
             <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
             {isEditMode && wordId && onFieldSave ? (
@@ -293,19 +294,19 @@ export function MemoryTriggerCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-2xl font-medium leading-relaxed"
-                inputClassName="text-xl font-medium w-full"
+                className="text-[22px] font-medium leading-normal"
+                inputClassName="text-[22px] font-medium w-full"
                 multiline
               />
             ) : (
-              <p className="text-2xl font-medium leading-relaxed">
+              <p className="text-[22px] font-medium leading-normal">
                 {parseAndHighlightText(triggerText, foreignWord, isPlayingTrigger, gender)}
               </p>
             )}
           </button>
         ) : showTrigger && !triggerText && isEditMode && wordId && onFieldSave ? (
           // Edit mode: allow adding trigger text when none exists
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <AudioButton isPlaying={false} />
             <EditableText
               value=""
@@ -313,16 +314,16 @@ export function MemoryTriggerCard({
               wordId={wordId}
               isEditMode={isEditMode}
               onSave={onFieldSave}
-              className="text-2xl font-medium leading-relaxed text-muted-foreground"
-              inputClassName="text-xl font-medium w-full"
+              className="text-large-semibold leading-normal text-muted-foreground"
+              inputClassName="text-large-semibold w-full"
               multiline
             />
           </div>
         ) : showTriggerTextProp === undefined && (!pictureOnlyMode || showTrigger) ? (
           // Test mode: show animated skeleton when trigger text not yet revealed
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
-            <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-[33px] flex-1 animate-pulse rounded bg-gray-100" />
           </div>
         ) : null}
 

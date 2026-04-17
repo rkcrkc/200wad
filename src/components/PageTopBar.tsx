@@ -43,7 +43,7 @@ export function PageTopBar({
       ) : backLink ? (
         <Link
           href={backLink.href}
-          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground/50 transition-colors hover:text-muted-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
           {backLink.label}

@@ -1431,6 +1431,111 @@ export type Database = {
           },
         ]
       }
+      tip_words: {
+        Row: {
+          created_at: string | null
+          sort_order: number | null
+          tip_id: string
+          word_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          sort_order?: number | null
+          tip_id: string
+          word_id: string
+        }
+        Update: {
+          created_at?: string | null
+          sort_order?: number | null
+          tip_id?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_words_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_words_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips: {
+        Row: {
+          body: string
+          created_at: string | null
+          display_context: Database["public"]["Enums"]["display_context"]
+          emoji: string | null
+          id: string
+          is_active: boolean
+          sort_order: number | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          display_context?: Database["public"]["Enums"]["display_context"]
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          display_context?: Database["public"]["Enums"]["display_context"]
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_tip_dismissals: {
+        Row: {
+          dismissed_at: string | null
+          tip_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          tip_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          tip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tip_dismissals_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_tip_dismissals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1506,7 +1611,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      display_context: "study_sidebar"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1633,7 +1738,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      display_context: ["study_sidebar"],
+    },
   },
 } as const
 
@@ -1708,3 +1815,11 @@ export type ActivityFlagInsert = Database["public"]["Tables"]["activity_flags"][
 export type HelpEntry = Database["public"]["Tables"]["help_entries"]["Row"];
 export type HelpEntryInsert = Database["public"]["Tables"]["help_entries"]["Insert"];
 export type HelpEntryUpdate = Database["public"]["Tables"]["help_entries"]["Update"];
+
+// Tips types
+export type Tip = Database["public"]["Tables"]["tips"]["Row"];
+export type TipInsert = Database["public"]["Tables"]["tips"]["Insert"];
+export type TipUpdate = Database["public"]["Tables"]["tips"]["Update"];
+export type TipWord = Database["public"]["Tables"]["tip_words"]["Row"];
+export type TipWordInsert = Database["public"]["Tables"]["tip_words"]["Insert"];
+export type UserTipDismissal = Database["public"]["Tables"]["user_tip_dismissals"]["Row"];

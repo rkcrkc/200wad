@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Link2, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, X, Link2, ExternalLink, Trash2, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -25,6 +25,7 @@ import {
   deleteSentence,
 } from "@/lib/mutations/admin/sentences";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
+import { createClient as createClientSupabase } from "@/lib/supabase/client";
 import {
   getWordRelationships,
   searchWordsForRelationship,
@@ -257,6 +258,9 @@ export function AdminWordEditModal({
     english_sentence: "",
   });
 
+  // ---- Linked tips (read-only display) ----
+  const [linkedTips, setLinkedTips] = useState<{ id: string; title: string | null; body: string }[]>([]);
+
   // ---- Related words (typed relationships) ----
   const [relatedWords, setRelatedWords] = useState<RelatedWord[]>([]);
   const [isLoadingRelations, setIsLoadingRelations] = useState(false);
@@ -329,8 +333,22 @@ export function AdminWordEditModal({
           }
         })
         .finally(() => setIsLoadingRelations(false));
+
+      // Fetch linked tips (client-side)
+      const supabase = createClientSupabase();
+      supabase
+        .from("tip_words")
+        .select("tips(id, title, body)")
+        .eq("word_id", editingWord.id)
+        .then(({ data }) => {
+          const tips = (data || [])
+            .map((tw) => tw.tips as unknown as { id: string; title: string | null; body: string } | null)
+            .filter((t): t is NonNullable<typeof t> => t !== null);
+          setLinkedTips(tips);
+        });
     } else {
       setRelatedWords([]);
+      setLinkedTips([]);
     }
   }, [isOpen, editingWord?.id]);
 
@@ -1311,6 +1329,32 @@ export function AdminWordEditModal({
                         </div>
                       </div>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Linked Tips */}
+              {editingWord && (
+                <div>
+                  <h4 className="mb-3 text-sm font-medium text-gray-500 flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" />
+                    Linked Tips
+                  </h4>
+                  {linkedTips.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {linkedTips.map((tip) => (
+                        <a
+                          key={tip.id}
+                          href="/admin/tips"
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm text-amber-700 transition-colors hover:bg-amber-100"
+                        >
+                          <span className="font-medium">{tip.title || "Untitled tip"}</span>
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 mb-4">No linked tips. Manage tips from the Tips page.</p>
                   )}
                 </div>
               )}

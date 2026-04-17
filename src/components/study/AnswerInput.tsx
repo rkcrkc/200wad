@@ -38,6 +38,10 @@ interface AnswerInputProps {
   strictMode?: boolean;
   /** Language code (e.g., "de" for German) - used for case sensitivity */
   languageCode?: string | null;
+  /** Previously submitted answer (for returning to already-answered words) */
+  previousAnswer?: string;
+  /** Whether this word has already been answered in this session */
+  isAlreadyAnswered?: boolean;
 }
 
 export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(function AnswerInput({
@@ -50,6 +54,8 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   onNextWord,
   strictMode = false,
   languageCode,
+  previousAnswer,
+  isAlreadyAnswered = false,
 }, ref) {
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
@@ -110,6 +116,16 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     clearPending();
   }, [wordId, clearPending]);
 
+  // Focus Next button for already-answered words (separate effect to avoid clearing input)
+  useEffect(() => {
+    if (isAlreadyAnswered && !feedback) {
+      // Only auto-focus if not currently showing feedback (i.e., just navigated to this word)
+      setTimeout(() => {
+        nextButtonRef.current?.focus();
+      }, 100);
+    }
+  }, [wordId, isAlreadyAnswered, feedback]);
+
   const handleSubmit = () => {
     if (!input.trim()) return;
 
@@ -168,8 +184,14 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
           // In strict mode with non-correct answer, retry
           handleRetry();
         }
+      } else if (isAlreadyAnswered && !input.trim()) {
+        // Already answered and input is empty, advance to next word
+        onNextWord();
       } else if (input.trim()) {
         handleSubmit();
+      } else if (!strictMode) {
+        // Non-strict mode: Enter with empty input skips the word
+        onNextWord();
       }
     }
   };
@@ -226,10 +248,10 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   const feedbackDisplay = getFeedbackDisplay();
 
   return (
-    <div className="px-6 pt-3 pb-0">
+    <div className="px-6 pt-2 pb-0">
       <div
         className={cn(
-          "flex items-center gap-4 rounded-2xl border-2 bg-white px-5 py-3 transition-colors",
+          "flex items-center gap-4 rounded-2xl border-2 bg-white pl-4 pr-2 py-2 transition-colors",
           getBorderColor()
         )}
       >
@@ -312,6 +334,19 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
                 <ChevronRight className="h-4 w-4" />
               </Button>
             )
+          ) : isAlreadyAnswered ? (
+            <Button ref={nextButtonRef} onClick={handleNextClick} className="gap-1.5">
+              {isLastWord ? "Finish lesson" : "Next word"}
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : !input.trim() && !strictMode ? (
+            <Button
+              onClick={onNextWord}
+              className="gap-1.5"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           ) : (
             <Button
               onClick={handleSubmit}

@@ -60,6 +60,10 @@ export async function updateProfile(
 
   if (error) {
     console.error("Error updating profile:", error);
+    // Handle unique constraint violation for username
+    if (error.code === "23505" && error.message.includes("username")) {
+      return { success: false, error: "Username is already taken" };
+    }
     return { success: false, error: error.message };
   }
 

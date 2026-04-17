@@ -66,3 +66,6 @@ export { getHelpEntries, getHelpEntriesAdmin } from "./help";
 
 export { getTextOverrides } from "./text";
 export type { GetTextOverridesResult } from "./text";
+
+export { getTipsForWords, getAllTips, getTipsByWordId } from "./tips";
+export type { TipForWord, TipWithWordCount } from "./tips";

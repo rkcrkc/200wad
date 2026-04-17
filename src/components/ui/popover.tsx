@@ -88,12 +88,10 @@ export function Popover({
       style.top = triggerRect.bottom + 4;
     }
 
-    console.log('[Popover] Panel style:', style);
     setPanelStyle(style);
   }, [align, position]);
 
   const handleMouseEnter = useCallback(() => {
-    console.log('[Popover] Mouse enter');
     setIsHovered(true);
     updatePosition();
   }, [updatePosition]);

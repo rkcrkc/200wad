@@ -66,20 +66,15 @@ export function WordCard({
     return defaultHighlightColor;
   };
 
-  // If neither word should be shown, show nothing (picture-only mode)
-  if (!showEnglish && !showForeign) {
-    return null;
-  }
-
   return (
-    <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+    <div className="w-full rounded-2xl bg-white px-6 py-4 shadow-card">
       {/* Words container */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {/* English word row */}
         {showEnglish ? (
           <button
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
-            className="flex min-h-[42px] cursor-pointer items-center gap-4 rounded-lg text-left"
+            className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingEnglish} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (
@@ -118,14 +113,11 @@ export function WordCard({
           />
         )}
 
-        {/* Divider */}
-        <div className="h-px w-full bg-black/10" />
-
         {/* Foreign word row or skeleton */}
         {showForeign ? (
           <button
             onClick={isEditMode ? undefined : onPlayForeignAudio}
-            className="flex min-h-[42px] cursor-pointer items-center gap-4 rounded-lg text-left"
+            className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
           >
             <AudioButton isPlaying={isPlayingForeign} playingColor={darkColor} />
             {isEditMode && wordId && onFieldSave ? (

@@ -22,6 +22,8 @@ interface WordGridProps {
   columns?: WordGridColumns;
   /** Optional test results keyed by word ID — shows score badge on each card. */
   wordResults?: Map<string, WordGridResult>;
+  /** Called when a word tile is clicked. */
+  onWordClick?: (wordId: string) => void;
 }
 
 /**
@@ -34,6 +36,7 @@ export function WordGrid({
   showEnglish = true,
   columns = 5,
   wordResults,
+  onWordClick,
 }: WordGridProps) {
   // Explicit classes so Tailwind's scanner picks them up
   const gridColsClass = columns === 4 ? "grid-cols-4" : "grid-cols-5";
@@ -53,7 +56,8 @@ export function WordGrid({
         return (
           <div
             key={word.id}
-            className="relative overflow-hidden rounded-xl bg-white px-3 pt-2 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+            className={`relative overflow-hidden rounded-xl bg-white px-3 pt-2 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)]${onWordClick ? " cursor-pointer transition-shadow hover:shadow-[0_2px_12px_rgba(0,0,0,0.14)]" : ""}`}
+            onClick={onWordClick ? () => onWordClick(word.id) : undefined}
           >
             {/* Image */}
             <div className={`relative ${imageHeightClass} w-full`}>

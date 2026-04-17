@@ -63,3 +63,5 @@ export {
 export type { RecordReferralSignupResult } from "./referrals";
 
 export { recordActivity } from "./activity";
+
+export { dismissTip, resetAllTipDismissals } from "./tips";

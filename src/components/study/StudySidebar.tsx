@@ -6,6 +6,8 @@ import { ChevronRight } from "lucide-react";
 import { ExampleSentence, Word } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { saveDeveloperData, type DeveloperData } from "@/lib/mutations";
+import { TipCard } from "./TipCard";
+import type { TipForWord } from "@/lib/queries/tips";
 
 interface StudySidebarProps {
   /** Current word ID - used to detect word changes and reset local state */
@@ -27,6 +29,12 @@ interface StudySidebarProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
+  /** Contextual tips for this word */
+  tips?: TipForWord[];
+  /** Tip IDs the user has already dismissed */
+  dismissedTipIds?: string[];
+  /** Callback when user dismisses a tip */
+  onDismissTip?: (tipId: string) => void;
 }
 
 export function StudySidebar({
@@ -45,6 +53,9 @@ export function StudySidebar({
   pictureMissing: initialPictureMissing,
   pictureBadSvg: initialPictureBadSvg,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
+  tips = [],
+  dismissedTipIds = [],
+  onDismissTip,
 }: StudySidebarProps) {
   // User notes state
   const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
@@ -221,7 +232,7 @@ export function StudySidebar({
   // Skeleton card for disabled state with shimmer animation
   if (!isEnabled) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {/* Notes skeleton */}
         <div className={cardClasses}>
           <div className="p-6">
@@ -252,8 +263,23 @@ export function StudySidebar({
     );
   }
 
+  // Filter tips to exclude dismissed ones
+  const visibleTips = tips.filter((tip) => !dismissedTipIds.includes(tip.id));
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
+      {/* Tip Cards - above Notes */}
+      {isEnabled && visibleTips.map((tip) => (
+        <TipCard
+          key={tip.id}
+          tipId={tip.id}
+          title={tip.title}
+          body={tip.body}
+          emoji={tip.emoji}
+          onDismiss={onDismissTip || (() => {})}
+        />
+      ))}
+
       {/* Notes Card */}
       <div className={cardClasses}>
         <div className="flex flex-col gap-5 p-6">

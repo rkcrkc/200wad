@@ -10,9 +10,10 @@ import { AudioButton } from "@/components/ui/audio-button";
 import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
+import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 
-interface WordListItem {
+export interface WordListItem {
   id: string;
   english: string;
   foreign: string;
@@ -40,6 +41,8 @@ interface WordDetailViewProps {
   layout?: "page" | "sidebar";
   /** Whether to auto-play audio sequence when word changes (default true) */
   autoPlayAudio?: boolean;
+  /** Whether to show the Word/Test History tabs in sidebar layout (default true) */
+  showTabs?: boolean;
 }
 
 /**
@@ -158,6 +161,7 @@ export function WordDetailView({
   fromDictionary = false,
   layout = "page",
   autoPlayAudio = true,
+  showTabs = true,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -201,6 +205,9 @@ export function WordDetailView({
   // Image display mode state
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
+  // Sidebar tab state
+  const [sidebarTab, setSidebarTab] = useState<"word" | "test-history">("word");
+
   // Audio sequence state
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
   const audioSequenceCancelledRef = useRef(false);
@@ -223,6 +230,8 @@ export function WordDetailView({
     setPictureMissing(word.picture_missing || false);
     setPictureBadSvg(word.picture_bad_svg || false);
     setNotesInMemoryTrigger(word.notes_in_memory_trigger || false);
+    // Reset sidebar tab to "word" when navigating to a new word
+    setSidebarTab("word");
   }, [word.id, word.progress?.user_notes, word.notes, word.developer_notes, word.picture_wrong, word.picture_wrong_notes, word.picture_missing, word.picture_bad_svg, word.notes_in_memory_trigger]);
 
   // User notes handlers
@@ -561,43 +570,124 @@ export function WordDetailView({
         </div>
       )}
 
-      {/* Word Card */}
-      <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
-        <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-4"}>
-          {/* English word */}
-          <button
-            onClick={handlePlayEnglish}
-            className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
-          >
-            <AudioButton isPlaying={isPlayingEnglish} playingColor={audioDarkColor} />
-            <span
-              className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
-              style={{ color: isPlayingEnglish ? getHighlightColorDark(word.gender) : "#141515" }}
-            >
-              {word.english}
-            </span>
-          </button>
+      {/* Tabs (sidebar only, when enabled) */}
+      {isSidebar && showTabs && (
+        <Tabs
+          tabs={[
+            { id: "word", label: "Word" },
+            { id: "test-history", label: "Test History" },
+          ]}
+          activeTab={sidebarTab}
+          onChange={(tabId) => setSidebarTab(tabId as "word" | "test-history")}
+        />
+      )}
 
-          <div className="h-px w-full bg-black/10" />
-
-          {/* Foreign word */}
-          <button
-            onClick={handlePlayForeign}
-            className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
-          >
-            <AudioButton isPlaying={isPlayingForeign} playingColor={audioDarkColor} />
-            <span
-              className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
-              style={{ color: isPlayingForeign ? getHighlightColorDark(word.gender) : getHighlightColor(word.gender) }}
+      {/* Word Card — hidden on test-history tab in sidebar */}
+      {(!isSidebar || sidebarTab === "word") && (
+        <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
+          <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-3"}>
+            {/* English word */}
+            <button
+              onClick={handlePlayEnglish}
+              className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
             >
-              {word.headword}
-            </span>
-          </button>
+              <AudioButton isPlaying={isPlayingEnglish} playingColor={audioDarkColor} />
+              <span
+                className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
+                style={{ color: isPlayingEnglish ? getHighlightColorDark(word.gender) : "#141515" }}
+              >
+                {word.english}
+              </span>
+            </button>
+
+            {/* Foreign word */}
+            <button
+              onClick={handlePlayForeign}
+              className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
+            >
+              <AudioButton isPlaying={isPlayingForeign} playingColor={audioDarkColor} />
+              <span
+                className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
+                style={{ color: isPlayingForeign ? getHighlightColorDark(word.gender) : getHighlightColor(word.gender) }}
+              >
+                {word.headword}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Two columns layout (page) or single column (sidebar) */}
       <div className={isSidebar ? "flex flex-col gap-4" : "flex gap-6"}>
+        {/* Sidebar: Show content based on active tab */}
+        {isSidebar && sidebarTab === "test-history" ? (
+          // Test History Tab Content
+          word.testHistory.length > 0 ? (
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+              <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
+                TEST HISTORY
+              </span>
+              {/* Score summary */}
+              <div className="mb-4 flex items-baseline gap-2">
+                <span className="text-xxl2-semibold text-foreground">
+                  {word.scoreStats.scorePercent}%
+                </span>
+                <span className="text-sm text-foreground/50">
+                  {word.scoreStats.totalPointsEarned}/{word.scoreStats.totalMaxPoints} pts
+                </span>
+              </div>
+              <div className="flex flex-col gap-3">
+                {word.testHistory.map((attempt, index) => {
+                  const date = new Date(attempt.answeredAt);
+                  const dateStr = date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                  const timeStr = date.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  });
+                  const isPass = attempt.pointsEarned > 0;
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 text-right text-xs tabular-nums text-foreground/40">
+                            {word.testHistory.length - index}
+                          </span>
+                          <div
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              isPass ? "bg-success" : "bg-destructive"
+                            }`}
+                          />
+                          <span className="text-sm text-foreground">
+                            {attempt.pointsEarned}/{attempt.maxPoints}
+                          </span>
+                        </div>
+                        <span className="text-foreground/50">
+                          <span className="text-xs">{dateStr}</span>
+                          <span className="ml-1 text-[11px] text-foreground/35">{timeStr}</span>
+                        </span>
+                      </div>
+                      {index < word.testHistory.length - 1 && (
+                        <div className="mt-3 h-px w-full bg-black/10" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+              <p className="text-sm text-muted-foreground">No test history yet.</p>
+            </div>
+          )
+        ) : null}
+
+        {/* Word Tab Content (or page layout) */}
+        {(!isSidebar || sidebarTab === "word") && (
+          <>
         {/* Left column - Memory Trigger or Flashcard */}
         <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
@@ -612,7 +702,7 @@ export function WordDetailView({
                       className="flex cursor-pointer items-center gap-4 text-left"
                     >
                       <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
-                      <p className={isSidebar ? "text-xl font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
+                      <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
                         {parseAndHighlightText(
                           word.memory_trigger_text,
                           word.headword,
@@ -760,64 +850,6 @@ export function WordDetailView({
               )}
             </div>
           </div>
-
-          {/* Test History - sidebar only */}
-          {isSidebar && word.testHistory.length > 0 && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
-              <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
-                TEST HISTORY
-              </span>
-              {/* Score summary */}
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-xxl2-semibold text-foreground">
-                  {word.scoreStats.scorePercent}%
-                </span>
-                <span className="text-sm text-foreground/50">
-                  {word.scoreStats.totalPointsEarned}/{word.scoreStats.totalMaxPoints} pts
-                </span>
-              </div>
-              <div className="flex flex-col gap-3">
-                {word.testHistory.map((attempt, index) => {
-                  const date = new Date(attempt.answeredAt);
-                  const dateStr = date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  });
-                  const timeStr = date.toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
-                  const isPass = attempt.pointsEarned > 0;
-                  return (
-                    <div key={index}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 text-right text-xs tabular-nums text-foreground/40">
-                            {word.testHistory.length - index}
-                          </span>
-                          <div
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              isPass ? "bg-success" : "bg-destructive"
-                            }`}
-                          />
-                          <span className="text-sm text-foreground">
-                            {attempt.pointsEarned}/{attempt.maxPoints}
-                          </span>
-                        </div>
-                        <span className="text-sm text-foreground/50">
-                          {dateStr}, {timeStr}
-                        </span>
-                      </div>
-                      {index < word.testHistory.length - 1 && (
-                        <div className="mt-3 h-px w-full bg-black/10" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Developer Section - Admin only */}
           {isAdmin && (
@@ -1011,6 +1043,8 @@ export function WordDetailView({
             </div>
           )}
         </div>
+      </>
+        )}
       </div>
 
       {/* Footer Action Bar (page layout only — sidebar renders its own) */}
