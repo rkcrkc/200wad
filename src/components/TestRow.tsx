@@ -5,6 +5,7 @@ import { Eye, ChevronRight } from "lucide-react";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Tooltip } from "@/components/ui/tooltip";
 import { StatusPill } from "@/components/ui/status-pill";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { TestForList } from "@/lib/queries/tests";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -95,9 +96,9 @@ export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
         ) : (
           <span className="inline-flex items-center gap-1.5">
             {formatNumber(test.wordsLearned)}
-            <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            <SubBadge>
               {formatPercent(learnedPct)}
-            </span>
+            </SubBadge>
           </span>
         )}
       </td>
@@ -109,9 +110,9 @@ export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
         ) : (
           <span className="inline-flex items-center gap-1.5">
             {formatNumber(test.wordsMastered)}
-            <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            <SubBadge>
               {formatPercent(masteredPct)}
-            </span>
+            </SubBadge>
           </span>
         )}
       </td>

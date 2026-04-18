@@ -9,6 +9,7 @@ import { LessonActivityHistory } from "@/components/LessonActivityHistory";
 import { Button } from "@/components/ui/button";
 import { StartTestModal } from "@/components/study";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { WordWithDetails } from "@/lib/queries/words";
 import { LessonActivityHistoryResult } from "@/lib/queries";
 import { Lesson } from "@/types/database";
@@ -135,9 +136,9 @@ export function LessonPageContent({
                 <span className="text-regular-semibold">
                   {formatNumber(wordsLearned + wordsMastered)} / {formatNumber(words.length)}
                 </span>
-                <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <SubBadge variant="header">
                   {formatPercent(words.length > 0 ? ((wordsLearned + wordsMastered) / words.length) * 100 : 0)}
-                </span>
+                </SubBadge>
               </div>
             </Popover>
 
@@ -159,9 +160,9 @@ export function LessonPageContent({
                 <span className="text-regular-semibold">
                   {formatNumber(wordsMastered)} / {formatNumber(words.length)}
                 </span>
-                <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <SubBadge variant="header">
                   {formatPercent(masteredPercentage)}
-                </span>
+                </SubBadge>
               </div>
             </Popover>
 

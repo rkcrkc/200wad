@@ -64,6 +64,7 @@ Typography utilities: `.text-page-header` (40px), `.text-xxl-bold` (32px), `.tex
 
 ## Key Patterns
 
+- **DRY:** Extract repeated inline patterns into reusable components. If the same styling/markup appears in 3+ places, create a shared component in `src/components/ui/` instead.
 - Server Components default, mark client components with `"use client"`
 - Client component files often suffixed `*Client.tsx`
 - Path alias: `@/*` maps to `./src/*`

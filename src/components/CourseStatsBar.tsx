@@ -1,6 +1,7 @@
 "use client";
 
 import { Popover } from "@/components/ui/popover";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { formatNumber, formatRatioPercent } from "@/lib/utils/helpers";
 import { useText } from "@/context/TextContext";
 
@@ -42,9 +43,9 @@ export function CourseStatsBar({
           <span className="text-regular-semibold">
             {formatNumber(wordsLearned)} / {formatNumber(totalWords)}
           </span>
-          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge variant="header">
             {formatRatioPercent(wordsLearned, totalWords)}
-          </span>
+          </SubBadge>
         </div>
       </Popover>
 
@@ -65,9 +66,9 @@ export function CourseStatsBar({
           <span className="text-regular-semibold">
             {formatNumber(wordsMastered)} / {formatNumber(totalWords)}
           </span>
-          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge variant="header">
             {formatRatioPercent(wordsMastered, totalWords)}
-          </span>
+          </SubBadge>
         </div>
       </Popover>
 
@@ -88,9 +89,9 @@ export function CourseStatsBar({
           <span className="text-regular-semibold">
             {formatNumber(lessonsLearned)} / {formatNumber(totalLessons)}
           </span>
-          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge variant="header">
             {formatRatioPercent(lessonsLearned, totalLessons)}
-          </span>
+          </SubBadge>
         </div>
       </Popover>
 
@@ -111,9 +112,9 @@ export function CourseStatsBar({
           <span className="text-regular-semibold">
             {formatNumber(lessonsMastered)} / {formatNumber(totalLessons)}
           </span>
-          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge variant="header">
             {formatRatioPercent(lessonsMastered, totalLessons)}
-          </span>
+          </SubBadge>
         </div>
       </Popover>
     </div>

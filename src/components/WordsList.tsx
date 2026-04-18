@@ -11,6 +11,7 @@ import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
 import { formatPercent } from "@/lib/utils/helpers";
+import { SubBadge } from "@/components/ui/sub-badge";
 
 interface WordsListProps {
   words: WordWithDetails[];
@@ -246,9 +247,9 @@ export function WordsList({
                   <div className="flex items-center gap-2">
                     Avg. score
                     {averageTestScore !== null && averageTestScore !== undefined && (
-                      <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                      <SubBadge variant="header">
                         {formatPercent(averageTestScore)}
-                      </span>
+                      </SubBadge>
                     )}
                   </div>
                 </th>

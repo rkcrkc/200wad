@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { BookOpen, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -183,9 +184,9 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
         <span className="inline-flex items-center gap-1.5">
           {formatNumber(lesson.wordsLearned)}
-          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge>
             {formatPercent(wordCount > 0 ? Math.round((lesson.wordsLearned / wordCount) * 100) : 0)}
-          </span>
+          </SubBadge>
         </span>
       </td>
 
@@ -193,9 +194,9 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
         <span className="inline-flex items-center gap-1.5">
           {formatNumber(lesson.wordsMastered)}
-          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+          <SubBadge>
             {formatPercent(wordCount > 0 ? Math.round((lesson.wordsMastered / wordCount) * 100) : 0)}
-          </span>
+          </SubBadge>
         </span>
       </td>
 

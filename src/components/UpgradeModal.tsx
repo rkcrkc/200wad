@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Lock, X, ArrowRight, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SubBadge } from "@/components/ui/sub-badge";
 import type { PricingPlan } from "@/types/database";
 
 interface UpgradeModalProps {
@@ -282,9 +283,9 @@ export function UpgradeModal({
                     >
                       {opt.label}
                       {opt.value === "annual" && (
-                        <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[11px] font-semibold text-green-700">
+                        <SubBadge className="ml-1.5 bg-green-100 px-1.5 text-green-700">
                           Best value
-                        </span>
+                        </SubBadge>
                       )}
                     </button>
                   ))}

@@ -6,6 +6,7 @@ import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonActivity } from "@/lib/queries";
 import { formatDuration, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
+import { SubBadge } from "@/components/ui/sub-badge";
 
 type FilterType = "all" | "study" | "test";
 type SortColumn = "index" | "date" | "score" | "duration";
@@ -340,9 +341,9 @@ export function LessonActivityHistory({
                       activity.type === "test" && activity.pointsEarned !== undefined && activity.maxPoints !== undefined ? (
                         <div className="flex items-center gap-2">
                           <span>{activity.pointsEarned} / {activity.maxPoints}</span>
-                          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                          <SubBadge>
                             {formatPercent(activity.scorePercent ?? 0)}
-                          </span>
+                          </SubBadge>
                         </div>
                       ) : (
                         "-"

@@ -6,6 +6,7 @@ import { TestRow } from "@/components/TestRow";
 import { TestForList } from "@/lib/queries/tests";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip } from "@/components/ui/tooltip";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { cn } from "@/lib/utils";
 import { formatPercent } from "@/lib/utils/helpers";
 
@@ -57,9 +58,9 @@ export function TestsList({ dueTests, previousTests, languageFlag, averageScore 
                     <span className="inline-flex items-center gap-1.5">
                       Score
                       {averageScore != null && averageScore > 0 && (
-                        <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                        <SubBadge variant="header">
                           {formatPercent(averageScore)}
-                        </span>
+                        </SubBadge>
                       )}
                     </span>
                   </Tooltip>

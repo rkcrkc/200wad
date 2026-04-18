@@ -1,4 +1,5 @@
 import type { StreakStats } from "@/lib/queries/stats";
+import { SubBadge } from "@/components/ui/sub-badge";
 
 interface StreaksCardProps {
   streaks: StreakStats;
@@ -27,9 +28,9 @@ export function StreaksCard({ streaks }: StreaksCardProps) {
               {streaks.currentStreak} {dayLabel(streaks.currentStreak)}
             </p>
             {isPersonalBest && (
-              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-600">
+              <SubBadge className="bg-orange-100 text-orange-600">
                 Personal best!
-              </span>
+              </SubBadge>
             )}
           </div>
           <p className="mt-1 text-xs text-black/50">
