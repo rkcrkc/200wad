@@ -4,19 +4,21 @@ import { useState } from "react";
 import {
   Clock,
   ChevronLeft,
-  ChevronRight,
   Eye,
   EyeOff,
   Zap,
   Image as ImageIcon,
   LayoutGrid,
+  Play,
+  RotateCcw,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration, formatNumber } from "@/lib/utils/helpers";
 import { CompletedModalShell } from "./CompletedModalShell";
+import { CompletedModalActionCard } from "./CompletedModalActionCard";
 import { WordGrid } from "./WordGrid";
 import { WordDetailView, type WordListItem } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
@@ -35,6 +37,7 @@ interface LessonCompletedModalProps {
   /** Number of words studied for the first time in this session (were not-started before). */
   newWordsCount: number;
   onStartTest: () => void;
+  onStudyAgain: () => void;
   onDismiss: () => void;
 }
 
@@ -44,6 +47,7 @@ export function LessonCompletedModal({
   elapsedSeconds,
   newWordsCount,
   onStartTest,
+  onStudyAgain,
   onDismiss,
 }: LessonCompletedModalProps) {
   const [showItalian, setShowItalian] = useState(true);
@@ -193,17 +197,24 @@ export function LessonCompletedModal({
         </div>
       ) : (
         <CompletedModalShell.Footer>
-          <div className="flex flex-col items-center gap-3">
-            <Button onClick={onStartTest} size="xl" className="w-full max-w-md">
-              Start Test
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-            <button
+          <div className="flex justify-center gap-4">
+            <CompletedModalActionCard
+              icon={<Play className="h-6 w-6" />}
+              label="Start test"
+              onClick={onStartTest}
+              primary
+            />
+            <CompletedModalActionCard
+              icon={<RotateCcw className="h-6 w-6" />}
+              label="Study again"
+              onClick={onStudyAgain}
+            />
+            <CompletedModalActionCard
+              icon={<X className="h-6 w-6" />}
+              label="Not now"
               onClick={onDismiss}
-              className="text-sm text-primary"
-            >
-              Not now
-            </button>
+              muted
+            />
           </div>
         </CompletedModalShell.Footer>
       )}

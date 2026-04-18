@@ -830,10 +830,19 @@ export function StudyModeClient({
     router.push(`/lesson/${lesson.id}/test?milestone=initial`);
   }, [router, lesson.id]);
 
-  // Handle modal "Not now" action
-  const handleDismissModal = useCallback(() => {
-    router.push(`/lesson/${lesson.id}`);
+  // Handle modal "Study again" action - restart the lesson from the beginning
+  const handleStudyAgain = useCallback(() => {
+    router.push(`/lesson/${lesson.id}/study`);
   }, [router, lesson.id]);
+
+  // Handle modal "Not now" action - go to schedule
+  const handleDismissModal = useCallback(() => {
+    if (course?.id) {
+      router.push(`/course/${course.id}/schedule?completed=lesson`);
+    } else {
+      router.push(`/lesson/${lesson.id}`);
+    }
+  }, [router, lesson.id, course?.id]);
 
   // Handle exit lesson - show confirmation modal
   const handleExitLesson = useCallback(() => {
@@ -1132,6 +1141,7 @@ export function StudyModeClient({
             completedWordIndices={answeredWordIndices}
             testHistory={currentWord.testHistory}
             scoreStats={currentWord.scoreStats}
+            wordStatus={currentWord.status}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
@@ -1177,6 +1187,7 @@ export function StudyModeClient({
             }).length
           }
           onStartTest={handleStartTest}
+          onStudyAgain={handleStudyAgain}
           onDismiss={handleDismissModal}
         />
       )}

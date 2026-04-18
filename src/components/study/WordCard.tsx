@@ -84,12 +84,12 @@ export function WordCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-xxl2-semibold"
-                inputClassName="text-xxl2-semibold tracking-tight"
+                className="text-xl-semibold"
+                inputClassName="text-xl-semibold tracking-tight"
               />
             ) : (
               <span
-                className="text-xxl2-semibold"
+                className="text-xl-semibold"
                 style={{ color: getEnglishWordColor() }}
               >
                 {englishWord}
@@ -127,12 +127,12 @@ export function WordCard({
                 wordId={wordId}
                 isEditMode={isEditMode}
                 onSave={onFieldSave}
-                className="text-xxl2-semibold"
-                inputClassName="text-xxl2-semibold tracking-tight"
+                className="text-xl-semibold"
+                inputClassName="text-xl-semibold tracking-tight"
               />
             ) : (
               <span
-                className="text-xxl2-semibold"
+                className="text-xl-semibold"
                 style={{ color: getForeignWordColor() }}
               >
                 {foreignWord}

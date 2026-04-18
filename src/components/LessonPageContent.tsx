@@ -204,6 +204,7 @@ export function LessonPageContent({
             <LessonActivityHistory
               activities={activityHistory.activities}
               counts={activityHistory.counts}
+              lessonWordCount={lesson.word_count || undefined}
               rightContent={
                 <Tooltip label={t("tip_show_words")}>
                   <button

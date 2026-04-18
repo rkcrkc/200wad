@@ -18,6 +18,8 @@ interface LessonActivityHistoryProps {
     study: number;
     test: number;
   };
+  /** Total word count for the lesson — used to detect partial study sessions. */
+  lessonWordCount?: number;
   rightContent?: ReactNode;
 }
 
@@ -108,6 +110,7 @@ function formatDetailedDuration(seconds: number): string {
 export function LessonActivityHistory({
   activities,
   counts,
+  lessonWordCount,
   rightContent,
 }: LessonActivityHistoryProps) {
   const [filter, setFilter] = useState<FilterType>("all");
@@ -309,7 +312,17 @@ export function LessonActivityHistory({
                       />
                       <span className="text-foreground">
                         {activity.type === "study" ? "Study" : "Test"}
-                        {activity.type === "test" && formatMilestone(activity.milestone) && (
+                        {activity.type === "study" && lessonWordCount && activity.wordsStudied != null && activity.wordsStudied < lessonWordCount && (
+                          <span className="text-xs text-muted-foreground">
+                            {" "}• Partial ({activity.wordsStudied} words)
+                          </span>
+                        )}
+                        {activity.type === "test" && activity.isRetest && (
+                          <span className="text-xs text-muted-foreground">
+                            {" "}• Retest{activity.totalQuestions ? ` (${activity.totalQuestions} words)` : ""}
+                          </span>
+                        )}
+                        {activity.type === "test" && !activity.isRetest && formatMilestone(activity.milestone) && (
                           <span className="text-xs text-muted-foreground"> • {formatMilestone(activity.milestone)}</span>
                         )}
                       </span>
@@ -327,7 +340,7 @@ export function LessonActivityHistory({
                       activity.type === "test" && activity.pointsEarned !== undefined && activity.maxPoints !== undefined ? (
                         <div className="flex items-center gap-2">
                           <span>{activity.pointsEarned} / {activity.maxPoints}</span>
-                          <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
                             {formatPercent(activity.scorePercent ?? 0)}
                           </span>
                         </div>

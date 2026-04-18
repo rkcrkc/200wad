@@ -13,7 +13,7 @@ import type { PricingPlan } from "@/types/database";
 import { useText } from "@/context/TextContext";
 
 type FilterType = "all" | "not-started" | "learning" | "learned" | "mastered";
-type SortColumn = "number" | "title" | "word_count" | "wordsLearned" | "wordsMastered" | "completionPercent" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
+type SortColumn = "number" | "title" | "word_count" | "wordsLearned" | "wordsMastered" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
 type SortDirection = "asc" | "desc";
 
 interface LessonsListProps {
@@ -140,9 +140,6 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         case "wordsMastered":
           comparison = (a.wordsMastered || 0) - (b.wordsMastered || 0);
           break;
-        case "completionPercent":
-          comparison = (a.completionPercent || 0) - (b.completionPercent || 0);
-          break;
         case "initial":
         case "day":
         case "week":
@@ -211,7 +208,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
       {/* Lessons Table */}
       <div className="overflow-x-auto">
-        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[790px]")}>
+        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
           {/* Table Header */}
           <thead>
             <tr className="cursor-default whitespace-nowrap">
@@ -370,16 +367,6 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="w-[110px] px-2 py-3 text-center">
-                    <SortableHeader
-                      label="Completion"
-                      column="completionPercent"
-                      currentColumn={sortColumn}
-                      direction={sortDirection}
-                      onSort={handleSort}
-                      centered
-                    />
-                  </th>
                   <th className="sticky right-0 z-10 w-[140px] bg-background px-2 py-3"></th>
                 </>
               )}
@@ -391,7 +378,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
           <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
             {filteredAndSortedLessons.length === 0 ? (
               <tr>
-                <td colSpan={showStats ? 11 : 8} className="px-6 py-12 text-center">
+                <td colSpan={showStats ? 11 : 7} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     No lessons match this filter.
                   </p>

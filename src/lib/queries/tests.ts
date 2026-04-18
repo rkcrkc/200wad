@@ -14,6 +14,7 @@ export interface TestForList {
   lessonEmoji: string | null;
   lessonWordCount: number;
   lessonStatus: LessonStatus;
+  wordsLearned: number;
   wordsMastered: number;
   completionPercent: number;
   // Test info
@@ -79,12 +80,28 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const lessonIds = lessons.map((l) => l.id);
   const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
-  // Get user's lesson progress (for status, mastered count, and due tests)
-  const { data: lessonProgress } = await supabase
-    .from("user_lesson_progress")
-    .select("*")
-    .eq("user_id", user.id)
-    .in("lesson_id", lessonIds);
+  // Get user's lesson progress, test scores, and word data in parallel
+  const [
+    { data: lessonProgress },
+    { data: testScores },
+    { data: lessonWords },
+  ] = await Promise.all([
+    supabase
+      .from("user_lesson_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .in("lesson_id", lessonIds),
+    supabase
+      .from("user_test_scores")
+      .select("*")
+      .eq("user_id", user.id)
+      .in("lesson_id", lessonIds)
+      .order("taken_at", { ascending: false }),
+    supabase
+      .from("lesson_words")
+      .select("lesson_id, word_id")
+      .in("lesson_id", lessonIds),
+  ]);
 
   const progressByLesson = new Map(
     (lessonProgress || [])
@@ -92,13 +109,36 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .map((p) => [p.lesson_id!, p])
   );
 
-  // Get all test scores for this course's lessons
-  const { data: testScores } = await supabase
-    .from("user_test_scores")
-    .select("*")
-    .eq("user_id", user.id)
-    .in("lesson_id", lessonIds)
-    .order("taken_at", { ascending: false });
+  // Get word progress to count learned words per lesson
+  const wordIds = [...new Set((lessonWords || []).map((lw) => lw.word_id).filter(Boolean))] as string[];
+  const { data: wordProgress } = wordIds.length > 0
+    ? await supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("word_id", wordIds)
+    : { data: [] as { word_id: string | null; status: string | null }[] };
+
+  // Build learned count per lesson
+  const wordToLessons = new Map<string, string[]>();
+  (lessonWords || []).forEach((lw) => {
+    if (lw.word_id && lw.lesson_id) {
+      if (!wordToLessons.has(lw.word_id)) {
+        wordToLessons.set(lw.word_id, []);
+      }
+      wordToLessons.get(lw.word_id)!.push(lw.lesson_id);
+    }
+  });
+
+  const learnedByLesson: Record<string, number> = {};
+  (wordProgress || []).forEach((wp) => {
+    if (wp.word_id && (wp.status === "learned" || wp.status === "mastered")) {
+      const wpLessons = wordToLessons.get(wp.word_id) || [];
+      wpLessons.forEach((lid) => {
+        learnedByLesson[lid] = (learnedByLesson[lid] || 0) + 1;
+      });
+    }
+  });
 
   // Calculate stats
   let totalTestTimeSeconds = 0;
@@ -141,6 +181,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
           lessonEmoji: lesson.emoji,
           lessonWordCount: lesson.word_count || 0,
           lessonStatus: (progress.status as LessonStatus) || "not-started",
+          wordsLearned: learnedByLesson[lesson.id] || 0,
           wordsMastered: progress.words_mastered || 0,
           completionPercent: progress.completion_percent || 0,
           milestone: progress.next_milestone,
@@ -181,6 +222,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       lessonEmoji: lesson.emoji,
       lessonWordCount: lesson.word_count || 0,
       lessonStatus: (progress?.status as LessonStatus) || "not-started",
+      wordsLearned: learnedByLesson[lesson.id] || 0,
       wordsMastered: progress?.words_mastered || 0,
       completionPercent: progress?.completion_percent || 0,
       testId: ts.id,
@@ -338,6 +380,8 @@ export interface LessonActivity {
   pointsEarned?: number;
   maxPoints?: number;
   wordsMastered?: number;
+  totalQuestions?: number;
+  isRetest?: boolean;
 }
 
 export interface LessonActivityHistoryResult {
@@ -374,10 +418,11 @@ export async function getLessonActivityHistory(
       .select("id, started_at, duration_seconds, words_studied, words_mastered")
       .eq("user_id", user.id)
       .eq("lesson_id", lessonId)
+      .eq("session_type", "study")
       .order("started_at", { ascending: false }),
     supabase
       .from("user_test_scores")
-      .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count")
+      .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count, total_questions, is_retest")
       .eq("user_id", user.id)
       .eq("lesson_id", lessonId)
       .order("taken_at", { ascending: false }),
@@ -430,6 +475,8 @@ export async function getLessonActivityHistory(
       pointsEarned: test.points_earned || 0,
       maxPoints: test.max_points || 0,
       wordsMastered: test.mastered_words_count || 0,
+      totalQuestions: test.total_questions || undefined,
+      isRetest: test.is_retest || false,
     });
   });
 

@@ -750,8 +750,17 @@ export function TestModeClient({
   }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords, isGuest]);
 
   const handleStudyIncorrect = useCallback(() => {
-    router.push(`/lesson/${lesson.id}/study`);
-  }, [lesson.id, router]);
+    // Collect incorrect word IDs from test progress
+    const incorrectWordIds = new Set<string>();
+    testProgressMap.forEach((progress, key) => {
+      if (progress.hasAnswered && !progress.isCorrect) {
+        const wordId = testTwice ? key.split("_")[0] : key;
+        incorrectWordIds.add(wordId);
+      }
+    });
+    const wordIdsParam = [...incorrectWordIds].join(",");
+    router.push(`/lesson/${lesson.id}/study?wordIds=${encodeURIComponent(wordIdsParam)}`);
+  }, [lesson.id, router, testProgressMap, testTwice]);
 
   // Handle inserting accented character into answer input
   const handleInsertCharacter = useCallback((char: string) => {
@@ -1158,6 +1167,7 @@ export function TestModeClient({
             completedWordIndices={viewedWordIndices}
             testHistory={mergedTestHistory}
             scoreStats={mergedScoreStats}
+            wordStatus={currentWord?.status}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}

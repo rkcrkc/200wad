@@ -410,18 +410,34 @@ export async function completeTestSession(
   }
 
   // 5. Update word progress for each tested word
+  let wordProgressFailures = 0;
   for (const question of questionResults) {
-    await updateWordTestProgress(
-      user.id,
-      question.wordId,
-      question.clueLevel,
-      question.mistakeCount,
-      question.pointsEarned
-    );
+    try {
+      const result = await updateWordTestProgress(
+        user.id,
+        question.wordId,
+        question.clueLevel,
+        question.mistakeCount,
+        question.pointsEarned
+      );
+      if (!result.success) {
+        wordProgressFailures++;
+      }
+    } catch (err) {
+      wordProgressFailures++;
+      console.error(`Unexpected error updating word progress for ${question.wordId}:`, err);
+    }
+  }
+  if (wordProgressFailures > 0) {
+    console.warn(`[Test Session] ${wordProgressFailures}/${questionResults.length} word progress updates failed`);
   }
 
   // 5b. Recalculate lesson progress (words_mastered count) from updated word progress
-  await updateLessonProgress(lessonId, stats.durationSeconds);
+  const lessonProgressResult = await updateLessonProgress(lessonId, stats.durationSeconds);
+  if (!lessonProgressResult.success) {
+    console.error("Error updating lesson progress:", lessonProgressResult.error);
+    // Continue anyway - test score is already saved
+  }
 
   // 6. Advance milestone schedule if this counted as a milestone test
   if (milestoneResult.shouldAdvance && milestoneResult.completedMilestone) {
@@ -485,8 +501,14 @@ export async function completeTestSession(
     }
   }
 
-  // Revalidate lesson pages
+  // Revalidate all pages that display lesson/word stats
   revalidatePath(`/lesson/${lessonId}`);
+  if (courseId) {
+    revalidatePath(`/course/${courseId}`);
+    revalidatePath(`/course/${courseId}/schedule`);
+    revalidatePath(`/course/${courseId}/tests`);
+    revalidatePath(`/course/${courseId}/progress`);
+  }
 
   return { success: true, testScoreId: testScore.id, courseWordsMastered, error: null };
 }
@@ -581,7 +603,7 @@ async function advanceMilestoneSchedule(
   const nextMilestone = getNextMilestone(completedMilestone);
   const nextTestDueAt = calculateNextTestDueAt(completedMilestone, now);
 
-  await supabase
+  const { error } = await supabase
     .from("user_lesson_progress")
     .update({
       next_milestone: nextMilestone,
@@ -589,6 +611,10 @@ async function advanceMilestoneSchedule(
     })
     .eq("user_id", userId)
     .eq("lesson_id", lessonId);
+
+  if (error) {
+    console.error(`Error advancing milestone schedule for lesson ${lessonId}:`, error);
+  }
 }
 
 // ============================================================================
@@ -604,7 +630,7 @@ async function updateWordTestProgress(
   clueLevel: 0 | 1 | 2,
   mistakeCount: number,
   pointsEarned: number
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
 
   // Get existing progress
@@ -690,13 +716,23 @@ async function updateWordTestProgress(
   };
 
   if (existingProgress) {
-    await supabase
+    const { error } = await supabase
       .from("user_word_progress")
       .update(progressData)
       .eq("id", existingProgress.id);
+    if (error) {
+      console.error(`Error updating word progress for word ${wordId}:`, error);
+      return { success: false, error: error.message };
+    }
   } else {
-    await supabase
+    const { error } = await supabase
       .from("user_word_progress")
       .insert(progressData);
+    if (error) {
+      console.error(`Error inserting word progress for word ${wordId}:`, error);
+      return { success: false, error: error.message };
+    }
   }
+
+  return { success: true };
 }

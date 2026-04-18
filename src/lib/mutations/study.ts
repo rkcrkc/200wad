@@ -438,10 +438,10 @@ export async function updateLessonProgress(
     return { success: false, error: "User not authenticated" };
   }
 
-  // Get lesson word count
+  // Get lesson word count and course ID (for cache revalidation)
   const { data: lesson } = await supabase
     .from("lessons")
-    .select("word_count")
+    .select("word_count, course_id")
     .eq("id", lessonId)
     .single();
 
@@ -528,8 +528,14 @@ export async function updateLessonProgress(
     return { success: false, error: error.message };
   }
 
-  // Revalidate lesson pages
+  // Revalidate all pages that display lesson/word stats
   revalidatePath(`/lesson/${lessonId}`);
+  if (lesson.course_id) {
+    revalidatePath(`/course/${lesson.course_id}`);
+    revalidatePath(`/course/${lesson.course_id}/schedule`);
+    revalidatePath(`/course/${lesson.course_id}/tests`);
+    revalidatePath(`/course/${lesson.course_id}/progress`);
+  }
 
   return { success: true, error: null };
 }
@@ -706,6 +712,13 @@ export async function completeStudySession(
         wordsStudied: stats.wordsStudied,
         studyTimeSeconds: stats.durationSeconds,
       });
+    }
+
+    // Revalidate schedule page after milestone may have been set
+    // (updateLessonProgress already revalidated, but setInitialMilestoneIfNeeded
+    // may have written next_milestone/next_test_due_at after that)
+    if (lesson?.course_id) {
+      revalidatePath(`/course/${lesson.course_id}/schedule`);
     }
   } catch {
     // Non-critical — don't fail the session completion

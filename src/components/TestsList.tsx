@@ -39,19 +39,19 @@ export function TestsList({ dueTests, previousTests, languageFlag }: TestsListPr
 
       {/* Tests Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-[900px] w-full border-separate border-spacing-0">
+        <table className="min-w-[950px] w-full table-fixed border-separate border-spacing-0">
           {/* Table Header */}
           <thead>
-            <tr className="whitespace-nowrap text-small-medium text-muted-foreground">
+            <tr className="cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
               <th className="w-[50px] px-6 py-3 text-left font-medium">#</th>
-              <th className="min-w-[180px] px-2 py-3 text-left font-medium">Lesson</th>
+              <th className="px-2 py-3 text-left font-medium">Lesson</th>
               <th className="w-[100px] px-2 py-3 text-left font-medium">Test Name</th>
               <th className="w-[70px] px-2 py-3 text-center font-medium">Test #</th>
-              <th className="w-[100px] px-2 py-3 text-left font-medium">Status</th>
-              <th className="w-[80px] px-2 py-3 text-center font-medium"># Words</th>
-              <th className="w-[80px] px-2 py-3 text-center font-medium"># Mastered</th>
-              <th className="w-[100px] px-2 py-3 text-center font-medium">Completion</th>
-              <th className="sticky right-0 w-[130px] bg-background px-2 py-3"></th>
+              <th className="w-[140px] px-2 py-3 text-left font-medium">Status</th>
+              <th className="w-[90px] px-2 py-3 text-center font-medium"># Words</th>
+              <th className="w-[90px] px-2 py-3 text-center font-medium"># Learned</th>
+              <th className="w-[90px] px-2 py-3 text-center font-medium"># Mastered</th>
+              <th className="sticky right-0 z-10 w-[140px] bg-background px-2 py-3"></th>
             </tr>
           </thead>
 

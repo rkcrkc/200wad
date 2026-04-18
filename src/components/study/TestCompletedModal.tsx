@@ -170,7 +170,7 @@ export function TestCompletedModal({
               <Tooltip label="Total words learned">
                 <div className="flex items-center gap-1.5">
                   <span><span className="font-medium text-foreground">{formatNumber(courseWordsMastered)}</span> total vocab</span>
-                  {masteredWordsCount > 0 && <TrendingUp className="h-4 w-4 text-primary" />}
+                  {newlyLearnedCount > 0 && <TrendingUp className="h-4 w-4 text-primary" />}
                 </div>
               </Tooltip>
             )}

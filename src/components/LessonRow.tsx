@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { BookOpen, ChevronRight, ClipboardPen, Lock } from "lucide-react";
-import { ProgressRing } from "@/components/ui/progress-ring";
 import { StatusPill } from "@/components/ui/status-pill";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
@@ -21,6 +20,7 @@ interface LessonRowProps {
 export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores, onLockedClick }: LessonRowProps) {
   const router = useRouter();
   const statusType = mapStatus(lesson.status, lesson.isLocked);
+  const wordCount = lesson.word_count ?? 0;
 
   const handleClick = () => {
     if (lesson.isLocked) {
@@ -181,22 +181,22 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
 
       {/* # Learned */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {formatNumber(lesson.wordsLearned)}
+        <span className="inline-flex items-center gap-1.5">
+          {formatNumber(lesson.wordsLearned)}
+          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatPercent(wordCount > 0 ? Math.round((lesson.wordsLearned / wordCount) * 100) : 0)}
+          </span>
+        </span>
       </td>
 
       {/* # Mastered */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {formatNumber(lesson.wordsMastered)}
-      </td>
-
-      {/* Completion */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
-        <div className="flex items-center justify-center gap-2">
-          <ProgressRing value={lesson.completionPercent} size={24} />
-          <span className="text-regular-medium text-foreground">
-            {formatPercent(lesson.completionPercent)}
+        <span className="inline-flex items-center gap-1.5">
+          {formatNumber(lesson.wordsMastered)}
+          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatPercent(wordCount > 0 ? Math.round((lesson.wordsMastered / wordCount) * 100) : 0)}
           </span>
-        </div>
+        </span>
       </td>
 
       {/* Actions / Lock - sticky on horizontal scroll */}

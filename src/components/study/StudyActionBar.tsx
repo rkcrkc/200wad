@@ -139,6 +139,8 @@ interface StudyActionBarProps {
   testHistory?: TestAttempt[];
   /** Historical score stats for current word */
   scoreStats?: WordScoreStats;
+  /** Word learning status */
+  wordStatus?: "not-started" | "learning" | "learned" | "mastered";
   onJumpToWord: (index: number) => void;
   onPreviousWord: () => void;
   onNextWord: () => void;
@@ -250,6 +252,7 @@ export function StudyActionBar({
   completedWordIndices = [],
   testHistory = [],
   scoreStats,
+  wordStatus,
   onJumpToWord,
   onPreviousWord,
   onNextWord,
@@ -379,6 +382,7 @@ export function StudyActionBar({
               <ScoreIndicator
                 testHistory={testHistory}
                 scoreStats={scoreStats}
+                wordStatus={wordStatus}
               />
             </>
           )}

@@ -5,10 +5,12 @@ import { StudyModeClient } from "./StudyModeClient";
 
 interface StudyPageProps {
   params: Promise<{ lessonId: string }>;
+  searchParams: Promise<{ wordIds?: string }>;
 }
 
-export default async function StudyPage({ params }: StudyPageProps) {
+export default async function StudyPage({ params, searchParams }: StudyPageProps) {
   const { lessonId } = await params;
+  const { wordIds: wordIdsParam } = await searchParams;
   const { language, course, lesson, words, isGuest, courseLessons, userId, dismissedTipIds } = await getWords(lessonId);
 
   if (!lesson || words.length === 0) {
@@ -27,13 +29,23 @@ export default async function StudyPage({ params }: StudyPageProps) {
     }
   }
 
+  // Filter words if specific word IDs are provided (e.g. "study incorrect words" from test modal)
+  let studyWords = words;
+  if (wordIdsParam) {
+    const wordIdSet = new Set(wordIdsParam.split(","));
+    const filtered = words.filter((w) => wordIdSet.has(w.id));
+    if (filtered.length > 0) {
+      studyWords = filtered;
+    }
+  }
+
   // For guests, we still allow studying but won't save progress
   return (
     <StudyModeClient
       lesson={lesson}
       language={language}
       course={course}
-      words={words}
+      words={studyWords}
       isGuest={isGuest}
       courseLessons={courseLessons}
       dismissedTipIds={dismissedTipIds}

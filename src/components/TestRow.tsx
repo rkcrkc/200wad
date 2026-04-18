@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { ProgressRing } from "@/components/ui/progress-ring";
 import { StatusPill } from "@/components/ui/status-pill";
-import { Button } from "@/components/ui/button";
+import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { TestForList } from "@/lib/queries/tests";
-import { mapStatus } from "@/lib/utils/helpers";
+import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 
 interface TestRowProps {
@@ -17,6 +16,9 @@ interface TestRowProps {
 
 export function TestRow({ test, isFirst, isLast }: TestRowProps) {
   const statusType = mapStatus(test.lessonStatus);
+  const wordCount = test.lessonWordCount || 0;
+  const learnedPct = wordCount > 0 ? Math.round((test.wordsLearned / wordCount) * 100) : 0;
+  const masteredPct = wordCount > 0 ? Math.round((test.wordsMastered / wordCount) * 100) : 0;
 
   return (
     <tr className={cn(
@@ -64,37 +66,46 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
 
       {/* # Words */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {test.lessonWordCount}
+        <WordsPreviewTooltip
+          lessonId={test.lessonId}
+          wordCount={wordCount}
+        />
+      </td>
+
+      {/* # Learned */}
+      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+        <span className="inline-flex items-center gap-1.5">
+          {formatNumber(test.wordsLearned)}
+          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatPercent(learnedPct)}
+          </span>
+        </span>
       </td>
 
       {/* # Mastered */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {test.wordsMastered}
-      </td>
-
-      {/* Completion */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
-        <div className="flex items-center justify-center gap-2">
-          <ProgressRing value={test.completionPercent} size={24} />
-          <span className="text-regular-medium text-foreground">
-            {test.completionPercent}%
+        <span className="inline-flex items-center gap-1.5">
+          {formatNumber(test.wordsMastered)}
+          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+            {formatPercent(masteredPct)}
           </span>
-        </div>
+        </span>
       </td>
 
-      {/* Take test button - sticky on horizontal scroll */}
+      {/* Test button - sticky on horizontal scroll */}
       <td className={cn(
-        "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl"
       )}>
         <div className="flex justify-end">
-          <Button asChild size="sm" className="gap-1">
-            <Link href={`/lesson/${test.lessonId}/test`}>
-              Take test
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <Link
+            href={`/lesson/${test.lessonId}/test`}
+            className="inline-flex items-center gap-[2px] whitespace-nowrap rounded-lg bg-primary px-[12px] py-1.5 text-sm font-medium text-white transition-all hover:gap-[6px] hover:px-[10px]"
+          >
+            Test
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       </td>
     </tr>

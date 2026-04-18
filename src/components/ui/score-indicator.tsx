@@ -46,11 +46,16 @@ export function ScoreIndicator({
     return <span className="text-muted-foreground">—</span>;
   }
 
+  // Show stars when all 3 traffic lights are green (last 3 attempts all full marks)
+  const showStars =
+    testHistory.length >= 3 &&
+    testHistory.slice(0, 3).every((a) => a.pointsEarned >= a.maxPoints);
+
   const content = (
     <div className="flex items-center gap-2">
       {/* Traffic lights (last 3 test attempts) */}
       <div className="flex items-center gap-1">
-        {[0, 1, 2].map((i) => {
+        {[2, 1, 0].map((i) => {
           const attempt = testHistory[i];
           // Green = full points, Orange = partial, Red = 0 points, Gray = no attempt
           let bgColor = "bg-gray-300"; // No attempt
@@ -72,8 +77,11 @@ export function ScoreIndicator({
                 bgColor
               )}
             >
-              {wordStatus === "mastered" && size === "md" && (
-                <Star className="h-2 w-2 fill-white text-white" />
+              {showStars && (
+                <Star className={cn(
+                  "fill-white text-white",
+                  size === "sm" ? "h-1.5 w-1.5" : "h-2 w-2"
+                )} />
               )}
             </div>
           );
