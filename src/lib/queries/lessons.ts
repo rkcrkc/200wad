@@ -277,6 +277,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   let wordsStudied = 0;
   const liveMasteredByLesson: Record<string, number> = {};
   const liveLearnedByLesson: Record<string, number> = {};
+  const testableCountByLesson: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
@@ -360,9 +361,10 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "mastered"
       ).length;
 
-      // Build per-lesson mastered and learned counts from live data
+      // Build per-lesson testable word count and mastered/learned counts from live data
       for (const lw of testableRows) {
         if (!lw.lesson_id || !lw.word_id) continue;
+        testableCountByLesson[lw.lesson_id] = (testableCountByLesson[lw.lesson_id] || 0) + 1;
         const status = wordStatusMap.get(lw.word_id);
         if (status === "mastered") {
           liveMasteredByLesson[lw.lesson_id] = (liveMasteredByLesson[lw.lesson_id] || 0) + 1;
@@ -385,7 +387,8 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       // Use live mastered/learned counts from user_word_progress (more accurate than stale lesson progress)
       const liveMastered = liveMasteredByLesson[lesson.id] || 0;
       const liveLearned = liveLearnedByLesson[lesson.id] || 0;
-      const totalWords = lesson.word_count || 0;
+      // Use testable word count (excludes info pages) — matches updateLessonProgress denominator
+      const totalWords = testableCountByLesson[lesson.id] || lesson.word_count || 0;
       const liveCompletion = totalWords > 0 ? Math.round((liveMastered / totalWords) * 100) : 0;
 
       // Derive status from live word progress instead of potentially stale DB value
