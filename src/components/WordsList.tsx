@@ -221,7 +221,7 @@ export function WordsList({
           </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="overflow-x-auto overflow-y-visible rounded-xl">
+        <div className="overflow-x-auto overflow-y-visible pt-10 -mt-10 rounded-xl">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
               <col style={{ width: 72 }} />
@@ -246,7 +246,7 @@ export function WordsList({
                   <div className="flex items-center gap-2">
                     Avg. score
                     {averageTestScore !== null && averageTestScore !== undefined && (
-                      <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                      <span className="rounded-full bg-beige px-2 py-0.5 text-[11px] font-semibold text-foreground">
                         {formatPercent(averageTestScore)}
                       </span>
                     )}

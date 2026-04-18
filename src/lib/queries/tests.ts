@@ -24,6 +24,10 @@ export interface TestForList {
   scorePercent?: number;
   durationSeconds?: number;
   takenAt?: string;
+  // Per-test results (previous tests only)
+  newlyLearned?: number;
+  newlyMastered?: number;
+  isRetest?: boolean;
   // For due tests
   isDue: boolean;
   dueAt?: string;
@@ -142,15 +146,19 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
 
   // Calculate stats
   let totalTestTimeSeconds = 0;
-  let totalScore = 0;
+  let weightedScoreSum = 0;
+  let totalWeight = 0;
   const testsTaken = testScores?.length || 0;
 
   testScores?.forEach((ts) => {
     totalTestTimeSeconds += ts.duration_seconds || 0;
-    totalScore += ts.score_percent || 0;
+    const wordCount = ts.lesson_id ? (lessonMap.get(ts.lesson_id)?.word_count || 0) : 0;
+    const weight = wordCount || 1; // fallback to 1 to avoid division by zero
+    weightedScoreSum += (ts.score_percent || 0) * weight;
+    totalWeight += weight;
   });
 
-  const averageScore = testsTaken > 0 ? Math.round(totalScore / testsTaken) : 0;
+  const averageScore = totalWeight > 0 ? Math.round(weightedScoreSum / totalWeight) : 0;
 
   // Build due tests list
   const now = new Date().toISOString();
@@ -231,6 +239,9 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       scorePercent: ts.score_percent || 0,
       durationSeconds: ts.duration_seconds || 0,
       takenAt: ts.taken_at || undefined,
+      newlyLearned: ts.learned_words_count || 0,
+      newlyMastered: ts.mastered_words_count || 0,
+      isRetest: ts.is_retest || false,
       isDue: false,
     });
   });

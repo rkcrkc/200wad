@@ -952,6 +952,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           is_retest: boolean
+          learned_words_count: number
           lesson_id: string | null
           mastered_words_count: number | null
           max_points: number
@@ -968,6 +969,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
+          learned_words_count?: number
           lesson_id?: string | null
           mastered_words_count?: number | null
           max_points?: number
@@ -984,6 +986,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
+          learned_words_count?: number
           lesson_id?: string | null
           mastered_words_count?: number | null
           max_points?: number

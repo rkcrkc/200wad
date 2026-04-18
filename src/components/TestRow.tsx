@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Eye, ChevronRight } from "lucide-react";
+import { ProgressRing } from "@/components/ui/progress-ring";
+import { Tooltip } from "@/components/ui/tooltip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { TestForList } from "@/lib/queries/tests";
@@ -12,9 +14,10 @@ interface TestRowProps {
   test: TestForList;
   isFirst?: boolean;
   isLast?: boolean;
+  showScore?: boolean;
 }
 
-export function TestRow({ test, isFirst, isLast }: TestRowProps) {
+export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
   const statusType = mapStatus(test.lessonStatus);
   const wordCount = test.lessonWordCount || 0;
   const learnedPct = wordCount > 0 ? Math.round((test.wordsLearned / wordCount) * 100) : 0;
@@ -51,7 +54,11 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
 
       {/* Test Name (milestone) */}
       <td className="bg-white px-2 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        {test.milestone.replace(/\b\w/g, (c) => c.toUpperCase())}
+        {test.isRetest
+          ? "Re-test"
+          : test.milestone === "other"
+            ? "Ad Hoc"
+            : test.milestone.replace(/\b\w/g, (c) => c.toUpperCase())}
       </td>
 
       {/* Test # */}
@@ -59,9 +66,18 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
         {test.testNumber}
       </td>
 
-      {/* Status */}
+      {/* Status or Score */}
       <td className="whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
-        <StatusPill status={statusType} />
+        {showScore ? (
+          <div className="flex items-center gap-2">
+            <ProgressRing value={test.scorePercent ?? 0} size={24} />
+            <span className="text-regular-medium text-foreground">
+              {test.scorePercent != null ? formatPercent(test.scorePercent) : "-"}
+            </span>
+          </div>
+        ) : (
+          <StatusPill status={statusType} />
+        )}
       </td>
 
       {/* # Words */}
@@ -72,33 +88,49 @@ export function TestRow({ test, isFirst, isLast }: TestRowProps) {
         />
       </td>
 
-      {/* # Learned */}
+      {/* # Learned (total with sub-badge) or Newly Learned (plain count) */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        <span className="inline-flex items-center gap-1.5">
-          {formatNumber(test.wordsLearned)}
-          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
-            {formatPercent(learnedPct)}
+        {showScore ? (
+          formatNumber(test.newlyLearned ?? 0)
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            {formatNumber(test.wordsLearned)}
+            <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+              {formatPercent(learnedPct)}
+            </span>
           </span>
-        </span>
+        )}
       </td>
 
-      {/* # Mastered */}
+      {/* # Mastered (total with sub-badge) or Newly Mastered (plain count) */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        <span className="inline-flex items-center gap-1.5">
-          {formatNumber(test.wordsMastered)}
-          <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
-            {formatPercent(masteredPct)}
+        {showScore ? (
+          formatNumber(test.newlyMastered ?? 0)
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            {formatNumber(test.wordsMastered)}
+            <span className="rounded-full bg-bone-hover px-2 py-0.5 text-[11px] font-semibold text-foreground">
+              {formatPercent(masteredPct)}
+            </span>
           </span>
-        </span>
+        )}
       </td>
 
-      {/* Test button - sticky on horizontal scroll */}
+      {/* Actions - sticky on horizontal scroll */}
       <td className={cn(
         "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl"
       )}>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <Tooltip label="Preview lesson">
+            <Link
+              href={`/lesson/${test.lessonId}`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Tooltip>
           <Link
             href={`/lesson/${test.lessonId}/test`}
             className="inline-flex items-center gap-[2px] whitespace-nowrap rounded-lg bg-primary px-[12px] py-1.5 text-sm font-medium text-white transition-all hover:gap-[6px] hover:px-[10px]"

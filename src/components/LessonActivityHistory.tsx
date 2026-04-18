@@ -191,7 +191,7 @@ export function LessonActivityHistory({
       </div>
 
       {/* Activity Table */}
-      <div className="overflow-x-auto rounded-xl">
+      <div className="overflow-x-auto pt-10 -mt-10 rounded-xl">
         <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: "60px" }} />

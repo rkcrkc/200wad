@@ -207,7 +207,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
       </div>
 
       {/* Lessons Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto pt-10 -mt-10">
         <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
           {/* Table Header */}
           <thead>
