@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useAudio } from "@/hooks/useAudio";
@@ -59,6 +59,8 @@ interface TestModeClientProps {
   testTwice?: boolean;
   /** The intended milestone for this test (from URL), or null for self-initiated */
   milestone?: string | null;
+  /** Initial course vocab count fetched server-side (pre-test). null for guests. */
+  initialCourseVocabCount?: number | null;
 }
 
 export function TestModeClient({
@@ -70,8 +72,10 @@ export function TestModeClient({
   testType = "english-to-foreign",
   testTwice = false,
   milestone = null,
+  initialCourseVocabCount = null,
 }: TestModeClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
@@ -116,6 +120,15 @@ export function TestModeClient({
   // Completion modal state
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  // Admin can force-preview the completion modal via ?preview=completed
+  const previewCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!previewCheckedRef.current && isAdmin && searchParams.get("preview") === "completed") {
+      previewCheckedRef.current = true;
+      setShowCompletionModal(true);
+    }
+  }, [isAdmin, searchParams]);
   const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
   const [isRetest, setIsRetest] = useState(false);
 
@@ -821,7 +834,7 @@ export function TestModeClient({
     // mastered words (+ this-test additions) and undercounted the user's real
     // total. Instead we propagate `null` when the server value isn't available
     // (guest mode, or a server error) and let the modal render a placeholder.
-    const courseWordsMastered: number | null = serverCourseWordsMastered;
+    const courseWordsMastered: number | null = serverCourseWordsMastered ?? initialCourseVocabCount;
 
     return { totalPoints, maxPoints, scorePercent, newWordsCount, newlyLearnedCount, masteredWordsCount, courseWordsMastered, newlyLearnedWordIds, masteredWordIds };
   };

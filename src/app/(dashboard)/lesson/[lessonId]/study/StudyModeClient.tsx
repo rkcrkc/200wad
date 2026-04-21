@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
 import { useAudio, AudioType } from "@/hooks/useAudio";
@@ -78,6 +78,7 @@ export function StudyModeClient({
   dismissedTipIds: initialDismissedTipIds = [],
 }: StudyModeClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
@@ -128,6 +129,15 @@ export function StudyModeClient({
   // Completion modal state
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  // Admin can force-preview the completion modal via ?preview=completed
+  const previewCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!previewCheckedRef.current && isAdmin && searchParams.get("preview") === "completed") {
+      previewCheckedRef.current = true;
+      setShowCompletionModal(true);
+    }
+  }, [isAdmin, searchParams]);
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
@@ -1180,12 +1190,6 @@ export function StudyModeClient({
           words={localWords}
           wordProgressMap={wordProgressMap}
           elapsedSeconds={elapsedSeconds}
-          newWordsCount={
-            localWords.filter((word) => {
-              if (word.status !== "not-started") return false;
-              return wordProgressMap.get(word.id)?.hasAnswered === true;
-            }).length
-          }
           onStartTest={handleStartTest}
           onStudyAgain={handleStudyAgain}
           onDismiss={handleDismissModal}

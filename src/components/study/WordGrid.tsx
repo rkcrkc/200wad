@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { WordWithDetails } from "@/lib/queries/words";
+import { StatusPill, type StatusType } from "@/components/ui/status-pill";
 
 export type WordGridImageMode = "memory-trigger" | "flashcard";
 export type WordGridColumns = 4 | 5;
@@ -22,6 +23,8 @@ interface WordGridProps {
   columns?: WordGridColumns;
   /** Optional test results keyed by word ID — shows score badge on each card. */
   wordResults?: Map<string, WordGridResult>;
+  /** Show learning status pill on each card. */
+  showStatus?: boolean;
   /** Called when a word tile is clicked. */
   onWordClick?: (wordId: string) => void;
 }
@@ -36,6 +39,7 @@ export function WordGrid({
   showEnglish = true,
   columns = 5,
   wordResults,
+  showStatus = false,
   onWordClick,
 }: WordGridProps) {
   // Explicit classes so Tailwind's scanner picks them up
@@ -104,6 +108,14 @@ export function WordGrid({
                   }`}
                 >
                   {result.pointsEarned} {result.pointsEarned === 1 ? "point" : "points"}
+                </div>
+              )}
+              {showStatus && (
+                <div className="mt-2.5">
+                  <StatusPill
+                    status={word.status === "not-started" ? "notStarted" : word.status as StatusType}
+                    variant="pill"
+                  />
                 </div>
               )}
             </div>

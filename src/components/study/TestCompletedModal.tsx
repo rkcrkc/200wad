@@ -4,6 +4,8 @@ import { useState } from "react";
 import {
   ChevronLeft,
   Clock,
+  Eye,
+  EyeOff,
   TrendingUp,
   Zap,
   Image as ImageIcon,
@@ -16,6 +18,7 @@ import {
 import { Tabs } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -71,6 +74,7 @@ export function TestCompletedModal({
   onRetestIncorrect,
   onStudyIncorrect,
 }: TestCompletedModalProps) {
+  const [showItalian, setShowItalian] = useState(true);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
 
@@ -90,8 +94,16 @@ export function TestCompletedModal({
   // Build word lists for popovers
   const newlyLearnedWordIdSet = new Set(newlyLearnedWordIds);
   const masteredWordIdSet = new Set(masteredWordIds);
-  const newlyLearnedWordsForPopover = words.filter((w) => newlyLearnedWordIdSet.has(w.id));
-  const masteredWordsForPopover = words.filter((w) => masteredWordIdSet.has(w.id));
+
+  // Post-test totals (current status + newly changed in this test)
+  const allLearnedWords = words.filter(
+    (w) => w.status === "learned" || w.status === "mastered" || newlyLearnedWordIdSet.has(w.id) || masteredWordIdSet.has(w.id)
+  );
+  const allMasteredWords = words.filter(
+    (w) => w.status === "mastered" || masteredWordIdSet.has(w.id)
+  );
+  const totalLearnedCount = allLearnedWords.length;
+  const totalMasteredCount = allMasteredWords.length;
 
   const displayWords = activeTab === "incorrect" ? incorrectWords : words;
 
@@ -125,57 +137,80 @@ export function TestCompletedModal({
               <Clock className="h-4 w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
             </div>
-            {(newlyLearnedCount > 0 || masteredWordsCount > 0 || courseWordsMastered !== null) && (
-              <span>·</span>
-            )}
-            {newlyLearnedCount > 0 && (
+            <span>·</span>
+            {totalLearnedCount > 0 ? (
               <Popover
                 position="below"
                 content={
                   <div className="flex flex-col gap-1">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Newly learned</p>
-                    {newlyLearnedWordsForPopover.map((w) => (
+                    {allLearnedWords.map((w) => (
                       <div key={w.id} className="flex items-baseline gap-1.5 text-sm">
                         <span className="font-medium text-foreground">{w.headword}</span>
                         <span className="text-muted-foreground">—</span>
                         <span className="text-muted-foreground">{w.english}</span>
+                        {newlyLearnedWordIdSet.has(w.id) && <span className="text-xs text-primary">new</span>}
                       </div>
                     ))}
                   </div>
                 }
               >
-                <span className="cursor-default"><span className="font-medium text-foreground">{formatNumber(newlyLearnedCount)}</span> learned</span>
+                <span className="inline-flex cursor-default items-center gap-1.5">
+                  <span><span className="font-medium text-foreground">{formatNumber(totalLearnedCount)}</span> learned</span>
+                  {newlyLearnedCount > 0 && (
+                    <SubBadge variant="header">+{newlyLearnedCount} <TrendingUp className="inline h-3 w-3" /></SubBadge>
+                  )}
+                </span>
               </Popover>
+            ) : (
+              <span><span className="font-medium text-foreground">0</span> learned</span>
             )}
-            {masteredWordsCount > 0 && (
+            {totalMasteredCount > 0 ? (
               <Popover
                 position="below"
                 content={
                   <div className="flex flex-col gap-1">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Newly mastered</p>
-                    {masteredWordsForPopover.map((w) => (
+                    {allMasteredWords.map((w) => (
                       <div key={w.id} className="flex items-baseline gap-1.5 text-sm">
                         <span className="font-medium text-foreground">{w.headword}</span>
                         <span className="text-muted-foreground">—</span>
                         <span className="text-muted-foreground">{w.english}</span>
+                        {masteredWordIdSet.has(w.id) && <span className="text-xs text-primary">new</span>}
                       </div>
                     ))}
                   </div>
                 }
               >
-                <span className="cursor-default"><span className="font-medium text-foreground">{formatNumber(masteredWordsCount)}</span> mastered</span>
+                <span className="inline-flex cursor-default items-center gap-1.5">
+                  <span><span className="font-medium text-foreground">{formatNumber(totalMasteredCount)}</span> mastered</span>
+                  {masteredWordsCount > 0 && (
+                    <SubBadge variant="header">+{masteredWordsCount} <TrendingUp className="inline h-3 w-3" /></SubBadge>
+                  )}
+                </span>
               </Popover>
+            ) : (
+              <span><span className="font-medium text-foreground">0</span> mastered</span>
             )}
             {courseWordsMastered !== null && (
-              <Tooltip label="Total words learned">
-                <div className="flex items-center gap-1.5">
-                  <span><span className="font-medium text-foreground">{formatNumber(courseWordsMastered)}</span> total vocab</span>
-                  {newlyLearnedCount > 0 && <TrendingUp className="h-4 w-4 text-primary" />}
-                </div>
-              </Tooltip>
+              <>
+                <Tooltip label="Total words learned across course" position="below">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span><span className="font-medium text-foreground">{formatNumber(courseWordsMastered)}</span> total vocab</span>
+                    {newlyLearnedCount > 0 && (
+                      <SubBadge variant="header">+{newlyLearnedCount} <TrendingUp className="inline h-3 w-3" /></SubBadge>
+                    )}
+                  </span>
+                </Tooltip>
+              </>
             )}
             <span>·</span>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowItalian(!showItalian)}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+                title={showItalian ? "Hide Italian" : "Show Italian"}
+              >
+                {showItalian ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </button>
               <button
                 onClick={() =>
                   setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
@@ -255,7 +290,7 @@ export function TestCompletedModal({
               className="mb-4"
             />
 
-            <WordGrid words={displayWords} imageMode={imageMode} columns={columns} wordResults={wordResultsMap} onWordClick={setSelectedWordId} />
+            <WordGrid words={displayWords} imageMode={imageMode} showEnglish={showItalian} columns={columns} wordResults={wordResultsMap} onWordClick={setSelectedWordId} />
           </>
         )}
       </CompletedModalShell.Body>

@@ -16,7 +16,7 @@ import {
 import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
-import { formatDuration, formatNumber } from "@/lib/utils/helpers";
+import { formatDuration } from "@/lib/utils/helpers";
 import { CompletedModalShell } from "./CompletedModalShell";
 import { CompletedModalActionCard } from "./CompletedModalActionCard";
 import { WordGrid } from "./WordGrid";
@@ -34,8 +34,6 @@ interface LessonCompletedModalProps {
   words: WordWithDetails[];
   wordProgressMap: Map<string, WordProgress>;
   elapsedSeconds: number;
-  /** Number of words studied for the first time in this session (were not-started before). */
-  newWordsCount: number;
   onStartTest: () => void;
   onStudyAgain: () => void;
   onDismiss: () => void;
@@ -45,7 +43,6 @@ export function LessonCompletedModal({
   lesson,
   words,
   elapsedSeconds,
-  newWordsCount,
   onStartTest,
   onStudyAgain,
   onDismiss,
@@ -55,10 +52,18 @@ export function LessonCompletedModal({
   const [columns, setColumns] = useState<4 | 5>(5);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
 
-  const selectedWordIndex = selectedWordId ? words.findIndex((w) => w.id === selectedWordId) : -1;
-  const selectedWord = selectedWordIndex >= 0 ? words[selectedWordIndex] : null;
+  // Filter words by status
+  const learnedWords = words.filter((w) => w.status === "learned" || w.status === "mastered");
+  const masteredWords = words.filter((w) => w.status === "mastered");
 
-  const wordList: WordListItem[] = words.map((w) => ({
+  const [activeTab, setActiveTab] = useState<"all" | "learned" | "mastered">("all");
+
+  const displayWords = activeTab === "learned" ? learnedWords : activeTab === "mastered" ? masteredWords : words;
+
+  const selectedWordIndex = selectedWordId ? displayWords.findIndex((w) => w.id === selectedWordId) : -1;
+  const selectedWord = selectedWordIndex >= 0 ? displayWords[selectedWordIndex] : null;
+
+  const wordList: WordListItem[] = displayWords.map((w) => ({
     id: w.id,
     english: w.english,
     foreign: w.headword,
@@ -76,7 +81,6 @@ export function LessonCompletedModal({
               <Clock className="h-4 w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
             </div>
-            {newWordsCount > 0 && <><span>·</span><span><span className="font-medium text-foreground">{formatNumber(newWordsCount)}</span> new</span></>}
             <span>·</span>
             <div className="flex items-center gap-1">
               <button
@@ -132,19 +136,19 @@ export function LessonCompletedModal({
               onBack={() => setSelectedWordId(null)}
               onPrevious={
                 selectedWordIndex > 0
-                  ? () => setSelectedWordId(words[selectedWordIndex - 1].id)
+                  ? () => setSelectedWordId(displayWords[selectedWordIndex - 1].id)
                   : undefined
               }
               onNext={
-                selectedWordIndex < words.length - 1
-                  ? () => setSelectedWordId(words[selectedWordIndex + 1].id)
+                selectedWordIndex < displayWords.length - 1
+                  ? () => setSelectedWordId(displayWords[selectedWordIndex + 1].id)
                   : undefined
               }
-              onJumpToWord={(index) => setSelectedWordId(words[index].id)}
+              onJumpToWord={(index) => setSelectedWordId(displayWords[index].id)}
               hasPrevious={selectedWordIndex > 0}
-              hasNext={selectedWordIndex < words.length - 1}
+              hasNext={selectedWordIndex < displayWords.length - 1}
               currentIndex={selectedWordIndex}
-              totalWords={words.length}
+              totalWords={displayWords.length}
               wordList={wordList}
               layout="sidebar"
               autoPlayAudio={false}
@@ -156,15 +160,22 @@ export function LessonCompletedModal({
             <Tabs
               tabs={[
                 { id: "all", label: "All words", count: words.length },
+                ...(learnedWords.length > 0
+                  ? [{ id: "learned", label: "Learned", count: learnedWords.length }]
+                  : []),
+                ...(masteredWords.length > 0
+                  ? [{ id: "mastered", label: "Mastered", count: masteredWords.length }]
+                  : []),
               ]}
-              activeTab="all"
-              onChange={() => {}}
+              activeTab={activeTab}
+              onChange={(tabId) => setActiveTab(tabId as "all" | "learned" | "mastered")}
               className="mb-4"
             />
             <WordGrid
-              words={words}
+              words={displayWords}
               imageMode={imageMode}
               showEnglish={showItalian}
+              showStatus
               columns={columns}
               onWordClick={setSelectedWordId}
             />
@@ -176,7 +187,7 @@ export function LessonCompletedModal({
         <div className="shrink-0 [&>div]:!static">
           <WordDetailActionBar
             currentWordIndex={selectedWordIndex}
-            totalWords={words.length}
+            totalWords={displayWords.length}
             englishWord={selectedWord.english}
             foreignWord={selectedWord.headword}
             partOfSpeech={selectedWord.part_of_speech}
@@ -185,12 +196,12 @@ export function LessonCompletedModal({
             wordList={wordList}
             testHistory={selectedWord.testHistory}
             scoreStats={selectedWord.scoreStats}
-            onJumpToWord={(index) => setSelectedWordId(words[index].id)}
-            onPreviousWord={() => selectedWordIndex > 0 && setSelectedWordId(words[selectedWordIndex - 1].id)}
-            onNextWord={() => selectedWordIndex < words.length - 1 && setSelectedWordId(words[selectedWordIndex + 1].id)}
+            onJumpToWord={(index) => setSelectedWordId(displayWords[index].id)}
+            onPreviousWord={() => selectedWordIndex > 0 && setSelectedWordId(displayWords[selectedWordIndex - 1].id)}
+            onNextWord={() => selectedWordIndex < displayWords.length - 1 && setSelectedWordId(displayWords[selectedWordIndex + 1].id)}
             onReplay={() => {}}
             hasPrevious={selectedWordIndex > 0}
-            hasNext={selectedWordIndex < words.length - 1}
+            hasNext={selectedWordIndex < displayWords.length - 1}
             wordStatus={selectedWord.status}
             variant="sidebar"
           />

@@ -1,6 +1,7 @@
 import { getWords, isAutoLesson } from "@/lib/queries";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
+import { createClient } from "@/lib/supabase/server";
 import { TestModeClient } from "./TestModeClient";
 import { TestType, DEFAULT_TEST_TYPE } from "@/types/test";
 
@@ -27,7 +28,7 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
     );
     if (!access.hasAccess) {
-      redirect(`/course/${course.id}`);
+      redirect(`/course/${course.id}?locked=${encodeURIComponent(lesson.title)}`);
     }
   }
 
@@ -48,6 +49,18 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
     notFound();
   }
 
+  // Fetch initial course vocab count for the completed modal
+  let initialCourseVocabCount: number | null = null;
+  if (userId && course) {
+    const supabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
+    const { data: vocabCount } = await (supabase.rpc as any)("get_course_vocab_count", {
+      p_user_id: userId,
+      p_course_id: course.id,
+    });
+    initialCourseVocabCount = (vocabCount as number) || 0;
+  }
+
   // For guests, we still allow testing but won't save progress
   return (
     <TestModeClient
@@ -59,6 +72,7 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       testType={testType}
       testTwice={testTwice}
       milestone={milestone || null}
+      initialCourseVocabCount={initialCourseVocabCount}
     />
   );
 }

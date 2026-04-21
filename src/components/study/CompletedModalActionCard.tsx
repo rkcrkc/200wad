@@ -30,8 +30,8 @@ export function CompletedModalActionCard({
         primary
           ? "border-primary bg-primary text-white hover:border-blue-dark"
           : muted
-            ? "border-transparent bg-white text-muted-foreground"
-            : "border-transparent bg-white text-foreground"
+            ? "border-transparent bg-white text-muted-foreground hover:border-primary"
+            : "border-transparent bg-white text-foreground hover:border-primary"
       }`}
     >
       <span className={primary ? "transition-transform duration-200 group-hover:-rotate-90" : ""}>
