@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Lesson, UserTestScore } from "@/types/database";
 import { LessonStatus } from "./lessons";
 
@@ -84,11 +85,12 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const lessonIds = lessons.map((l) => l.id);
   const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
-  // Get user's lesson progress, test scores, and word data in parallel
+  // Get user's lesson progress, test scores, word progress, and lesson_words in parallel
   const [
     { data: lessonProgress },
     { data: testScores },
-    { data: lessonWords },
+    { data: userWordProgress },
+    lessonWordsResult,
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
@@ -102,10 +104,17 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .in("lesson_id", lessonIds)
       .order("taken_at", { ascending: false }),
     supabase
+      .from("user_word_progress")
+      .select("word_id, status")
+      .eq("user_id", user.id)
+      .in("status", ["learning", "learned", "mastered"]),
+    supabase
       .from("lesson_words")
-      .select("lesson_id, word_id")
-      .in("lesson_id", lessonIds),
+      .select("lesson_id, word_id, words(category)")
+      .in("lesson_id", lessonIds)
+      .limit(SUPABASE_ALL_ROWS),
   ]);
+  warnIfTruncated("getTests:lesson_words", lessonWordsResult.data?.length ?? 0);
 
   const progressByLesson = new Map(
     (lessonProgress || [])
@@ -113,36 +122,56 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .map((p) => [p.lesson_id!, p])
   );
 
-  // Get word progress to count learned words per lesson
-  const wordIds = [...new Set((lessonWords || []).map((lw) => lw.word_id).filter(Boolean))] as string[];
-  const { data: wordProgress } = wordIds.length > 0
-    ? await supabase
-        .from("user_word_progress")
-        .select("word_id, status")
-        .eq("user_id", user.id)
-        .in("word_id", wordIds)
-    : { data: [] as { word_id: string | null; status: string | null }[] };
+  // Build live per-lesson learned/mastered counts from user_word_progress
+  const liveLearnedByLesson: Record<string, number> = {};
+  const liveMasteredByLesson: Record<string, number> = {};
+  const testableCountByLesson: Record<string, number> = {};
 
-  // Build learned count per lesson
-  const wordToLessons = new Map<string, string[]>();
-  (lessonWords || []).forEach((lw) => {
-    if (lw.word_id && lw.lesson_id) {
-      if (!wordToLessons.has(lw.word_id)) {
-        wordToLessons.set(lw.word_id, []);
+  if (lessonWordsResult.data && userWordProgress) {
+    // Filter out information pages — they're non-testable
+    const testableRows = lessonWordsResult.data.filter(
+      (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+    );
+
+    const wordStatusMap = new Map<string, string>();
+    userWordProgress.forEach((p) => {
+      if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);
+    });
+
+    for (const lw of testableRows) {
+      if (!lw.lesson_id || !lw.word_id) continue;
+      testableCountByLesson[lw.lesson_id] = (testableCountByLesson[lw.lesson_id] || 0) + 1;
+      const status = wordStatusMap.get(lw.word_id);
+      if (status === "mastered") {
+        liveMasteredByLesson[lw.lesson_id] = (liveMasteredByLesson[lw.lesson_id] || 0) + 1;
       }
-      wordToLessons.get(lw.word_id)!.push(lw.lesson_id);
+      if (status === "learned" || status === "mastered") {
+        liveLearnedByLesson[lw.lesson_id] = (liveLearnedByLesson[lw.lesson_id] || 0) + 1;
+      }
     }
-  });
+  }
 
-  const learnedByLesson: Record<string, number> = {};
-  (wordProgress || []).forEach((wp) => {
-    if (wp.word_id && (wp.status === "learned" || wp.status === "mastered")) {
-      const wpLessons = wordToLessons.get(wp.word_id) || [];
-      wpLessons.forEach((lid) => {
-        learnedByLesson[lid] = (learnedByLesson[lid] || 0) + 1;
-      });
-    }
-  });
+  // Helper to derive live lesson stats
+  function getLiveLessonStats(lessonId: string, lesson: Lesson) {
+    const liveLearned = liveLearnedByLesson[lessonId] || 0;
+    const liveMastered = liveMasteredByLesson[lessonId] || 0;
+    const totalWords = testableCountByLesson[lessonId] || lesson.word_count || 0;
+    const liveCompletion = totalWords > 0 ? Math.round((liveMastered / totalWords) * 100) : 0;
+    const progress = progressByLesson.get(lessonId);
+
+    const allMastered = liveCompletion >= 100 && totalWords > 0;
+    const allLearnedOrMastered = liveLearned >= totalWords && totalWords > 0;
+    const derivedStatus: LessonStatus =
+      allMastered
+        ? "mastered"
+        : allLearnedOrMastered
+          ? "learned"
+          : liveMastered > 0 || liveLearned > 0 || progress?.status === "learning" || progress?.status === "learned" || progress?.status === "mastered"
+            ? "learning"
+            : "not-started";
+
+    return { liveLearned, liveMastered, liveCompletion, derivedStatus };
+  }
 
   // Calculate stats
   let totalTestTimeSeconds = 0;
@@ -182,16 +211,17 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       const lesson = lessonMap.get(progress.lesson_id);
       if (lesson) {
         const testCount = testCountByLesson[lesson.id] || 0;
+        const live = getLiveLessonStats(lesson.id, lesson);
         dueTests.push({
           lessonId: lesson.id,
           lessonNumber: lesson.number,
           lessonTitle: lesson.title,
           lessonEmoji: lesson.emoji,
           lessonWordCount: lesson.word_count || 0,
-          lessonStatus: (progress.status as LessonStatus) || "not-started",
-          wordsLearned: learnedByLesson[lesson.id] || 0,
-          wordsMastered: progress.words_mastered || 0,
-          completionPercent: progress.completion_percent || 0,
+          lessonStatus: live.derivedStatus,
+          wordsLearned: live.liveLearned,
+          wordsMastered: live.liveMastered,
+          completionPercent: live.liveCompletion,
           milestone: progress.next_milestone,
           testNumber: testCount + 1,
           isDue: true,
@@ -215,24 +245,23 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     const lesson = lessonMap.get(ts.lesson_id);
     if (!lesson) return;
 
-    const progress = progressByLesson.get(ts.lesson_id);
-
     // Calculate test number (count down from total)
     const totalTests = testCountByLesson[ts.lesson_id] || 0;
     lessonTestNumbers[ts.lesson_id] = (lessonTestNumbers[ts.lesson_id] || totalTests);
     const testNumber = lessonTestNumbers[ts.lesson_id];
     lessonTestNumbers[ts.lesson_id]--;
 
+    const live = getLiveLessonStats(lesson.id, lesson);
     previousTests.push({
       lessonId: lesson.id,
       lessonNumber: lesson.number,
       lessonTitle: lesson.title,
       lessonEmoji: lesson.emoji,
       lessonWordCount: lesson.word_count || 0,
-      lessonStatus: (progress?.status as LessonStatus) || "not-started",
-      wordsLearned: learnedByLesson[lesson.id] || 0,
-      wordsMastered: progress?.words_mastered || 0,
-      completionPercent: progress?.completion_percent || 0,
+      lessonStatus: live.derivedStatus,
+      wordsLearned: live.liveLearned,
+      wordsMastered: live.liveMastered,
+      completionPercent: live.liveCompletion,
       testId: ts.id,
       milestone: ts.milestone || "Initial",
       testNumber,

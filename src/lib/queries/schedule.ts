@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
+import { LessonStatus } from "./lessons";
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -243,14 +244,14 @@ function transformToSchedulerFormat(
   lessons: Lesson[],
   sampleWords: Record<string, string[]>,
   images: Record<string, string | null>,
-  progressByLesson?: Map<string, UserLessonProgress>,
+  liveStatusByLesson?: Record<string, LessonStatus>,
   milestoneInfo?: Record<string, { nextMilestone: string; nextTestDueAt: string }>
 ): LessonForScheduler[] {
   return lessons.map((lesson) => ({
     ...lesson,
     sampleWords: sampleWords[lesson.id] || [],
     imageUrl: images[lesson.id] || null,
-    status: progressByLesson?.get(lesson.id)?.status ?? null,
+    status: liveStatusByLesson?.[lesson.id] ?? null,
     nextMilestone: milestoneInfo?.[lesson.id]?.nextMilestone,
     nextTestDueAt: milestoneInfo?.[lesson.id]?.nextTestDueAt,
   }));
@@ -373,18 +374,83 @@ export async function getScheduleData(
     };
   }
 
-  // Get user's lesson progress
-  const { data: lessonProgress } = await supabase
-    .from("user_lesson_progress")
-    .select("*")
-    .eq("user_id", user.id)
-    .in("lesson_id", lessonIds);
+  // Get user's lesson progress, word progress, and lesson_words in parallel
+  const [
+    { data: lessonProgress },
+    { data: userWordProgress },
+    lessonWordsResult,
+  ] = await Promise.all([
+    supabase
+      .from("user_lesson_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .in("lesson_id", lessonIds),
+    supabase
+      .from("user_word_progress")
+      .select("word_id, status")
+      .eq("user_id", user.id)
+      .in("status", ["learning", "learned", "mastered"]),
+    supabase
+      .from("lesson_words")
+      .select("lesson_id, word_id, words(category)")
+      .in("lesson_id", lessonIds)
+      .limit(SUPABASE_ALL_ROWS),
+  ]);
+  warnIfTruncated("getScheduleData:lesson_words", lessonWordsResult.data?.length ?? 0);
 
   const progressByLesson = new Map<string, UserLessonProgress>(
     (lessonProgress || [])
       .filter((p): p is UserLessonProgress & { lesson_id: string } => p.lesson_id !== null)
       .map((p) => [p.lesson_id, p])
   );
+
+  // Build live per-lesson status from user_word_progress
+  const liveStatusByLesson: Record<string, LessonStatus> = {};
+
+  if (lessonWordsResult.data && userWordProgress) {
+    const testableRows = lessonWordsResult.data.filter(
+      (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+    );
+
+    const wordStatusMap = new Map<string, string>();
+    userWordProgress.forEach((p) => {
+      if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);
+    });
+
+    const learnedByLesson: Record<string, number> = {};
+    const masteredByLesson: Record<string, number> = {};
+    const testableCountByLesson: Record<string, number> = {};
+
+    for (const lw of testableRows) {
+      if (!lw.lesson_id || !lw.word_id) continue;
+      testableCountByLesson[lw.lesson_id] = (testableCountByLesson[lw.lesson_id] || 0) + 1;
+      const status = wordStatusMap.get(lw.word_id);
+      if (status === "mastered") {
+        masteredByLesson[lw.lesson_id] = (masteredByLesson[lw.lesson_id] || 0) + 1;
+      }
+      if (status === "learned" || status === "mastered") {
+        learnedByLesson[lw.lesson_id] = (learnedByLesson[lw.lesson_id] || 0) + 1;
+      }
+    }
+
+    for (const lessonId of lessonIds) {
+      const liveLearned = learnedByLesson[lessonId] || 0;
+      const liveMastered = masteredByLesson[lessonId] || 0;
+      const totalWords = testableCountByLesson[lessonId] || 0;
+      const progress = progressByLesson.get(lessonId);
+
+      const allMastered = totalWords > 0 && liveMastered >= totalWords;
+      const allLearned = totalWords > 0 && liveLearned >= totalWords;
+
+      liveStatusByLesson[lessonId] = allMastered
+        ? "mastered"
+        : allLearned
+          ? "learned"
+          : liveMastered > 0 || liveLearned > 0 || progress?.status === "learning" || progress?.status === "learned" || progress?.status === "mastered"
+            ? "learning"
+            : "not-started";
+    }
+  }
 
   // Determine if this is the first lesson (no progress records)
   const isFirstLesson = !lessonProgress || lessonProgress.length === 0;
@@ -435,17 +501,16 @@ export async function getScheduleData(
         dueLessons,
         sampleWords,
         images,
-        progressByLesson,
+        liveStatusByLesson,
         milestoneInfo
       );
     }
   }
 
-  // Find next lesson to study (first non-mastered lesson)
+  // Find next lesson to study (first non-mastered lesson, using live status)
   let nextLesson: LessonForScheduler | null = null;
   const nextLessonData = allLessons.find((lesson) => {
-    const progress = progressByLesson.get(lesson.id);
-    return !progress || progress.status !== "mastered";
+    return liveStatusByLesson[lesson.id] !== "mastered";
   });
 
   if (nextLessonData) {
@@ -458,7 +523,7 @@ export async function getScheduleData(
       [nextLessonData],
       sampleWords,
       images,
-      progressByLesson
+      liveStatusByLesson
     );
     nextLesson = transformed[0] || null;
   }
@@ -498,13 +563,13 @@ export async function getScheduleData(
     newLessonsData,
     gridSampleWords,
     gridImages,
-    progressByLesson
+    liveStatusByLesson
   );
   const recentLessons = transformToSchedulerFormat(
     recentLessonsData,
     gridSampleWords,
     gridImages,
-    progressByLesson
+    liveStatusByLesson
   );
 
   return {
