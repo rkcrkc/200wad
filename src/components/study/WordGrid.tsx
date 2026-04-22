@@ -17,8 +17,8 @@ export interface WordGridResult {
 interface WordGridProps {
   words: WordWithDetails[];
   imageMode: WordGridImageMode;
-  /** When false, hides the English translation beneath the headword. Defaults to true. */
-  showEnglish?: boolean;
+  /** When false, hides the foreign headword so users can self-test. Defaults to true. */
+  showForeign?: boolean;
   /** Number of grid columns. Defaults to 5. */
   columns?: WordGridColumns;
   /** Optional test results keyed by word ID — shows score badge on each card. */
@@ -36,7 +36,7 @@ interface WordGridProps {
 export function WordGrid({
   words,
   imageMode,
-  showEnglish = true,
+  showForeign = true,
   columns = 5,
   wordResults,
   showStatus = false,
@@ -89,14 +89,14 @@ export function WordGrid({
 
             {/* Word Info - Foreign first, English beneath, then score */}
             <div className="mt-3">
-              <p className="truncate text-sm font-medium text-foreground">
-                {word.headword}
-              </p>
-              {showEnglish && (
-                <p className="truncate text-xs text-muted-foreground">
-                  {word.english}
+              {showForeign && (
+                <p className="truncate text-sm font-medium text-foreground">
+                  {word.headword}
                 </p>
               )}
+              <p className="truncate text-xs text-muted-foreground">
+                {word.english}
+              </p>
               {result && (
                 <div
                   className={`mt-1.5 text-[11px] font-medium ${

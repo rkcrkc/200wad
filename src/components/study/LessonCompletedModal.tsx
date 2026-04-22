@@ -47,7 +47,11 @@ export function LessonCompletedModal({
   onStudyAgain,
   onDismiss,
 }: LessonCompletedModalProps) {
-  const [showItalian, setShowItalian] = useState(true);
+  const [showForeign, setShowForeign] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem("completedModal:showForeign");
+    return saved !== null ? saved === "true" : true;
+  });
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
@@ -84,11 +88,15 @@ export function LessonCompletedModal({
             <span>·</span>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setShowItalian(!showItalian)}
+                onClick={() => {
+                  const next = !showForeign;
+                  setShowForeign(next);
+                  localStorage.setItem("completedModal:showForeign", String(next));
+                }}
                 className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-                title={showItalian ? "Hide Italian" : "Show Italian"}
+                title={showForeign ? "Hide foreign words" : "Show foreign words"}
               >
-                {showItalian ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                {showForeign ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </button>
               <button
                 onClick={() =>
@@ -174,7 +182,7 @@ export function LessonCompletedModal({
             <WordGrid
               words={displayWords}
               imageMode={imageMode}
-              showEnglish={showItalian}
+              showForeign={showForeign}
               showStatus
               columns={columns}
               onWordClick={setSelectedWordId}
