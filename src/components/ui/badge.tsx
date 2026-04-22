@@ -2,12 +2,13 @@ import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   size?: "sm" | "default";
-  variant?: "default" | "success" | "white" | "outline" | "beige";
+  variant?: "default" | "success" | "warning" | "white" | "outline" | "beige";
 }
 
 const variantStyles = {
   default: "bg-gray-100 text-gray-600",
   success: "bg-green-100 text-green-600",
+  warning: "bg-orange-100 text-orange-600",
   white: "bg-white text-gray-600",
   outline: "border border-gray-300 text-gray-600",
   beige: "bg-bone text-gray-600",

@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 
 // Base nav items - paths are dynamic based on course context
@@ -82,11 +83,16 @@ interface MobileMenuProps {
   onClose: () => void;
   dueTestsCount?: number;
   onViewPlans?: () => void;
+  freeLessons?: number;
 }
 
-export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLessons = 10 }: MobileMenuProps) {
   const pathname = usePathname();
-  const { courseId } = useCourseContext();
+  const { courseId, languageId } = useCourseContext();
+  const { hasLanguageAccess, hasAllLanguagesAccess, accessEndDate } = useSubscription();
+
+  const showUpgradeCard = !hasAllLanguagesAccess && !(languageId && hasLanguageAccess(languageId));
+  const endDate = languageId ? accessEndDate(languageId) : null;
 
   // Close menu on route change
   useEffect(() => {
@@ -179,27 +185,45 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans }: Mobi
         </nav>
 
         {/* Unlock Card */}
-        <div className="mx-4 my-4 rounded-2xl bg-gray-50 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
-            <span className="text-[15px] font-semibold text-foreground">
-              Unlock All Lessons
-            </span>
+        {showUpgradeCard && (
+          <div className="mx-4 my-4 rounded-2xl bg-bone p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
+              <span className="text-[15px] font-semibold text-foreground">
+                Unlock All Lessons
+              </span>
+            </div>
+            <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
+              First {freeLessons} lessons free. Subscribe for full access.
+            </p>
+            <Button
+              className="w-full bg-warning hover:bg-warning/90 text-white"
+              size="sm"
+              onClick={() => {
+                onClose();
+                onViewPlans?.();
+              }}
+            >
+              View Plans
+            </Button>
           </div>
-          <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
-            First 10 lessons free. Subscribe for all 20 lessons.
-          </p>
-          <Button
-            className="w-full bg-warning hover:bg-warning/90 text-white"
-            size="sm"
-            onClick={() => {
-              onClose();
-              onViewPlans?.();
-            }}
-          >
-            View Plans
-          </Button>
-        </div>
+        )}
+
+        {/* Subscription ending warning */}
+        {!showUpgradeCard && endDate && (
+          <div className="mx-4 my-4 rounded-2xl bg-orange-50 p-4">
+            <div className="mb-1 flex items-center gap-2">
+              <Lock className="h-5 w-5 text-orange-500" strokeWidth={1.67} />
+              <span className="text-[15px] font-semibold text-foreground">
+                Access Ending
+              </span>
+            </div>
+            <p className="text-[13px] leading-[1.4] text-muted-foreground">
+              Your subscription ends{" "}
+              {new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+            </p>
+          </div>
+        )}
 
         {/* Bottom Section */}
         <div className="flex flex-col gap-1 px-4 pb-5">

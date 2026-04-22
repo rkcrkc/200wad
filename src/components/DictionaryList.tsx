@@ -7,6 +7,7 @@ import { Tabs, Tab } from "@/components/ui/tabs";
 import { InlineSearch } from "@/components/InlineSearch";
 import { DictionaryRow } from "@/components/DictionaryRow";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
+import { useScrollFade } from "@/hooks/useScrollFade";
 import { DictionaryWord } from "@/lib/queries/dictionary";
 import { WordWithDetails } from "@/lib/queries/words";
 import { fetchWordDetails } from "@/lib/actions/words";
@@ -77,6 +78,7 @@ export function DictionaryList({
   languageName,
 }: DictionaryListProps) {
   const searchParams = useSearchParams();
+  const { scrollRef: dictScrollRef, canScrollRight } = useScrollFade();
   const highlightWordId = searchParams.get("word");
 
   const [filter, setFilter] = useState<FilterType>(() => {
@@ -358,7 +360,7 @@ export function DictionaryList({
       </div>
 
       {/* Words Table */}
-      <div className="overflow-x-auto rounded-xl pb-16">
+      <div ref={dictScrollRef} className="overflow-x-auto rounded-xl pb-16">
         <table className="min-w-[800px] w-full table-fixed border-collapse">
           <colgroup>
             <col style={{ width: 72 }} />
@@ -418,7 +420,10 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="sticky right-0 bg-background px-2 py-3"></th>
+              <th className={cn(
+                "sticky right-0 z-10 bg-background px-2 py-3",
+                canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+              )}></th>
             </tr>
           </thead>
 
@@ -454,6 +459,7 @@ export function DictionaryList({
                   isLast={index === visibleWords.length - 1 && !hasMore}
                   isHighlighted={word.id === highlightedWordId}
                   isSelected={selectedWordIndex === index}
+                  showScrollFade={canScrollRight}
                 />
               ))
             )}

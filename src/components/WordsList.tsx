@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, ReactNode } from "react";
+import { useScrollFade } from "@/hooks/useScrollFade";
 import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Zap } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import { WordCard } from "@/components/WordCard";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
+import { cn } from "@/lib/utils";
 import { formatPercent } from "@/lib/utils/helpers";
 import { SubBadge } from "@/components/ui/sub-badge";
 
@@ -46,6 +48,7 @@ export function WordsList({
   rightContent,
 }: WordsListProps) {
   const { isAdmin } = useUser();
+  const { scrollRef, canScrollRight } = useScrollFade();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -222,7 +225,7 @@ export function WordsList({
           </div>
         </div>
       ) : viewMode === "list" ? (
-        <div className="overflow-x-auto overflow-y-visible pt-10 -mt-10 rounded-xl">
+        <div ref={scrollRef} className="overflow-x-auto overflow-y-visible pt-10 -mt-10 rounded-xl">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
               <col style={{ width: 72 }} />
@@ -253,7 +256,10 @@ export function WordsList({
                     )}
                   </div>
                 </th>
-                <th className="sticky right-0 bg-background px-2 py-3"></th>
+                <th className={cn(
+                  "sticky right-0 z-10 bg-background px-2 py-3",
+                  canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+                )}></th>
               </tr>
             </thead>
 
@@ -269,6 +275,7 @@ export function WordsList({
                   isFirst={index === 0}
                   isLast={index === filteredWords.length - 1}
                   isSelected={selectedWordIndex === index}
+                  showScrollFade={canScrollRight}
                 />
               ))}
             </tbody>

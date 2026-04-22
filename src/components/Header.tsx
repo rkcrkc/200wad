@@ -24,6 +24,8 @@ interface HeaderProps {
   dueTestsCount?: number;
   /** Callback to open the upgrade modal */
   onViewPlans?: () => void;
+  /** Dynamic free lessons count for mobile menu */
+  freeLessons?: number;
 }
 
 // Placeholder stats for onboarding preview
@@ -39,7 +41,7 @@ const PREVIEW_STATS: HeaderStats = {
   leaderboardRank: 42,
 };
 
-export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans }: HeaderProps) {
+export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons }: HeaderProps) {
   const { t } = useText();
   const { user, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
@@ -324,6 +326,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
         onClose={handleCloseMobileMenu}
         dueTestsCount={dueTestsCount}
         onViewPlans={onViewPlans}
+        freeLessons={freeLessons}
       />
     )}
     </>

@@ -10,9 +10,11 @@ import { getFlagFromCode } from "@/lib/utils/flags";
 interface LanguageCardProps {
   language: LanguageWithProgress;
   isActive?: boolean;
+  hasAccess?: boolean;
+  freeLessons?: number;
 }
 
-export function LanguageCard({ language, isActive = false }: LanguageCardProps) {
+export function LanguageCard({ language, isActive = false, hasAccess, freeLessons = 10 }: LanguageCardProps) {
   return (
     <Link
       href={`/courses/${language.id}`}
@@ -35,6 +37,9 @@ export function LanguageCard({ language, isActive = false }: LanguageCardProps) 
           </div>
           <p className="text-sm text-muted-foreground">
             {formatNumber(language.courseCount)} {language.courseCount === 1 ? "course" : "courses"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {hasAccess ? "Full access" : `${freeLessons} lessons free`}
           </p>
         </div>
       </div>

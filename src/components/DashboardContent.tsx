@@ -7,8 +7,10 @@ import { Sidebar } from "./Sidebar";
 import { UpgradeModal } from "./UpgradeModal";
 import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
 import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context/CourseContext";
+import { SubscriptionProvider, type SimpleSubscription } from "@/context/SubscriptionContext";
 import { TextProvider } from "@/context/TextContext";
 import type { PricingPlan } from "@/types/database";
+import type { SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 
 interface DefaultCourseContext {
   languageId: string;
@@ -40,6 +42,8 @@ interface DashboardContentProps {
   plans?: PricingPlan[];
   enabledTiers?: string[];
   textOverrides?: Record<string, string>;
+  subscriptions?: SimpleSubscription[];
+  displayInfo?: SubscriptionDisplayInfo;
 }
 
 /**
@@ -66,11 +70,13 @@ function UpgradeModalWithContext({
   onClose,
   plans,
   enabledTiers,
+  freeLessons,
 }: {
   isOpen: boolean;
   onClose: () => void;
   plans: PricingPlan[];
   enabledTiers: string[];
+  freeLessons?: number;
 }) {
   const { languageName, languageFlag, languageId } = useCourseContext();
 
@@ -83,6 +89,7 @@ function UpgradeModalWithContext({
       languageId={languageId}
       plans={plans}
       enabledTiers={enabledTiers}
+      freeLessons={freeLessons}
     />
   );
 }
@@ -104,6 +111,8 @@ export function DashboardContent({
   plans = [],
   enabledTiers = [],
   textOverrides = {},
+  subscriptions = [],
+  displayInfo,
 }: DashboardContentProps) {
   const pathname = usePathname();
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -125,10 +134,12 @@ export function DashboardContent({
     // Still wrap in CourseProvider for consistency
     return (
       <CourseProvider>
-        <TextProvider overrides={textOverrides}>
-          <DefaultContextSetter context={defaultCourseContext} />
-          {children}
-        </TextProvider>
+        <SubscriptionProvider subscriptions={subscriptions}>
+          <TextProvider overrides={textOverrides}>
+            <DefaultContextSetter context={defaultCourseContext} />
+            {children}
+          </TextProvider>
+        </SubscriptionProvider>
       </CourseProvider>
     );
   }
@@ -140,16 +151,18 @@ export function DashboardContent({
     // No sidebar - full width content with fixed header; only main scrolls
     return (
       <CourseProvider>
-        <TextProvider overrides={textOverrides}>
-          <DefaultContextSetter context={defaultCourseContext} />
-          <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
-          <div className="h-screen overflow-visible pt-[72px]">
-            <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
-              {children}
-            </main>
-          </div>
-          {!showPreviewMode && <EmailVerificationReminder />}
-        </TextProvider>
+        <SubscriptionProvider subscriptions={subscriptions}>
+          <TextProvider overrides={textOverrides}>
+            <DefaultContextSetter context={defaultCourseContext} />
+            <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
+            <div className="h-screen overflow-visible pt-[72px]">
+              <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
+                {children}
+              </main>
+            </div>
+            {!showPreviewMode && <EmailVerificationReminder />}
+          </TextProvider>
+        </SubscriptionProvider>
       </CourseProvider>
     );
   }
@@ -157,23 +170,26 @@ export function DashboardContent({
   // With sidebar - fixed header, sidebar and main; only main scrolls
   return (
     <CourseProvider>
-      <TextProvider overrides={textOverrides}>
-        <DefaultContextSetter context={defaultCourseContext} />
-        <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
-        <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} />
-        <div className="h-screen overflow-visible pt-[72px]">
-          <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
-            {children}
-          </main>
-        </div>
-        <UpgradeModalWithContext
-          isOpen={upgradeModalOpen}
-          onClose={handleCloseUpgradeModal}
-          plans={plans}
-          enabledTiers={enabledTiers}
-        />
-        {!showPreviewMode && <EmailVerificationReminder />}
-      </TextProvider>
+      <SubscriptionProvider subscriptions={subscriptions}>
+        <TextProvider overrides={textOverrides}>
+          <DefaultContextSetter context={defaultCourseContext} />
+          <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+          <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+          <div className="h-screen overflow-visible pt-[72px]">
+            <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
+              {children}
+            </main>
+          </div>
+          <UpgradeModalWithContext
+            isOpen={upgradeModalOpen}
+            onClose={handleCloseUpgradeModal}
+            plans={plans}
+            enabledTiers={enabledTiers}
+            freeLessons={displayInfo?.freeLessons}
+          />
+          {!showPreviewMode && <EmailVerificationReminder />}
+        </TextProvider>
+      </SubscriptionProvider>
     </CourseProvider>
   );
 }

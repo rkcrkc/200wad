@@ -16,9 +16,10 @@ interface TestRowProps {
   isFirst?: boolean;
   isLast?: boolean;
   showScore?: boolean;
+  showScrollFade?: boolean;
 }
 
-export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
+export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: TestRowProps) {
   const statusType = mapStatus(test.lessonStatus);
   const wordCount = test.lessonWordCount || 0;
   const learnedPct = wordCount > 0 ? Math.round((test.wordsLearned / wordCount) * 100) : 0;
@@ -26,7 +27,7 @@ export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
 
   return (
     <tr className={cn(
-      "group transition-colors hover:bg-bone-hover",
+      "group cursor-default transition-colors hover:bg-bone-hover",
       !isFirst && "border-t border-bone-hover"
     )}>
       {/* Lesson number */}
@@ -121,7 +122,8 @@ export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
       <td className={cn(
         "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
-        isLast && "rounded-br-xl"
+        isLast && "rounded-br-xl",
+        showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
       )}>
         <div className="flex items-center justify-end gap-2">
           <Tooltip label="Preview lesson">
@@ -134,10 +136,10 @@ export function TestRow({ test, isFirst, isLast, showScore }: TestRowProps) {
           </Tooltip>
           <Link
             href={`/lesson/${test.lessonId}/test`}
-            className="inline-flex items-center gap-[2px] whitespace-nowrap rounded-lg bg-primary px-[12px] py-1.5 text-sm font-medium text-white transition-all hover:gap-[6px] hover:px-[10px]"
+            className="group/btn inline-flex items-center gap-0.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white"
           >
             Test
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
           </Link>
         </div>
       </td>

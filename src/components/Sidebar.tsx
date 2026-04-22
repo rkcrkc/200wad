@@ -15,6 +15,7 @@ import {
   CirclePlay,
 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 
 // Base nav items - paths are dynamic based on course context
@@ -93,14 +94,19 @@ function SidebarButton({ icon: Icon, label }: { icon: LucideIcon; label: string 
 interface SidebarProps {
   dueTestsCount?: number;
   onViewPlans?: () => void;
+  freeLessons?: number;
 }
 
-export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: SidebarProps) {
+export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLessons = 10 }: SidebarProps) {
   const pathname = usePathname();
-  const { courseId, dueTestsCount: contextDueTestsCount } = useCourseContext();
+  const { courseId, languageId, dueTestsCount: contextDueTestsCount } = useCourseContext();
+  const { hasLanguageAccess, hasAllLanguagesAccess, accessEndDate } = useSubscription();
 
   // Prefer prop (from layout) over context (from page)
   const dueTestsCount = propDueTestsCount ?? contextDueTestsCount;
+
+  const showUpgradeCard = !hasAllLanguagesAccess && !(languageId && hasLanguageAccess(languageId));
+  const endDate = languageId ? accessEndDate(languageId) : null;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -146,24 +152,42 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans }: Sideb
       </nav>
 
       {/* Unlock Card */}
-      <div className="mx-4 mb-4 rounded-2xl bg-gray-50 p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
-          <span className="text-[15px] font-semibold text-foreground">
-            Unlock All Lessons
-          </span>
+      {showUpgradeCard && (
+        <div className="mx-4 mb-4 rounded-2xl bg-bone p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
+            <span className="text-[15px] font-semibold text-foreground">
+              Unlock All Lessons
+            </span>
+          </div>
+          <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
+            First {freeLessons} lessons free. Subscribe for full access.
+          </p>
+          <Button
+            className="w-full bg-warning hover:bg-warning/90 text-white"
+            size="sm"
+            onClick={onViewPlans}
+          >
+            View Plans
+          </Button>
         </div>
-        <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
-          First 10 lessons free. Subscribe for all 20 lessons.
-        </p>
-        <Button
-          className="w-full bg-warning hover:bg-warning/90 text-white"
-          size="sm"
-          onClick={onViewPlans}
-        >
-          View Plans
-        </Button>
-      </div>
+      )}
+
+      {/* Subscription ending warning */}
+      {!showUpgradeCard && endDate && (
+        <div className="mx-4 mb-4 rounded-2xl bg-orange-50 p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <Lock className="h-5 w-5 text-orange-500" strokeWidth={1.67} />
+            <span className="text-[15px] font-semibold text-foreground">
+              Access Ending
+            </span>
+          </div>
+          <p className="text-[13px] leading-[1.4] text-muted-foreground">
+            Your subscription ends{" "}
+            {new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+          </p>
+        </div>
+      )}
 
       {/* Bottom Section */}
       <div className="flex flex-col gap-1 px-4 pb-5">

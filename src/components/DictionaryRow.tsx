@@ -14,9 +14,10 @@ interface DictionaryRowProps {
   isLast?: boolean;
   isHighlighted?: boolean;
   isSelected?: boolean;
+  showScrollFade?: boolean;
 }
 
-export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, isSelected }: DictionaryRowProps) {
+export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, isSelected, showScrollFade }: DictionaryRowProps) {
   const statusType = mapStatus(word.status);
   const hasImage = !!word.imageUrl;
 
@@ -90,9 +91,10 @@ export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, i
 
       {/* Chevron - sticky on horizontal scroll */}
       <td className={cn(
-        "sticky right-0 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
-        isLast && "rounded-br-xl"
+        isLast && "rounded-br-xl",
+        showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
       )}>
         <div className="flex justify-end">
           <ChevronRight className="h-5 w-5 text-muted-foreground" />

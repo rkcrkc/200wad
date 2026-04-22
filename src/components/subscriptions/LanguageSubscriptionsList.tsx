@@ -202,9 +202,15 @@ export function LanguageSubscriptionsList({
                       <Badge size="sm">
                         {getPlanLabel(allLangsSub?.plan || "")}
                       </Badge>
-                      <Badge size="sm" variant="success">
-                        Active
-                      </Badge>
+                      {allLangsSub?.cancel_at_period_end && allLangsSub?.current_period_end ? (
+                        <Badge size="sm" variant="warning">
+                          Cancels {new Date(allLangsSub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </Badge>
+                      ) : (
+                        <Badge size="sm" variant="success">
+                          Active
+                        </Badge>
+                      )}
                     </>
                   ) : (
                     <Badge size="sm">

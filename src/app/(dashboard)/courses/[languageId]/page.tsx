@@ -9,6 +9,9 @@ import { PageContainer } from "@/components/PageContainer";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { setCurrentLanguage } from "@/lib/mutations/settings";
+import { hasActiveSubscription, getActivePricingPlans } from "@/lib/queries/subscriptions";
+import { getDefaultFreeLessons } from "@/lib/utils/accessControl";
+import { createClient } from "@/lib/supabase/server";
 
 interface CoursesPageProps {
   params: Promise<{ languageId: string }>;
@@ -29,6 +32,24 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
     setCurrentLanguage(languageId, { skipRevalidation: true });
   }
 
+  // Fetch pricing and access info in parallel
+  const [plansResult, freeLessons, accessInfo] = await Promise.all([
+    getActivePricingPlans("language"),
+    getDefaultFreeLessons(),
+    (async () => {
+      if (isGuest) return false;
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const [langAccess, allAccess] = await Promise.all([
+        hasActiveSubscription(user.id, "language", languageId),
+        hasActiveSubscription(user.id, "all-languages"),
+      ]);
+      return langAccess || allAccess;
+    })(),
+  ]);
+  const hasAccess = accessInfo;
+
   // Calculate total words across all courses
   const totalWords = courses.reduce((sum, course) => sum + course.actualWordCount, 0);
 
@@ -48,17 +69,18 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
         <div>
           <h1 className="mb-1 text-page-header">{language.name} Courses</h1>
           <p className="text-muted-foreground">
-            First 10 lessons free in every course
+            First {freeLessons} lessons free in every course
           </p>
         </div>
       </div>
 
       {/* Unlock Bundle Promo */}
-      {courses.length > 0 && (
+      {courses.length > 0 && !hasAccess && (
         <UnlockBundlePromo
           languageName={language.name}
           courseCount={courses.length}
           totalWords={totalWords}
+          plans={plansResult.plans}
         />
       )}
 

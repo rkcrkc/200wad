@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+
 import { revalidatePath } from "next/cache";
 import {
   type Milestone,
@@ -353,7 +353,22 @@ export async function completeTestSession(
       .maybeSingle();
 
     if (existingScore) {
-      return { success: true, testScoreId: existingScore.id, courseWordsMastered: 0, error: null };
+      // Still compute the real vocab count so the modal shows the correct value
+      const { data: lessonForCourse } = await supabase
+        .from("lessons")
+        .select("course_id")
+        .eq("id", lessonId)
+        .single();
+      let dedupeVocabCount = 0;
+      if (lessonForCourse?.course_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
+        const { data: vocabCount } = await (supabase.rpc as any)("get_course_vocab_count", {
+          p_user_id: user.id,
+          p_course_id: lessonForCourse.course_id,
+        });
+        dedupeVocabCount = (vocabCount as number) || 0;
+      }
+      return { success: true, testScoreId: existingScore.id, courseWordsMastered: dedupeVocabCount, error: null };
     }
   }
 
@@ -473,32 +488,23 @@ export async function completeTestSession(
     // Non-critical — don't fail the session completion
   }
 
-  // 7. Get mastered word count scoped to this course
+  // 7. Get learned+mastered word count scoped to this course via DB function
+  // (avoids massive .in() clause that exceeds PostgREST URL length limits)
   const courseId = lessonWithCourse?.course_id;
   let courseWordsMastered = 0;
   if (courseId) {
-    // Get all word IDs in this course via lesson_words junction
-    const { data: courseWords } = await supabase
-      .from("lesson_words")
-      .select("word_id, lessons!inner(course_id), words(category)")
-      .eq("lessons.course_id", courseId)
-      .limit(SUPABASE_ALL_ROWS);
-    warnIfTruncated("completeTestSession:lesson_words", courseWords?.length ?? 0);
-
-    if (courseWords && courseWords.length > 0) {
-      // Exclude information pages from course word count
-      const testableWords = courseWords.filter(
-        (cw) => (cw.words as unknown as { category: string | null })?.category !== "information"
-      );
-      const courseWordIds = new Set(testableWords.map((cw) => cw.word_id));
-      const { count } = await supabase
-        .from("user_word_progress")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .in("status", ["learned", "mastered"])
-        .in("word_id", [...courseWordIds]);
-      courseWordsMastered = count || 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
+    const { data: vocabCount, error: rpcError } = await (supabase.rpc as any)("get_course_vocab_count", {
+      p_user_id: user.id,
+      p_course_id: courseId,
+    });
+    if (rpcError) {
+      console.error("[Test Session] get_course_vocab_count RPC error:", rpcError);
     }
+    console.log("[Test Session] courseVocab:", { courseId, userId: user.id, vocabCount, type: typeof vocabCount });
+    courseWordsMastered = (vocabCount as number) || 0;
+  } else {
+    console.warn("[Test Session] No courseId found for lesson", lessonId, "lessonWithCourse:", lessonWithCourse);
   }
 
   // Revalidate all pages that display lesson/word stats

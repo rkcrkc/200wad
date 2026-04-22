@@ -504,6 +504,7 @@ export async function updateLessonProgress(
     lesson_id: lessonId,
     status: lessonStatus,
     completion_percent: completionPercent,
+    words_learned: wordsLearnedOrMastered,
     words_mastered: wordsMastered,
     total_study_time_seconds: currentTotalTime + additionalTimeSeconds,
     last_studied_at: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import { DashboardContent } from "@/components/DashboardContent";
 import { TooltipInit } from "@/components/TooltipInit";
+import { Toaster } from "@/components/ui/toaster";
 import {
   getDueTestsCount,
   getCurrentCourse,
@@ -7,11 +8,14 @@ import {
   getCourseProgress,
   getActivePricingPlans,
   getLeaderboard,
+  getUserSubscriptions,
 } from "@/lib/queries";
 import { getTextOverrides } from "@/lib/queries/text";
+import { getSubscriptionDisplayInfo, type SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
+import type { SimpleSubscription } from "@/context/SubscriptionContext";
 
 export default async function DashboardLayout({
   children,
@@ -27,7 +31,7 @@ export default async function DashboardLayout({
   const { course, language } = await getCurrentCourse();
 
   // Fetch stats and pricing in parallel
-  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardData, textOverridesResult] = await Promise.all([
+  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardData, textOverridesResult, subsResult, displayInfo] = await Promise.all([
     course ? getDueTestsCount(course.id) : Promise.resolve(0),
     getUserLearningStats(),
     course ? getCourseProgress(course.id) : Promise.resolve(null),
@@ -35,7 +39,18 @@ export default async function DashboardLayout({
     getEnabledTiers(),
     language ? getLeaderboard(language.id, "avg_words_per_day", "week") : Promise.resolve(null),
     getTextOverrides(),
+    isGuest ? Promise.resolve({ subscriptions: [], error: null }) : getUserSubscriptions(),
+    getSubscriptionDisplayInfo(),
   ]);
+
+  // Simplify subscriptions for client context
+  const subscriptions: SimpleSubscription[] = subsResult.subscriptions.map((s) => ({
+    type: s.type as SimpleSubscription["type"],
+    targetId: s.target_id,
+    isEffective: s.isEffective,
+    cancelAtPeriodEnd: s.cancel_at_period_end ?? false,
+    currentPeriodEnd: s.current_period_end,
+  }));
 
   // Prepare default course context for header
   const defaultCourseContext = course && language
@@ -64,6 +79,7 @@ export default async function DashboardLayout({
   return (
     <div className="h-screen overflow-visible bg-white">
       <TooltipInit />
+      <Toaster />
       <DashboardContent
         dueTestsCount={dueTestsCount}
         defaultCourseContext={defaultCourseContext}
@@ -72,6 +88,8 @@ export default async function DashboardLayout({
         plans={plansResult.plans}
         enabledTiers={enabledTiers}
         textOverrides={textOverridesResult.overrides}
+        subscriptions={subscriptions}
+        displayInfo={displayInfo}
       >
         {children}
       </DashboardContent>

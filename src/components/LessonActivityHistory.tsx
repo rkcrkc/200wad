@@ -273,7 +273,7 @@ export function LessonActivityHistory({
                 <tr
                   key={activity.id}
                   className={cn(
-                    "group transition-colors hover:bg-bone-hover",
+                    "group cursor-default transition-colors hover:bg-bone-hover",
                     index !== 0 && "border-t border-bone-hover"
                   )}
                 >

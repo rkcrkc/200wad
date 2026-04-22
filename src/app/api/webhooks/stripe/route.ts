@@ -65,6 +65,12 @@ export async function POST(request: Request) {
         break;
       }
 
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleInvoicePaymentFailed(supabase, invoice);
+        break;
+      }
+
       default:
         // Unhandled event type — acknowledge silently
         break;
@@ -203,4 +209,35 @@ async function handleSubscriptionDeleted(
     .from("subscriptions")
     .update({ status: "expired" })
     .eq("stripe_subscription_id", subscription.id);
+}
+
+async function handleInvoicePaymentFailed(
+  supabase: AdminClient,
+  invoice: Stripe.Invoice
+) {
+  // Extract subscription ID from invoice
+  const subDetail = invoice.parent?.subscription_details?.subscription;
+  const stripeSubId =
+    typeof subDetail === "string" ? subDetail : subDetail?.id;
+
+  if (!stripeSubId) return;
+
+  // Mark subscription as past_due
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .update({ status: "past_due" })
+    .eq("stripe_subscription_id", stripeSubId)
+    .select("user_id")
+    .single();
+
+  // Insert in-app notification so user sees an alert
+  if (sub?.user_id) {
+    await supabase.from("notifications").insert({
+      user_id: sub.user_id,
+      type: "payment_failed",
+      title: "Payment failed",
+      message:
+        "Your latest subscription payment failed. Please update your payment method to avoid losing access.",
+    });
+  }
 }

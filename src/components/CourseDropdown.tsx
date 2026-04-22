@@ -105,7 +105,7 @@ export function CourseDropdown({
     >
       {/* Trigger */}
       <div className="flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover">
-        <div className="flex h-full min-w-0 items-center gap-3 pl-4">
+        <div className="flex h-full min-w-0 flex-1 items-center gap-3 pl-4 pr-3">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
             {languageFlag}
           </div>
@@ -113,7 +113,7 @@ export function CourseDropdown({
             <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
               Learning
             </span>
-            <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+            <span className="max-w-full text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
               {courseName}
             </span>
           </div>
@@ -130,51 +130,49 @@ export function CourseDropdown({
             </span>
           </div>
 
-          {/* Courses list (excluding current) */}
+          {/* Courses list */}
           <div className="max-h-[320px] overflow-y-auto pb-1">
             {loading ? (
               <div className="flex items-center justify-center py-6">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-primary" />
               </div>
-            ) : (() => {
-              const otherCourses = courses?.filter((c) => c.id !== courseId) ?? [];
-              return otherCourses.length > 0 ? (
-                otherCourses.map((course) => {
-                  const level = (course.level || "beginner") as keyof typeof levelStyles;
-                  return (
-                    <button
-                      key={course.id}
-                      onClick={() => handleSelectCourse(course.id)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover"
-                    >
-                      {/* Course info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-foreground truncate text-[14px] leading-[1.35] font-medium">
-                          {course.name}
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium leading-[1.35] ${levelStyles[level]}`}
-                          >
-                            {levelLabels[course.level || "beginner"] || course.level}
-                            {course.cefr_range && ` · ${course.cefr_range}`}
-                          </span>
-                        </div>
+            ) : courses && courses.length > 0 ? (
+              courses.map((course) => {
+                const level = (course.level || "beginner") as keyof typeof levelStyles;
+                const isCurrent = course.id === courseId;
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => handleSelectCourse(course.id)}
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover ${isCurrent ? "bg-bone" : ""}`}
+                  >
+                    {/* Course info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-foreground truncate text-[14px] leading-[1.35] font-medium">
+                        {course.name}
                       </div>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium leading-[1.35] ${levelStyles[level]}`}
+                        >
+                          {levelLabels[course.level || "beginner"] || course.level}
+                          {course.cefr_range && ` · ${course.cefr_range}`}
+                        </span>
+                      </div>
+                    </div>
 
-                      {/* Progress */}
-                      <span className="text-muted-foreground shrink-0 text-[12px] font-medium">
-                        {formatPercent(course.progressPercent)}
-                      </span>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  No other courses available
-                </div>
-              );
-            })()}
+                    {/* Progress */}
+                    <span className="text-muted-foreground shrink-0 text-[12px] font-medium">
+                      {formatPercent(course.progressPercent)}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                No courses available
+              </div>
+            )}
           </div>
 
           {/* Footer: Switch language */}

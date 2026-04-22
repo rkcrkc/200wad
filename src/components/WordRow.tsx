@@ -14,9 +14,10 @@ interface WordRowProps {
   isFirst?: boolean;
   isLast?: boolean;
   isSelected?: boolean;
+  showScrollFade?: boolean;
 }
 
-export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFirst, isLast, isSelected }: WordRowProps) {
+export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFirst, isLast, isSelected, showScrollFade }: WordRowProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (
@@ -91,10 +92,11 @@ export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFir
 
       {/* Chevron - sticky on horizontal scroll */}
       <td className={cn(
-        "sticky right-0 px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         "bg-white",
         isFirst && "rounded-tr-xl",
-        isLast && "rounded-br-xl"
+        isLast && "rounded-br-xl",
+        showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
       )}>
         <div className="flex justify-end">
           <ChevronRight className="h-5 w-5 text-muted-foreground" />

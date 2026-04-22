@@ -5,20 +5,43 @@ import Link from "next/link";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { formatNumber } from "@/lib/utils/helpers";
 
+import type { PricingPlan } from "@/types/database";
+
 interface UnlockBundlePromoProps {
   languageName: string;
   courseCount: number;
   totalWords: number;
+  plans?: PricingPlan[];
+}
+
+function formatPrice(cents: number): string {
+  const dollars = cents / 100;
+  return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`;
 }
 
 export function UnlockBundlePromo({
   languageName,
   courseCount,
   totalWords,
+  plans = [],
 }: UnlockBundlePromoProps) {
   const [pricingMode, setPricingMode] = useState<"subscription" | "lifetime">(
     "subscription"
   );
+
+  // Calculate lowest monthly equivalent (from annual or monthly plans)
+  const languagePlans = plans.filter((p) => p.tier === "language");
+  const monthlyPlan = languagePlans.find((p) => p.billing_model === "monthly");
+  const annualPlan = languagePlans.find((p) => p.billing_model === "annual");
+  const lifetimePlan = languagePlans.find((p) => p.billing_model === "lifetime");
+
+  const lowestMonthly = annualPlan
+    ? Math.round(annualPlan.amount_cents / 12)
+    : monthlyPlan?.amount_cents ?? null;
+
+  const savingsPercent = monthlyPlan && annualPlan
+    ? Math.round(((monthlyPlan.amount_cents * 12 - annualPlan.amount_cents) / (monthlyPlan.amount_cents * 12)) * 100)
+    : null;
 
   return (
     <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-6 shadow-lg">
@@ -44,7 +67,7 @@ export function UnlockBundlePromo({
           {/* Description */}
           <p className="mb-4 text-blue-100">
             Get access to all {formatNumber(courseCount)} courses with {formatNumber(totalWords)} words
-            total. Save up to 40% compared to buying individually.
+            total.{savingsPercent ? ` Save up to ${savingsPercent}% with annual billing.` : ""}
           </p>
 
           {/* Pricing Toggle */}
@@ -79,12 +102,16 @@ export function UnlockBundlePromo({
           {pricingMode === "subscription" ? (
             <>
               <div className="mb-1 text-sm text-blue-100">from</div>
-              <div className="mb-1 text-5xl font-bold text-white">$10.75</div>
+              <div className="mb-1 text-5xl font-bold text-white">
+                {lowestMonthly ? formatPrice(lowestMonthly) : "$10.75"}
+              </div>
               <div className="mb-4 text-sm text-blue-100">/month</div>
             </>
           ) : (
             <>
-              <div className="mb-1 text-5xl font-bold text-white">$120</div>
+              <div className="mb-1 text-5xl font-bold text-white">
+                {lifetimePlan ? formatPrice(lifetimePlan.amount_cents) : "$120"}
+              </div>
               <div className="mb-4 text-sm text-blue-100">one-time payment</div>
             </>
           )}

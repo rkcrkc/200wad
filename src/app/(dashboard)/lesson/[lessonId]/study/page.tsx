@@ -25,7 +25,7 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
       { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
     );
     if (!access.hasAccess) {
-      redirect(`/course/${course.id}`);
+      redirect(`/course/${course.id}?locked=${encodeURIComponent(lesson.title)}`);
     }
   }
 

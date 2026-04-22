@@ -899,6 +899,7 @@ export type Database = {
           total_study_time_seconds: number | null
           updated_at: string | null
           user_id: string | null
+          words_learned: number | null
           words_mastered: number | null
         }
         Insert: {
@@ -913,6 +914,7 @@ export type Database = {
           total_study_time_seconds?: number | null
           updated_at?: string | null
           user_id?: string | null
+          words_learned?: number | null
           words_mastered?: number | null
         }
         Update: {
@@ -927,6 +929,7 @@ export type Database = {
           total_study_time_seconds?: number | null
           updated_at?: string | null
           user_id?: string | null
+          words_learned?: number | null
           words_mastered?: number | null
         }
         Relationships: [

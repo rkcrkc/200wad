@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, X, ArrowRight, Sparkles, Check } from "lucide-react";
+import { Lock, X, ArrowRight, ChevronRight, Sparkles, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { createDirectCheckout } from "@/lib/mutations/checkout";
 import type { PricingPlan } from "@/types/database";
 
 interface UpgradeModalProps {
@@ -17,6 +18,8 @@ interface UpgradeModalProps {
   languageId?: string;
   plans: PricingPlan[];
   enabledTiers: string[];
+  originLessonId?: string;
+  freeLessons?: number;
 }
 
 type BillingModel = "monthly" | "annual" | "lifetime";
@@ -40,11 +43,13 @@ function calculateSavings(monthly: PricingPlan, annual: PricingPlan): number {
   );
 }
 
-const FREE_FEATURES = [
-  "First 10 lessons per language",
-  "Limited study & test sessions",
-  "Basic progress tracking",
-];
+function getFreeFeatures(freeLessons: number) {
+  return [
+    `First ${freeLessons} lessons per language`,
+    "Limited study & test sessions",
+    "Basic progress tracking",
+  ];
+}
 
 const LANGUAGE_FEATURES = [
   "All lessons for this language",
@@ -127,11 +132,12 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, badge }
   );
 }
 
-function FreePlanCard() {
+function FreePlanCard({ freeLessons = 10 }: { freeLessons?: number }) {
+  const features = getFreeFeatures(freeLessons);
   return (
-    <div className="rounded-t-xl border-x border-t border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-t-xl border-x border-t border-border bg-white overflow-hidden">
       {/* Header section */}
-      <div className="border-b border-gray-200 bg-gray-50 px-5 py-4">
+      <div className="border-b border-border bg-bone px-5 py-4">
         <div className="mb-3 flex items-center gap-2">
           <span className="text-xl">🎓</span>
           <span className="text-xl-semibold">Free</span>
@@ -145,7 +151,7 @@ function FreePlanCard() {
       {/* Features */}
       <div className="px-5 py-4">
         <ul className="space-y-2.5">
-          {FREE_FEATURES.map((feature) => (
+          {features.map((feature) => (
             <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
               <span>{feature}</span>
@@ -189,10 +195,35 @@ export function UpgradeModal({
   languageId,
   plans,
   enabledTiers,
+  originLessonId,
+  freeLessons,
 }: UpgradeModalProps) {
   const [billingModel, setBillingModel] = useState<BillingModel>("annual");
+  const [checkoutTier, setCheckoutTier] = useState<"language" | "all-languages" | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleCheckout = async (tier: "language" | "all-languages") => {
+    setCheckoutTier(tier);
+    setCheckoutError(null);
+
+    const result = await createDirectCheckout({
+      tier,
+      billingModel,
+      languageId: tier === "language" ? (languageId ?? null) : null,
+      languageName: tier === "language" ? (languageName ?? null) : null,
+      originLessonId,
+      cancelUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/account/subscriptions`,
+    });
+
+    if (result.success && result.url) {
+      window.location.href = result.url;
+    } else {
+      setCheckoutError(result.error || "Something went wrong. Please try again.");
+      setCheckoutTier(null);
+    }
+  };
 
   const showLanguageTier =
     enabledTiers.includes("language") && languageId;
@@ -234,7 +265,7 @@ export function UpgradeModal({
           >
             <X className="h-5 w-5" />
           </button>
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="ghost" size="sm">
             <Link href="/account/subscriptions" onClick={onClose}>
               Manage Subscriptions
               <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -255,11 +286,13 @@ export function UpgradeModal({
 
             {/* Heading */}
             <div className="text-center">
-              <h2 className="text-xl-semibold mb-2">Upgrade to Unlock</h2>
+              <h2 className="text-xl-semibold mb-2">
+                {lessonTitle ? "Upgrade to Unlock" : "Choose a Plan"}
+              </h2>
               <p className="text-regular text-muted-foreground">
                 {lessonTitle
                   ? `"${lessonTitle}" requires a subscription to access.`
-                  : "This lesson requires a subscription to access."}
+                  : "Subscribe to unlock all lessons and features."}
               </p>
             </div>
           </div>
@@ -269,7 +302,7 @@ export function UpgradeModal({
             {/* Billing toggle */}
             {availableOptions.length > 1 && (
               <div className="mb-5 flex justify-center">
-                <div className="inline-flex items-center rounded-lg bg-gray-100 p-1">
+                <div className="inline-flex items-center rounded-lg bg-bone p-1">
                   {availableOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -295,7 +328,7 @@ export function UpgradeModal({
 
             {/* Pricing cards */}
             <div className={cn("grid flex-1 grid-cols-1 gap-4", gridCols)}>
-              <FreePlanCard />
+              <FreePlanCard freeLessons={freeLessons} />
               {showLanguageTier && (
                 <PricingCard
                   title={languageName || "Language"}
@@ -323,29 +356,48 @@ export function UpgradeModal({
 
         {/* Fixed footer with CTAs styled as card bottoms */}
         <div className="shrink-0 px-6 pb-6">
+          {checkoutError && (
+            <p className="mb-3 text-center text-sm text-destructive">{checkoutError}</p>
+          )}
           <div className={cn("grid grid-cols-1 gap-4", gridCols)}>
-            <div className="rounded-b-xl border-x border-b border-gray-200 border-t border-t-gray-200 bg-white px-5 py-4">
+            <div className="rounded-b-xl border-x border-b border-border border-t border-t-border bg-white px-5 py-4">
               <Button variant="outline" className="w-full" size="xl" disabled>
                 Current Plan
               </Button>
             </div>
             {showLanguageTier && (
               <div className="rounded-b-xl border-x border-b border-amber-300 border-t border-t-amber-200 bg-amber-50/50 px-5 py-4">
-                <Button asChild className="w-full" size="xl">
-                  <Link href="/account/subscriptions" onClick={onClose}>
-                    Subscribe
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
+                <Button
+                  className="w-full"
+                  size="xl"
+                  disabled={checkoutTier !== null}
+                  onClick={() => handleCheckout("language")}
+                >
+                  {checkoutTier === "language" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Subscribe
+                  {checkoutTier !== "language" && (
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  )}
                 </Button>
               </div>
             )}
             {showAllLanguagesTier && (
               <div className="rounded-b-xl border-x border-b border-amber-300 border-t border-t-amber-200 bg-amber-50/50 px-5 py-4">
-                <Button asChild className="w-full" size="xl">
-                  <Link href="/account/subscriptions" onClick={onClose}>
-                    Subscribe
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
+                <Button
+                  className="w-full"
+                  size="xl"
+                  disabled={checkoutTier !== null}
+                  onClick={() => handleCheckout("all-languages")}
+                >
+                  {checkoutTier === "all-languages" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Subscribe
+                  {checkoutTier !== "all-languages" && (
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  )}
                 </Button>
               </div>
             )}

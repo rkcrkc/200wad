@@ -342,7 +342,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
         wordsStudied++;
       }
-      if (wp.status === "learned") {
+      if (wp.status === "learned" || wp.status === "mastered") {
         wordsLearned++;
       }
       if (wp.status === "mastered") {
@@ -859,7 +859,7 @@ async function getAutoLessonWords(
     if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
       wordsStudied++;
     }
-    if (wp.status === "learned") {
+    if (wp.status === "learned" || wp.status === "mastered") {
       wordsLearned++;
     }
     if (wp.status === "mastered") {

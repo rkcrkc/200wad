@@ -7,6 +7,7 @@ import { LessonRow } from "@/components/LessonRow";
 import { InlineSearch } from "@/components/InlineSearch";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
+import { useScrollFade } from "@/hooks/useScrollFade";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { PricingPlan } from "@/types/database";
@@ -69,6 +70,7 @@ function SortableHeader({
 
 export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers }: LessonsListProps) {
   const { t } = useText();
+  const { scrollRef, canScrollRight } = useScrollFade();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>("number");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -207,7 +209,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
       </div>
 
       {/* Lessons Table */}
-      <div className="overflow-x-auto pt-10 -mt-10">
+      <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
         <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
           {/* Table Header */}
           <thead>
@@ -313,7 +315,10 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="sticky right-0 z-10 w-[110px] bg-background px-2 py-3"></th>
+                  <th className={cn(
+                    "sticky right-0 z-10 w-[110px] bg-background px-2 py-3",
+                    canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+                  )}></th>
                 </>
               ) : (
                 <>
@@ -367,7 +372,10 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="sticky right-0 z-10 w-[140px] bg-background px-2 py-3"></th>
+                  <th className={cn(
+                    "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
+                    canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+                  )}></th>
                 </>
               )}
             </tr>
@@ -400,6 +408,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                   showStats={showStats}
                   milestoneScores={milestoneScores?.get(lesson.id)}
                   onLockedClick={setLockedLesson}
+                  showScrollFade={canScrollRight}
                 />
               ))
             )}
@@ -417,6 +426,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         languageId={languageId}
         plans={plans || []}
         enabledTiers={enabledTiers || []}
+        originLessonId={lockedLesson?.id}
       />
     </>
   );

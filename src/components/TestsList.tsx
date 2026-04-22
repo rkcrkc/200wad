@@ -7,6 +7,7 @@ import { TestForList } from "@/lib/queries/tests";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { useScrollFade } from "@/hooks/useScrollFade";
 import { cn } from "@/lib/utils";
 import { formatPercent } from "@/lib/utils/helpers";
 
@@ -21,6 +22,7 @@ interface TestsListProps {
 
 export function TestsList({ dueTests, previousTests, languageFlag, averageScore }: TestsListProps) {
   const [filter, setFilter] = useState<FilterType>("due");
+  const { scrollRef, canScrollRight } = useScrollFade();
 
   const tabs: Tab[] = [
     { id: "due", label: "Tests Due", count: dueTests.length },
@@ -43,11 +45,11 @@ export function TestsList({ dueTests, previousTests, languageFlag, averageScore 
       </div>
 
       {/* Tests Table */}
-      <div className="overflow-x-auto pt-10 -mt-10">
-        <table className="min-w-[950px] w-full table-fixed border-separate border-spacing-0">
+      <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
+          <table className="min-w-[950px] w-full table-fixed border-separate border-spacing-0">
           {/* Table Header */}
           <thead>
-            <tr className="cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
+            <tr className="h-12 cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
               <th className="w-[50px] px-6 py-3 text-left font-medium">#</th>
               <th className="px-2 py-3 text-left font-medium">Lesson</th>
               <th className="w-[90px] px-2 py-3 text-left font-medium">Test Name</th>
@@ -69,7 +71,10 @@ export function TestsList({ dueTests, previousTests, languageFlag, averageScore 
               <th className={cn(filter === "previous" ? "w-[80px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}># Words</th>
               <th className={cn(filter === "previous" ? "w-[100px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}>{filter === "previous" ? "New Learned" : "# Learned"}</th>
               <th className={cn(filter === "previous" ? "w-[100px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}>{filter === "previous" ? "New Mastered" : "# Mastered"}</th>
-              <th className="sticky right-0 z-10 w-[140px] bg-background px-2 py-3"></th>
+              <th className={cn(
+                "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
+                canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+              )}></th>
             </tr>
           </thead>
 
@@ -93,11 +98,12 @@ export function TestsList({ dueTests, previousTests, languageFlag, averageScore 
                   isFirst={index === 0}
                   isLast={index === currentTests.length - 1}
                   showScore={filter === "previous"}
+                  showScrollFade={canScrollRight}
                 />
               ))
             )}
           </tbody>
-        </table>
+          </table>
       </div>
     </>
   );

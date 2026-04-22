@@ -63,7 +63,8 @@ export async function getUserSubscriptions(): Promise<GetUserSubscriptionsResult
 }
 
 /**
- * Check if user has any active subscription that covers a given target.
+ * Check if user has any effective subscription that covers a given target.
+ * "Effective" means active, or cancelled but still within the paid period.
  */
 export async function hasActiveSubscription(
   userId: string,
@@ -71,12 +72,13 @@ export async function hasActiveSubscription(
   targetId?: string
 ): Promise<boolean> {
   const supabase = await createClient();
+  const now = new Date().toISOString();
 
   let query = supabase
     .from("subscriptions")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .in("status", ["active", "cancelled"]);
+    .or(`status.eq.active,and(status.eq.cancelled,current_period_end.gt.${now})`);
 
   if (targetType === "all-languages") {
     query = query.eq("type", "all-languages");

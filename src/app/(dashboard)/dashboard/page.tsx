@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLanguages } from "@/lib/queries";
+import { getUserSubscriptions } from "@/lib/queries/subscriptions";
+import { getDefaultFreeLessons } from "@/lib/utils/accessControl";
 import { LanguageCard } from "@/components/LanguageCard";
 import { AddLanguageCard } from "@/components/AddLanguageCard";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,7 +33,20 @@ export default async function DashboardPage({
   }
 
   // No current course - show My Languages to pick one
-  const { languages, isGuest } = await getLanguages();
+  const [{ languages, isGuest }, subsResult, freeLessons] = await Promise.all([
+    getLanguages(),
+    user ? getUserSubscriptions() : Promise.resolve({ subscriptions: [], error: null }),
+    getDefaultFreeLessons(),
+  ]);
+
+  // Build access map
+  const effectiveSubs = subsResult.subscriptions.filter((s) => s.isEffective);
+  const hasAllAccess = effectiveSubs.some((s) => s.type === "all-languages");
+  const accessByLanguage = new Set(
+    effectiveSubs
+      .filter((s) => s.type === "language" && s.target_id)
+      .map((s) => s.target_id!)
+  );
 
   return (
     <PageContainer size="md">
@@ -58,6 +73,8 @@ export default async function DashboardPage({
                 key={language.id}
                 language={language}
                 isActive={language.isCurrentLanguage}
+                hasAccess={hasAllAccess || accessByLanguage.has(language.id)}
+                freeLessons={freeLessons}
               />
             ))}
             <AddLanguageCard />

@@ -75,7 +75,7 @@ export function LanguageSubscriptionRow({
   return (
     <div>
       <div
-        className={`px-6 py-4 transition-colors ${
+        className={`cursor-default px-6 py-4 transition-colors ${
           isInCart
             ? "bg-blue-50/50"
             : isDisabled || !showSwitch
@@ -102,9 +102,15 @@ export function LanguageSubscriptionRow({
                 <Badge size="sm">
                   {getPlanLabel(langSub.plan)}
                 </Badge>
-                <Badge size="sm" variant="success">
-                  Active
-                </Badge>
+                {langSub.cancel_at_period_end && langSub.current_period_end ? (
+                  <Badge size="sm" variant="warning">
+                    Cancels {new Date(langSub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </Badge>
+                ) : (
+                  <Badge size="sm" variant="success">
+                    Active
+                  </Badge>
+                )}
               </>
             ) : hasAllLangsSub ? (
               <Badge size="sm" variant="success">

@@ -16,9 +16,10 @@ interface LessonRowProps {
   showStats?: boolean;
   milestoneScores?: LessonMilestoneScores;
   onLockedClick?: (lesson: LessonWithProgress) => void;
+  showScrollFade?: boolean;
 }
 
-export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores, onLockedClick }: LessonRowProps) {
+export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores, onLockedClick, showScrollFade }: LessonRowProps) {
   const router = useRouter();
   const statusType = mapStatus(lesson.status, lesson.isLocked);
   const wordCount = lesson.word_count ?? 0;
@@ -113,7 +114,8 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         <td className={cn(
           "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
           isFirst && "rounded-tr-xl",
-          isLast && "rounded-br-xl"
+          isLast && "rounded-br-xl",
+          showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
         )}>
           <div className="flex justify-end">
             {lesson.isLocked ? (
@@ -204,7 +206,8 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       <td className={cn(
         "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
         isFirst && "rounded-tr-xl",
-        isLast && "rounded-br-xl"
+        isLast && "rounded-br-xl",
+        showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
       )}>
         <div className="flex items-center justify-end gap-1">
           {lesson.isLocked ? (

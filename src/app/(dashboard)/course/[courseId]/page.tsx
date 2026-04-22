@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
 import { setCurrentCourse } from "@/lib/mutations";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
@@ -7,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { CourseStatsBar } from "@/components/CourseStatsBar";
+import { LockedLessonToast } from "@/components/LockedLessonToast";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -46,6 +48,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   return (
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
+    <Suspense><LockedLessonToast /></Suspense>
     <PageShell withTopPadding={false} className="pt-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

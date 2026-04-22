@@ -1,9 +1,21 @@
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
+import { getCheckoutSessionOrigin } from "@/lib/queries/checkout";
 
-export default function SubscriptionSuccessPage() {
+interface SuccessPageProps {
+  searchParams: Promise<{ session_id?: string }>;
+}
+
+export default async function SubscriptionSuccessPage({ searchParams }: SuccessPageProps) {
+  const { session_id } = await searchParams;
+
+  // Try to get origin lesson context from the Stripe session
+  const origin = session_id
+    ? await getCheckoutSessionOrigin(session_id)
+    : null;
+
   return (
     <PageContainer size="sm">
       <div className="rounded-2xl bg-white p-8 text-center shadow-card">
@@ -17,9 +29,19 @@ export default function SubscriptionSuccessPage() {
           Your subscription is now active. You have full access to all your
           subscribed content.
         </p>
-        <Button asChild>
-          <Link href="/account/subscriptions">View My Subscriptions</Link>
-        </Button>
+        <div className="flex flex-col items-center gap-3">
+          {origin?.lessonId && (
+            <Button asChild>
+              <Link href={`/lesson/${origin.lessonId}`}>
+                Continue to {origin.lessonTitle || "Lesson"}
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          <Button asChild variant={origin?.lessonId ? "outline" : "default"}>
+            <Link href="/account/subscriptions">View My Subscriptions</Link>
+          </Button>
+        </div>
       </div>
     </PageContainer>
   );

@@ -51,12 +51,13 @@ function getLevelEmoji(level: string | null): string {
 interface OnboardingModalProps {
   languages: LanguageWithCourses[];
   defaultCourseId: string;
+  freeLessons?: number;
 }
 
 type Step = "language" | "signup";
 type AuthMode = "signup" | "signin";
 
-export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalProps) {
+export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }: OnboardingModalProps) {
   const [step, setStep] = useState<Step>("language");
   // Pre-select first language by default
   const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(
@@ -200,6 +201,27 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
               Click the link to start learning!
             </p>
           </div>
+          <div className="px-8 py-6">
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-base">🎓</span>
+                <span>
+                  <strong className="text-foreground">What&apos;s included free:</strong>{" "}
+                  First {freeLessons} lessons{selectedLanguage ? ` in ${selectedLanguage.name}` : ""}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-base">✨</span>
+                <span>Upgrade anytime for full access to all lessons</span>
+              </div>
+            </div>
+            <a
+              href="/account/subscriptions"
+              className="mt-3 inline-block text-sm text-primary hover:underline"
+            >
+              View Plans
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -215,6 +237,9 @@ export function OnboardingModal({ languages, defaultCourseId }: OnboardingModalP
             <h1 className="mb-2 text-3xl font-bold">Welcome to 200 Words a Day</h1>
             <p className="text-muted-foreground">
               What language do you want to study?
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              First {freeLessons} lessons free in every course
             </p>
           </div>
 

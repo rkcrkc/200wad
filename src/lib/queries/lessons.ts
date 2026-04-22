@@ -355,7 +355,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
 
       // Also count learned and mastered words from user_word_progress
       wordsLearned = userProgressResult.data.filter(
-        (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "learned"
+        (p) => p.word_id && courseWordIds.has(p.word_id) && (p.status === "learned" || p.status === "mastered")
       ).length;
       wordsMastered = userProgressResult.data.filter(
         (p) => p.word_id && courseWordIds.has(p.word_id) && p.status === "mastered"

@@ -53,8 +53,8 @@ The app uses a freemium model: first N lessons per course are free (default 10, 
 **On click:** Opens the UpgradeModal
 
 **Issues:**
-- **Hardcoded "20 lessons"** — does not dynamically reflect the actual lesson count for the current course.
-- **Always shows regardless of subscription status** — a paying subscriber still sees "Unlock All Lessons", which is confusing and erodes trust in the purchase.
+- ~~**Hardcoded "20 lessons"**~~ **RESOLVED** — Now uses dynamic `freeLessons` prop.
+- ~~**Always shows regardless of subscription status**~~ **RESOLVED** — Hidden for subscribers via `SubscriptionContext`. Shows "Access Ending" warning when subscription is cancelling.
 
 ---
 
@@ -65,7 +65,7 @@ The app uses a freemium model: first N lessons per course are free (default 10, 
 **What the user sees:** Identical to the sidebar card.
 **On click:** Closes menu, then opens the UpgradeModal.
 
-**Issues:** Same as sidebar — hardcoded lesson count, shows to subscribers.
+**Issues:** ~~Same as sidebar — hardcoded lesson count, shows to subscribers.~~ **RESOLVED** — Dynamic lesson count, hidden for subscribers. Now shows "Access Ending" warning when subscription is cancelling.
 
 ---
 
@@ -170,6 +170,39 @@ The app uses a freemium model: first N lessons per course are free (default 10, 
 
 ---
 
+### 11. Onboarding Flow (No Upgrade CTA)
+
+**Files:**
+- `src/components/auth/OnboardingModal.tsx`
+- `src/app/(dashboard)/course/[courseId]/schedule/page.tsx`
+- `src/app/(dashboard)/dashboard/page.tsx`
+
+**Current flow:**
+
+```
+Guest lands on / → Redirect to /course/{DEFAULT_COURSE_ID}/schedule →
+OnboardingModal (Step 1: language selection → Step 2: signup/signin) →
+Email verification → /course/{courseId}/schedule (authenticated)
+```
+
+**Step 1 — Language Selection:**
+- Header: "Welcome to 200 Words a Day"
+- Scrollable list of languages with course thumbnails and counts
+- Footer: "Start [Language]" CTA + "Already have account? Log in"
+
+**Step 2 — Signup/Signin:**
+- Email + password form (or social auth)
+- On success: either immediate session → course schedule, or "Check your email" verification screen
+
+**Post-signup:**
+- `addLanguageWithCourse()` sets up the user's first language and course
+- User lands on the course schedule page with no further onboarding steps
+- On subsequent visits, `/dashboard` (My Languages) auto-redirects to current course unless `?pick=true`
+
+**What's missing:** There is **zero upgrade messaging** anywhere in the onboarding funnel. The user signs up, lands on the schedule, and discovers the freemium model only when they scroll far enough to encounter a locked lesson. There is no moment where the value proposition of a paid plan is communicated proactively — the user has to stumble into a paywall.
+
+---
+
 ## Critical UX Problems
 
 ### Problem 1: Broken Conversion Funnel (7 Steps to Convert)
@@ -244,6 +277,33 @@ After completing checkout, the success page links back to the subscriptions mana
 
 ---
 
+### Problem 7: No Upgrade CTA in Onboarding Flow
+
+The onboarding funnel (language selection → signup → course schedule) contains no mention of premium plans. Users complete signup without ever learning that paid tiers exist. They discover the freemium model only when they encounter a locked lesson — which feels like a bait-and-switch rather than a transparent value proposition.
+
+This is a missed opportunity at every stage:
+
+**1. Language selection (Step 1):** The user sees course counts and thumbnails but no indication of what's free vs. paid. A user choosing a language with 5 courses may assume they're all included. Setting expectations early ("First 10 lessons free in every course — upgrade anytime for full access") prevents negative surprise later.
+
+**2. Post-signup success screen:** The email verification screen currently shows a generic "Check your email" message. This dead-end screen is prime real estate — the user just committed to creating an account, intent is at its peak. A brief value pitch here (feature highlights, social proof, or a limited-time offer) would reach users at maximum receptivity.
+
+**3. First session on course schedule:** After signup, the user lands directly on the schedule with no welcome step. A lightweight welcome banner or interstitial ("Welcome! You have 10 free lessons — here's what you can unlock") would frame the free tier as a generous trial rather than a hidden limitation.
+
+**4. My Languages dashboard (returning users):** When users visit `/dashboard`, language cards show no premium indicators. A subtle badge ("3 of 20 lessons free") on each language card would create ongoing awareness without being intrusive.
+
+**Recommendation (tiered approach):**
+
+| Placement | Priority | Approach | Rationale |
+|-----------|----------|----------|-----------|
+| Post-signup success screen | **P1** | Add a "What you get" feature comparison below the verification message — free tier vs. paid. No hard sell, just transparency. | Highest intent moment; user just signed up. Framing expectations early prevents the locked-lesson surprise from feeling like a bait-and-switch. |
+| Language selection (Step 1) | **P2** | Add a subtle line below the language list: "First N lessons free in every course" | Sets expectations before commitment; reduces churn from unmet assumptions. |
+| First-session welcome banner | **P2** | Dismissible banner at top of schedule page (first visit only): "Welcome! You have N free lessons. [See what's included →]" | Frames the free tier positively; teaches the model before the user hits a wall. |
+| My Languages dashboard | **P3** | "X of Y lessons free" badge on language cards | Low-friction, ongoing awareness for returning users exploring new languages. |
+
+**Key principle:** The goal is **transparent framing**, not aggressive upselling. Users who understand the model upfront convert better and churn less than users who feel tricked by a hidden paywall. Every touchpoint should feel informative, not salesy.
+
+---
+
 ## Minor Issues
 
 | Issue | Location | Notes |
@@ -252,8 +312,8 @@ After completing checkout, the success page links back to the subscriptions mana
 | `ConfirmSubscriptionDialog` is unused | `src/components/subscriptions/` | Dead code — remove or integrate |
 | `PricingOverviewCards` is unused | `src/components/subscriptions/` | Dead code — remove or integrate |
 | Credits history uses dummy data | `CreditsHistoryClient.tsx` | Either implement or remove the page |
-| No `invoice.payment_failed` webhook handler | `src/app/api/webhooks/stripe/route.ts` | Users with failed payments get no in-app notification |
-| No client-side subscription state | `UserContext.tsx` | Every subscription check requires server round-trip |
+| ~~No `invoice.payment_failed` webhook handler~~ | ~~`src/app/api/webhooks/stripe/route.ts`~~ | **RESOLVED** — Handler exists, sets `past_due` status and creates notification |
+| ~~No client-side subscription state~~ | ~~`UserContext.tsx`~~ | **RESOLVED** — `SubscriptionContext` provides `hasLanguageAccess`, `hasAllLanguagesAccess`, and `accessEndDate` |
 
 ---
 
@@ -262,13 +322,14 @@ After completing checkout, the success page links back to the subscriptions mana
 | Priority | Issue | Recommendation |
 |----------|-------|----------------|
 | **P0** | 7-step conversion funnel | UpgradeModal creates Stripe checkout directly — skip cart page |
-| **P0** | CTAs show to subscribers | Add subscription state to UserContext; hide/adapt upgrade prompts |
+| ~~**P0**~~ | ~~CTAs show to subscribers~~ | **RESOLVED** — `SubscriptionContext` hides upgrade prompts for subscribers |
 | **P1** | Hardcoded values | Pull lesson counts, prices, and savings from DB/config dynamically |
 | **P1** | Silent redirects | Add toast notification explaining why user was redirected |
 | **P1** | Disconnected pricing UIs | Unify visual language or have modal handle checkout end-to-end |
 | **P1** | Success page misses the moment | Redirect to the content user wanted, not subscriptions page |
+| **P1** | No upgrade CTA in onboarding | Add feature comparison to post-signup screen; set free-tier expectations during language selection |
 | **P2** | Design system inconsistencies | Replace `bg-gray-*` with `bg-bone` in UpgradeModal |
 | **P2** | Dead components | Remove `ConfirmSubscriptionDialog` and `PricingOverviewCards` |
-| **P2** | Missing webhook handler | Implement `invoice.payment_failed` handling |
+| ~~**P2**~~ | ~~Missing webhook handler~~ | **RESOLVED** — `invoice.payment_failed` handler exists |
 | **P2** | Dummy credits data | Implement real credits history or remove page |
-| **P2** | No client-side subscription state | Add to UserContext for real-time UI adaptation |
+| ~~**P2**~~ | ~~No client-side subscription state~~ | **RESOLVED** — `SubscriptionContext` with access checks and cancellation awareness |
