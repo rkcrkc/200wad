@@ -37,10 +37,15 @@ export function CompletedModalShell({ onDismiss, children }: CompletedModalShell
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6"
       onClick={handleBackdropClick}
     >
-      <div className="flex h-[90vh] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white">
+      {/*
+        max-h uses dvh so mobile-Safari browser chrome is respected, and caps the
+        modal at viewport-minus-outer-padding so short viewports never overflow.
+        h-[90dvh] still targets 90% of viewport height when there's room.
+      */}
+      <div className="flex h-[90dvh] max-h-[calc(100dvh-2rem)] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white sm:max-h-[calc(100dvh-3rem)]">
         {children}
       </div>
     </div>
