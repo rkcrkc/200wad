@@ -10,6 +10,8 @@ interface CompletedModalActionCardProps {
   primary?: boolean;
   /** Muted action (dimmed text). */
   muted?: boolean;
+  /** Icon animation on hover. Defaults to "rotate". */
+  iconHover?: "rotate" | "shift";
 }
 
 /**
@@ -22,6 +24,7 @@ export function CompletedModalActionCard({
   onClick,
   primary,
   muted,
+  iconHover = "rotate",
 }: CompletedModalActionCardProps) {
   return (
     <button
@@ -34,7 +37,13 @@ export function CompletedModalActionCard({
             : "border-transparent bg-white text-foreground hover:border-primary"
       }`}
     >
-      <span className={primary ? "transition-transform duration-200 group-hover:-rotate-90" : ""}>
+      <span
+        className={
+          iconHover === "shift"
+            ? "transition-transform duration-200 group-hover:translate-x-1"
+            : "transition-transform duration-200 group-hover:-rotate-90"
+        }
+      >
         {icon}
       </span>
       <span className="text-center text-xs font-medium leading-tight">{label}</span>

@@ -179,31 +179,48 @@ export function LessonCompletedModal({
                 ...(learningWords.length > 0
                   ? [{ id: "learning", label: "Learning", count: learningWords.length }]
                   : []),
-                ...(learnedWords.length > 0
+                ...(masteredWords.length < words.length
                   ? [{ id: "learned", label: "Learned", count: learnedWords.length }]
                   : []),
-                ...(masteredWords.length > 0
-                  ? [{ id: "mastered", label: "Mastered", count: masteredWords.length }]
-                  : []),
+                { id: "mastered", label: "Mastered", count: masteredWords.length },
               ]}
               activeTab={activeTab}
               onChange={(tabId) => setActiveTab(tabId as "all" | "learning" | "learned" | "mastered")}
               className="mb-4"
             />
-            <WordGrid
-              words={displayWords}
-              imageMode={imageMode}
-              showForeign={showForeign}
-              showStatus
-              columns={columns}
-              onWordClick={setSelectedWordId}
-            />
+            {displayWords.length === 0 ? (
+              <div className="rounded-xl bg-white px-6 py-12 text-center">
+                <p className="text-regular-semibold text-foreground">
+                  {activeTab === "mastered"
+                    ? "No mastered words yet"
+                    : activeTab === "learned"
+                      ? "No learned words yet"
+                      : "No words"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {activeTab === "mastered"
+                    ? "Answer a word correctly 3 times in a row to master it."
+                    : activeTab === "learned"
+                      ? "Answer a word correctly with full marks to learn it."
+                      : ""}
+                </p>
+              </div>
+            ) : (
+              <WordGrid
+                words={displayWords}
+                imageMode={imageMode}
+                showForeign={showForeign}
+                showStatus
+                columns={columns}
+                onWordClick={setSelectedWordId}
+              />
+            )}
           </>
         )}
       </CompletedModalShell.Body>
 
       {selectedWord ? (
-        <div className="shrink-0 [&>div]:!static">
+        <div className="sticky bottom-0 z-10 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.04)] [&>div]:!static">
           <WordDetailActionBar
             currentWordIndex={selectedWordIndex}
             totalWords={displayWords.length}
@@ -233,6 +250,7 @@ export function LessonCompletedModal({
               label="Start test"
               onClick={onStartTest}
               primary
+              iconHover="shift"
             />
             <CompletedModalActionCard
               icon={<RotateCcw className="h-6 w-6" />}
@@ -243,7 +261,6 @@ export function LessonCompletedModal({
               icon={<X className="h-6 w-6" />}
               label="Not now"
               onClick={onDismiss}
-              muted
             />
           </div>
         </CompletedModalShell.Footer>

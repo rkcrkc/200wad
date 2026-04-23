@@ -304,7 +304,7 @@ export function TestCompletedModal({
       </CompletedModalShell.Body>
 
       {selectedWord ? (
-        <div className="shrink-0 [&>div]:!static">
+        <div className="sticky bottom-0 z-10 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.04)] [&>div]:!static">
           <WordDetailActionBar
             currentWordIndex={selectedWordIndex}
             totalWords={displayWords.length}
@@ -339,7 +339,6 @@ export function TestCompletedModal({
                 icon={<X className="h-6 w-6" />}
                 label="Done"
                 onClick={onDone}
-                muted
               />
             </div>
           ) : (
@@ -364,7 +363,6 @@ export function TestCompletedModal({
                 icon={<X className="h-6 w-6" />}
                 label="Not now"
                 onClick={onDone}
-                muted
               />
             </div>
           )}

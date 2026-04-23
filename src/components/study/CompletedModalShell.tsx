@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
+import { useEffect, type ReactNode, type MouseEvent } from "react";
 
 interface CompletedModalShellProps {
   /** Called when the user dismisses via backdrop click or Escape key. */
@@ -41,11 +41,12 @@ export function CompletedModalShell({ onDismiss, children }: CompletedModalShell
       onClick={handleBackdropClick}
     >
       {/*
-        max-h uses dvh so mobile-Safari browser chrome is respected, and caps the
-        modal at viewport-minus-outer-padding so short viewports never overflow.
-        h-[90dvh] still targets 90% of viewport height when there's room.
+        The modal itself is the scroll container (overflow-y-auto). h-[90dvh] is
+        the preferred height, capped at viewport-minus-outer-padding so short
+        viewports never overflow. The footer uses `sticky bottom-0` so the action
+        bar stays pinned even when header + body + footer exceed the modal height.
       */}
-      <div className="flex h-[90dvh] max-h-[calc(100dvh-2rem)] w-full max-w-content-md flex-col overflow-hidden rounded-3xl bg-white sm:max-h-[calc(100dvh-3rem)]">
+      <div className="relative flex h-[90dvh] max-h-[calc(100dvh-2rem)] w-full max-w-content-md flex-col overflow-y-auto overscroll-contain rounded-3xl bg-white sm:max-h-[calc(100dvh-3rem)]">
         {children}
       </div>
     </div>
@@ -78,51 +79,22 @@ function StatsBar({ children }: { children: ReactNode }) {
 }
 
 function Body({ children }: { children: ReactNode }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const checkScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      // Gradient hides when we're within 1px of the bottom, or when content
-      // doesn't overflow (scrollHeight === clientHeight).
-      setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 1);
-    };
-
-    checkScroll();
-    el.addEventListener("scroll", checkScroll, { passive: true });
-
-    // Recheck if content size changes (e.g. image loads, tab switches)
-    const resizeObserver = new ResizeObserver(checkScroll);
-    resizeObserver.observe(el);
-
-    return () => {
-      el.removeEventListener("scroll", checkScroll);
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-bone">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-8">
-        {children}
-      </div>
-      {/* Gradient fade-out at bottom; hidden when scrolled to the end */}
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-bone to-transparent transition-opacity duration-200 ${
-          isAtBottom ? "opacity-0" : "opacity-100"
-        }`}
-      />
-    </div>
-  );
+  // Body no longer has its own scroll container — the outer modal scrolls.
+  // flex-1 (without min-h-0) means body fills the remaining modal height when
+  // there's room, but can grow past it when content is tall; the modal then
+  // scrolls to reveal the overflow.
+  return <div className="flex-1 bg-bone p-8">{children}</div>;
 }
 
 function Footer({ children }: { children: ReactNode }) {
-  return <div className="shrink-0 bg-bone px-8 py-6">{children}</div>;
+  // `sticky bottom-0` pins the action bar to the bottom of the modal viewport
+  // even when header + body + footer exceed the modal height. The small negative
+  // top shadow fades scrolling content into the footer for a subtle cue.
+  return (
+    <div className="sticky bottom-0 z-10 bg-bone px-8 py-6 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+      {children}
+    </div>
+  );
 }
 
 CompletedModalShell.Header = Header;
