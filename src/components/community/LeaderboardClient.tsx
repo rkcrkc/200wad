@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useCourseContext } from "@/context/CourseContext";
+import { useUser } from "@/context/UserContext";
 import {
   Zap,
   GraduationCap,
@@ -147,6 +148,27 @@ function UserAvatar({ entry }: { entry: LeaderboardEntry }) {
   );
 }
 
+function CurrentUserAvatar({ avatarUrl }: { avatarUrl: string | null }) {
+  if (avatarUrl) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+      style={{
+        backgroundImage: "linear-gradient(135deg, #2b7fff 0%, #ad46ff 100%)",
+      }}
+    >
+      <span className="text-sm font-normal text-white">You</span>
+    </div>
+  );
+}
+
 function NationalityFlags({ nationalities }: { nationalities: string[] }) {
   if (!nationalities || nationalities.length === 0) return null;
   // Show at most 2 flags
@@ -165,6 +187,7 @@ export function LeaderboardClient({
   userStreak,
 }: LeaderboardClientProps) {
   const { languageName } = useCourseContext();
+  const { avatarUrl: currentUserAvatarUrl } = useUser();
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("avg_words_per_day");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("week");
   const [showRewards, setShowRewards] = useState(true);
@@ -337,6 +360,7 @@ export function LeaderboardClient({
               metricLabel={metric.label}
               periodLabel={periodLabel}
               metricUnit={metric.unit}
+              avatarUrl={currentUserAvatarUrl}
             />
           ) : data.userPosition ? (
             <RealUserPositionCard
@@ -346,6 +370,7 @@ export function LeaderboardClient({
               metricUnit={metric.unit}
               metric={selectedMetric}
               userStreak={userStreak}
+              avatarUrl={currentUserAvatarUrl}
             />
           ) : null}
 
@@ -389,12 +414,14 @@ function MockCurrentUserCard({
   metricLabel,
   periodLabel,
   metricUnit,
+  avatarUrl,
 }: {
   metric: MetricType;
   period: TimePeriod;
   metricLabel: string;
   periodLabel: string;
   metricUnit: string;
+  avatarUrl: string | null;
 }) {
   const value = getMockMetricValue(MOCK_CURRENT_USER, metric, period);
   return (
@@ -403,9 +430,7 @@ function MockCurrentUserCard({
         <span className="w-10 text-center text-lg font-bold text-amber-600">
           #{MOCK_CURRENT_USER.rank}
         </span>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${MOCK_CURRENT_USER.avatarBg}`}>
-          <span className="text-xl">{MOCK_CURRENT_USER.avatar}</span>
-        </div>
+        <CurrentUserAvatar avatarUrl={avatarUrl} />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-amber-700">Your Position</p>
           <p className="text-sm text-muted-foreground">
@@ -439,6 +464,7 @@ function RealUserPositionCard({
   metricUnit,
   metric,
   userStreak,
+  avatarUrl,
 }: {
   position: NonNullable<LeaderboardData["userPosition"]>;
   metricLabel: string;
@@ -446,6 +472,7 @@ function RealUserPositionCard({
   metricUnit: string;
   metric: MetricType;
   userStreak: number;
+  avatarUrl: string | null;
 }) {
   const displayValue = metric === "streak" ? userStreak : position.metric_value;
   return (
@@ -454,6 +481,7 @@ function RealUserPositionCard({
         <span className="w-10 text-center text-lg font-bold text-amber-600">
           #{position.rank}
         </span>
+        <CurrentUserAvatar avatarUrl={avatarUrl} />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-amber-700">Your Position</p>
           <p className="text-sm text-muted-foreground">

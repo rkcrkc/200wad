@@ -214,10 +214,12 @@ async function getLessonImages(
 ): Promise<Record<string, string | null>> {
   if (lessonIds.length === 0) return {};
 
-  // Get first word with an image for each lesson via lesson_words join table
+  // Get first testable word with an image for each lesson via lesson_words join table.
+  // Information pages (category = 'information') are excluded so their artwork never
+  // appears as the lesson thumbnail.
   const { data: lessonWords } = await supabase
     .from("lesson_words")
-    .select("lesson_id, words(memory_trigger_image_url)")
+    .select("lesson_id, words(memory_trigger_image_url, category)")
     .in("lesson_id", lessonIds)
     .order("sort_order")
     .limit(SUPABASE_ALL_ROWS);
@@ -227,10 +229,14 @@ async function getLessonImages(
   lessonWords?.forEach((lw) => {
     const lessonId = lw.lesson_id;
     if (!lessonId || !lw.words) return;
-    const imageUrl = (lw.words as { memory_trigger_image_url: string | null }).memory_trigger_image_url;
+    const word = lw.words as {
+      memory_trigger_image_url: string | null;
+      category: string | null;
+    };
+    if (word.category === "information") return;
     // Only take the first image per lesson
-    if (!imagesByLesson[lessonId] && imageUrl) {
-      imagesByLesson[lessonId] = imageUrl;
+    if (!imagesByLesson[lessonId] && word.memory_trigger_image_url) {
+      imagesByLesson[lessonId] = word.memory_trigger_image_url;
     }
   });
 

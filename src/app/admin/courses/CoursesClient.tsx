@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Pencil, X, ChevronDown as ChevronDownIcon } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil, X, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -13,6 +13,9 @@ import {
   AdminTextarea,
   AdminSelect,
   AdminStatusBadge,
+  SortableList,
+  SortableRow,
+  DragHandle,
 } from "@/components/admin";
 import {
   createCourse,
@@ -97,6 +100,17 @@ interface InlineCourseForm {
 
 export function CoursesClient({ languages, courses, lessons, initialCourseId }: CoursesClientProps) {
   const router = useRouter();
+
+  // Local mirrors of server-provided lists so DnD reorders can be applied
+  // optimistically before router.refresh() repopulates props.
+  const [orderedCourses, setOrderedCourses] = useState<Course[]>(courses);
+  const [orderedLessons, setOrderedLessons] = useState<Lesson[]>(lessons);
+  useEffect(() => {
+    setOrderedCourses(courses);
+  }, [courses]);
+  useEffect(() => {
+    setOrderedLessons(lessons);
+  }, [lessons]);
 
   // View mode state
   const [viewMode, setViewMode] = useState<"list" | "lessons">("list");
@@ -198,7 +212,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     });
 
     // Then add courses to their respective language groups
-    courses.forEach((course) => {
+    orderedCourses.forEach((course) => {
       if (course.language_id && grouped.has(course.language_id)) {
         grouped.get(course.language_id)!.courses.push(course);
       }
@@ -210,7 +224,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     });
 
     return Array.from(grouped.values()).filter((g) => g.courses.length > 0);
-  }, [courses, languages]);
+  }, [orderedCourses, languages]);
 
   // Initialize all languages as expanded on first load
   useEffect(() => {
@@ -232,60 +246,55 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     });
   };
 
-  // Handle course reordering
-  const handleMoveCourse = async (languageId: string, courseId: string, direction: "up" | "down") => {
-    const group = coursesByLanguage.find((g) => g.language.id === languageId);
-    if (!group) return;
-
-    const languageCourses = group.courses;
-    const currentIndex = languageCourses.findIndex((c) => c.id === courseId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= languageCourses.length) return;
-
-    // Create new order by swapping
-    const newOrder = [...languageCourses];
-    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
-
-    // Persist the change
-    const result = await reorderCourses(languageId, newOrder.map((c) => c.id));
+  // Handle course reordering (drag-and-drop)
+  const handleReorderCourses = async (languageId: string, newIds: string[]) => {
+    const previous = orderedCourses;
+    // Assign new sort_order values so the coursesByLanguage memo (which
+    // re-sorts by sort_order) reflects the new order immediately.
+    const idToNewOrder = new Map(newIds.map((id, i) => [id, i]));
+    setOrderedCourses(
+      orderedCourses.map((c) =>
+        idToNewOrder.has(c.id)
+          ? { ...c, sort_order: idToNewOrder.get(c.id)! }
+          : c
+      )
+    );
+    const result = await reorderCourses(languageId, newIds);
     if (!result.success) {
+      setOrderedCourses(previous);
       alert(result.error || "Failed to reorder courses");
-    } else {
-      router.refresh();
+      return;
     }
+    router.refresh();
   };
 
   // Filter and sort lessons for selected course
   const courseLessons = useMemo(() => {
     if (!selectedCourse) return [];
-    return lessons
+    return orderedLessons
       .filter((l) => l.course_id === selectedCourse.id)
       .sort((a, b) => (a.sort_order ?? a.number) - (b.sort_order ?? b.number));
-  }, [lessons, selectedCourse]);
+  }, [orderedLessons, selectedCourse]);
 
-  // Handle lesson reordering
-  const handleMoveLesson = async (lessonId: string, direction: "up" | "down") => {
+  // Handle lesson reordering (drag-and-drop)
+  const handleReorderLessons = async (newIds: string[]) => {
     if (!selectedCourse) return;
-
-    const currentIndex = courseLessons.findIndex((l) => l.id === lessonId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= courseLessons.length) return;
-
-    // Create new order by swapping
-    const newOrder = [...courseLessons];
-    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
-
-    // Persist the change
-    const result = await reorderLessons(selectedCourse.id, newOrder.map((l) => l.id));
+    const previous = orderedLessons;
+    const idToNewOrder = new Map(newIds.map((id, i) => [id, i]));
+    setOrderedLessons(
+      orderedLessons.map((l) =>
+        idToNewOrder.has(l.id)
+          ? { ...l, sort_order: idToNewOrder.get(l.id)! }
+          : l
+      )
+    );
+    const result = await reorderLessons(selectedCourse.id, newIds);
     if (!result.success) {
+      setOrderedLessons(previous);
       alert(result.error || "Failed to reorder lessons");
-    } else {
-      router.refresh();
+      return;
     }
+    router.refresh();
   };
 
   // Initialize from URL param
@@ -743,85 +752,64 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                   </td>
                 </tr>
               ) : (
-                courseLessons.map((lesson, index) => (
-                  <tr
-                    key={lesson.id}
-                    onClick={() => router.push(`/admin/lessons?lesson=${lesson.id}&fromCourse=${selectedCourse.id}`)}
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
-                        <div className="flex flex-col">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveLesson(lesson.id, "up");
-                            }}
-                            disabled={index === 0}
-                            className={`rounded p-0.5 ${
-                              index === 0
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move up"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveLesson(lesson.id, "down");
-                            }}
-                            disabled={index === courseLessons.length - 1}
-                            className={`rounded p-0.5 ${
-                              index === courseLessons.length - 1
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-gray-600">
-                      {lesson.number}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {lesson.emoji && <span>{lesson.emoji}</span>}
-                        <span className="font-medium text-gray-900">{lesson.title}</span>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                      {lesson.word_count || 0}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <Switch
-                        checked={lesson.is_published ?? false}
-                        onCheckedChange={() => handleToggleLessonPublish(lesson)}
-                        disabled={togglingLessonId === lesson.id}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => {
-                          setRemovingLesson(lesson);
-                          setIsRemoveLessonModalOpen(true);
-                        }}
-                        className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                        title="Remove lesson"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    </td>
-                  </tr>
-                ))
+                <SortableList
+                  ids={courseLessons.map((l) => l.id)}
+                  onReorder={handleReorderLessons}
+                >
+                  {courseLessons.map((lesson, index) => (
+                    <SortableRow key={lesson.id} id={lesson.id}>
+                      {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+                        <tr
+                          ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
+                          style={style}
+                          onClick={() => router.push(`/admin/lessons?lesson=${lesson.id}&fromCourse=${selectedCourse.id}`)}
+                          className={`cursor-pointer ${isDragging ? "bg-white shadow-lg" : "hover:bg-gray-50"}`}
+                        >
+                          <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <DragHandle {...dragHandleProps} />
+                              <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                            {lesson.number}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {lesson.emoji && <span>{lesson.emoji}</span>}
+                              <span className="font-medium text-gray-900">{lesson.title}</span>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                            {lesson.word_count || 0}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <Switch
+                              checked={lesson.is_published ?? false}
+                              onCheckedChange={() => handleToggleLessonPublish(lesson)}
+                              disabled={togglingLessonId === lesson.id}
+                            />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setRemovingLesson(lesson);
+                                setIsRemoveLessonModalOpen(true);
+                              }}
+                              className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                              title="Remove lesson"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right">
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          </td>
+                        </tr>
+                      )}
+                    </SortableRow>
+                  ))}
+                </SortableList>
               )}
             </tbody>
           </table>
@@ -966,76 +954,55 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-bone-hover">
-                        {languageCourses.map((course, index) => (
-                          <tr
-                            key={course.id}
-                            onClick={() => selectCourse(course)}
-                            className="cursor-pointer hover:bg-gray-50"
-                          >
-                            <td className="whitespace-nowrap px-4 py-4">
-                              <div className="flex items-center gap-1">
-                                <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
-                                <div className="flex flex-col">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMoveCourse(language.id, course.id, "up");
-                                    }}
-                                    disabled={index === 0}
-                                    className={`rounded p-0.5 ${
-                                      index === 0
-                                        ? "text-gray-200 cursor-not-allowed"
-                                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                    }`}
-                                    title="Move up"
-                                  >
-                                    <ChevronUp className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMoveCourse(language.id, course.id, "down");
-                                    }}
-                                    disabled={index === languageCourses.length - 1}
-                                    className={`rounded p-0.5 ${
-                                      index === languageCourses.length - 1
-                                        ? "text-gray-200 cursor-not-allowed"
-                                        : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                    }`}
-                                    title="Move down"
-                                  >
-                                    <ChevronDown className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <p className="font-medium text-gray-900">{course.name}</p>
-                                {course.description && (
-                                  <p className="mt-1 text-sm text-gray-500 line-clamp-1">
-                                    {course.description}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-gray-600 capitalize">
-                              {course.level || "-"}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                              {course.lessonCount}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                              {course.word_count ?? 0}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <AdminStatusBadge isPublished={course.is_published ?? false} />
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-right">
-                              <ChevronRight className="h-5 w-5 text-gray-400" />
-                            </td>
-                          </tr>
-                        ))}
+                        <SortableList
+                          ids={languageCourses.map((c) => c.id)}
+                          onReorder={(newIds) => handleReorderCourses(language.id, newIds)}
+                        >
+                          {languageCourses.map((course, index) => (
+                            <SortableRow key={course.id} id={course.id}>
+                              {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+                                <tr
+                                  ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
+                                  style={style}
+                                  onClick={() => selectCourse(course)}
+                                  className={`cursor-pointer ${isDragging ? "bg-white shadow-lg" : "hover:bg-gray-50"}`}
+                                >
+                                  <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-2">
+                                      <DragHandle {...dragHandleProps} />
+                                      <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div>
+                                      <p className="font-medium text-gray-900">{course.name}</p>
+                                      {course.description && (
+                                        <p className="mt-1 text-sm text-gray-500 line-clamp-1">
+                                          {course.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4 text-gray-600 capitalize">
+                                    {course.level || "-"}
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                                    {course.lessonCount}
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                                    {course.word_count ?? 0}
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4">
+                                    <AdminStatusBadge isPublished={course.is_published ?? false} />
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                  </td>
+                                </tr>
+                              )}
+                            </SortableRow>
+                          ))}
+                        </SortableList>
                       </tbody>
                     </table>
                   </div>

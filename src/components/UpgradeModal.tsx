@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, X, ArrowRight, ChevronRight, Sparkles, Check, Loader2 } from "lucide-react";
+import { Lock, X, ArrowRight, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { cn } from "@/lib/utils";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { createDirectCheckout } from "@/lib/mutations/checkout";
@@ -361,44 +362,32 @@ export function UpgradeModal({
           )}
           <div className={cn("grid grid-cols-1 gap-4", gridCols)}>
             <div className="rounded-b-xl border-x border-b border-border border-t border-t-border bg-white px-5 py-4">
-              <Button variant="outline" className="w-full" size="xl" disabled>
+              <PrimaryButton variant="outline" fullWidth disabled>
                 Current Plan
-              </Button>
+              </PrimaryButton>
             </div>
             {showLanguageTier && (
               <div className="rounded-b-xl border-x border-b border-amber-300 border-t border-t-amber-200 bg-amber-50/50 px-5 py-4">
-                <Button
-                  className="w-full"
-                  size="xl"
-                  disabled={checkoutTier !== null}
+                <PrimaryButton
+                  fullWidth
+                  loading={checkoutTier === "language"}
+                  disabled={checkoutTier !== null && checkoutTier !== "language"}
                   onClick={() => handleCheckout("language")}
                 >
-                  {checkoutTier === "language" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
                   Subscribe
-                  {checkoutTier !== "language" && (
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  )}
-                </Button>
+                </PrimaryButton>
               </div>
             )}
             {showAllLanguagesTier && (
               <div className="rounded-b-xl border-x border-b border-amber-300 border-t border-t-amber-200 bg-amber-50/50 px-5 py-4">
-                <Button
-                  className="w-full"
-                  size="xl"
-                  disabled={checkoutTier !== null}
+                <PrimaryButton
+                  fullWidth
+                  loading={checkoutTier === "all-languages"}
+                  disabled={checkoutTier !== null && checkoutTier !== "all-languages"}
                   onClick={() => handleCheckout("all-languages")}
                 >
-                  {checkoutTier === "all-languages" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
                   Subscribe
-                  {checkoutTier !== "all-languages" && (
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  )}
-                </Button>
+                </PrimaryButton>
               </div>
             )}
           </div>

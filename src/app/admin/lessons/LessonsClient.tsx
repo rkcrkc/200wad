@@ -25,6 +25,10 @@ import {
   AdminInput,
   AdminSelect,
   AdminStatusBadge,
+  SortableList,
+  SortableRow,
+  DragHandle,
+  reorderById,
 } from "@/components/admin";
 import { AdminWordEditModal } from "@/components/admin/AdminWordEditModal";
 import type { WordWithDetails, WordLessonInfo } from "@/components/admin/AdminWordEditModal";
@@ -684,26 +688,13 @@ export function LessonsClient({
     }
   };
 
-  const handleMoveWord = async (wordId: string, direction: "up" | "down") => {
+  const handleReorderWords = async (newIds: string[]) => {
     if (!selectedLesson) return;
-    const currentIndex = words.findIndex((w) => w.id === wordId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= words.length) return;
-
-    // Swap the words
-    const newOrder = [...words];
-    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
-
-    // Optimistically update the UI
-    setWords(newOrder);
-
-    // Persist the change
-    const result = await reorderWords(selectedLesson.id, newOrder.map((w) => w.id));
+    const previous = words;
+    setWords(reorderById(previous, newIds));
+    const result = await reorderWords(selectedLesson.id, newIds);
     if (!result.success) {
-      // Revert on failure
-      setWords(words);
+      setWords(previous);
       alert(result.error || "Failed to reorder words");
     }
   };
@@ -913,92 +904,71 @@ export function LessonsClient({
                   </td>
                 </tr>
               ) : (
-                words.map((word, index) => (
-                  <tr
-                    key={word.id}
-                    onClick={() => openEditWordModal(word)}
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <div className="flex items-center gap-1">
-                        <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
-                        <div className="flex flex-col">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveWord(word.id, "up");
-                            }}
-                            disabled={index === 0}
-                            className={`rounded p-0.5 ${
-                              index === 0
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move up"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMoveWord(word.id, "down");
-                            }}
-                            disabled={index === words.length - 1}
-                            className={`rounded p-0.5 ${
-                              index === words.length - 1
-                                ? "text-gray-200 cursor-not-allowed"
-                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            }`}
-                            title="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {word.english}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{word.headword}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 capitalize">
-                      {word.part_of_speech || "-"}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {word.memory_trigger_image_url && (
-                          <span title="Has image">
-                            <ImageIcon className="h-4 w-4 text-green-500" />
-                          </span>
-                        )}
-                        {(word.audio_url_english ||
-                          word.audio_url_foreign ||
-                          word.audio_url_trigger) && (
-                          <span title="Has audio">
-                            <Volume2 className="h-4 w-4 text-blue-500" />
-                          </span>
-                        )}
-                        {!word.memory_trigger_image_url &&
-                          !word.audio_url_english &&
-                          !word.audio_url_foreign &&
-                          !word.audio_url_trigger && (
-                            <span className="text-gray-400">-</span>
-                          )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openRemoveWordModal(word);
-                        }}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                        title="Remove from lesson"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                <SortableList
+                  ids={words.map((w) => w.id)}
+                  onReorder={handleReorderWords}
+                >
+                  {words.map((word, index) => (
+                    <SortableRow key={word.id} id={word.id}>
+                      {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+                        <tr
+                          ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
+                          style={style}
+                          onClick={() => openEditWordModal(word)}
+                          className={`cursor-pointer ${isDragging ? "bg-white shadow-lg" : "hover:bg-gray-50"}`}
+                        >
+                          <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <DragHandle {...dragHandleProps} />
+                              <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {word.english}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{word.headword}</td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 capitalize">
+                            {word.part_of_speech || "-"}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {word.memory_trigger_image_url && (
+                                <span title="Has image">
+                                  <ImageIcon className="h-4 w-4 text-green-500" />
+                                </span>
+                              )}
+                              {(word.audio_url_english ||
+                                word.audio_url_foreign ||
+                                word.audio_url_trigger) && (
+                                <span title="Has audio">
+                                  <Volume2 className="h-4 w-4 text-blue-500" />
+                                </span>
+                              )}
+                              {!word.memory_trigger_image_url &&
+                                !word.audio_url_english &&
+                                !word.audio_url_foreign &&
+                                !word.audio_url_trigger && (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openRemoveWordModal(word);
+                              }}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                              title="Remove from lesson"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </SortableRow>
+                  ))}
+                </SortableList>
               )}
             </tbody>
           </table>

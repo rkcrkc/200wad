@@ -6,7 +6,7 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ progress }: SummaryCardsProps) {
-  const totalVocab = progress.wordsLearning + progress.wordsMastered;
+  const totalVocab = progress.wordsLearned + progress.wordsMastered;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -22,7 +22,7 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
           </span>
         </p>
         <p className="mt-1 text-sm font-medium text-black/50">
-          {formatNumber(progress.wordsLearning)} learning +{" "}
+          {formatNumber(progress.wordsLearned)} learned +{" "}
           {formatNumber(progress.wordsMastered)} mastered
         </p>
       </div>
@@ -36,7 +36,7 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
           {formatPercent(progress.courseCompletionPercent)}
         </p>
         <p className="mt-1 text-sm font-medium text-black/50">
-          {formatNumber(progress.wordsMastered)} words mastered /{" "}
+          {formatNumber(totalVocab)} vocab /{" "}
           {formatNumber(progress.totalWords)} total
         </p>
       </div>

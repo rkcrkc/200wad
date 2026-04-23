@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-interface CompletedModalActionCardProps {
+interface CompletedModalActionButtonProps {
   icon: ReactNode;
   label: string;
   onClick: () => void;
@@ -18,14 +18,14 @@ interface CompletedModalActionCardProps {
  * Tile-shaped action button used in the footer of completion modals.
  * Icon on top, label underneath. Three visual variants: primary, muted, default.
  */
-export function CompletedModalActionCard({
+export function CompletedModalActionButton({
   icon,
   label,
   onClick,
   primary,
   muted,
   iconHover = "rotate",
-}: CompletedModalActionCardProps) {
+}: CompletedModalActionButtonProps) {
   return (
     <button
       onClick={onClick}

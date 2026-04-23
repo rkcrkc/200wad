@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, ClipboardCheck } from "lucide-react";
 import { WordsList } from "@/components/WordsList";
 import { LessonActivityHistory } from "@/components/LessonActivityHistory";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { StartTestModal } from "@/components/study";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { SubBadge } from "@/components/ui/sub-badge";
@@ -271,21 +271,19 @@ export function LessonPageContent({
               <div />
             )}
             <div className="flex flex-1 items-center justify-center gap-4">
-              <Button asChild size="xl" className="flex-1 max-w-[240px]">
-                <Link href={`/lesson/${lesson.id}/study`}>
-                  Study lesson
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-              <Button
+              <PrimaryButton
+                className="flex-1 max-w-[240px]"
+                href={`/lesson/${lesson.id}/study`}
+              >
+                Study lesson
+              </PrimaryButton>
+              <PrimaryButton
                 variant="outline"
-                size="xl"
-                className="flex-1 max-w-[240px] border-primary text-primary"
+                className="flex-1 max-w-[240px]"
                 onClick={() => setShowStartTestModal(true)}
               >
                 Take test
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
+              </PrimaryButton>
             </div>
             {nextLesson ? (
               <Link

@@ -18,7 +18,7 @@ export interface StreakStats {
 
 export interface CumulativeProgress {
   wordsMastered: number;
-  wordsLearning: number;
+  wordsLearned: number;
   totalWords: number;
   wordsStudied: number;
   lessonsCompleted: number;
@@ -285,7 +285,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     streaks: { currentStreak: 0, longestStreak: 0 },
     cumulative: {
       wordsMastered: 0,
-      wordsLearning: 0,
+      wordsLearned: 0,
       totalWords: 0,
       wordsStudied: 0,
       lessonsCompleted: 0,
@@ -366,7 +366,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       // Word progress with timestamps for chart + per-period rate
       supabase
         .from("user_word_progress")
-        .select("word_id, learning_at, mastered_at")
+        .select("word_id, learning_at, mastered_at, status")
         .eq("user_id", user.id)
         .not("learning_at", "is", null),
       // Study sessions for time totals
@@ -462,20 +462,28 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   // We'll compute it as: total words that have any progress
   const wordsStudied = activityRows.reduce((sum, r) => sum + (r.words_studied || 0), 0);
 
-  // wordsLearning = words the user has started in this course but not yet mastered
-  const totalVocab = wordProgressRows.filter(
-    (w) => w.word_id && courseWordIds.has(w.word_id)
+  // wordsLearned = words the user has learned but not yet mastered (status='learned')
+  // Together with wordsMastered this matches `get_course_vocab_count` used by TestCompletedModal.
+  const wordsLearned = wordProgressRows.filter(
+    (w) => w.word_id && courseWordIds.has(w.word_id) && w.status === "learned"
   ).length;
-  const wordsLearning = Math.max(0, totalVocab - courseProgress.wordsMastered);
+
+  // Course completion % = total vocab (learned + mastered) / total testable words.
+  // Matches the "total vocab" semantics used on TestCompletedModal.
+  const totalVocab = wordsLearned + courseProgress.wordsMastered;
+  const courseCompletionPercent =
+    courseProgress.totalWords > 0
+      ? Math.round((totalVocab / courseProgress.totalWords) * 100)
+      : 0;
 
   const cumulative: CumulativeProgress = {
     wordsMastered: courseProgress.wordsMastered,
-    wordsLearning,
+    wordsLearned,
     totalWords: courseProgress.totalWords,
     wordsStudied,
     lessonsCompleted: courseProgress.lessonsCompleted,
     totalLessons: courseProgress.totalLessons,
-    courseCompletionPercent: courseProgress.progressPercent,
+    courseCompletionPercent,
     totalStudyTimeSeconds: studyTimeSeconds + testTimeSeconds,
     studyTimeSeconds,
     testTimeSeconds,

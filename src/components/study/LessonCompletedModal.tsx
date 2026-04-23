@@ -18,7 +18,7 @@ import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration } from "@/lib/utils/helpers";
 import { CompletedModalShell } from "./CompletedModalShell";
-import { CompletedModalActionCard } from "./CompletedModalActionCard";
+import { CompletedModalActionButton } from "./CompletedModalActionButton";
 import { WordGrid } from "./WordGrid";
 import { WordDetailView, type WordListItem } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
@@ -56,10 +56,13 @@ export function LessonCompletedModal({
   const [columns, setColumns] = useState<4 | 5>(5);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
 
+  // Exclude information pages from all word counts/tabs (non-testable)
+  const testableWords = words.filter((w) => w.category !== "information");
+
   // Filter words by status
-  const learningWords = words.filter((w) => w.status === "learning");
-  const learnedWords = words.filter((w) => w.status === "learned" || w.status === "mastered");
-  const masteredWords = words.filter((w) => w.status === "mastered");
+  const learningWords = testableWords.filter((w) => w.status === "learning");
+  const learnedWords = testableWords.filter((w) => w.status === "learned" || w.status === "mastered");
+  const masteredWords = testableWords.filter((w) => w.status === "mastered");
 
   const [activeTab, setActiveTab] = useState<"all" | "learning" | "learned" | "mastered">("all");
 
@@ -70,7 +73,7 @@ export function LessonCompletedModal({
         ? learnedWords
         : activeTab === "mastered"
           ? masteredWords
-          : words;
+          : testableWords;
 
   const selectedWordIndex = selectedWordId ? displayWords.findIndex((w) => w.id === selectedWordId) : -1;
   const selectedWord = selectedWordIndex >= 0 ? displayWords[selectedWordIndex] : null;
@@ -175,11 +178,11 @@ export function LessonCompletedModal({
           <>
             <Tabs
               tabs={[
-                { id: "all", label: "All words", count: words.length },
+                { id: "all", label: "All words", count: testableWords.length },
                 ...(learningWords.length > 0
                   ? [{ id: "learning", label: "Learning", count: learningWords.length }]
                   : []),
-                ...(masteredWords.length < words.length
+                ...(masteredWords.length < testableWords.length
                   ? [{ id: "learned", label: "Learned", count: learnedWords.length }]
                   : []),
                 { id: "mastered", label: "Mastered", count: masteredWords.length },
@@ -245,19 +248,19 @@ export function LessonCompletedModal({
       ) : (
         <CompletedModalShell.Footer>
           <div className="flex justify-center gap-4">
-            <CompletedModalActionCard
+            <CompletedModalActionButton
               icon={<Play className="h-6 w-6" />}
               label="Start test"
               onClick={onStartTest}
               primary
               iconHover="shift"
             />
-            <CompletedModalActionCard
+            <CompletedModalActionButton
               icon={<RotateCcw className="h-6 w-6" />}
               label="Study again"
               onClick={onStudyAgain}
             />
-            <CompletedModalActionCard
+            <CompletedModalActionButton
               icon={<X className="h-6 w-6" />}
               label="Not now"
               onClick={onDismiss}

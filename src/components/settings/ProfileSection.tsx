@@ -17,6 +17,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { updateProfile } from "@/lib/mutations/settings";
 import { uploadAvatar, removeAvatar } from "@/lib/mutations/avatar";
 import type { UserSettings } from "@/lib/queries/settings";
+import { useUser } from "@/context/UserContext";
 
 // Countries list with flag emojis
 const COUNTRIES = [
@@ -81,6 +82,7 @@ interface ProfileSectionProps {
 }
 
 export function ProfileSection({ settings }: ProfileSectionProps) {
+  const { refreshUser } = useUser();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +132,7 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
 
     if (result.success && result.avatarUrl) {
       setAvatarUrl(result.avatarUrl);
+      await refreshUser();
     } else {
       setError(result.error || "Failed to upload avatar");
     }
@@ -149,6 +152,7 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
 
     if (result.success) {
       setAvatarUrl(null);
+      await refreshUser();
     } else {
       setError(result.error || "Failed to remove avatar");
     }

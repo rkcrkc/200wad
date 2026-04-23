@@ -24,7 +24,7 @@ import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { CompletedModalShell } from "./CompletedModalShell";
 import { WordGrid } from "./WordGrid";
-import { CompletedModalActionCard } from "./CompletedModalActionCard";
+import { CompletedModalActionButton } from "./CompletedModalActionButton";
 import { WordDetailView, type WordListItem } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 
@@ -84,8 +84,11 @@ export function TestCompletedModal({
 
   const isPerfectScore = scorePercent === 100;
 
+  // Exclude information pages from all word counts/tabs (non-testable)
+  const testableWords = words.filter((w) => w.category !== "information");
+
   // Filter words by result
-  const incorrectWords = words.filter((word) => {
+  const incorrectWords = testableWords.filter((word) => {
     const result = wordResultsMap.get(word.id);
     return result && result.grade !== "correct";
   });
@@ -100,16 +103,16 @@ export function TestCompletedModal({
   const masteredWordIdSet = new Set(masteredWordIds);
 
   // Post-test totals (current status + newly changed in this test)
-  const allLearnedWords = words.filter(
+  const allLearnedWords = testableWords.filter(
     (w) => w.status === "learned" || w.status === "mastered" || newlyLearnedWordIdSet.has(w.id) || masteredWordIdSet.has(w.id)
   );
-  const allMasteredWords = words.filter(
+  const allMasteredWords = testableWords.filter(
     (w) => w.status === "mastered" || masteredWordIdSet.has(w.id)
   );
   const totalLearnedCount = allLearnedWords.length;
   const totalMasteredCount = allMasteredWords.length;
 
-  const displayWords = activeTab === "incorrect" ? incorrectWords : words;
+  const displayWords = activeTab === "incorrect" ? incorrectWords : testableWords;
 
   const selectedWordIndex = selectedWordId ? displayWords.findIndex((w) => w.id === selectedWordId) : -1;
   const selectedWord = selectedWordIndex >= 0 ? displayWords[selectedWordIndex] : null;
@@ -291,7 +294,7 @@ export function TestCompletedModal({
                 ...(incorrectWords.length > 0
                   ? [{ id: "incorrect", label: "Incorrect words", count: incorrectWords.length }]
                   : []),
-                { id: "all", label: "All words", count: words.length },
+                { id: "all", label: "All words", count: testableWords.length },
               ]}
               activeTab={activeTab}
               onChange={(tabId) => setActiveTab(tabId as "incorrect" | "all")}
@@ -330,12 +333,12 @@ export function TestCompletedModal({
         <CompletedModalShell.Footer>
           {isPerfectScore ? (
             <div className="flex justify-center gap-4">
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<RefreshCw className="h-6 w-6" />}
                 label="Retest all words"
                 onClick={onTestAgain}
               />
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<X className="h-6 w-6" />}
                 label="Done"
                 onClick={onDone}
@@ -343,23 +346,23 @@ export function TestCompletedModal({
             </div>
           ) : (
             <div className="flex justify-center gap-4">
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<RotateCcw className="h-6 w-6" />}
                 label="Retest incorrect words"
                 onClick={onRetestIncorrect}
                 primary
               />
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<BookOpen className="h-6 w-6" />}
                 label="Study incorrect words"
                 onClick={onStudyIncorrect}
               />
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<RefreshCw className="h-6 w-6" />}
                 label="Retest all words"
                 onClick={onTestAgain}
               />
-              <CompletedModalActionCard
+              <CompletedModalActionButton
                 icon={<X className="h-6 w-6" />}
                 label="Not now"
                 onClick={onDone}

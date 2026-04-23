@@ -13,6 +13,18 @@ export { EditableArrayField } from "./EditableArrayField";
 export { EditableImage } from "./EditableImage";
 export { MarkdownEditor } from "./MarkdownEditor";
 export { AdminWordEditModal } from "./AdminWordEditModal";
+export {
+  SortableList,
+  SortableRow,
+  DragHandle,
+  reorderById,
+} from "./SortableList";
+export type {
+  SortableListProps,
+  SortableRowProps,
+  SortableRowRenderArgs,
+  DragHandleProps,
+} from "./SortableList";
 export type {
   WordWithDetails,
   WordLessonInfo,

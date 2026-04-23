@@ -120,6 +120,9 @@
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-ring: var(--ring);
+  --color-blue: #0b6cff;
+  --color-blue-hover: #005FF0;
+  --color-blue-dark: #0955cc;
   --color-beige: #f2ead9;
   --color-bone: #faf8f3;
   --color-bone-50: rgba(250, 248, 243, 0.5);

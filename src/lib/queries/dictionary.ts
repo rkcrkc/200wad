@@ -121,6 +121,7 @@ export async function getDictionaryWords(
 
   if (filter === "my-words") {
     // Get words user has progress on (paginate to avoid 1000-row cap)
+    // Include all testable items (everything except information pages)
     const progressWords = await fetchAllRows((from, to) =>
       supabase
         .from("user_word_progress")
@@ -139,6 +140,7 @@ export async function getDictionaryWords(
         `)
         .eq("user_id", user.id)
         .not("status", "is", null)
+        .neq("words.category", "information")
         .range(from, to)
     );
 
@@ -191,6 +193,7 @@ export async function getDictionaryWords(
       const lessonIds = courseLessons.map((l) => l.id);
 
       // Get all words in those lessons (paginate to avoid 1000-row cap)
+      // Include all testable items (everything except information pages)
       const lessonWords = await fetchAllRows((from, to) =>
         supabase
           .from("lesson_words")
@@ -208,6 +211,7 @@ export async function getDictionaryWords(
             )
           `)
           .in("lesson_id", lessonIds)
+          .neq("words.category", "information")
           .order("sort_order")
           .range(from, to)
       );
@@ -252,12 +256,13 @@ export async function getDictionaryWords(
     }
   } else {
     // Get all words in the language (paginate to avoid 1000-row cap)
+    // "All Italian words" dictionary = vocabulary words + grammar/usage facts
     const allWords = await fetchAllRows((from, to) =>
       supabase
         .from("words")
         .select("id, english, headword, part_of_speech, category, memory_trigger_image_url")
         .eq("language_id", languageId)
-        .eq("category", "word")
+        .in("category", ["word", "fact"])
         .order("english")
         .range(from, to)
     );

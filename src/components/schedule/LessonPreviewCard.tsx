@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BookOpen, Eye } from "lucide-react";
+import { BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
@@ -68,12 +69,12 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3 pt-8 pb-6">
-        <Button asChild size="lg" className="flex-1 gap-2">
-          <Link href={`/lesson/${lesson.id}/study`}>
-            Study lesson
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
+        <PrimaryButton
+          className="flex-1"
+          href={`/lesson/${lesson.id}/study`}
+        >
+          Study lesson
+        </PrimaryButton>
 
         <Tooltip label={t("tip_preview_lesson")}>
           <Button asChild variant="ghost" size="icon-lg">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Pencil, Check, X, Loader2 } from "lucide-react";
+import { Pencil, Check, X, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EditableArrayFieldProps {
@@ -17,83 +17,110 @@ interface EditableArrayFieldProps {
 export function EditableArrayField({
   value,
   field,
-  wordId,
+  wordId: _wordId,
   isEditMode,
   onSave,
   label,
   className,
 }: EditableArrayFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value.join(", "));
+  const [pendingValues, setPendingValues] = useState<string[]>(value);
+  const [newInput, setNewInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const isSavingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const justStartedRef = useRef(false);
 
-  // Reset edit value when value prop changes
+  // Keep pending values in sync when the underlying value changes
+  // (e.g., after a successful save or external update) while not editing.
   useEffect(() => {
-    setEditValue(value.join(", "));
-  }, [value]);
+    if (!isEditing) {
+      setPendingValues(value);
+    }
+  }, [value, isEditing]);
 
   // Focus input when editing starts
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      justStartedRef.current = true;
       inputRef.current.focus();
-      setTimeout(() => {
-        justStartedRef.current = false;
-      }, 200);
     }
   }, [isEditing]);
 
-  // Close editing when edit mode is turned off
+  // Close editing when edit mode is turned off globally
   useEffect(() => {
     if (!isEditMode) {
       setIsEditing(false);
-      setEditValue(value.join(", "));
+      setPendingValues(value);
+      setNewInput("");
     }
   }, [isEditMode, value]);
 
-  const parseArray = (text: string): string[] => {
-    return text
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+  const addPendingChip = () => {
+    const trimmed = newInput.trim();
+    if (!trimmed) return;
+    if (pendingValues.includes(trimmed)) {
+      setNewInput("");
+      return;
+    }
+    setPendingValues([...pendingValues, trimmed]);
+    setNewInput("");
   };
 
-  const handleSave = async () => {
-    const newValue = parseArray(editValue);
-    const unchanged =
-      newValue.length === value.length &&
-      newValue.every((v, i) => v === value[i]);
+  const removePendingChip = (index: number) => {
+    setPendingValues(pendingValues.filter((_, i) => i !== index));
+  };
 
-    if (unchanged) {
+  const arraysEqual = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((v, i) => v === b[i]);
+
+  const handleSave = async () => {
+    // Flush any unsubmitted text in the input
+    const trimmed = newInput.trim();
+    const finalValues =
+      trimmed && !pendingValues.includes(trimmed)
+        ? [...pendingValues, trimmed]
+        : pendingValues;
+
+    if (arraysEqual(finalValues, value)) {
       setIsEditing(false);
+      setNewInput("");
       return;
     }
 
-    isSavingRef.current = true;
     setIsSaving(true);
-    const success = await onSave(field, newValue);
-    isSavingRef.current = false;
+    const success = await onSave(field, finalValues);
     setIsSaving(false);
 
     if (success) {
+      setPendingValues(finalValues);
+      setNewInput("");
       setIsEditing(false);
     }
   };
 
   const handleCancel = () => {
-    setEditValue(value.join(", "));
+    setPendingValues(value);
+    setNewInput("");
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSave();
+      if (newInput.trim()) {
+        addPendingChip();
+      } else {
+        handleSave();
+      }
     } else if (e.key === "Escape") {
+      e.preventDefault();
       handleCancel();
+    } else if (
+      e.key === "Backspace" &&
+      newInput === "" &&
+      pendingValues.length > 0
+    ) {
+      // Convenience: backspace on empty input removes the last chip
+      e.preventDefault();
+      setPendingValues(pendingValues.slice(0, -1));
     }
   };
 
@@ -101,14 +128,24 @@ export function EditableArrayField({
     return null;
   }
 
-  const displayText = value.length > 0 ? value.join(", ") : "(none)";
-
+  // Display mode (not editing) — show chips + pencil
   if (!isEditing) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
+      <div className={cn("flex flex-wrap items-center gap-2", className)}>
         <span className="text-xs-medium text-muted-foreground">{label}:</span>
-        <span className="group inline-flex items-center gap-1.5 text-sm text-foreground/70">
-          {displayText}
+        <div className="group inline-flex flex-wrap items-center gap-1.5">
+          {value.length === 0 ? (
+            <span className="text-sm text-foreground/50">(none)</span>
+          ) : (
+            value.map((answer, index) => (
+              <span
+                key={`${answer}-${index}`}
+                className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-sm text-blue-700"
+              >
+                {answer}
+              </span>
+            ))
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -120,36 +157,65 @@ export function EditableArrayField({
           >
             <Pencil className="h-3 w-3 text-primary" />
           </button>
-        </span>
+        </div>
       </div>
     );
   }
 
+  // Edit mode — chips with remove, input to add, save/cancel
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="text-xs-medium text-muted-foreground">{label}:</span>
-      <input
-        ref={inputRef}
-        type="text"
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => {
-          if (justStartedRef.current) return;
-          setTimeout(() => {
-            if (!isSavingRef.current) handleCancel();
-          }, 150);
-        }}
-        disabled={isSaving}
-        placeholder="Comma-separated answers"
-        className="min-w-[200px] flex-1 rounded-md border border-primary/30 bg-white px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      />
+      <div className="flex flex-1 flex-wrap items-center gap-1.5 rounded-md border border-primary/30 bg-white px-2 py-1 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+        {pendingValues.map((answer, index) => (
+          <span
+            key={`${answer}-${index}`}
+            className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-sm text-blue-700"
+          >
+            {answer}
+            <button
+              type="button"
+              onClick={() => removePendingChip(index)}
+              className="text-blue-400 transition-colors hover:text-red-500"
+              title="Remove"
+              disabled={isSaving}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          value={newInput}
+          onChange={(e) => setNewInput(e.target.value)}
+          onKeyDown={handleInputKeyDown}
+          disabled={isSaving}
+          placeholder={
+            pendingValues.length === 0
+              ? "Type an answer and press Enter"
+              : "Add another…"
+          }
+          className="min-w-[120px] flex-1 bg-transparent py-0.5 text-sm placeholder:text-foreground/40 focus:outline-none"
+        />
+      </div>
       <div className="flex items-center gap-1">
         {isSaving ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
         ) : (
           <>
+            {newInput.trim() && (
+              <button
+                type="button"
+                onClick={addPendingChip}
+                className="rounded p-0.5 text-primary hover:bg-primary/10"
+                title="Add answer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
+              type="button"
               onClick={handleSave}
               className="rounded p-0.5 text-success hover:bg-success/10"
               title="Save"
@@ -157,6 +223,7 @@ export function EditableArrayField({
               <Check className="h-3.5 w-3.5" />
             </button>
             <button
+              type="button"
               onClick={handleCancel}
               className="rounded p-0.5 text-destructive hover:bg-destructive/10"
               title="Cancel"

@@ -43,7 +43,7 @@ const PREVIEW_STATS: HeaderStats = {
 
 export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons }: HeaderProps) {
   const { t } = useText();
-  const { user, isLoading, isGuest, isAdmin } = useUser();
+  const { user, avatarUrl, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
   const { languageFlag, languageId, courseId, courseName } = useCourseContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -298,20 +298,29 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               {/* User Account Button */}
               <Link
                 href={isGuest ? "#" : "/profile"}
-                className="flex h-12 shrink-0 items-center gap-2 px-3 transition-all hover:opacity-80"
+                className="flex h-12 shrink-0 items-center gap-2 px-3"
                 onClick={isGuest ? (e) => e.preventDefault() : undefined}
               >
-                {/* Avatar with gradient */}
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                  style={{
-                    backgroundImage: "linear-gradient(135deg, #2b7fff 0%, #ad46ff 100%)",
-                  }}
-                >
-                  <span className="text-sm leading-5 font-normal tracking-[-0.15px] text-white">
-                    {isGuest ? "?" : getUserInitial()}
-                  </span>
-                </div>
+                {/* Avatar — uploaded image if available, otherwise gradient with initial */}
+                {!isGuest && avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, #2b7fff 0%, #ad46ff 100%)",
+                    }}
+                  >
+                    <span className="text-sm leading-5 font-normal tracking-[-0.15px] text-white">
+                      {isGuest ? "?" : getUserInitial()}
+                    </span>
+                  </div>
+                )}
               </Link>
             </>
           )}

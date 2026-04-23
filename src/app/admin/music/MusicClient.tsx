@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -10,7 +10,6 @@ import {
   Music,
   Play,
   Pause,
-  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -20,12 +19,17 @@ import {
   AdminFormField,
   AdminInput,
   AdminTextarea,
+  SortableList,
+  SortableRow,
+  DragHandle,
+  reorderById,
 } from "@/components/admin";
 import {
   createMusicTrack,
   updateMusicTrack,
   deleteMusicTrack,
   toggleMusicTrackActive,
+  reorderMusicTracks,
 } from "@/lib/mutations/admin/music";
 import { StudyMusicTrack } from "@/types/database";
 
@@ -70,6 +74,24 @@ export function MusicClient({ tracks }: MusicClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Local mirror for optimistic reordering via drag-and-drop.
+  const [orderedTracks, setOrderedTracks] = useState<StudyMusicTrack[]>(tracks);
+  useEffect(() => {
+    setOrderedTracks(tracks);
+  }, [tracks]);
+
+  const handleReorderTracks = async (newIds: string[]) => {
+    const previous = orderedTracks;
+    setOrderedTracks(reorderById(previous, newIds));
+    const result = await reorderMusicTracks(newIds);
+    if (!result.success) {
+      setOrderedTracks(previous);
+      alert(result.error || "Failed to reorder tracks");
+      return;
+    }
+    router.refresh();
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -389,7 +411,7 @@ export function MusicClient({ tracks }: MusicClientProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-bone-hover">
-            {tracks.length === 0 ? (
+            {orderedTracks.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                   <Music className="mx-auto mb-3 h-12 w-12 text-gray-300" />
@@ -398,74 +420,87 @@ export function MusicClient({ tracks }: MusicClientProps) {
                 </td>
               </tr>
             ) : (
-              tracks.map((track) => (
-                <tr key={track.id} className="hover:bg-gray-50">
-                  <td className="px-2 py-4">
-                    <GripVertical className="h-4 w-4 cursor-grab text-gray-400" />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handlePlayPreview(track)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+              <SortableList
+                ids={orderedTracks.map((t) => t.id)}
+                onReorder={handleReorderTracks}
+              >
+                {orderedTracks.map((track) => (
+                  <SortableRow key={track.id} id={track.id}>
+                    {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+                      <tr
+                        ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
+                        style={style}
+                        className={isDragging ? "bg-white shadow-lg" : "hover:bg-gray-50"}
                       >
-                        {playingTrackId === track.id ? (
-                          <Pause className="h-4 w-4" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </button>
-                      <div>
-                        <div className="font-medium text-gray-900">{track.name}</div>
-                        {track.description && (
-                          <div className="max-w-xs truncate text-sm text-gray-500">
-                            {track.description}
+                        <td className="px-2 py-4">
+                          <DragHandle {...dragHandleProps} />
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => handlePlayPreview(track)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+                            >
+                              {playingTrackId === track.id ? (
+                                <Pause className="h-4 w-4" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                            </button>
+                            <div>
+                              <div className="font-medium text-gray-900">{track.name}</div>
+                              {track.description && (
+                                <div className="max-w-xs truncate text-sm text-gray-500">
+                                  {track.description}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {track.author || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {track.category || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {formatDuration(track.duration_seconds)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {track.bpm || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                    {formatFileSize(track.file_size)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <Switch
-                      checked={track.is_active}
-                      onCheckedChange={() => handleToggleActive(track)}
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEditModal(track)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(track)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          {track.author || "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          {track.category || "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          {formatDuration(track.duration_seconds)}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          {track.bpm || "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                          {formatFileSize(track.file_size)}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <Switch
+                            checked={track.is_active}
+                            onCheckedChange={() => handleToggleActive(track)}
+                          />
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(track)}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                              title="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => openDeleteModal(track)}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </SortableRow>
+                ))}
+              </SortableList>
             )}
           </tbody>
         </table>

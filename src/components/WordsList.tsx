@@ -74,16 +74,23 @@ export function WordsList({
     }
   }, [searchParams, words, onWordSelected, initialWordHandled]);
 
+  // Mastered tab is always shown; Learned tab is shown unless every word is mastered.
+  // Not-started and Learning tabs are only shown when they have > 0 items.
   const allTabs: Tab[] = [
     { id: "all", label: "All words", count: words.length },
-    { id: "not-started", label: "Not started", count: wordsNotStarted },
-    { id: "learning", label: "Learning", count: wordsLearning },
-    { id: "learned", label: "Learned", count: wordsLearned },
+    ...(wordsNotStarted > 0
+      ? [{ id: "not-started" as const, label: "Not started", count: wordsNotStarted }]
+      : []),
+    ...(wordsLearning > 0
+      ? [{ id: "learning" as const, label: "Learning", count: wordsLearning }]
+      : []),
+    ...(wordsMastered < words.length
+      ? [{ id: "learned" as const, label: "Learned", count: wordsLearned }]
+      : []),
     { id: "mastered", label: "Mastered", count: wordsMastered },
   ];
 
-  // Hide tabs with zero items (except "all" which always shows)
-  const tabs = allTabs.filter((tab) => tab.id === "all" || (tab.count ?? 0) > 0);
+  const tabs = allTabs;
 
   // If active tab is no longer visible, switch to "all"
   const visibleTabIds = tabs.map((t) => t.id);
@@ -124,10 +131,17 @@ export function WordsList({
       : effectiveActiveTab === "learning"
         ? "No words are Learning."
         : effectiveActiveTab === "learned"
-          ? "No words are Learned yet."
+          ? "No learned words yet"
           : effectiveActiveTab === "mastered"
-            ? "No words are Mastered yet."
+            ? "No mastered words yet"
             : "No words found.";
+
+  const emptyHint =
+    effectiveActiveTab === "mastered"
+      ? "Answer a word correctly 3 times in a row to master it."
+      : effectiveActiveTab === "learned"
+        ? "Answer a word correctly with full marks to learn it."
+        : null;
 
   // Navigation handlers - navigate within filtered list
   const handleSelectWord = useCallback((index: number) => {
@@ -211,10 +225,15 @@ export function WordsList({
 
       {/* Words content */}
       {filteredWords.length === 0 ? (
-        <div className="overflow-hidden rounded-xl border border-gray-200">
+        <div className="overflow-hidden rounded-xl bg-white">
           <div className="px-6 py-12 text-center">
-            <p className="text-muted-foreground">{emptyMessage}</p>
-            {activeTab !== "all" && (
+            <p className={emptyHint ? "text-regular-semibold text-foreground" : "text-muted-foreground"}>
+              {emptyMessage}
+            </p>
+            {emptyHint && (
+              <p className="mt-1 text-sm text-muted-foreground">{emptyHint}</p>
+            )}
+            {activeTab !== "all" && !emptyHint && (
               <button
                 onClick={() => setActiveTab("all")}
                 className="mt-2 text-sm text-primary hover:underline"

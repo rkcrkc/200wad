@@ -58,10 +58,12 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
     }
   });
 
-  // Count words per language directly via words.language_id (words have a direct FK to languages)
+  // Count testable words per language directly via words.language_id (excludes
+  // information pages — they are not part of learnable vocabulary totals).
   const { data: wordCounts } = await supabase
     .from("words")
-    .select("id, language_id");
+    .select("id, language_id")
+    .neq("category", "information");
 
   const wordCountByLanguage: Record<string, number> = {};
   wordCounts?.forEach((word) => {
@@ -94,7 +96,8 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
         word_id,
         status,
         words!inner(
-          language_id
+          language_id,
+          category
         )
       `
       )
@@ -102,10 +105,11 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       .in("status", ["learning", "learned", "mastered"]);
 
     wordProgress?.forEach((wp) => {
-      const langId = (wp.words as { language_id: string } | null)?.language_id;
-      if (langId) {
-        wordsLearnedByLanguage[langId] =
-          (wordsLearnedByLanguage[langId] || 0) + 1;
+      const w = wp.words as { language_id: string; category: string | null } | null;
+      if (!w || w.category === "information") return;
+      if (w.language_id) {
+        wordsLearnedByLanguage[w.language_id] =
+          (wordsLearnedByLanguage[w.language_id] || 0) + 1;
       }
     });
   }

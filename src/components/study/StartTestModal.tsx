@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { cn } from "@/lib/utils";
 import {
   TestType,
@@ -184,9 +184,9 @@ export function StartTestModal({
         </label>
 
         {/* Actions */}
-        <Button size="xl" className="w-full" onClick={() => onStart(selectedType, testTwice)}>
+        <PrimaryButton fullWidth onClick={() => onStart(selectedType, testTwice)}>
           Start Test
-        </Button>
+        </PrimaryButton>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ import { fetchWordDetails } from "@/lib/actions/words";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
 
-type FilterType = "my-words" | "course" | "all";
+type FilterType = "learning" | "learned" | "mastered" | "course" | "all";
 type SortColumn = "english" | "headword" | "partOfSpeech" | "status" | "lessonNumber";
 type SortDirection = "asc" | "desc";
 
@@ -84,7 +84,7 @@ export function DictionaryList({
   const [filter, setFilter] = useState<FilterType>(() => {
     // If navigating to a specific word, start on "course" tab (most likely to contain it)
     if (highlightWordId) return "course";
-    return "my-words";
+    return "learning";
   });
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>("english");
@@ -106,23 +106,47 @@ export function DictionaryList({
     }
   };
 
+  // Derive status-specific lists from myWords
+  const learningWords = useMemo(
+    () => myWords.filter((w) => w.status === "learning"),
+    [myWords]
+  );
+  const learnedWords = useMemo(
+    () => myWords.filter((w) => w.status === "learned"),
+    [myWords]
+  );
+  const masteredWords = useMemo(
+    () => myWords.filter((w) => w.status === "mastered"),
+    [myWords]
+  );
+
   const tabs: Tab[] = [
-    { id: "my-words", label: "My Words", count: myWords.length },
-    { id: "course", label: "Words in this Course", count: courseWords.length },
-    { id: "all", label: "All Words", count: allWords.length },
+    { id: "learning", label: "Learning", count: learningWords.length },
+    { id: "learned", label: "Learned", count: learnedWords.length },
+    { id: "mastered", label: "Mastered", count: masteredWords.length },
+    { id: "course", label: "This Course", count: courseWords.length, separatorAfter: true },
+    {
+      id: "all",
+      label: languageName ? `All ${languageName} words` : "All Words",
+      count: allWords.length,
+    },
   ];
 
   // Get current word list based on filter
   const currentWords = useMemo(() => {
     switch (filter) {
-      case "my-words":
-        return myWords;
+      case "learning":
+        return learningWords;
+      case "learned":
+        return learnedWords;
+      case "mastered":
+        return masteredWords;
       case "course":
         return courseWords;
       case "all":
         return allWords;
     }
-  }, [filter, myWords, courseWords, allWords]);
+  }, [filter, learningWords, learnedWords, masteredWords, courseWords, allWords]);
 
   // Filter by letter
   const letterFilteredWords = useMemo(() => {
@@ -435,9 +459,13 @@ export function DictionaryList({
                   <p className="text-muted-foreground">
                     {letterFilter
                       ? `No words starting with "${letterFilter}".`
-                      : filter === "my-words"
-                        ? "No words yet — start studying to build your vocabulary!"
-                        : "No words found."}
+                      : filter === "learning"
+                        ? "No words being learned yet — start studying to begin!"
+                        : filter === "learned"
+                          ? "No learned words yet — answer a word with full marks in a test to learn it."
+                          : filter === "mastered"
+                            ? "No mastered words yet — answer a word with full marks 3 times in a row to master it."
+                            : "No words found."}
                   </p>
                   {letterFilter && (
                     <button

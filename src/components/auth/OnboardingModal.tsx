@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { SocialLoginButtons } from "./SocialLoginButtons";
 import type { LanguageWithCourses, CoursePreview } from "@/lib/queries/onboarding";
 
@@ -305,14 +305,13 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
           {/* Fixed footer */}
           <div className="shrink-0 bg-bone px-8 py-6">
             <div className="flex flex-col items-center gap-3">
-              <Button
+              <PrimaryButton
                 onClick={handleLanguageContinue}
                 disabled={!selectedLanguageId}
-                className="w-full"
-                size="xl"
+                fullWidth
               >
                 {selectedLanguage ? `Start ${selectedLanguage.name}` : "Continue"}
-              </Button>
+              </PrimaryButton>
               <button
                 type="button"
                 onClick={() => {
@@ -439,12 +438,10 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
         {/* Fixed footer */}
         <div className="shrink-0 bg-bone px-8 py-6">
           <div className="flex flex-col items-center gap-3">
-            <Button
-              type="button"
+            <PrimaryButton
               onClick={authMode === "signup" ? handleSignup : handleSignin}
-              disabled={loading}
-              className="w-full"
-              size="xl"
+              loading={loading}
+              fullWidth
             >
               {loading
                 ? authMode === "signup"
@@ -453,7 +450,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 : authMode === "signup"
                   ? "Create account"
                   : "Sign in"}
-            </Button>
+            </PrimaryButton>
             <div className="flex w-full items-center justify-between text-sm">
               <button
                 type="button"

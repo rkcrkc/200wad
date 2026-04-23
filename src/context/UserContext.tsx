@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 
 interface UserContextType {
   user: User | null;
+  avatarUrl: string | null;
   isLoading: boolean;
   isGuest: boolean;
   isAdmin: boolean;
@@ -17,15 +18,33 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
+
+  const fetchProfile = useCallback(
+    async (userId: string) => {
+      const { data } = await supabase
+        .from("users")
+        .select("avatar_url")
+        .eq("id", userId)
+        .single();
+      setAvatarUrl(data?.avatar_url ?? null);
+    },
+    [supabase]
+  );
 
   const refreshUser = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     setUser(user);
-  }, [supabase.auth]);
+    if (user) {
+      await fetchProfile(user.id);
+    } else {
+      setAvatarUrl(null);
+    }
+  }, [supabase.auth, fetchProfile]);
 
   useEffect(() => {
     // Get initial user
@@ -34,6 +53,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        await fetchProfile(user.id);
+      }
       setIsLoading(false);
     };
 
@@ -43,22 +65,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        fetchProfile(nextUser.id);
+      } else {
+        setAvatarUrl(null);
+      }
       setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, [supabase.auth, fetchProfile]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setAvatarUrl(null);
   }, [supabase.auth]);
 
   const value: UserContextType = {
     user,
+    avatarUrl,
     isLoading,
     isGuest: !user,
     isAdmin: user?.user_metadata?.role === "admin",
