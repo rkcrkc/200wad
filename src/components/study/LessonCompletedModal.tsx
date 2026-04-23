@@ -57,12 +57,20 @@ export function LessonCompletedModal({
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
 
   // Filter words by status
+  const learningWords = words.filter((w) => w.status === "learning");
   const learnedWords = words.filter((w) => w.status === "learned" || w.status === "mastered");
   const masteredWords = words.filter((w) => w.status === "mastered");
 
-  const [activeTab, setActiveTab] = useState<"all" | "learned" | "mastered">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "learning" | "learned" | "mastered">("all");
 
-  const displayWords = activeTab === "learned" ? learnedWords : activeTab === "mastered" ? masteredWords : words;
+  const displayWords =
+    activeTab === "learning"
+      ? learningWords
+      : activeTab === "learned"
+        ? learnedWords
+        : activeTab === "mastered"
+          ? masteredWords
+          : words;
 
   const selectedWordIndex = selectedWordId ? displayWords.findIndex((w) => w.id === selectedWordId) : -1;
   const selectedWord = selectedWordIndex >= 0 ? displayWords[selectedWordIndex] : null;
@@ -168,6 +176,9 @@ export function LessonCompletedModal({
             <Tabs
               tabs={[
                 { id: "all", label: "All words", count: words.length },
+                ...(learningWords.length > 0
+                  ? [{ id: "learning", label: "Learning", count: learningWords.length }]
+                  : []),
                 ...(learnedWords.length > 0
                   ? [{ id: "learned", label: "Learned", count: learnedWords.length }]
                   : []),
@@ -176,7 +187,7 @@ export function LessonCompletedModal({
                   : []),
               ]}
               activeTab={activeTab}
-              onChange={(tabId) => setActiveTab(tabId as "all" | "learned" | "mastered")}
+              onChange={(tabId) => setActiveTab(tabId as "all" | "learning" | "learned" | "mastered")}
               className="mb-4"
             />
             <WordGrid

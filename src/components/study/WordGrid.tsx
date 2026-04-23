@@ -87,16 +87,23 @@ export function WordGrid({
               )}
             </div>
 
-            {/* Word Info - Foreign first, English beneath, then score */}
+            {/* Word Info - Foreign first, English beneath, then score.
+                When foreign is hidden, English takes the prominent foreign-word style. */}
             <div className="mt-3">
-              {showForeign && (
+              {showForeign ? (
+                <>
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {word.headword}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {word.english}
+                  </p>
+                </>
+              ) : (
                 <p className="truncate text-sm font-medium text-foreground">
-                  {word.headword}
+                  {word.english}
                 </p>
               )}
-              <p className="truncate text-xs text-muted-foreground">
-                {word.english}
-              </p>
               {result && (
                 <div
                   className={`mt-1.5 text-[11px] font-medium ${
