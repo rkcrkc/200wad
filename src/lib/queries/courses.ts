@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language } from "@/types/database";
 
 export interface GetCourseByIdResult {
@@ -125,9 +125,11 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     });
 
     // Fetch lesson_progress + lesson_words in parallel; user_word_progress is
-    // sequenced after so it can be scoped to this user's enrolled courses' word
-    // IDs (avoids Supabase's default 1000-row cap silently truncating progress).
-    const [lessonProgressResult, lessonWordsResult] = await Promise.all([
+    // sequenced after. Both `lesson_words` and `user_word_progress` use .range()
+    // pagination because PostgREST's server-side max-rows cap (1,000) silently
+    // truncates single-request responses — that caused later lessons in large
+    // courses to show 0 learned/mastered even when data existed.
+    const [lessonProgressResult, lessonWordsRows] = await Promise.all([
       // Lesson-level mastered counts (for the lessonsCompleted field, kept for UI consumers)
       supabase
         .from("user_lesson_progress")
@@ -136,13 +138,20 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         .in("lesson_id", lessonIds)
         .eq("status", "mastered"),
       // Full lesson → word map so we can bucket user progress by course
-      supabase
-        .from("lesson_words")
-        .select("lesson_id, word_id, words(category)")
-        .in("lesson_id", lessonIds)
-        .limit(SUPABASE_ALL_ROWS),
+      fetchAllRows<{
+        lesson_id: string;
+        word_id: string | null;
+        words: { category: string | null } | null;
+      }>(
+        (from, to) =>
+          supabase
+            .from("lesson_words")
+            .select("lesson_id, word_id, words(category)")
+            .in("lesson_id", lessonIds)
+            .range(from, to),
+        { label: "getCourses:lesson_words" }
+      ),
     ]);
-    warnIfTruncated("getCourses:lesson_words", lessonWordsResult.data?.length ?? 0);
 
     // lessonsCompleted per course
     lessonProgressResult.data?.forEach((lp) => {
@@ -156,7 +165,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     // Build courseId → Set<wordId>, excluding information pages
     const courseWordSets: Record<string, Set<string>> = {};
     const allCourseWordIds = new Set<string>();
-    lessonWordsResult.data?.forEach((lw) => {
+    lessonWordsRows.forEach((lw) => {
       if ((lw.words as unknown as { category: string | null })?.category === "information") return;
       const courseId = lessonIdToCourse[lw.lesson_id];
       if (courseId && lw.word_id) {
@@ -168,19 +177,27 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
 
     // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
     // PostgREST and silently returns empty on long URLs — and this aggregates
-    // across all the user's courses, which is even bigger. The per-course
-    // bucketing below already intersects with each course's word set.
-    const userProgressResult = await supabase
-      .from("user_word_progress")
-      .select("word_id, status")
-      .eq("user_id", user.id)
-      .in("status", ["learning", "learned", "mastered"])
-      .limit(SUPABASE_ALL_ROWS);
-    warnIfTruncated("getCourses:user_word_progress", userProgressResult.data?.length ?? 0);
+    // across all the user's courses, which is even bigger. Paginate via
+    // .range() so the 1,000-row max-rows cap doesn't drop progress rows for
+    // power users. The per-course bucketing below already intersects with
+    // each course's word set.
+    const userProgressRows = await fetchAllRows<{
+      word_id: string | null;
+      status: string | null;
+    }>(
+      (from, to) =>
+        supabase
+          .from("user_word_progress")
+          .select("word_id, status")
+          .eq("user_id", user.id)
+          .in("status", ["learning", "learned", "mastered"])
+          .range(from, to),
+      { label: "getCourses:user_word_progress" }
+    );
 
     // Bucket word progress into courses
     const progressByWord = new Map<string, string>();
-    userProgressResult.data?.forEach((p) => {
+    userProgressRows.forEach((p) => {
       if (p.word_id && p.status) progressByWord.set(p.word_id, p.status);
     });
 

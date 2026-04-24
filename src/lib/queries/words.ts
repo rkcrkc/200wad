@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { SUPABASE_ALL_ROWS, fetchAllRows, warnIfTruncated } from "@/lib/supabase/utils";
 import {
   Course,
   ExampleSentence,
@@ -195,16 +195,20 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   let words: (Word & { example_sentences: ExampleSentence[]; sort_order: number })[];
 
   if (isAdminTestLesson && lesson.course_id) {
-    // Get all word IDs in this course
+    // Get all word IDs in this course. Paginate via .range() — PostgREST's
+    // 1,000-row max-rows cap silently truncates single-request responses.
     const allLessonIds = orderedLessons.map((l) => l.id);
-    const { data: allLessonWords } = await supabase
-      .from("lesson_words")
-      .select("word_id")
-      .in("lesson_id", allLessonIds)
-      .limit(SUPABASE_ALL_ROWS);
-    warnIfTruncated("getWords:adminTest:lesson_words", allLessonWords?.length ?? 0);
+    const allLessonWords = await fetchAllRows<{ word_id: string | null }>(
+      (from, to) =>
+        supabase
+          .from("lesson_words")
+          .select("word_id")
+          .in("lesson_id", allLessonIds)
+          .range(from, to),
+      { label: "getWords:adminTest:lesson_words" }
+    );
 
-    const courseWordIds = allLessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
+    const courseWordIds = allLessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
 
     // Get test scores scoped to this course
     const { data: userTestScores } = await supabase
@@ -719,16 +723,20 @@ async function getAutoLessonWords(
 
   const orderedLessons = courseLessons ?? [];
 
-  // Get all word IDs for this course
+  // Get all word IDs for this course. Paginate via .range() — PostgREST's
+  // 1,000-row max-rows cap silently truncates single-request responses.
   const lessonIds = orderedLessons.map((l) => l.id);
-  const { data: lessonWords } = await supabase
-    .from("lesson_words")
-    .select("word_id")
-    .in("lesson_id", lessonIds)
-    .limit(SUPABASE_ALL_ROWS);
-  warnIfTruncated("getAutoLessonWords:lesson_words", lessonWords?.length ?? 0);
+  const lessonWords = await fetchAllRows<{ word_id: string | null }>(
+    (from, to) =>
+      supabase
+        .from("lesson_words")
+        .select("word_id")
+        .in("lesson_id", lessonIds)
+        .range(from, to),
+    { label: "getAutoLessonWords:lesson_words" }
+  );
 
-  const courseWordIds = lessonWords?.map((lw) => lw.word_id).filter((id): id is string => id !== null) || [];
+  const courseWordIds = lessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
 
   if (courseWordIds.length === 0) {
     return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
@@ -793,17 +801,29 @@ async function getAutoLessonWords(
       }))
       .sort((a, b) => type === "best" ? b.avgPercent - a.avgPercent : a.avgPercent - b.avgPercent);
 
-    // For worst words, exclude mastered words before taking top 20
+    // For worst words, exclude mastered words before taking top 20. Scope by
+    // user_id + status only; `sortedWords` can carry every tested word in the
+    // course, so `.in("word_id", …)` would produce a ~55KB URL that PostgREST
+    // silently returns empty for. Paginate via .range() and intersect with
+    // the sorted-score set client-side.
     if (type === "worst") {
-      const allWordIds = sortedWords.map((w) => w.wordId);
-      const { data: masteredProgress } = await supabase
-        .from("user_word_progress")
-        .select("word_id")
-        .eq("user_id", userId)
-        .in("word_id", allWordIds)
-        .eq("status", "mastered");
+      const candidateSet = new Set(sortedWords.map((w) => w.wordId));
+      const masteredProgress = await fetchAllRows<{ word_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("user_word_progress")
+            .select("word_id")
+            .eq("user_id", userId)
+            .eq("status", "mastered")
+            .range(from, to),
+        { label: "getAutoLessonWords:worst:user_word_progress" }
+      );
 
-      const masteredIds = new Set(masteredProgress?.map((wp) => wp.word_id) ?? []);
+      const masteredIds = new Set(
+        masteredProgress
+          .map((wp) => wp.word_id)
+          .filter((id): id is string => !!id && candidateSet.has(id))
+      );
       targetWordIds = sortedWords
         .filter((w) => !masteredIds.has(w.wordId))
         .slice(0, 20)

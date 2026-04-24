@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { fetchAllRows } from "@/lib/supabase/utils";
 import { Lesson, UserTestScore } from "@/types/database";
 import { LessonStatus } from "./lessons";
 
@@ -86,12 +86,14 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
   // Get lesson progress, test scores, and lesson_words in parallel; user_word_progress
-  // is fetched after so it can be scoped to this course's words (avoids the default
-  // 1000-row cap silently truncating progress for users with many courses).
+  // is fetched after so it can be scoped to this course's words. lesson_words and
+  // user_word_progress both use .range() pagination because PostgREST's server-side
+  // max-rows cap (1,000) silently truncates single-request responses — that caused
+  // later lessons in large courses to show 0 learned/mastered.
   const [
     { data: lessonProgress },
     { data: testScores },
-    lessonWordsResult,
+    lessonWordsRows,
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
@@ -104,16 +106,23 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .eq("user_id", user.id)
       .in("lesson_id", lessonIds)
       .order("taken_at", { ascending: false }),
-    supabase
-      .from("lesson_words")
-      .select("lesson_id, word_id, words(category)")
-      .in("lesson_id", lessonIds)
-      .limit(SUPABASE_ALL_ROWS),
+    fetchAllRows<{
+      lesson_id: string | null;
+      word_id: string | null;
+      words: { category: string | null } | null;
+    }>(
+      (from, to) =>
+        supabase
+          .from("lesson_words")
+          .select("lesson_id, word_id, words(category)")
+          .in("lesson_id", lessonIds)
+          .range(from, to),
+      { label: "getTests:lesson_words" }
+    ),
   ]);
-  warnIfTruncated("getTests:lesson_words", lessonWordsResult.data?.length ?? 0);
 
   // Filter out information pages — they're non-testable
-  const testableRows = (lessonWordsResult.data ?? []).filter(
+  const testableRows = lessonWordsRows.filter(
     (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
   );
   const courseWordIds = new Set(
@@ -122,15 +131,22 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
 
   // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
   // PostgREST and silently returns empty on long URLs for big courses.
-  // The downstream intersection with courseWordIds keeps counts scoped.
-  const userWordProgressResult = await supabase
-    .from("user_word_progress")
-    .select("word_id, status")
-    .eq("user_id", user.id)
-    .in("status", ["learning", "learned", "mastered"])
-    .limit(SUPABASE_ALL_ROWS);
-  warnIfTruncated("getTests:user_word_progress", userWordProgressResult.data?.length ?? 0);
-  const userWordProgress = userWordProgressResult.data;
+  // Paginate via .range() so the 1,000-row max-rows cap doesn't drop rows
+  // for power users. The downstream intersection with courseWordIds keeps
+  // counts scoped.
+  const userWordProgress = await fetchAllRows<{
+    word_id: string | null;
+    status: string | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("status", ["learning", "learned", "mastered"])
+        .range(from, to),
+    { label: "getTests:user_word_progress" }
+  );
 
   const progressByLesson = new Map(
     (lessonProgress || [])
@@ -143,7 +159,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const liveMasteredByLesson: Record<string, number> = {};
   const testableCountByLesson: Record<string, number> = {};
 
-  if (lessonWordsResult.data && userWordProgress) {
+  if (lessonWordsRows.length > 0 && userWordProgress.length > 0) {
     const wordStatusMap = new Map<string, string>();
     userWordProgress.forEach((p) => {
       if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { LessonStatus } from "./lessons";
 
@@ -181,17 +181,24 @@ async function getLessonSampleWords(
 ): Promise<Record<string, string[]>> {
   if (lessonIds.length === 0) return {};
 
-  // Use lesson_words join table to get words per lesson, excluding information pages
-  const { data: lessonWords } = await supabase
-    .from("lesson_words")
-    .select("lesson_id, words(english, category)")
-    .in("lesson_id", lessonIds)
-    .order("sort_order")
-    .limit(SUPABASE_ALL_ROWS);
-  warnIfTruncated("getLessonSampleWords:lesson_words", lessonWords?.length ?? 0);
+  // Use lesson_words join table to get words per lesson, excluding information pages.
+  // Paginate via .range() — PostgREST caps single-request responses at 1,000 rows.
+  const lessonWords = await fetchAllRows<{
+    lesson_id: string | null;
+    words: { english: string; category: string | null } | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("lesson_words")
+        .select("lesson_id, words(english, category)")
+        .in("lesson_id", lessonIds)
+        .order("sort_order")
+        .range(from, to),
+    { label: "getLessonSampleWords:lesson_words" }
+  );
 
   const samplesByLesson: Record<string, string[]> = {};
-  lessonWords?.forEach((lw) => {
+  lessonWords.forEach((lw) => {
     const lessonId = lw.lesson_id;
     if (!lessonId) return;
     const word = lw.words as { english: string; category: string | null } | null;
@@ -216,17 +223,24 @@ async function getLessonImages(
 
   // Get first testable word with an image for each lesson via lesson_words join table.
   // Information pages (category = 'information') are excluded so their artwork never
-  // appears as the lesson thumbnail.
-  const { data: lessonWords } = await supabase
-    .from("lesson_words")
-    .select("lesson_id, words(memory_trigger_image_url, category)")
-    .in("lesson_id", lessonIds)
-    .order("sort_order")
-    .limit(SUPABASE_ALL_ROWS);
-  warnIfTruncated("getLessonImages:lesson_words", lessonWords?.length ?? 0);
+  // appears as the lesson thumbnail. Paginate via .range() to avoid PostgREST's
+  // 1,000-row single-request cap for large courses.
+  const lessonWords = await fetchAllRows<{
+    lesson_id: string | null;
+    words: { memory_trigger_image_url: string | null; category: string | null } | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("lesson_words")
+        .select("lesson_id, words(memory_trigger_image_url, category)")
+        .in("lesson_id", lessonIds)
+        .order("sort_order")
+        .range(from, to),
+    { label: "getLessonImages:lesson_words" }
+  );
 
   const imagesByLesson: Record<string, string | null> = {};
-  lessonWords?.forEach((lw) => {
+  lessonWords.forEach((lw) => {
     const lessonId = lw.lesson_id;
     if (!lessonId || !lw.words) return;
     const word = lw.words as {
@@ -381,26 +395,34 @@ export async function getScheduleData(
   }
 
   // Get lesson progress and lesson_words in parallel; user_word_progress is fetched
-  // after so it can be scoped to this course's words (avoids the default 1000-row
-  // cap silently truncating progress for users with many courses).
+  // after so it can be scoped to this course's words. lesson_words and
+  // user_word_progress both use .range() pagination — PostgREST's 1,000-row max-rows
+  // cap otherwise silently truncates single-request responses.
   const [
     { data: lessonProgress },
-    lessonWordsResult,
+    lessonWordsRows,
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
       .select("*")
       .eq("user_id", user.id)
       .in("lesson_id", lessonIds),
-    supabase
-      .from("lesson_words")
-      .select("lesson_id, word_id, words(category)")
-      .in("lesson_id", lessonIds)
-      .limit(SUPABASE_ALL_ROWS),
+    fetchAllRows<{
+      lesson_id: string | null;
+      word_id: string | null;
+      words: { category: string | null } | null;
+    }>(
+      (from, to) =>
+        supabase
+          .from("lesson_words")
+          .select("lesson_id, word_id, words(category)")
+          .in("lesson_id", lessonIds)
+          .range(from, to),
+      { label: "getScheduleData:lesson_words" }
+    ),
   ]);
-  warnIfTruncated("getScheduleData:lesson_words", lessonWordsResult.data?.length ?? 0);
 
-  const testableRows = (lessonWordsResult.data ?? []).filter(
+  const testableRows = lessonWordsRows.filter(
     (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
   );
   const courseWordIds = new Set(
@@ -409,15 +431,22 @@ export async function getScheduleData(
 
   // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
   // PostgREST and silently returns empty on long URLs for big courses.
-  // The downstream intersection with courseWordIds keeps counts scoped.
-  const userWordProgressResult = await supabase
-    .from("user_word_progress")
-    .select("word_id, status")
-    .eq("user_id", user.id)
-    .in("status", ["learning", "learned", "mastered"])
-    .limit(SUPABASE_ALL_ROWS);
-  warnIfTruncated("getScheduleData:user_word_progress", userWordProgressResult.data?.length ?? 0);
-  const userWordProgress = userWordProgressResult.data;
+  // Paginate via .range() so the 1,000-row max-rows cap doesn't drop rows
+  // for power users. The downstream intersection with courseWordIds keeps
+  // counts scoped.
+  const userWordProgress = await fetchAllRows<{
+    word_id: string | null;
+    status: string | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("status", ["learning", "learned", "mastered"])
+        .range(from, to),
+    { label: "getScheduleData:user_word_progress" }
+  );
 
   const progressByLesson = new Map<string, UserLessonProgress>(
     (lessonProgress || [])
@@ -428,7 +457,7 @@ export async function getScheduleData(
   // Build live per-lesson status from user_word_progress
   const liveStatusByLesson: Record<string, LessonStatus> = {};
 
-  if (lessonWordsResult.data && userWordProgress) {
+  if (lessonWordsRows.length > 0 && userWordProgress.length > 0) {
     const wordStatusMap = new Map<string, string>();
     userWordProgress.forEach((p) => {
       if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);

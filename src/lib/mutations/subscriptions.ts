@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { fetchAllRows } from "@/lib/supabase/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { createCheckoutSchema, type CreateCheckoutInput } from "@/lib/validations/admin";
@@ -220,14 +220,20 @@ export async function getLanguageCoursesAction(
     const wordCountByCourse: Record<string, number> = {};
 
     if (allLessonIds.length > 0) {
-      const { data: lessonWords } = await supabase
-        .from("lesson_words")
-        .select("lesson_id")
-        .in("lesson_id", allLessonIds)
-        .limit(SUPABASE_ALL_ROWS);
-      warnIfTruncated("getLanguageCoursesAction:lesson_words", lessonWords?.length ?? 0);
+      // Paginate via .range() — PostgREST's 1,000-row max-rows cap silently
+      // truncates single-request responses, which would under-count words
+      // per course for languages with many courses/lessons.
+      const lessonWords = await fetchAllRows<{ lesson_id: string | null }>(
+        (from, to) =>
+          supabase
+            .from("lesson_words")
+            .select("lesson_id")
+            .in("lesson_id", allLessonIds)
+            .range(from, to),
+        { label: "getLanguageCoursesAction:lesson_words" }
+      );
 
-      lessonWords?.forEach((lw) => {
+      lessonWords.forEach((lw) => {
         const lesson = lessons?.find((l) => l.id === lw.lesson_id);
         if (lesson?.course_id) {
           wordCountByCourse[lesson.course_id] =

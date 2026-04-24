@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
+import { fetchAllRows } from "@/lib/supabase/utils";
 import { Language, UserLanguage } from "@/types/database";
 
 export interface LanguageWithProgress extends Language {
@@ -92,25 +92,34 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
     // already a distinct word — no extra dedupe needed.
     // Explicit limit + truncation warning prevents Supabase's default 1000-row
     // cap from silently dropping progress for power users with many languages.
-    const wordProgressResult = await supabase
-      .from("user_word_progress")
-      .select(
-        `
-        word_id,
-        status,
-        words!inner(
-          language_id,
-          category
-        )
-      `
-      )
-      .eq("user_id", user.id)
-      .in("status", ["learning", "learned", "mastered"])
-      .limit(SUPABASE_ALL_ROWS);
-    warnIfTruncated("getLanguages:user_word_progress", wordProgressResult.data?.length ?? 0);
-    const wordProgress = wordProgressResult.data;
+    // Paginate via .range() — PostgREST's server-side max-rows cap (1,000)
+    // silently truncates single-request responses, which would under-count
+    // learned words for power users studying multiple languages.
+    const wordProgress = await fetchAllRows<{
+      word_id: string | null;
+      status: string | null;
+      words: { language_id: string; category: string | null } | null;
+    }>(
+      (from, to) =>
+        supabase
+          .from("user_word_progress")
+          .select(
+            `
+            word_id,
+            status,
+            words!inner(
+              language_id,
+              category
+            )
+          `
+          )
+          .eq("user_id", user.id)
+          .in("status", ["learning", "learned", "mastered"])
+          .range(from, to),
+      { label: "getLanguages:user_word_progress" }
+    );
 
-    wordProgress?.forEach((wp) => {
+    wordProgress.forEach((wp) => {
       const w = wp.words as { language_id: string; category: string | null } | null;
       if (!w || w.category === "information") return;
       if (w.language_id) {
