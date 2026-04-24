@@ -60,6 +60,14 @@ const GENDER_MARKER = /\s+\((?:m|f)\)\s*$/;
 const FLEXIBLE_GENDER_MARKER = /\s+\(?([mf])\)?\s*$/i;
 
 /**
+ * Decorative punctuation that isn't pedagogically meaningful for vocab learning.
+ * Stripped anywhere in the answer in non-strict mode.
+ * Preserves apostrophes (structural, e.g. Italian "l'aeroporto") and hyphens
+ * (structural in compound words). Parentheses are handled by the gender marker.
+ */
+const DECORATIVE_PUNCT = /[,.;:!?"“”«»…]/g;
+
+/**
  * Build a mapping from normalized string indices to original string indices.
  * Used by getCharacterDiff to correctly map DP results back to original characters.
  */
@@ -78,10 +86,17 @@ export function getNormalizedIndexMap(answer: string, options: NormalizeOptions 
   const genderMatch = !strictPunctuation ? trimmed.match(GENDER_MARKER) : null;
   const genderStartIdx = genderMatch ? trimmed.length - genderMatch[0].length : -1;
 
+  // Match the decorative punctuation stripped in normalizeAnswer (non-strict mode)
+  const isDecorative = (ch: string) => !strictPunctuation && /[,.;:!?"“”«»…]/.test(ch);
+
   const indexMap: number[] = [];
   for (let i = 0; i < trimmed.length; i++) {
     // Skip gender marker chars (including preceding space)
     if (genderStartIdx >= 0 && i >= genderStartIdx) {
+      continue;
+    }
+    // Skip decorative punctuation — it's stripped during normalization
+    if (isDecorative(trimmed[i])) {
       continue;
     }
     indexMap.push(trimOffset + i);
@@ -103,10 +118,12 @@ export function languageRequiresCase(languageCode?: string | null): boolean {
 /**
  * Normalize an answer for comparison
  * - Strip gender marker and its preceding space, e.g. " (m)" at end
- * - Strip trailing "!" and "?" (decorative sentence-ending punctuation)
+ * - Strip decorative punctuation (, . ; : ! ? " “ ” « » …) anywhere in the answer
+ *   so users aren't penalized for typographic slips
+ * - Preserve apostrophes and hyphens (structurally meaningful in many languages)
  * - Lowercase (unless preserveCase is true - for German or "nerves of steel")
  * - Trim whitespace
- * - Internal punctuation (apostrophes, etc.) is preserved and scored
+ * - In nerves of steel mode (strictPunctuation), everything above is required exactly
  */
 export function normalizeAnswer(answer: string, options: NormalizeOptions | boolean = {}): string {
   // Handle legacy boolean parameter (strictMode = both punctuation and case)
@@ -117,12 +134,14 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
   const { strictPunctuation = false, preserveCase = false } = options;
 
   let normalized = answer.trim();
-  // Strip gender marker and its preceding space so it doesn't affect edit distance
-  // In nerves of steel mode, gender marker must be typed exactly
+  // Strip gender marker and decorative punctuation so they don't affect edit distance.
+  // Use trimEnd only (not trim) so leading-whitespace cases stay aligned with
+  // getNormalizedIndexMap, which emits indices for every non-stripped char.
   if (!strictPunctuation) {
-    normalized = normalized.replace(GENDER_MARKER, "");
-    // Strip trailing "!" and "?" so users aren't penalized for omitting them
-    normalized = normalized.replace(/[!?]+$/, "").trimEnd();
+    normalized = normalized
+      .replace(GENDER_MARKER, "")
+      .replace(DECORATIVE_PUNCT, "")
+      .trimEnd();
   }
   if (!preserveCase) {
     normalized = normalized.toLowerCase();
