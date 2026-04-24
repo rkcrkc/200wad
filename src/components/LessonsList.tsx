@@ -204,7 +204,6 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
               <ClipboardCheck className="h-5 w-5" />
             </button>
           </Tooltip>
-          {languageFlag && <div className="text-2xl">{languageFlag}</div>}
         </div>
       </div>
 

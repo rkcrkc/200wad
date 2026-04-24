@@ -6,7 +6,6 @@ import { formatDuration } from "@/lib/utils/helpers";
 import { WordTrackerDots, type TestResultGrade } from "./WordTrackerDots";
 
 interface StudyNavbarProps {
-  languageFlag?: string;
   courseName?: string;
   elapsedSeconds: number;
   onExitLesson: () => void;
@@ -36,7 +35,6 @@ interface StudyNavbarProps {
 }
 
 export function StudyNavbar({
-  languageFlag,
   courseName,
   elapsedSeconds,
   onExitLesson,

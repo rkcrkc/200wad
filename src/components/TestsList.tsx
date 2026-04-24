@@ -16,11 +16,10 @@ type FilterType = "due" | "previous";
 interface TestsListProps {
   dueTests: TestForList[];
   previousTests: TestForList[];
-  languageFlag?: string;
   averageScore?: number;
 }
 
-export function TestsList({ dueTests, previousTests, languageFlag, averageScore }: TestsListProps) {
+export function TestsList({ dueTests, previousTests, averageScore }: TestsListProps) {
   const [filter, setFilter] = useState<FilterType>("due");
   const { scrollRef, canScrollRight } = useScrollFade();
 
@@ -40,8 +39,6 @@ export function TestsList({ dueTests, previousTests, languageFlag, averageScore 
           activeTab={filter}
           onChange={(tabId) => setFilter(tabId as FilterType)}
         />
-
-        {languageFlag && <div className="text-2xl">{languageFlag}</div>}
       </div>
 
       {/* Tests Table */}

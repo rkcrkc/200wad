@@ -135,7 +135,11 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
             </Link>
           </Tooltip>
           <Link
-            href={`/lesson/${test.lessonId}/test`}
+            href={
+              test.isDue && test.milestone
+                ? `/lesson/${test.lessonId}/test?milestone=${test.milestone}`
+                : `/lesson/${test.lessonId}/test`
+            }
             className="group/btn inline-flex items-center gap-0.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white"
           >
             Test

@@ -6,11 +6,10 @@ import { mapStatus } from "@/lib/utils/helpers";
 interface WordCardProps {
   word: WordWithDetails;
   index?: number;
-  languageFlag?: string;
   onClick?: () => void;
 }
 
-export function WordCard({ word, index, languageFlag = "🇮🇹", onClick }: WordCardProps) {
+export function WordCard({ word, index, onClick }: WordCardProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (

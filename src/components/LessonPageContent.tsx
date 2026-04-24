@@ -31,7 +31,6 @@ interface AdjacentLesson {
 interface LessonPageContentProps {
   lesson: Lesson;
   words: WordWithDetails[];
-  languageFlag?: string;
   languageName?: string;
   courseId?: string;
   wordsNotStarted: number;
@@ -51,7 +50,6 @@ interface LessonPageContentProps {
 export function LessonPageContent({
   lesson,
   words,
-  languageFlag,
   languageName,
   courseId,
   wordsNotStarted,
@@ -224,7 +222,6 @@ export function LessonPageContent({
         <div className={showHistory ? "hidden" : ""}>
           <WordsList
             words={words}
-            languageFlag={languageFlag}
             languageName={languageName}
             wordsNotStarted={wordsNotStarted}
             wordsLearning={wordsLearning}

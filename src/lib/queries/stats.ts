@@ -230,7 +230,10 @@ export async function getCourseProgress(
     return rows;
   };
 
-  const [lessonsCompletedResult, lessonWordsRows, userProgressResult] = await Promise.all([
+  // Fetch lessons-completed count and lesson_words in parallel; user_word_progress
+  // is fetched after so it can be scoped to this course's words (avoids the default
+  // 1000-row cap silently truncating mastered counts for power users).
+  const [lessonsCompletedResult, lessonWordsRows] = await Promise.all([
     supabase
       .from("user_lesson_progress")
       .select("id", { count: "exact", head: true })
@@ -238,11 +241,6 @@ export async function getCourseProgress(
       .in("lesson_id", lessonIds)
       .eq("status", "mastered"),
     fetchAllLessonWords(),
-    supabase
-      .from("user_word_progress")
-      .select("word_id, status")
-      .eq("user_id", user.id)
-      .eq("status", "mastered"),
   ]);
 
   const completed = lessonsCompletedResult.count || 0;
@@ -255,9 +253,28 @@ export async function getCourseProgress(
       .filter((id): id is string => id !== null)
   );
   const totalWords = courseWordIds.size;
-  const wordsMastered = (userProgressResult.data || []).filter(
-    (p) => p.word_id && courseWordIds.has(p.word_id)
-  ).length;
+
+  const courseWordIdArray = [...courseWordIds];
+  const fetchAllUserMasteredProgress = async (): Promise<{ word_id: string | null }[]> => {
+    if (courseWordIdArray.length === 0) return [];
+    const pageSize = 1000;
+    const rows: { word_id: string | null }[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("user_word_progress")
+        .select("word_id")
+        .eq("user_id", user.id)
+        .eq("status", "mastered")
+        .in("word_id", courseWordIdArray)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      rows.push(...data);
+      if (data.length < pageSize) break;
+    }
+    return rows;
+  };
+  const masteredProgressRows = await fetchAllUserMasteredProgress();
+  const wordsMastered = masteredProgressRows.length;
 
   // Progress is based on words mastered percentage
   const progressPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
@@ -345,8 +362,36 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     return ids;
   };
 
-  // Step 3: Fetch all data in parallel
-  const [activityResult, userResult, courseProgress, wordProgressResult, sessionsResult, testsResult, courseWordIds] =
+  // Step 3: Fetch course word IDs first so we can scope user_word_progress to
+  // only words relevant to this course's language. Without scoping, Supabase's
+  // default 1000-row cap silently truncates progress for power users.
+  const courseWordIds = await fetchCourseWordIds();
+  const courseWordIdArray = [...courseWordIds];
+
+  // Paginated fetch of user_word_progress scoped to this course's words
+  const fetchAllScopedWordProgress = async (): Promise<
+    { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[]
+  > => {
+    if (courseWordIdArray.length === 0) return [];
+    const pageSize = 1000;
+    const rows: { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("user_word_progress")
+        .select("word_id, learning_at, mastered_at, status")
+        .eq("user_id", user.id)
+        .not("learning_at", "is", null)
+        .in("word_id", courseWordIdArray)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      rows.push(...data);
+      if (data.length < pageSize) break;
+    }
+    return rows;
+  };
+
+  // Step 4: Fetch the rest in parallel
+  const [activityResult, userResult, courseProgress, scopedWordProgress, sessionsResult, testsResult] =
     await Promise.all([
       // All daily activity rows for this user + language
       supabase
@@ -364,11 +409,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       // Reuse existing course progress function
       getCourseProgress(courseId),
       // Word progress with timestamps for chart + per-period rate
-      supabase
-        .from("user_word_progress")
-        .select("word_id, learning_at, mastered_at, status")
-        .eq("user_id", user.id)
-        .not("learning_at", "is", null),
+      // (scoped to this course's words to avoid the 1000-row cap)
+      fetchAllScopedWordProgress(),
       // Study sessions for time totals
       supabase
         .from("study_sessions")
@@ -379,13 +421,14 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .from("user_test_scores")
         .select("duration_seconds, taken_at")
         .eq("user_id", user.id),
-      // Course word IDs for filtering
-      fetchCourseWordIds(),
     ]);
 
   const activityRows = activityResult.data || [];
   const userData = userResult.data;
-  const wordProgressRows = wordProgressResult.data || [];
+  // wordProgressRows is now already scoped to course words by fetchAllScopedWordProgress.
+  // Downstream consumers also intersect with courseWordIds, which is now redundant
+  // but harmless and kept to avoid behaviour changes.
+  const wordProgressRows = scopedWordProgress;
   const sessions = sessionsResult.data || [];
   const tests = testsResult.data || [];
 

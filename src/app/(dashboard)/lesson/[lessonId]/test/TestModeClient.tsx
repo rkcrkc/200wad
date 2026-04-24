@@ -49,6 +49,124 @@ interface TestProgress {
   hasAnswered: boolean;
 }
 
+interface TestStats {
+  totalPoints: number;
+  maxPoints: number;
+  scorePercent: number;
+  newWordsCount: number;
+  newlyLearnedCount: number;
+  masteredWordsCount: number;
+  courseWordsMastered: number | null;
+  newlyLearnedWordIds: string[];
+  masteredWordIds: string[];
+  correctAnswers: number;
+  durationSeconds: number;
+  totalQuestions: number;
+  isRetest: boolean;
+}
+
+/**
+ * Pure helper that computes every stat the completion modal and
+ * `completeTestSession` need. Kept outside the component so it can be called
+ * BEFORE the server mutation (using a snapshot of the pre-write word progress)
+ * and later re-used for the admin preview path.
+ *
+ * IMPORTANT: "newly learned" and "mastered" use the stricter rule
+ * `mistakeCount === 0 && clueLevel === 0` to match the server's `isCorrect`
+ * definition (see src/lib/mutations/test.ts — `isCorrect` gates the streak
+ * increment). A clue-aided answer must NOT promote a word to mastered.
+ */
+function calculateTestStats(params: {
+  words: WordWithDetails[];
+  testProgressMap: Map<string, TestProgress>;
+  testTwice: boolean;
+  totalQuestions: number;
+  elapsedSeconds: number;
+  serverCourseWordsMastered: number | null;
+  initialCourseVocabCount: number | null;
+  isRetest: boolean;
+}): TestStats {
+  const {
+    words,
+    testProgressMap,
+    testTwice,
+    totalQuestions,
+    elapsedSeconds,
+    serverCourseWordsMastered,
+    initialCourseVocabCount,
+    isRetest,
+  } = params;
+
+  const answeredWords = Array.from(testProgressMap.values()).filter((p) => p.hasAnswered);
+  const totalPoints = answeredWords.reduce((sum, p) => sum + p.pointsEarned, 0);
+  const maxPoints = totalQuestions * 3;
+  const scorePercent = calculateScorePercent(totalPoints, maxPoints);
+  const correctAnswers = answeredWords.filter(
+    (p) => p.mistakeCount === 0 && p.clueLevel === 0
+  ).length;
+
+  // New words: words answered in this test that had no prior test attempts
+  const newWordsCount = words.filter((w) => {
+    const wasTestedBefore = w.progress?.times_tested && w.progress.times_tested > 0;
+    const progressKey = testTwice ? `${w.id}_1` : w.id;
+    const answered = testProgressMap.get(progressKey)?.hasAnswered;
+    return !wasTestedBefore && answered;
+  }).length;
+
+  // Newly learned: not already learned/mastered, got perfect score in this test
+  // (no mistakes, no clues → matches server's isCorrect).
+  const newlyLearnedWords = words.filter((w) => {
+    const wasAlreadyLearned = w.status === "learned" || w.status === "mastered";
+    if (wasAlreadyLearned) return false;
+    const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+    return keys.some((key) => {
+      const p = testProgressMap.get(key);
+      return p?.hasAnswered && p.mistakeCount === 0 && p.clueLevel === 0;
+    });
+  });
+  const newlyLearnedCount = newlyLearnedWords.length;
+  const newlyLearnedWordIds = newlyLearnedWords.map((w) => w.id);
+
+  // Mastered in this test: streak reaches >= 3 using PRIOR streak from props
+  // (snapshot). We only increment on a strict `isCorrect` answer.
+  const masteredWordsList = words.filter((w) => {
+    const priorStreak = w.progress?.correct_streak || 0;
+    const wasAlreadyMastered = w.status === "mastered";
+    if (wasAlreadyMastered) return false;
+    let streak = priorStreak;
+    const attempts = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
+    for (const key of attempts) {
+      const p = testProgressMap.get(key);
+      if (p?.hasAnswered) {
+        streak = p.mistakeCount === 0 && p.clueLevel === 0 ? streak + 1 : 0;
+      }
+    }
+    return streak >= 3;
+  });
+  const masteredWordsCount = masteredWordsList.length;
+  const masteredWordIds = masteredWordsList.map((w) => w.id);
+
+  // Total vocabulary is server-authoritative; fall back to initial count.
+  const courseWordsMastered: number | null =
+    serverCourseWordsMastered ?? initialCourseVocabCount;
+
+  return {
+    totalPoints,
+    maxPoints,
+    scorePercent,
+    newWordsCount,
+    newlyLearnedCount,
+    masteredWordsCount,
+    courseWordsMastered,
+    newlyLearnedWordIds,
+    masteredWordIds,
+    correctAnswers,
+    durationSeconds: elapsedSeconds,
+    totalQuestions,
+    isRetest,
+  };
+}
+
 interface TestModeClientProps {
   lesson: Lesson;
   language: Language | null;
@@ -131,6 +249,13 @@ export function TestModeClient({
   }, [isAdmin, searchParams]);
   const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
   const [isRetest, setIsRetest] = useState(false);
+
+  // Frozen snapshot of stats captured the moment `handleFinishTest` runs, BEFORE
+  // any server mutation. Rendering the modal from this snapshot prevents the
+  // post-write `words` prop (re-fetched during `revalidatePath`) from inflating
+  // the "mastered" count on screen while the DB correctly stored pre-write
+  // values. See bug fix: Test-completed modal inflates mastered count.
+  const [finishedTestStats, setFinishedTestStats] = useState<TestStats | null>(null);
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
@@ -221,6 +346,7 @@ export function TestModeClient({
       setShowCompletionModal(false);
       setElapsedSeconds(0);
       setNervesOfSteelMode(false);
+      setFinishedTestStats(null);
 
       // Aggressively clear ALL previous test sessions for this lesson
       clearAllLessonSessions("test", lesson.id);
@@ -443,6 +569,22 @@ export function TestModeClient({
       clearInterval(timerRef.current);
     }
 
+    // Compute stats ONCE, BEFORE any server mutation. The `words` prop here
+    // still reflects pre-write progress (correct_streak, times_tested, status).
+    // After `completeTestSession` runs, `revalidatePath` can re-fetch this
+    // component's server parent and swap in post-write data — so we must not
+    // recompute mastery from `words` after awaiting the server call.
+    const stats = calculateTestStats({
+      words,
+      testProgressMap,
+      testTwice,
+      totalQuestions,
+      elapsedSeconds,
+      serverCourseWordsMastered: null, // server hasn't answered yet
+      initialCourseVocabCount,
+      isRetest,
+    });
+
     if (!isGuest && sessionId) {
       // Prepare question results
       const questionResults = Array.from(testProgressMap.entries())
@@ -462,59 +604,17 @@ export function TestModeClient({
           };
         });
 
-      // Calculate stats
-      const totalPoints = questionResults.reduce((sum, q) => sum + q.pointsEarned, 0);
-      const maxPoints = totalQuestions * 3; // Max possible is 3 points per word
-      const correctAnswers = questionResults.filter((q) => q.mistakeCount === 0).length;
-
-      // Calculate new words: words that had no prior test attempts
-      const newWordsCount = words.filter((w) => {
-        const wasTestedBefore = w.progress?.times_tested && w.progress.times_tested > 0;
-        // Check if this word was answered in this test
-        const progressKey = testTwice ? `${w.id}_1` : w.id;
-        const answered = testProgressMap.get(progressKey)?.hasAnswered;
-        return !wasTestedBefore && answered;
-      }).length;
-
-      // Newly learned: words that weren't already learned/mastered and got perfect score
-      const newlyLearnedCount = words.filter((w) => {
-        const wasAlreadyLearned = w.status === "learned" || w.status === "mastered";
-        if (wasAlreadyLearned) return false;
-        const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
-        return keys.some((key) => {
-          const p = testProgressMap.get(key);
-          return p?.hasAnswered && p.mistakeCount === 0 && p.clueLevel === 0;
-        });
-      }).length;
-
-      // Calculate mastered words: words that reach streak >= 3 during this test
-      const masteredWordsCount = words.filter((w) => {
-        const priorStreak = w.progress?.correct_streak || 0;
-        const wasAlreadyMastered = w.status === "mastered";
-        if (wasAlreadyMastered) return false;
-        // Count consecutive correct answers in this test for this word
-        let streak = priorStreak;
-        const attempts = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
-        for (const key of attempts) {
-          const p = testProgressMap.get(key);
-          if (p?.hasAnswered) {
-            streak = p.mistakeCount === 0 ? streak + 1 : 0;
-          }
-        }
-        return streak >= 3;
-      }).length;
-
-      const stats = {
-        totalQuestions,
-        correctAnswers,
-        pointsEarned: totalPoints,
-        maxPoints,
-        scorePercent: calculateScorePercent(totalPoints, maxPoints),
-        durationSeconds: elapsedSeconds,
-        newWordsCount,
-        newlyLearnedCount,
-        masteredWordsCount,
-        isRetest,
+      const serverStats = {
+        totalQuestions: stats.totalQuestions,
+        correctAnswers: stats.correctAnswers,
+        pointsEarned: stats.totalPoints,
+        maxPoints: stats.maxPoints,
+        scorePercent: stats.scorePercent,
+        durationSeconds: stats.durationSeconds,
+        newWordsCount: stats.newWordsCount,
+        newlyLearnedCount: stats.newlyLearnedCount,
+        masteredWordsCount: stats.masteredWordsCount,
+        isRetest: stats.isRetest,
       };
 
       // Log if duration is zero (shouldn't happen if timer is working correctly)
@@ -527,18 +627,28 @@ export function TestModeClient({
         });
       }
 
-      const result = await completeTestSession(sessionId, lesson.id, stats, questionResults, milestone);
+      const result = await completeTestSession(sessionId, lesson.id, serverStats, questionResults, milestone);
 
       if (result.success) {
         clearSessionProgress("test", sessionId, lesson.id);
         setServerCourseWordsMastered(result.courseWordsMastered);
+        // Merge server-authoritative total into the frozen snapshot.
+        setFinishedTestStats({
+          ...stats,
+          courseWordsMastered: result.courseWordsMastered ?? stats.courseWordsMastered,
+        });
       } else {
         console.error("Failed to complete test session:", result.error);
+        setFinishedTestStats(stats);
       }
+    } else {
+      // Guest / no session — still freeze the stats so the modal renders
+      // consistent numbers regardless of any future prop changes.
+      setFinishedTestStats(stats);
     }
 
     setShowCompletionModal(true);
-  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest]);
+  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest, initialCourseVocabCount]);
 
   // Track viewed words when navigating
   useEffect(() => {
@@ -679,6 +789,7 @@ export function TestModeClient({
     setElapsedSeconds(0);
     setServerCourseWordsMastered(null);
     setIsRetest(true);
+    setFinishedTestStats(null);
 
     // Clear old session and create a new one
     if (sessionId) {
@@ -735,6 +846,7 @@ export function TestModeClient({
     setServerCourseWordsMastered(null);
     setElapsedSeconds(0);
     setIsRetest(true);
+    setFinishedTestStats(null);
 
     // Clear old session and create a new one
     if (sessionId) {
@@ -780,63 +892,29 @@ export function TestModeClient({
     testAnswerInputRef.current?.insertCharacter(char);
   }, []);
 
-  // Calculate test stats for modal
-  const getTestStats = () => {
-    const answeredWords = Array.from(testProgressMap.values()).filter((p) => p.hasAnswered);
-    const totalPoints = answeredWords.reduce((sum, p) => sum + p.pointsEarned, 0);
-    const maxPoints = totalQuestions * 3;
-    const scorePercent = calculateScorePercent(totalPoints, maxPoints);
-
-    // New words: words answered in this test that had no prior test attempts
-    const newWordsCount = words.filter((w) => {
-      const wasTestedBefore = w.progress?.times_tested && w.progress.times_tested > 0;
-      const progressKey = testTwice ? `${w.id}_1` : w.id;
-      const answered = testProgressMap.get(progressKey)?.hasAnswered;
-      return !wasTestedBefore && answered;
-    }).length;
-
-    // Newly learned: words that weren't already learned/mastered and got perfect score
-    // (no mistakes, no clues → 3/3 points) in this test
-    const newlyLearnedWords = words.filter((w) => {
-      const wasAlreadyLearned = w.status === "learned" || w.status === "mastered";
-      if (wasAlreadyLearned) return false;
-      const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
-      return keys.some((key) => {
-        const p = testProgressMap.get(key);
-        return p?.hasAnswered && p.mistakeCount === 0 && p.clueLevel === 0;
-      });
+  // Calculate test stats for modal.
+  //
+  // Prefer the frozen snapshot captured in `handleFinishTest` (pre-write). This
+  // is what the user just saw answered and what the server stored. Only fall
+  // back to live computation when the modal is opened without completing a
+  // test (admin `?preview=completed` path).
+  //
+  // Note: total vocabulary is server-authoritative — `completeTestSession`
+  // updates `user_word_progress` and then COUNTs `status='mastered'` across
+  // ALL lessons for this user. We propagate `null` when unavailable (guest or
+  // error) so the modal can render a placeholder.
+  const getTestStats = (): TestStats => {
+    if (finishedTestStats) return finishedTestStats;
+    return calculateTestStats({
+      words,
+      testProgressMap,
+      testTwice,
+      totalQuestions,
+      elapsedSeconds,
+      serverCourseWordsMastered,
+      initialCourseVocabCount,
+      isRetest,
     });
-    const newlyLearnedCount = newlyLearnedWords.length;
-    const newlyLearnedWordIds = newlyLearnedWords.map((w) => w.id);
-
-    // Mastered this test: words that reach streak >= 3 during this test (weren't already mastered)
-    const masteredWordsList = words.filter((w) => {
-      const priorStreak = w.progress?.correct_streak || 0;
-      const wasAlreadyMastered = w.status === "mastered";
-      if (wasAlreadyMastered) return false;
-      let streak = priorStreak;
-      const attempts = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
-      for (const key of attempts) {
-        const p = testProgressMap.get(key);
-        if (p?.hasAnswered) {
-          streak = p.mistakeCount === 0 ? streak + 1 : 0;
-        }
-      }
-      return streak >= 3;
-    });
-    const masteredWordsCount = masteredWordsList.length;
-    const masteredWordIds = masteredWordsList.map((w) => w.id);
-
-    // Total vocabulary is server-authoritative: `completeTestSession` runs
-    // `user_word_progress` updates first and then COUNTs `status='mastered'`
-    // across ALL lessons for this user. We deliberately do NOT compute a local
-    // fallback — the previous client-side formula only counted THIS lesson's
-    // mastered words (+ this-test additions) and undercounted the user's real
-    // total. Instead we propagate `null` when the server value isn't available
-    // (guest mode, or a server error) and let the modal render a placeholder.
-    const courseWordsMastered: number | null = serverCourseWordsMastered ?? initialCourseVocabCount;
-
-    return { totalPoints, maxPoints, scorePercent, newWordsCount, newlyLearnedCount, masteredWordsCount, courseWordsMastered, newlyLearnedWordIds, masteredWordIds };
   };
 
   // Build word results map for modal
@@ -872,7 +950,9 @@ export function TestModeClient({
     return resultsMap;
   };
 
-  const testStats = getTestStats();
+  // Only compute when the modal is actually showing to avoid unnecessary work
+  // on every render.
+  const testStats = showCompletionModal ? getTestStats() : null;
 
   // Calculate running score for header (points earned / max possible for answered words)
   const runningScore = (() => {
@@ -1041,7 +1121,6 @@ export function TestModeClient({
       <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
         {/* Custom navbar */}
         <StudyNavbar
-          languageFlag={languageFlag}
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitTest}
@@ -1155,7 +1234,6 @@ export function TestModeClient({
             ref={testAnswerInputRef}
             wordId={currentWord?.id || ""}
             languageName={testTypeConfig.inputLanguageName}
-            languageFlag={testType === "foreign-to-english" ? "🇬🇧" : languageFlag}
             languageCode={testType === "foreign-to-english" ? "en" : language?.code}
             validAnswers={testTypeConfig.validAnswers}
             isVisible={true}
@@ -1213,7 +1291,7 @@ export function TestModeClient({
       </div>
 
       {/* Completion Modal */}
-      {showCompletionModal && (
+      {showCompletionModal && testStats && (
         <TestCompletedModal
           lesson={lesson}
           words={activeWords}

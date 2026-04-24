@@ -85,11 +85,12 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const lessonIds = lessons.map((l) => l.id);
   const lessonMap = new Map(lessons.map((l) => [l.id, l]));
 
-  // Get user's lesson progress, test scores, word progress, and lesson_words in parallel
+  // Get lesson progress, test scores, and lesson_words in parallel; user_word_progress
+  // is fetched after so it can be scoped to this course's words (avoids the default
+  // 1000-row cap silently truncating progress for users with many courses).
   const [
     { data: lessonProgress },
     { data: testScores },
-    { data: userWordProgress },
     lessonWordsResult,
   ] = await Promise.all([
     supabase
@@ -104,17 +105,33 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .in("lesson_id", lessonIds)
       .order("taken_at", { ascending: false }),
     supabase
-      .from("user_word_progress")
-      .select("word_id, status")
-      .eq("user_id", user.id)
-      .in("status", ["learning", "learned", "mastered"]),
-    supabase
       .from("lesson_words")
       .select("lesson_id, word_id, words(category)")
       .in("lesson_id", lessonIds)
       .limit(SUPABASE_ALL_ROWS),
   ]);
   warnIfTruncated("getTests:lesson_words", lessonWordsResult.data?.length ?? 0);
+
+  // Filter out information pages — they're non-testable
+  const testableRows = (lessonWordsResult.data ?? []).filter(
+    (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+  );
+  const courseWordIds = new Set(
+    testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+  );
+  const courseWordIdArray = [...courseWordIds];
+
+  const userWordProgressResult = courseWordIdArray.length > 0
+    ? await supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("status", ["learning", "learned", "mastered"])
+        .in("word_id", courseWordIdArray)
+        .limit(SUPABASE_ALL_ROWS)
+    : { data: [] as { word_id: string | null; status: string | null }[] };
+  warnIfTruncated("getTests:user_word_progress", userWordProgressResult.data?.length ?? 0);
+  const userWordProgress = userWordProgressResult.data;
 
   const progressByLesson = new Map(
     (lessonProgress || [])
@@ -128,11 +145,6 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const testableCountByLesson: Record<string, number> = {};
 
   if (lessonWordsResult.data && userWordProgress) {
-    // Filter out information pages — they're non-testable
-    const testableRows = lessonWordsResult.data.filter(
-      (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
-    );
-
     const wordStatusMap = new Map<string, string>();
     userWordProgress.forEach((p) => {
       if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);

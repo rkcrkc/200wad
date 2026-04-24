@@ -33,13 +33,14 @@ export interface SearchResults {
 // ============================================================================
 
 /**
- * Search words and lessons within a course (client-side).
- * Words are searched by headword and english fields (accent-insensitive).
- * Lessons are searched by title.
+ * Search words and lessons for a language (client-side).
+ * Words are searched language-wide by headword and english (accent-insensitive).
+ * Lessons are searched by title within the current course only.
  */
 export async function searchCourse(
   query: string,
-  courseId: string
+  courseId: string,
+  languageId: string
 ): Promise<SearchResults> {
   const trimmed = query.trim();
   if (trimmed.length < 2) {
@@ -54,28 +55,25 @@ export async function searchCourse(
 
   const supabase = createClient();
 
-  // Get lesson IDs for this course (for lesson title search)
+  // Get lesson IDs for this course (for lesson title search - still course-scoped)
   const { data: courseLessons } = await supabase
     .from("lessons")
     .select("id, title, number, emoji")
     .eq("course_id", courseId)
     .eq("is_published", true);
 
-  if (!courseLessons || courseLessons.length === 0) {
-    return { words: [], lessons: [] };
-  }
-
   // Run word and lesson searches in parallel
   const [wordsResult, lessonResults] = await Promise.all([
-    // Accent-insensitive word search via RPC
-    supabase.rpc("search_course_words", {
+    // Accent-insensitive word search via RPC (language-wide)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
+    (supabase.rpc as any)("search_language_words", {
       p_query: sanitized,
-      p_course_id: courseId,
+      p_language_id: languageId,
     }),
 
-    // Search lessons by title (client-side filter)
+    // Search lessons by title (client-side filter, scoped to current course)
     Promise.resolve(
-      courseLessons
+      (courseLessons || [])
         .filter((l) => l.title.toLowerCase().includes(sanitized.toLowerCase()))
         .slice(0, 5)
     ),

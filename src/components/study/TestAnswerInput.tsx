@@ -39,7 +39,6 @@ export interface TestAnswerResult {
 interface TestAnswerInputProps {
   wordId: string;
   languageName: string;
-  languageFlag: string;
   /** Language code (e.g., "de" for German) - used for case sensitivity */
   languageCode?: string | null;
   validAnswers: string[];
@@ -56,7 +55,6 @@ interface TestAnswerInputProps {
 export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInputProps>(function TestAnswerInput({
   wordId,
   languageName,
-  languageFlag,
   languageCode,
   validAnswers,
   isVisible,

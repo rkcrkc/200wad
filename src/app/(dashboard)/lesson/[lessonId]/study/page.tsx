@@ -1,6 +1,7 @@
 import { getWords, isAutoLesson } from "@/lib/queries";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
+import { createClient } from "@/lib/supabase/server";
 import { StudyModeClient } from "./StudyModeClient";
 
 interface StudyPageProps {
@@ -39,6 +40,21 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
     }
   }
 
+  // Fetch the currently scheduled milestone so the completion modal's
+  // "Start Test" link advances the schedule correctly (instead of always
+  // hardcoding "initial", which silently froze milestone progression).
+  let nextMilestone: string | null = null;
+  if (userId) {
+    const supabase = await createClient();
+    const { data: progress } = await supabase
+      .from("user_lesson_progress")
+      .select("next_milestone")
+      .eq("user_id", userId)
+      .eq("lesson_id", lesson.id)
+      .maybeSingle();
+    nextMilestone = progress?.next_milestone ?? null;
+  }
+
   // For guests, we still allow studying but won't save progress
   return (
     <StudyModeClient
@@ -49,6 +65,7 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
       isGuest={isGuest}
       courseLessons={courseLessons}
       dismissedTipIds={dismissedTipIds}
+      nextMilestone={nextMilestone}
     />
   );
 }

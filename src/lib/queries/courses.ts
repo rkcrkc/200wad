@@ -124,7 +124,10 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       if (l.course_id) lessonIdToCourse[l.id] = l.course_id;
     });
 
-    const [lessonProgressResult, lessonWordsResult, userProgressResult] = await Promise.all([
+    // Fetch lesson_progress + lesson_words in parallel; user_word_progress is
+    // sequenced after so it can be scoped to this user's enrolled courses' word
+    // IDs (avoids Supabase's default 1000-row cap silently truncating progress).
+    const [lessonProgressResult, lessonWordsResult] = await Promise.all([
       // Lesson-level mastered counts (for the lessonsCompleted field, kept for UI consumers)
       supabase
         .from("user_lesson_progress")
@@ -138,12 +141,6 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
         .select("lesson_id, word_id, words(category)")
         .in("lesson_id", lessonIds)
         .limit(SUPABASE_ALL_ROWS),
-      // All of this user's progress on any word — we intersect client-side
-      supabase
-        .from("user_word_progress")
-        .select("word_id, status")
-        .eq("user_id", user.id)
-        .in("status", ["learning", "learned", "mastered"]),
     ]);
     warnIfTruncated("getCourses:lesson_words", lessonWordsResult.data?.length ?? 0);
 
@@ -158,14 +155,29 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
 
     // Build courseId → Set<wordId>, excluding information pages
     const courseWordSets: Record<string, Set<string>> = {};
+    const allCourseWordIds = new Set<string>();
     lessonWordsResult.data?.forEach((lw) => {
       if ((lw.words as unknown as { category: string | null })?.category === "information") return;
       const courseId = lessonIdToCourse[lw.lesson_id];
       if (courseId && lw.word_id) {
         if (!courseWordSets[courseId]) courseWordSets[courseId] = new Set();
         courseWordSets[courseId].add(lw.word_id);
+        allCourseWordIds.add(lw.word_id);
       }
     });
+
+    // Now fetch user_word_progress scoped to only the words across these courses
+    const allCourseWordIdArray = [...allCourseWordIds];
+    const userProgressResult = allCourseWordIdArray.length > 0
+      ? await supabase
+          .from("user_word_progress")
+          .select("word_id, status")
+          .eq("user_id", user.id)
+          .in("status", ["learning", "learned", "mastered"])
+          .in("word_id", allCourseWordIdArray)
+          .limit(SUPABASE_ALL_ROWS)
+      : { data: [] as { word_id: string | null; status: string | null }[] };
+    warnIfTruncated("getCourses:user_word_progress", userProgressResult.data?.length ?? 0);
 
     // Bucket word progress into courses
     const progressByWord = new Map<string, string>();

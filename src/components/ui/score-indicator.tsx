@@ -41,9 +41,21 @@ export function ScoreIndicator({
   const { t, tt } = useText();
   const wordScorePercent = scoreStats.scorePercent;
 
-  // If never tested, show dash
+  // If never tested, show 3 grey traffic lights
   if (scoreStats.timesTested === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return (
+      <div className="flex items-center gap-1">
+        {[2, 1, 0].map((i) => (
+          <div
+            key={i}
+            className={cn(
+              "rounded-full bg-gray-300",
+              size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"
+            )}
+          />
+        ))}
+      </div>
+    );
   }
 
   // Show stars when all 3 traffic lights are green (last 3 attempts all full marks)

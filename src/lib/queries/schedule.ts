@@ -380,10 +380,11 @@ export async function getScheduleData(
     };
   }
 
-  // Get user's lesson progress, word progress, and lesson_words in parallel
+  // Get lesson progress and lesson_words in parallel; user_word_progress is fetched
+  // after so it can be scoped to this course's words (avoids the default 1000-row
+  // cap silently truncating progress for users with many courses).
   const [
     { data: lessonProgress },
-    { data: userWordProgress },
     lessonWordsResult,
   ] = await Promise.all([
     supabase
@@ -392,17 +393,32 @@ export async function getScheduleData(
       .eq("user_id", user.id)
       .in("lesson_id", lessonIds),
     supabase
-      .from("user_word_progress")
-      .select("word_id, status")
-      .eq("user_id", user.id)
-      .in("status", ["learning", "learned", "mastered"]),
-    supabase
       .from("lesson_words")
       .select("lesson_id, word_id, words(category)")
       .in("lesson_id", lessonIds)
       .limit(SUPABASE_ALL_ROWS),
   ]);
   warnIfTruncated("getScheduleData:lesson_words", lessonWordsResult.data?.length ?? 0);
+
+  const testableRows = (lessonWordsResult.data ?? []).filter(
+    (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+  );
+  const courseWordIds = new Set(
+    testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+  );
+  const courseWordIdArray = [...courseWordIds];
+
+  const userWordProgressResult = courseWordIdArray.length > 0
+    ? await supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", user.id)
+        .in("status", ["learning", "learned", "mastered"])
+        .in("word_id", courseWordIdArray)
+        .limit(SUPABASE_ALL_ROWS)
+    : { data: [] as { word_id: string | null; status: string | null }[] };
+  warnIfTruncated("getScheduleData:user_word_progress", userWordProgressResult.data?.length ?? 0);
+  const userWordProgress = userWordProgressResult.data;
 
   const progressByLesson = new Map<string, UserLessonProgress>(
     (lessonProgress || [])
@@ -414,10 +430,6 @@ export async function getScheduleData(
   const liveStatusByLesson: Record<string, LessonStatus> = {};
 
   if (lessonWordsResult.data && userWordProgress) {
-    const testableRows = lessonWordsResult.data.filter(
-      (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
-    );
-
     const wordStatusMap = new Map<string, string>();
     userWordProgress.forEach((p) => {
       if (p.word_id && p.status) wordStatusMap.set(p.word_id, p.status);

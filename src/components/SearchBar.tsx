@@ -59,7 +59,7 @@ interface FlatItem {
 
 export function SearchBar() {
   const router = useRouter();
-  const { courseId } = useCourseContext();
+  const { courseId, languageId } = useCourseContext();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
@@ -108,7 +108,7 @@ export function SearchBar() {
     (searchQuery: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
-      if (!courseId || searchQuery.trim().length < 2) {
+      if (!courseId || !languageId || searchQuery.trim().length < 2) {
         setResults(null);
         setIsLoading(false);
         setIsOpen(false);
@@ -117,14 +117,14 @@ export function SearchBar() {
 
       setIsLoading(true);
       debounceRef.current = setTimeout(async () => {
-        const data = await searchCourse(searchQuery, courseId);
+        const data = await searchCourse(searchQuery, courseId, languageId);
         setResults(data);
         setActiveIndex(-1);
         setIsOpen(true);
         setIsLoading(false);
       }, 300);
     },
-    [courseId]
+    [courseId, languageId]
   );
 
   // Handle input change

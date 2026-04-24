@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_ALL_ROWS, warnIfTruncated } from "@/lib/supabase/utils";
 import { Language, UserLanguage } from "@/types/database";
 
 export interface LanguageWithProgress extends Language {
@@ -89,7 +90,9 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
     // Get words in learning/mastered status, joined directly via words.language_id.
     // user_word_progress has a unique (user_id, word_id) constraint so each row is
     // already a distinct word — no extra dedupe needed.
-    const { data: wordProgress } = await supabase
+    // Explicit limit + truncation warning prevents Supabase's default 1000-row
+    // cap from silently dropping progress for power users with many languages.
+    const wordProgressResult = await supabase
       .from("user_word_progress")
       .select(
         `
@@ -102,7 +105,10 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       `
       )
       .eq("user_id", user.id)
-      .in("status", ["learning", "learned", "mastered"]);
+      .in("status", ["learning", "learned", "mastered"])
+      .limit(SUPABASE_ALL_ROWS);
+    warnIfTruncated("getLanguages:user_word_progress", wordProgressResult.data?.length ?? 0);
+    const wordProgress = wordProgressResult.data;
 
     wordProgress?.forEach((wp) => {
       const w = wp.words as { language_id: string; category: string | null } | null;

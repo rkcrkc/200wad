@@ -318,32 +318,41 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       totalTestTimeSeconds += ts.duration_seconds || 0;
     });
 
-    // Get all user's word progress and lesson_words, then compute intersection
-    const [userProgressResult, lessonWordsResult] = await Promise.all([
-      supabase
-        .from("user_word_progress")
-        .select("word_id, status")
-        .eq("user_id", user.id)
-        .in("status", ["learning", "learned", "mastered"]),
-      supabase
-        .from("lesson_words")
-        .select("lesson_id, word_id, words(category)")
-        .in("lesson_id", lessonIds)
-        .limit(SUPABASE_ALL_ROWS),
-    ]);
+    // Fetch lesson_words first so we can scope the user_word_progress query
+    // to only this course's words. Without scoping (and an explicit limit),
+    // Supabase's default 1000-row cap silently truncates progress for users
+    // with many courses, causing some lessons to show 0 learned/mastered.
+    const lessonWordsResult = await supabase
+      .from("lesson_words")
+      .select("lesson_id, word_id, words(category)")
+      .in("lesson_id", lessonIds)
+      .limit(SUPABASE_ALL_ROWS);
     warnIfTruncated("getLessons:lesson_words", lessonWordsResult.data?.length ?? 0);
 
+    // Filter out information pages — they're non-testable
+    const testableRows = (lessonWordsResult.data ?? []).filter(
+      (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+    );
+
+    // Create a set of course word IDs for fast lookup
+    const courseWordIds = new Set(
+      testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
+    );
+
+    // Now fetch user_word_progress scoped to this course's words only
+    const courseWordIdArray = [...courseWordIds];
+    const userProgressResult = courseWordIdArray.length > 0
+      ? await supabase
+          .from("user_word_progress")
+          .select("word_id, status")
+          .eq("user_id", user.id)
+          .in("status", ["learning", "learned", "mastered"])
+          .in("word_id", courseWordIdArray)
+          .limit(SUPABASE_ALL_ROWS)
+      : { data: [] as { word_id: string | null; status: string | null }[] };
+    warnIfTruncated("getLessons:user_word_progress", userProgressResult.data?.length ?? 0);
+
     if (lessonWordsResult.data && userProgressResult.data) {
-      // Filter out information pages — they're non-testable
-      const testableRows = lessonWordsResult.data.filter(
-        (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
-      );
-
-      // Create a set of course word IDs for fast lookup
-      const courseWordIds = new Set(
-        testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
-      );
-
       // Build per-word status lookup
       const wordStatusMap = new Map<string, string>();
       userProgressResult.data.forEach((p) => {

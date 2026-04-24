@@ -60,6 +60,11 @@ export interface TestAttempt {
   pointsEarned: number;
   maxPoints: number;
   answeredAt: string;
+  /** Lesson the test was taken in (null for ad-hoc tests without a linked lesson) */
+  lessonId?: string | null;
+  lessonTitle?: string | null;
+  lessonNumber?: number | null;
+  lessonEmoji?: string | null;
 }
 
 export interface WordScoreStats {
@@ -397,7 +402,9 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   if (user && words && words.length > 0) {
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("word_id, points_earned, max_points, answered_at")
+      .select(
+        "word_id, points_earned, max_points, answered_at, user_test_scores(lesson_id, lessons(id, title, emoji, number))"
+      )
       .in("word_id", words.map((w) => w.id))
       .order("answered_at", { ascending: false });
 
@@ -422,11 +429,19 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
       scoreStatsByWord[wordId].timesTested += 1;
 
+      // Extract lesson info if present
+      const lesson = (tq as { user_test_scores?: { lessons?: { id: string; title: string; emoji: string | null; number: number } | null } | null })
+        .user_test_scores?.lessons ?? null;
+
       // All attempts (ordered most-recent-first from query)
       testHistoryByWord[wordId].push({
         pointsEarned,
         maxPoints,
         answeredAt: tq.answered_at ?? new Date().toISOString(),
+        lessonId: lesson?.id ?? null,
+        lessonTitle: lesson?.title ?? null,
+        lessonNumber: lesson?.number ?? null,
+        lessonEmoji: lesson?.emoji ?? null,
       });
     });
 

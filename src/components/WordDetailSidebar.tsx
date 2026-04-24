@@ -155,7 +155,23 @@ export function WordDetailSidebar({
                 </div>
               </div>
             ) : (
-              <div />
+              <div className="flex min-w-0 items-center gap-2">
+                {lessonNumber > 0 && (
+                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                    Lesson {lessonNumber}
+                  </span>
+                )}
+                {lessonTitle && (
+                  <>
+                    {lessonNumber > 0 && (
+                      <span className="shrink-0 text-muted-foreground/50">·</span>
+                    )}
+                    <span className="truncate text-small-semibold text-foreground">
+                      {lessonTitle}
+                    </span>
+                  </>
+                )}
+              </div>
             )}
 
             <div className="flex shrink-0 items-center gap-1">

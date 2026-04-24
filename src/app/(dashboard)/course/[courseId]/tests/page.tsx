@@ -65,7 +65,6 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
           <TestsList
             dueTests={dueTests}
             previousTests={previousTests}
-            languageFlag={languageFlag}
             averageScore={stats.averageScore}
           />
         )}

@@ -1582,8 +1582,8 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
-      search_course_words: {
-        Args: { p_course_id: string; p_query: string }
+      search_language_words: {
+        Args: { p_language_id: string; p_query: string }
         Returns: {
           category: string
           english: string

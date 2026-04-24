@@ -92,7 +92,6 @@ export default async function LessonPage({ params }: LessonPageProps) {
           <LessonPageContent
             lesson={lesson}
             words={testableWords}
-            languageFlag={languageFlag}
             languageName={language?.name ?? undefined}
             courseId={course?.id}
             wordsNotStarted={wordsNotStarted}

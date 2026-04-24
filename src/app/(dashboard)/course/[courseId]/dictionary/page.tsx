@@ -62,7 +62,6 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
             myWords={myWordsResult.words}
             courseWords={courseWordsResult.words}
             allWords={allWordsResult.words}
-            languageFlag={languageFlag}
             languageName={language?.name}
           />
         )}

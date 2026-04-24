@@ -667,8 +667,24 @@ async function main() {
     const genderCode = row.Gender || row.old_gender || "";
     const mapping = genderCodeMap.get(genderCode);
 
-    // Determine values from mapping or defaults
-    const category = mapping?.category || "word";
+    // Determine values from mapping or defaults. When the gender-code mapping
+    // is missing, fall back to an english-text heuristic instead of blindly
+    // using 'word' — legacy data had many uncoded sentences/phrases that
+    // would otherwise pollute the word bucket. Heuristic:
+    //   terminal punctuation (. ? ! …)               → sentence
+    //   otherwise uppercase start or "(Capital"      → sentence
+    //   otherwise multi-word lowercase               → phrase
+    //   single token                                 → word
+    const englishText = (row.english || row.English || "").trim();
+    const fallbackCategory =
+      /[.?!…]$/.test(englishText) ||
+      /^[A-Z]/.test(englishText) ||
+      /^\([A-Z]/.test(englishText)
+        ? "sentence"
+        : /\s/.test(englishText)
+          ? "phrase"
+          : "word";
+    const category = mapping?.category || fallbackCategory;
     const partOfSpeech = mapping?.part_of_speech || null;
     const gender = mapping?.gender || null;
     const grammaticalNumber = mapping?.grammatical_number || null;

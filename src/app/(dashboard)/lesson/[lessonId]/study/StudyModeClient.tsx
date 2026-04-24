@@ -66,6 +66,8 @@ interface StudyModeClientProps {
   isGuest: boolean;
   courseLessons?: AdjacentLesson[];
   dismissedTipIds?: string[];
+  /** Currently scheduled next milestone for this lesson (from user_lesson_progress). */
+  nextMilestone?: string | null;
 }
 
 export function StudyModeClient({
@@ -76,6 +78,7 @@ export function StudyModeClient({
   isGuest,
   courseLessons = [],
   dismissedTipIds: initialDismissedTipIds = [],
+  nextMilestone = null,
 }: StudyModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -835,10 +838,13 @@ export function StudyModeClient({
     setShowCompletionModal(true);
   }, [isGuest, sessionId, lesson.id, wordProgressMap, viewedWordIndices, elapsedSeconds, stopAudio]);
 
-  // Handle modal "Start Test" action - passes initial milestone since this is right after lesson completion
+  // Handle modal "Start Test" action - pass the scheduled next milestone so the
+  // test correctly advances the milestone schedule. Falls back to "initial" for
+  // lessons that don't yet have a milestone scheduled (first time through).
   const handleStartTest = useCallback(() => {
-    router.push(`/lesson/${lesson.id}/test?milestone=initial`);
-  }, [router, lesson.id]);
+    const milestone = nextMilestone || "initial";
+    router.push(`/lesson/${lesson.id}/test?milestone=${milestone}`);
+  }, [router, lesson.id, nextMilestone]);
 
   // Handle modal "Study again" action - restart the lesson from the beginning
   const handleStudyAgain = useCallback(() => {
@@ -995,7 +1001,6 @@ export function StudyModeClient({
       <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
         {/* Custom navbar (replaces default header) */}
         <StudyNavbar
-          languageFlag={languageFlag}
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
           onExitLesson={handleExitLesson}

@@ -17,7 +17,6 @@ import { SubBadge } from "@/components/ui/sub-badge";
 
 interface WordsListProps {
   words: WordWithDetails[];
-  languageFlag?: string;
   languageName?: string;
   wordsNotStarted: number;
   wordsLearning: number;
@@ -35,7 +34,6 @@ type ViewMode = "list" | "grid";
 
 export function WordsList({
   words,
-  languageFlag,
   languageName,
   wordsNotStarted,
   wordsLearning,
@@ -289,7 +287,6 @@ export function WordsList({
                   key={word.id}
                   word={word}
                   index={index}
-                  languageFlag={languageFlag}
                   onClick={() => handleSelectWord(index)}
                   isFirst={index === 0}
                   isLast={index === filteredWords.length - 1}
@@ -307,7 +304,6 @@ export function WordsList({
               key={word.id}
               word={word}
               index={index}
-              languageFlag={languageFlag}
               onClick={() => handleSelectWord(index)}
             />
           ))}

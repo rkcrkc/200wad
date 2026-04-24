@@ -217,14 +217,29 @@ export async function getDictionaryWords(
       );
 
       if (lessonWords.length > 0) {
-        // Get ALL user progress for this user (avoids .in() with many IDs)
-        const { data: allProgress } = await supabase
-          .from("user_word_progress")
-          .select("word_id, status")
-          .eq("user_id", user.id);
+        // Scope progress fetch to this course's words only — avoids Supabase's
+        // default 1000-row cap silently truncating progress for power users.
+        const courseWordIdSet = new Set<string>();
+        for (const lw of lessonWords) {
+          const id = (lw.words as any)?.id;
+          if (id) courseWordIdSet.add(id);
+        }
+        const courseWordIdArray = [...courseWordIdSet];
+
+        const allProgress = courseWordIdArray.length > 0
+          ? await fetchAllRows<{ word_id: string | null; status: string | null }>(
+              (from, to) =>
+                supabase
+                  .from("user_word_progress")
+                  .select("word_id, status")
+                  .eq("user_id", user.id)
+                  .in("word_id", courseWordIdArray)
+                  .range(from, to)
+            )
+          : [];
 
         const progressMap = new Map(
-          (allProgress || []).map((p) => [p.word_id, p.status as WordStatus])
+          allProgress.map((p) => [p.word_id, p.status as WordStatus])
         );
 
         // De-duplicate words (a word may appear in multiple lessons)
@@ -256,26 +271,37 @@ export async function getDictionaryWords(
     }
   } else {
     // Get all words in the language (paginate to avoid 1000-row cap)
-    // "All Italian words" dictionary = vocabulary words + grammar/usage facts
+    // "All {Language}" = every entry for the language (words, facts, sentences,
+    // phrases, information pages). This is the canonical landing spot for any
+    // cross-course search result.
     const allWords = await fetchAllRows((from, to) =>
       supabase
         .from("words")
         .select("id, english, headword, part_of_speech, category, memory_trigger_image_url")
         .eq("language_id", languageId)
-        .in("category", ["word", "fact"])
         .order("english")
         .range(from, to)
     );
 
     if (allWords.length > 0) {
-      // Get ALL user progress (avoids .in() with many IDs)
-      const { data: allProgress } = await supabase
-        .from("user_word_progress")
-        .select("word_id, status")
-        .eq("user_id", user.id);
+      // Scope progress fetch to this language's words only — avoids Supabase's
+      // default 1000-row cap silently truncating progress for power users.
+      const allWordIds = allWords.map((w) => w.id).filter((id): id is string => !!id);
+
+      const allProgress = allWordIds.length > 0
+        ? await fetchAllRows<{ word_id: string | null; status: string | null }>(
+            (from, to) =>
+              supabase
+                .from("user_word_progress")
+                .select("word_id, status")
+                .eq("user_id", user.id)
+                .in("word_id", allWordIds)
+                .range(from, to)
+          )
+        : [];
 
       const progressMap = new Map(
-        (allProgress || []).map((p) => [p.word_id, p.status as WordStatus])
+        allProgress.map((p) => [p.word_id, p.status as WordStatus])
       );
 
       // Get ALL lesson_words for this language's words (paginate)

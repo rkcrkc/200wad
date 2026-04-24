@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 interface WordRowProps {
   word: WordWithDetails;
   index: number;
-  languageFlag?: string;
   onClick?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
@@ -17,7 +16,7 @@ interface WordRowProps {
   showScrollFade?: boolean;
 }
 
-export function WordRow({ word, index, languageFlag = "🇮🇹", onClick, isFirst, isLast, isSelected, showScrollFade }: WordRowProps) {
+export function WordRow({ word, index, onClick, isFirst, isLast, isSelected, showScrollFade }: WordRowProps) {
   const hasImage = !!word.memory_trigger_image_url;
 
   return (

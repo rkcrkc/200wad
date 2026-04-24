@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { InlineSearch } from "@/components/InlineSearch";
+import { CategoryFilter, CategoryOption } from "@/components/CategoryFilter";
 import { DictionaryRow } from "@/components/DictionaryRow";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { useScrollFade } from "@/hooks/useScrollFade";
@@ -21,11 +22,18 @@ type SortDirection = "asc" | "desc";
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const PAGE_SIZE = 50;
 
+const CATEGORY_OPTIONS: CategoryOption[] = [
+  { value: "word", label: "Words" },
+  { value: "sentence", label: "Sentences" },
+  { value: "phrase", label: "Phrases" },
+  { value: "fact", label: "Facts" },
+  { value: "information", label: "Information" },
+];
+
 interface DictionaryListProps {
   myWords: DictionaryWord[];
   courseWords: DictionaryWord[];
   allWords: DictionaryWord[];
-  languageFlag?: string;
   languageName?: string;
 }
 
@@ -74,7 +82,6 @@ export function DictionaryList({
   myWords,
   courseWords,
   allWords,
-  languageFlag,
   languageName,
 }: DictionaryListProps) {
   const searchParams = useSearchParams();
@@ -82,15 +89,22 @@ export function DictionaryList({
   const highlightWordId = searchParams.get("word");
 
   const [filter, setFilter] = useState<FilterType>(() => {
-    // If navigating to a specific word, start on "course" tab (most likely to contain it)
-    if (highlightWordId) return "course";
+    // If navigating to a specific word, pick the best tab to show it:
+    // prefer "This Course" if the word is in the current course, else fall
+    // back to "All {Language}" which contains every entry for the language.
+    if (highlightWordId) {
+      const inCurrentCourse = courseWords.some((w) => w.id === highlightWordId);
+      return inCurrentCourse ? "course" : "all";
+    }
     return "learning";
   });
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>("english");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [highlightedWordId, setHighlightedWordId] = useState<string | null>(highlightWordId);
+  const autoOpenedForIdRef = useRef<string | null>(null);
 
   // Word sidebar state
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
@@ -127,7 +141,7 @@ export function DictionaryList({
     { id: "course", label: "This Course", count: courseWords.length, separatorAfter: true },
     {
       id: "all",
-      label: languageName ? `All ${languageName} words` : "All Words",
+      label: languageName ? `All ${languageName}` : "All",
       count: allWords.length,
     },
   ];
@@ -156,15 +170,23 @@ export function DictionaryList({
     );
   }, [currentWords, letterFilter]);
 
-  // Apply search filter (stacks on top of letter filter)
+  // Apply category filter (stacks on top of letter filter)
+  const categoryFilteredWords = useMemo(() => {
+    if (selectedCategories.length === 0) return letterFilteredWords;
+    return letterFilteredWords.filter(
+      (word) => word.category && selectedCategories.includes(word.category)
+    );
+  }, [letterFilteredWords, selectedCategories]);
+
+  // Apply search filter (stacks on top of category + letter filter)
   const searchFilteredWords = useMemo(() => {
-    if (!searchQuery) return letterFilteredWords;
+    if (!searchQuery) return categoryFilteredWords;
     const query = searchQuery.toLowerCase();
-    return letterFilteredWords.filter((word) =>
+    return categoryFilteredWords.filter((word) =>
       word.english.toLowerCase().includes(query) ||
       word.headword.toLowerCase().includes(query)
     );
-  }, [letterFilteredWords, searchQuery]);
+  }, [categoryFilteredWords, searchQuery]);
 
   // Sort words
   const sortedWords = useMemo(() => {
@@ -247,7 +269,7 @@ export function DictionaryList({
   useEffect(() => {
     setSelectedWordIndex(null);
     setSelectedWordDetails(null);
-  }, [filter, letterFilter, searchQuery]);
+  }, [filter, letterFilter, searchQuery, selectedCategories]);
 
   // Handle filter changes
   const handleFilterChange = (newFilter: FilterType) => {
@@ -278,7 +300,7 @@ export function DictionaryList({
   // Reset display count when filtered results change
   useEffect(() => {
     setDisplayCount(PAGE_SIZE);
-  }, [sortedWords.length, filter, letterFilter, searchQuery]);
+  }, [sortedWords.length, filter, letterFilter, searchQuery, selectedCategories]);
 
   const hasMore = displayCount < sortedWords.length;
 
@@ -319,6 +341,13 @@ export function DictionaryList({
       setDisplayCount(wordIndex + PAGE_SIZE);
     }
 
+    // Auto-open the detail sidebar the first time we resolve this word
+    // (ref guard so we don't re-open if the user manually closes it)
+    if (autoOpenedForIdRef.current !== highlightedWordId) {
+      autoOpenedForIdRef.current = highlightedWordId;
+      handleJumpToWord(wordIndex);
+    }
+
     // Scroll to the row after a short delay for render
     const timer = setTimeout(() => {
       const row = document.querySelector(`[data-word-id="${highlightedWordId}"]`);
@@ -336,7 +365,7 @@ export function DictionaryList({
       clearTimeout(timer);
       clearTimeout(clearTimer);
     };
-  }, [highlightedWordId, sortedWords, displayCount]);
+  }, [highlightedWordId, sortedWords, displayCount, handleJumpToWord]);
 
   return (
     <>
@@ -349,12 +378,18 @@ export function DictionaryList({
         />
 
         <div className="flex items-center gap-3">
-          <InlineSearch
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Filter words..."
-          />
-          {languageFlag && <div className="text-2xl">{languageFlag}</div>}
+          <div className="flex items-center gap-1">
+            <InlineSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Filter words..."
+            />
+            <CategoryFilter
+              options={CATEGORY_OPTIONS}
+              selected={selectedCategories}
+              onChange={setSelectedCategories}
+            />
+          </div>
         </div>
       </div>
 
