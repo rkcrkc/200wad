@@ -406,17 +406,16 @@ export async function getScheduleData(
   const courseWordIds = new Set(
     testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
   );
-  const courseWordIdArray = [...courseWordIds];
 
-  const userWordProgressResult = courseWordIdArray.length > 0
-    ? await supabase
-        .from("user_word_progress")
-        .select("word_id, status")
-        .eq("user_id", user.id)
-        .in("status", ["learning", "learned", "mastered"])
-        .in("word_id", courseWordIdArray)
-        .limit(SUPABASE_ALL_ROWS)
-    : { data: [] as { word_id: string | null; status: string | null }[] };
+  // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
+  // PostgREST and silently returns empty on long URLs for big courses.
+  // The downstream intersection with courseWordIds keeps counts scoped.
+  const userWordProgressResult = await supabase
+    .from("user_word_progress")
+    .select("word_id, status")
+    .eq("user_id", user.id)
+    .in("status", ["learning", "learned", "mastered"])
+    .limit(SUPABASE_ALL_ROWS);
   warnIfTruncated("getScheduleData:user_word_progress", userWordProgressResult.data?.length ?? 0);
   const userWordProgress = userWordProgressResult.data;
 

@@ -254,9 +254,10 @@ export async function getCourseProgress(
   );
   const totalWords = courseWordIds.size;
 
-  const courseWordIdArray = [...courseWordIds];
+  // Scope by user_id + status only. Filtering by word_id pushes 1k+ UUIDs
+  // through PostgREST and silently returns empty on long URLs for big
+  // courses. We intersect with courseWordIds client-side instead.
   const fetchAllUserMasteredProgress = async (): Promise<{ word_id: string | null }[]> => {
-    if (courseWordIdArray.length === 0) return [];
     const pageSize = 1000;
     const rows: { word_id: string | null }[] = [];
     for (let offset = 0; ; offset += pageSize) {
@@ -265,7 +266,6 @@ export async function getCourseProgress(
         .select("word_id")
         .eq("user_id", user.id)
         .eq("status", "mastered")
-        .in("word_id", courseWordIdArray)
         .range(offset, offset + pageSize - 1);
       if (error || !data) break;
       rows.push(...data);
@@ -274,7 +274,9 @@ export async function getCourseProgress(
     return rows;
   };
   const masteredProgressRows = await fetchAllUserMasteredProgress();
-  const wordsMastered = masteredProgressRows.length;
+  const wordsMastered = masteredProgressRows.filter(
+    (r) => r.word_id && courseWordIds.has(r.word_id)
+  ).length;
 
   // Progress is based on words mastered percentage
   const progressPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
@@ -362,17 +364,16 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     return ids;
   };
 
-  // Step 3: Fetch course word IDs first so we can scope user_word_progress to
-  // only words relevant to this course's language. Without scoping, Supabase's
-  // default 1000-row cap silently truncates progress for power users.
+  // Step 3: Fetch course word IDs so we can intersect client-side.
   const courseWordIds = await fetchCourseWordIds();
-  const courseWordIdArray = [...courseWordIds];
 
-  // Paginated fetch of user_word_progress scoped to this course's words
+  // Paginated fetch of user_word_progress. Scoped by user_id only —
+  // filtering by word_id pushes 1k+ UUIDs through PostgREST and silently
+  // returns empty on long URLs for big courses. Downstream consumers
+  // intersect with courseWordIds to keep things course-scoped.
   const fetchAllScopedWordProgress = async (): Promise<
     { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[]
   > => {
-    if (courseWordIdArray.length === 0) return [];
     const pageSize = 1000;
     const rows: { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[] = [];
     for (let offset = 0; ; offset += pageSize) {
@@ -381,7 +382,6 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .select("word_id, learning_at, mastered_at, status")
         .eq("user_id", user.id)
         .not("learning_at", "is", null)
-        .in("word_id", courseWordIdArray)
         .range(offset, offset + pageSize - 1);
       if (error || !data) break;
       rows.push(...data);
@@ -425,10 +425,12 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
 
   const activityRows = activityResult.data || [];
   const userData = userResult.data;
-  // wordProgressRows is now already scoped to course words by fetchAllScopedWordProgress.
-  // Downstream consumers also intersect with courseWordIds, which is now redundant
-  // but harmless and kept to avoid behaviour changes.
-  const wordProgressRows = scopedWordProgress;
+  // wordProgressRows is unscoped (all courses) — downstream consumers must
+  // intersect with courseWordIds. Filtering here keeps all derived stats
+  // course-scoped in one place.
+  const wordProgressRows = scopedWordProgress.filter(
+    (w) => w.word_id && courseWordIds.has(w.word_id)
+  );
   const sessions = sessionsResult.data || [];
   const tests = testsResult.data || [];
 

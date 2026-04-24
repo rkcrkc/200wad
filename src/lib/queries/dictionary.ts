@@ -217,26 +217,17 @@ export async function getDictionaryWords(
       );
 
       if (lessonWords.length > 0) {
-        // Scope progress fetch to this course's words only — avoids Supabase's
-        // default 1000-row cap silently truncating progress for power users.
-        const courseWordIdSet = new Set<string>();
-        for (const lw of lessonWords) {
-          const id = (lw.words as any)?.id;
-          if (id) courseWordIdSet.add(id);
-        }
-        const courseWordIdArray = [...courseWordIdSet];
-
-        const allProgress = courseWordIdArray.length > 0
-          ? await fetchAllRows<{ word_id: string | null; status: string | null }>(
-              (from, to) =>
-                supabase
-                  .from("user_word_progress")
-                  .select("word_id, status")
-                  .eq("user_id", user.id)
-                  .in("word_id", courseWordIdArray)
-                  .range(from, to)
-            )
-          : [];
+        // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
+        // PostgREST and silently returns empty on long URLs for big courses.
+        // fetchAllRows paginates so the 1000-row cap is handled.
+        const allProgress = await fetchAllRows<{ word_id: string | null; status: string | null }>(
+          (from, to) =>
+            supabase
+              .from("user_word_progress")
+              .select("word_id, status")
+              .eq("user_id", user.id)
+              .range(from, to)
+        );
 
         const progressMap = new Map(
           allProgress.map((p) => [p.word_id, p.status as WordStatus])

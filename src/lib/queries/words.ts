@@ -749,15 +749,19 @@ async function getAutoLessonWords(
   let targetWordIds: string[] = [];
 
   if (type === "notes") {
-    // Words with user notes
+    // Words with user notes. No word_id filter — pushing ~1k UUIDs through
+    // PostgREST silently returns empty on long URLs. `user_notes is not null`
+    // already bounds this to a small set; intersect client-side.
     const { data: wordsWithNotes } = await supabase
       .from("user_word_progress")
       .select("word_id")
       .eq("user_id", userId)
-      .in("word_id", courseWordIds)
       .not("user_notes", "is", null);
 
-    targetWordIds = wordsWithNotes?.map((w) => w.word_id).filter((id): id is string => id !== null) || [];
+    const courseWordIdSet = new Set(courseWordIds);
+    targetWordIds = wordsWithNotes
+      ?.map((w) => w.word_id)
+      .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
   } else {
     // Best or Worst words - need to calculate scores
     if (testScoreIds.length === 0) {

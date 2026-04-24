@@ -100,12 +100,13 @@ async function generateAutoLessons(
 
   // Get word IDs and test data for each auto-lesson type in parallel
   const [notesResult, bestWorstData] = await Promise.all([
-    // Fetch word IDs with user notes (need IDs for mastery lookup)
+    // Fetch word IDs with user notes. No word_id filter — pushing ~1k UUIDs
+    // through PostgREST silently returns empty on long URLs. The
+    // `user_notes is not null` predicate already bounds this to a small set.
     supabase
       .from("user_word_progress")
       .select("word_id")
       .eq("user_id", userId)
-      .in("word_id", courseWordIds)
       .not("user_notes", "is", null),
 
     // Get test data for best/worst calculation (via test_score_id).
@@ -118,7 +119,11 @@ async function generateAutoLessons(
       : Promise.resolve({ data: [] }),
   ]);
 
-  const notesWordIds = notesResult.data?.map((w) => w.word_id).filter((id): id is string => id !== null) || [];
+  // Intersect notes client-side with this course's words.
+  const courseWordIdSet = new Set(courseWordIds);
+  const notesWordIds = notesResult.data
+    ?.map((w) => w.word_id)
+    .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
 
   // Calculate best/worst word scores and extract sorted word IDs
   const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
@@ -339,17 +344,16 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
       testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
     );
 
-    // Now fetch user_word_progress scoped to this course's words only
-    const courseWordIdArray = [...courseWordIds];
-    const userProgressResult = courseWordIdArray.length > 0
-      ? await supabase
-          .from("user_word_progress")
-          .select("word_id, status")
-          .eq("user_id", user.id)
-          .in("status", ["learning", "learned", "mastered"])
-          .in("word_id", courseWordIdArray)
-          .limit(SUPABASE_ALL_ROWS)
-      : { data: [] as { word_id: string | null; status: string | null }[] };
+    // Fetch user's word progress scoped by user_id only. Filtering by
+    // word_id pushes ~1k+ UUIDs through PostgREST and silently returns empty
+    // on long URLs for courses with many words. The downstream intersection
+    // with courseWordIds (via wordStatusMap) keeps counts course-scoped.
+    const userProgressResult = await supabase
+      .from("user_word_progress")
+      .select("word_id, status")
+      .eq("user_id", user.id)
+      .in("status", ["learning", "learned", "mastered"])
+      .limit(SUPABASE_ALL_ROWS);
     warnIfTruncated("getLessons:user_word_progress", userProgressResult.data?.length ?? 0);
 
     if (lessonWordsResult.data && userProgressResult.data) {

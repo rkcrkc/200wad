@@ -166,17 +166,16 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       }
     });
 
-    // Now fetch user_word_progress scoped to only the words across these courses
-    const allCourseWordIdArray = [...allCourseWordIds];
-    const userProgressResult = allCourseWordIdArray.length > 0
-      ? await supabase
-          .from("user_word_progress")
-          .select("word_id, status")
-          .eq("user_id", user.id)
-          .in("status", ["learning", "learned", "mastered"])
-          .in("word_id", allCourseWordIdArray)
-          .limit(SUPABASE_ALL_ROWS)
-      : { data: [] as { word_id: string | null; status: string | null }[] };
+    // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
+    // PostgREST and silently returns empty on long URLs — and this aggregates
+    // across all the user's courses, which is even bigger. The per-course
+    // bucketing below already intersects with each course's word set.
+    const userProgressResult = await supabase
+      .from("user_word_progress")
+      .select("word_id, status")
+      .eq("user_id", user.id)
+      .in("status", ["learning", "learned", "mastered"])
+      .limit(SUPABASE_ALL_ROWS);
     warnIfTruncated("getCourses:user_word_progress", userProgressResult.data?.length ?? 0);
 
     // Bucket word progress into courses
