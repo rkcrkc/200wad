@@ -16,6 +16,7 @@ import {
   StudySidebar,
   AnswerInput,
   LessonCompletedModal,
+  LessonStartTestModal,
   InformationCard,
   InformationNextButton,
   type AnswerInputHandle,
@@ -132,6 +133,9 @@ export function StudyModeClient({
   // Completion modal state
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  // Test format selector (stacked over the completed modal)
+  const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   // Admin can force-preview the completion modal via ?preview=completed
   const previewCheckedRef = useRef(false);
@@ -707,16 +711,15 @@ export function StudyModeClient({
   // Handle user notes change
   const handleUserNotesChange = useCallback(
     async (notes: string | null) => {
-      let existingProgress: WordProgress | undefined;
-
       setWordProgressMap((prev) => {
-        // Read existing from prev inside the updater to avoid stale closures
-        existingProgress = prev.get(currentWord.id);
+        const existing = prev.get(currentWord.id);
         const newMap = new Map(prev);
         newMap.set(currentWord.id, {
-          isCorrect: existingProgress?.isCorrect || false,
+          isCorrect: existing?.isCorrect ?? false,
+          hasAnswered: existing?.hasAnswered ?? false,
+          userAnswer: existing?.userAnswer,
+          ...existing,
           userNotes: notes,
-          hasAnswered: existingProgress?.hasAnswered || false,
         });
         return newMap;
       });
@@ -838,13 +841,12 @@ export function StudyModeClient({
     setShowCompletionModal(true);
   }, [isGuest, sessionId, lesson.id, wordProgressMap, viewedWordIndices, elapsedSeconds, stopAudio]);
 
-  // Handle modal "Start Test" action - pass the scheduled next milestone so the
-  // test correctly advances the milestone schedule. Falls back to "initial" for
-  // lessons that don't yet have a milestone scheduled (first time through).
+  // Handle modal "Start Test" action — open the format selector stacked over
+  // the completion modal. The format selector then forwards the scheduled next
+  // milestone (or "initial") to the test URL.
   const handleStartTest = useCallback(() => {
-    const milestone = nextMilestone || "initial";
-    router.push(`/lesson/${lesson.id}/test?milestone=${milestone}`);
-  }, [router, lesson.id, nextMilestone]);
+    setShowStartTestModal(true);
+  }, []);
 
   // Handle modal "Study again" action - restart the lesson from the beginning
   const handleStudyAgain = useCallback(() => {
@@ -936,7 +938,7 @@ export function StudyModeClient({
     async (field: string, file: File): Promise<boolean> => {
       // Upload file to storage
       const uploadResult = await uploadFileClient(
-        "images",
+        "word-images",
         file,
         "words",
         currentWord.id,
@@ -1065,7 +1067,6 @@ export function StudyModeClient({
                         key={currentWord.id}
                         imageUrl={currentWord.memory_trigger_image_url}
                         triggerText={currentWord.memory_trigger_text}
-                        englishWord={currentWord.english}
                         foreignWord={currentWord.headword}
                         gender={currentWord.gender}
                         showImage={true}
@@ -1198,6 +1199,23 @@ export function StudyModeClient({
           onStartTest={handleStartTest}
           onStudyAgain={handleStudyAgain}
           onDismiss={handleDismissModal}
+        />
+      )}
+
+      {/* Test format selector — stacked over the completion modal */}
+      {showStartTestModal && (
+        <LessonStartTestModal
+          lessonId={lesson.id}
+          lessonTitle={lesson.title}
+          wordCount={localWords.filter((w) => w.category !== "information").length}
+          wordsWithImages={
+            localWords.filter(
+              (w) => w.category !== "information" && w.memory_trigger_image_url
+            ).length
+          }
+          milestone={nextMilestone || "initial"}
+          languageName={language?.name}
+          onCancel={() => setShowStartTestModal(false)}
         />
       )}
 

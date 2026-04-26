@@ -60,12 +60,10 @@ export function StudySidebar({
   // User notes state
   const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
   const [userNotesInput, setUserNotesInput] = useState(userNotes || "");
-  const [savedUserNotes, setSavedUserNotes] = useState<string | null>(null);
 
   // System notes state (admin only)
   const [isEditingSystemNotes, setIsEditingSystemNotes] = useState(false);
   const [systemNotesInput, setSystemNotesInput] = useState(systemNotes || "");
-  const [savedSystemNotes, setSavedSystemNotes] = useState<string | null>(null);
 
   // Developer section state (admin only)
   const [isEditingDeveloperNotes, setIsEditingDeveloperNotes] = useState(false);
@@ -86,10 +84,8 @@ export function StudySidebar({
     if (wordId !== prevWordIdRef.current) {
       setUserNotesInput(userNotes || "");
       setIsEditingUserNotes(false);
-      setSavedUserNotes(null);
       setSystemNotesInput(systemNotes || "");
       setIsEditingSystemNotes(false);
-      setSavedSystemNotes(null);
       // Reset developer section state
       setDeveloperNotesInput(initialDeveloperNotes || "");
       setDeveloperNotes(initialDeveloperNotes || null);
@@ -107,26 +103,24 @@ export function StudySidebar({
   // User notes handlers
   const handleSaveUserNotes = () => {
     const trimmedNotes = userNotesInput.trim() || null;
-    setSavedUserNotes(trimmedNotes);
     onUserNotesChange(trimmedNotes);
     setIsEditingUserNotes(false);
   };
 
   const handleCancelUserNotes = () => {
-    setUserNotesInput(savedUserNotes ?? userNotes ?? "");
+    setUserNotesInput(userNotes ?? "");
     setIsEditingUserNotes(false);
   };
 
   // System notes handlers (admin only)
   const handleSaveSystemNotes = () => {
     const trimmedNotes = systemNotesInput.trim() || null;
-    setSavedSystemNotes(trimmedNotes);
     onSystemNotesChange?.(trimmedNotes);
     setIsEditingSystemNotes(false);
   };
 
   const handleCancelSystemNotes = () => {
-    setSystemNotesInput(savedSystemNotes ?? systemNotes ?? "");
+    setSystemNotesInput(systemNotes ?? "");
     setIsEditingSystemNotes(false);
   };
 
@@ -220,9 +214,9 @@ export function StudySidebar({
     setIsSavingDeveloperData(false);
   };
 
-  // Display notes: prefer locally saved (most recent), then prop from parent
-  const displayUserNotes = savedUserNotes ?? userNotes;
-  const displaySystemNotes = savedSystemNotes ?? systemNotes;
+  // Display notes: parent prop is the source of truth
+  const displayUserNotes = userNotes;
+  const displaySystemNotes = systemNotes;
 
   const cardClasses = cn(
     "w-full rounded-2xl bg-white shadow-card transition-opacity",

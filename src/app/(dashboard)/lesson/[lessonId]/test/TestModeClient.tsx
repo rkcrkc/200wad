@@ -25,7 +25,7 @@ import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
-import { saveSystemNotes } from "@/lib/mutations/study";
+import { saveSystemNotes, saveUserNotes } from "@/lib/mutations/study";
 import { updateWord } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
@@ -175,6 +175,8 @@ interface TestModeClientProps {
   isGuest: boolean;
   testType?: import("@/types/test").TestType;
   testTwice?: boolean;
+  /** Whether to shuffle words instead of testing in lesson order */
+  randomOrder?: boolean;
   /** The intended milestone for this test (from URL), or null for self-initiated */
   milestone?: string | null;
   /** Initial course vocab count fetched server-side (pre-test). null for guests. */
@@ -189,6 +191,7 @@ export function TestModeClient({
   isGuest,
   testType = "english-to-foreign",
   testTwice = false,
+  randomOrder = false,
   milestone = null,
   initialCourseVocabCount = null,
 }: TestModeClientProps) {
@@ -219,7 +222,16 @@ export function TestModeClient({
   });
 
   // Active words (subset used for current test - may be filtered for retest)
-  const [activeWords, setActiveWords] = useState(words);
+  // If randomOrder is enabled, shuffle once on mount via Fisher-Yates.
+  const [activeWords, setActiveWords] = useState(() => {
+    if (!randomOrder) return words;
+    const arr = [...words];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -234,6 +246,12 @@ export function TestModeClient({
     new Map()
   );
   const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
+
+  // Local user notes overrides keyed by word id (so saved notes display
+  // immediately and survive navigation within the test session).
+  const [userNotesOverrides, setUserNotesOverrides] = useState<Map<string, string | null>>(
+    new Map()
+  );
 
   // Completion modal state
   const isFinishingRef = useRef(false);
@@ -962,8 +980,34 @@ export function TestModeClient({
     return { pointsEarned, maxPoints };
   })();
 
-  // Sidebar is always enabled in test mode (no phase restrictions)
-  const currentUserNotes = currentWord?.progress?.user_notes || null;
+  // Sidebar is always enabled in test mode (no phase restrictions).
+  // Honor any local override first; the `has` check ensures explicitly cleared
+  // notes (null) don't fall back to the original DB value.
+  const currentUserNotes = currentWord?.id
+    ? userNotesOverrides.has(currentWord.id)
+      ? userNotesOverrides.get(currentWord.id) ?? null
+      : currentWord?.progress?.user_notes ?? null
+    : null;
+
+  // Handle user notes change
+  const handleUserNotesChange = useCallback(
+    async (notes: string | null) => {
+      if (!currentWord?.id) return;
+      const wordId = currentWord.id;
+      setUserNotesOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(wordId, notes);
+        return next;
+      });
+      if (!isGuest) {
+        const result = await saveUserNotes(wordId, notes);
+        if (!result.success) {
+          console.error("Failed to save user notes:", result.error);
+        }
+      }
+    },
+    [currentWord?.id, isGuest]
+  );
 
   // Handle system notes change (admin only)
   const handleSystemNotesChange = useCallback(
@@ -1019,7 +1063,7 @@ export function TestModeClient({
       if (!currentWord) return false;
       // Upload file to storage
       const uploadResult = await uploadFileClient(
-        "images",
+        "word-images",
         file,
         "words",
         currentWord.id,
@@ -1139,37 +1183,39 @@ export function TestModeClient({
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[90px]">
           <div className="mx-auto w-full max-w-content-lg flex flex-col gap-4">
-            {/* Word Card - full width (hidden in picture-only mode) */}
-            {testType !== "picture-only" && (
-              <div className="w-full">
-                <WordCard
-                  englishWord={currentWord?.english || ""}
-                  foreignWord={currentWord?.headword || ""}
-                  gender={currentWord?.gender}
-                  showEnglish={testTypeConfig.showEnglishInWordCard || hasSubmittedAnswer}
-                  showForeign={testTypeConfig.showForeignInWordCard || hasSubmittedAnswer}
-                  playingAudioType={currentAudioType}
-                  onPlayEnglishAudio={() => {
-                    if (currentWord?.audio_url_english) {
-                      playAudio(currentWord.audio_url_english, "english");
-                    }
-                  }}
-                  onPlayForeignAudio={() => {
-                    if (currentWord?.audio_url_foreign) {
-                      playAudio(currentWord.audio_url_foreign, "foreign");
-                    }
-                  }}
-                  mode="test"
-                  hasSubmitted={hasSubmittedAnswer}
-                  wordId={currentWord?.id}
-                  isEditMode={isEditMode}
-                  onFieldSave={handleFieldSave}
-                  onArrayFieldSave={handleArrayFieldSave}
-                  alternateAnswers={currentWord?.alternate_answers || []}
-                  alternateEnglishAnswers={currentWord?.alternate_english_answers || []}
-                />
-              </div>
-            )}
+            {/* Word Card - full width */}
+            <div className="w-full">
+              <WordCard
+                englishWord={currentWord?.english || ""}
+                foreignWord={currentWord?.headword || ""}
+                gender={currentWord?.gender}
+                showEnglish={
+                  testTypeConfig.showEnglishInWordCard ||
+                  hasSubmittedAnswer ||
+                  (testTypeConfig.pictureOnlyMode && clueLevel >= 1)
+                }
+                showForeign={testTypeConfig.showForeignInWordCard || hasSubmittedAnswer}
+                playingAudioType={currentAudioType}
+                onPlayEnglishAudio={() => {
+                  if (currentWord?.audio_url_english) {
+                    playAudio(currentWord.audio_url_english, "english");
+                  }
+                }}
+                onPlayForeignAudio={() => {
+                  if (currentWord?.audio_url_foreign) {
+                    playAudio(currentWord.audio_url_foreign, "foreign");
+                  }
+                }}
+                mode="test"
+                hasSubmitted={hasSubmittedAnswer}
+                wordId={currentWord?.id}
+                isEditMode={isEditMode}
+                onFieldSave={handleFieldSave}
+                onArrayFieldSave={handleArrayFieldSave}
+                alternateAnswers={currentWord?.alternate_answers || []}
+                alternateEnglishAnswers={currentWord?.alternate_english_answers || []}
+              />
+            </div>
 
             {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
             <div className="flex gap-4">
@@ -1178,7 +1224,6 @@ export function TestModeClient({
                   <MemoryTriggerCard
                     imageUrl={currentWord?.memory_trigger_image_url}
                     triggerText={currentWord?.memory_trigger_text}
-                    englishWord={currentWord?.english || ""}
                     foreignWord={currentWord?.headword || ""}
                     gender={currentWord?.gender}
                     isVisible={hasSubmittedAnswer}
@@ -1212,7 +1257,7 @@ export function TestModeClient({
                   exampleSentences={currentWord?.exampleSentences}
                   relatedWords={currentWord?.relatedWords}
                   isEnabled={hasSubmittedAnswer}
-                  onUserNotesChange={() => {}} // User notes editing not supported in test mode
+                  onUserNotesChange={handleUserNotesChange}
                   isAdmin={isAdmin}
                   onSystemNotesChange={handleSystemNotesChange}
                   developerNotes={currentWord?.developer_notes}
@@ -1267,9 +1312,11 @@ export function TestModeClient({
             clueLevel={clueLevel}
             onRevealClue={handleRevealClue}
             hasSubmittedAnswer={hasSubmittedAnswer}
+            pictureOnlyMode={testTypeConfig.pictureOnlyMode}
             nervesOfSteelMode={nervesOfSteelMode}
             onNervesOfSteelModeChange={setNervesOfSteelMode}
             testTwice={testTwice}
+            randomOrder={randomOrder}
             languageCode={testTypeConfig.showAccentsPanel ? language?.code : undefined}
             onInsertCharacter={testTypeConfig.showAccentsPanel ? handleInsertCharacter : undefined}
             imageMode={imageMode}
