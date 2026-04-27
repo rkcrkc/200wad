@@ -11,6 +11,7 @@ import {
   calculateNextTestDueAt,
 } from "@/lib/utils/milestones";
 import { updateLessonProgress } from "./study";
+import { recordProgressAchievements } from "@/lib/notifications/achievements";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -453,6 +454,17 @@ export async function completeTestSession(
     console.error("Error updating lesson progress:", lessonProgressResult.error);
     // Continue anyway - test score is already saved
   }
+
+  // 5c. Fire any achievement notifications the user just unlocked. Internally
+  // idempotent — safe to call on every test completion. Errors are swallowed
+  // so they never block the test flow.
+  await recordProgressAchievements({
+    userId: user.id,
+    testResult: {
+      scorePercent: stats.scorePercent,
+      isRetest: stats.isRetest,
+    },
+  });
 
   // 6. Advance milestone schedule if this counted as a milestone test
   if (milestoneResult.shouldAdvance && milestoneResult.completedMilestone) {

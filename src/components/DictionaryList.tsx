@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useCallback, useTransition } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { InlineSearch } from "@/components/InlineSearch";
 import { CategoryFilter, CategoryOption } from "@/components/CategoryFilter";
 import { DictionaryRow } from "@/components/DictionaryRow";
-import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { useScrollFade } from "@/hooks/useScrollFade";
+import { useWordPreview } from "@/context/WordPreviewContext";
 import { DictionaryWord } from "@/lib/queries/dictionary";
-import { WordWithDetails } from "@/lib/queries/words";
-import { fetchWordDetails } from "@/lib/actions/words";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
 
@@ -86,14 +84,15 @@ export function DictionaryList({
 }: DictionaryListProps) {
   const searchParams = useSearchParams();
   const { scrollRef: dictScrollRef, canScrollRight } = useScrollFade();
-  const highlightWordId = searchParams.get("word");
+  const { openWord, selectedWordId } = useWordPreview();
+  const urlWordId = searchParams.get("word");
 
   const [filter, setFilter] = useState<FilterType>(() => {
-    // If navigating to a specific word, pick the best tab to show it:
+    // If deep-linking to a specific word, pick the best tab to show it:
     // prefer "This Course" if the word is in the current course, else fall
     // back to "All {Language}" which contains every entry for the language.
-    if (highlightWordId) {
-      const inCurrentCourse = courseWords.some((w) => w.id === highlightWordId);
+    if (urlWordId) {
+      const inCurrentCourse = courseWords.some((w) => w.id === urlWordId);
       return inCurrentCourse ? "course" : "all";
     }
     return "learning";
@@ -103,13 +102,6 @@ export function DictionaryList({
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [highlightedWordId, setHighlightedWordId] = useState<string | null>(highlightWordId);
-  const autoOpenedForIdRef = useRef<string | null>(null);
-
-  // Word sidebar state
-  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
-  const [selectedWordDetails, setSelectedWordDetails] = useState<WordWithDetails | null>(null);
-  const [, startTransition] = useTransition();
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -218,58 +210,44 @@ export function DictionaryList({
     return sorted;
   }, [searchFilteredWords, sortColumn, sortDirection]);
 
-  // Word selection handlers (must be after sortedWords)
-  const handleSelectWord = useCallback((index: number) => {
-    if (selectedWordIndex === index) {
-      setSelectedWordIndex(null);
-      setSelectedWordDetails(null);
-    } else {
-      setSelectedWordIndex(index);
-      startTransition(async () => {
-        const { word } = await fetchWordDetails(sortedWords[index].id);
-        if (word) setSelectedWordDetails(word);
+  // Open the global word-preview panel with full list context for prev/next.
+  // Intentionally does NOT pass per-word lesson overrides — the dictionary is
+  // a cross-lesson view, so the sidebar header should default to the
+  // lowest-numbered lesson (resolved by fetchWordPreview).
+  const handleSelectWord = useCallback(
+    (index: number) => {
+      const word = sortedWords[index];
+      if (!word) return;
+      openWord(word.id, {
+        wordList: sortedWords.map((w) => ({
+          id: w.id,
+          english: w.english,
+          foreign: w.headword,
+        })),
+        currentIndex: index,
       });
-    }
-  }, [selectedWordIndex, sortedWords]);
+    },
+    [sortedWords, openWord]
+  );
 
-  const handleCloseSidebar = useCallback(() => {
-    setSelectedWordIndex(null);
-    setSelectedWordDetails(null);
-  }, []);
-
-  const handlePreviousWord = useCallback(() => {
-    if (selectedWordIndex === null || selectedWordIndex <= 0) return;
-    const newIndex = selectedWordIndex - 1;
-    setSelectedWordIndex(newIndex);
-    startTransition(async () => {
-      const { word } = await fetchWordDetails(sortedWords[newIndex].id);
-      if (word) setSelectedWordDetails(word);
-    });
-  }, [selectedWordIndex, sortedWords]);
-
-  const handleNextWord = useCallback(() => {
-    if (selectedWordIndex === null || selectedWordIndex >= sortedWords.length - 1) return;
-    const newIndex = selectedWordIndex + 1;
-    setSelectedWordIndex(newIndex);
-    startTransition(async () => {
-      const { word } = await fetchWordDetails(sortedWords[newIndex].id);
-      if (word) setSelectedWordDetails(word);
-    });
-  }, [selectedWordIndex, sortedWords]);
-
-  const handleJumpToWord = useCallback((index: number) => {
-    setSelectedWordIndex(index);
-    startTransition(async () => {
-      const { word } = await fetchWordDetails(sortedWords[index].id);
-      if (word) setSelectedWordDetails(word);
-    });
-  }, [sortedWords]);
-
-  // Close sidebar when filter/search changes
+  // When the URL ?word= changes (deep-link or header-search nav), make sure
+  // the targeted word is visible in the current view by switching tabs and
+  // clearing filters that could hide it. The panel itself is owned by the
+  // global WordPreviewProvider, so we don't open it here.
   useEffect(() => {
-    setSelectedWordIndex(null);
-    setSelectedWordDetails(null);
-  }, [filter, letterFilter, searchQuery, selectedCategories]);
+    if (!urlWordId) return;
+    const isInCurrentView = sortedWords.some((w) => w.id === urlWordId);
+    if (isInCurrentView) return;
+
+    const inCurrentCourse = courseWords.some((w) => w.id === urlWordId);
+    setFilter(inCurrentCourse ? "course" : "all");
+    setLetterFilter(null);
+    setSelectedCategories([]);
+    setSearchQuery("");
+    // We intentionally only respond when urlWordId changes; sortedWords
+    // changing shouldn't re-trigger tab switches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlWordId]);
 
   // Handle filter changes
   const handleFilterChange = (newFilter: FilterType) => {
@@ -328,44 +306,15 @@ export function DictionaryList({
 
   const visibleWords = sortedWords.slice(0, displayCount);
 
-  // Scroll to highlighted word from search navigation
+  // Ensure enough items are displayed to include a deep-linked word, so the
+  // selected row remains visible in the table when the panel is open.
   useEffect(() => {
-    if (!highlightedWordId) return;
-
-    // Find the word's index in sorted results
-    const wordIndex = sortedWords.findIndex((w) => w.id === highlightedWordId);
-    if (wordIndex === -1) return;
-
-    // Ensure enough items are displayed to include the word
-    if (wordIndex >= displayCount) {
+    if (!urlWordId) return;
+    const wordIndex = sortedWords.findIndex((w) => w.id === urlWordId);
+    if (wordIndex >= 0 && wordIndex >= displayCount) {
       setDisplayCount(wordIndex + PAGE_SIZE);
     }
-
-    // Auto-open the detail sidebar the first time we resolve this word
-    // (ref guard so we don't re-open if the user manually closes it)
-    if (autoOpenedForIdRef.current !== highlightedWordId) {
-      autoOpenedForIdRef.current = highlightedWordId;
-      handleJumpToWord(wordIndex);
-    }
-
-    // Scroll to the row after a short delay for render
-    const timer = setTimeout(() => {
-      const row = document.querySelector(`[data-word-id="${highlightedWordId}"]`);
-      if (row) {
-        row.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 100);
-
-    // Clear highlight after 3 seconds
-    const clearTimer = setTimeout(() => {
-      setHighlightedWordId(null);
-    }, 3000);
-
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(clearTimer);
-    };
-  }, [highlightedWordId, sortedWords, displayCount, handleJumpToWord]);
+  }, [urlWordId, sortedWords, displayCount]);
 
   return (
     <>
@@ -520,8 +469,7 @@ export function DictionaryList({
                   onClick={() => handleSelectWord(index)}
                   isFirst={index === 0}
                   isLast={index === visibleWords.length - 1 && !hasMore}
-                  isHighlighted={word.id === highlightedWordId}
-                  isSelected={selectedWordIndex === index}
+                  isSelected={selectedWordId === word.id}
                   showScrollFade={canScrollRight}
                 />
               ))
@@ -542,29 +490,6 @@ export function DictionaryList({
           </span>
         </div>
       </div>
-
-      {/* Word Detail Sidebar */}
-      {selectedWordDetails && selectedWordIndex !== null && (
-        <WordDetailSidebar
-          word={selectedWordDetails}
-          lessonTitle={sortedWords[selectedWordIndex]?.lessonTitle || ""}
-          lessonNumber={sortedWords[selectedWordIndex]?.lessonNumber || 0}
-          onClose={handleCloseSidebar}
-          onPrevious={handlePreviousWord}
-          onNext={handleNextWord}
-          onJumpToWord={handleJumpToWord}
-          hasPrevious={selectedWordIndex > 0}
-          hasNext={selectedWordIndex < sortedWords.length - 1}
-          currentIndex={selectedWordIndex}
-          totalWords={sortedWords.length}
-          wordList={sortedWords.map((w) => ({
-            id: w.id,
-            english: w.english,
-            foreign: w.headword,
-          }))}
-          showProgress={false}
-        />
-      )}
     </>
   );
 }

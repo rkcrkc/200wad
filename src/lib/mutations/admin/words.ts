@@ -203,7 +203,7 @@ export async function deleteWord(id: string, lessonId?: string): Promise<Mutatio
 
     // Delete storage files for this word (both images and audio)
     await Promise.all([
-      deleteEntityFiles("images", "words", id),
+      deleteEntityFiles("word-images", "words", id),
       deleteEntityFiles("audio", "words", id),
     ]);
 

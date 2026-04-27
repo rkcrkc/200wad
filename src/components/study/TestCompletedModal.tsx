@@ -12,7 +12,7 @@ import {
   RotateCcw,
   BookOpen,
   RefreshCw,
-  X,
+  ArrowRight,
   LayoutGrid,
 } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
@@ -152,9 +152,8 @@ export function TestCompletedModal({
                   <div className="flex flex-col gap-1">
                     {allLearnedWords.map((w) => (
                       <div key={w.id} className="flex items-baseline gap-1.5 text-sm">
-                        <span className="font-medium text-foreground">{w.headword}</span>
-                        <span className="text-muted-foreground">—</span>
-                        <span className="text-muted-foreground">{w.english}</span>
+                        <span className="max-w-[50%] truncate font-medium text-foreground" title={w.headword}>{w.headword}</span>
+                        <span className="max-w-[50%] truncate text-muted-foreground" title={w.english}>{w.english}</span>
                         {newlyLearnedWordIdSet.has(w.id) && <span className="text-xs text-primary">new</span>}
                       </div>
                     ))}
@@ -178,9 +177,8 @@ export function TestCompletedModal({
                   <div className="flex flex-col gap-1">
                     {allMasteredWords.map((w) => (
                       <div key={w.id} className="flex items-baseline gap-1.5 text-sm">
-                        <span className="font-medium text-foreground">{w.headword}</span>
-                        <span className="text-muted-foreground">—</span>
-                        <span className="text-muted-foreground">{w.english}</span>
+                        <span className="max-w-[50%] truncate font-medium text-foreground" title={w.headword}>{w.headword}</span>
+                        <span className="max-w-[50%] truncate text-muted-foreground" title={w.english}>{w.english}</span>
                         {masteredWordIdSet.has(w.id) && <span className="text-xs text-primary">new</span>}
                       </div>
                     ))}
@@ -339,9 +337,10 @@ export function TestCompletedModal({
                 onClick={onTestAgain}
               />
               <CompletedModalActionButton
-                icon={<X className="h-6 w-6" />}
+                icon={<ArrowRight className="h-6 w-6" />}
                 label="Done"
                 onClick={onDone}
+                iconHover="shift"
               />
             </div>
           ) : (
@@ -356,6 +355,7 @@ export function TestCompletedModal({
                 icon={<BookOpen className="h-6 w-6" />}
                 label="Study incorrect words"
                 onClick={onStudyIncorrect}
+                iconHover="none"
               />
               <CompletedModalActionButton
                 icon={<RefreshCw className="h-6 w-6" />}
@@ -363,9 +363,10 @@ export function TestCompletedModal({
                 onClick={onTestAgain}
               />
               <CompletedModalActionButton
-                icon={<X className="h-6 w-6" />}
+                icon={<ArrowRight className="h-6 w-6" />}
                 label="Not now"
                 onClick={onDone}
+                iconHover="shift"
               />
             </div>
           )}

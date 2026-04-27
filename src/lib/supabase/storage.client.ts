@@ -5,7 +5,7 @@
 
 import { createClient } from "./client";
 
-export type StorageBucket = "images" | "audio";
+export type StorageBucket = "word-images" | "audio";
 export type EntityType = "languages" | "words" | "sentences";
 
 export interface UploadResult {
@@ -38,7 +38,7 @@ function getExtension(file: File): string {
 /**
  * Upload a file to Supabase Storage (client-side version)
  * 
- * @param bucket - "images" or "audio"
+ * @param bucket - "word-images" or "audio"
  * @param file - The file to upload
  * @param entityType - Type of entity (languages, words, sentences)
  * @param entityId - UUID of the entity

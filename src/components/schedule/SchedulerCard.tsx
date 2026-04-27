@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { BookOpen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
+import { LessonStartTestModal } from "@/components/study";
 import type { LessonForScheduler } from "@/lib/queries";
 import { useText } from "@/context/TextContext";
 import { mapStatus } from "@/lib/utils/helpers";
@@ -21,6 +23,7 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
   const { t } = useText();
   const isTest = mode === "test";
   const statusType = mapStatus(lesson.status || "");
+  const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-card">
@@ -69,16 +72,21 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
 
           {/* Action Buttons */}
           <div className="mt-auto flex items-center gap-3 pt-6">
-            <PrimaryButton
-              className="flex-1"
-              href={
-                isTest
-                  ? `/lesson/${lesson.id}/test${lesson.nextMilestone ? `?milestone=${lesson.nextMilestone}` : ""}`
-                  : `/lesson/${lesson.id}/study`
-              }
-            >
-              {isTest ? "Start test" : "Study lesson"}
-            </PrimaryButton>
+            {isTest ? (
+              <PrimaryButton
+                className="flex-1"
+                onClick={() => setShowStartTestModal(true)}
+              >
+                Start test
+              </PrimaryButton>
+            ) : (
+              <PrimaryButton
+                className="flex-1"
+                href={`/lesson/${lesson.id}/study`}
+              >
+                Study lesson
+              </PrimaryButton>
+            )}
 
             <Tooltip label={t("tip_preview_lesson")}>
               <Button asChild variant="ghost" size="icon-lg">
@@ -90,6 +98,16 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
           </div>
         </div>
       </div>
+
+      {showStartTestModal && (
+        <LessonStartTestModal
+          lessonId={lesson.id}
+          lessonTitle={lesson.title}
+          wordCount={lesson.word_count ?? lesson.sampleWords.length}
+          milestone={lesson.nextMilestone ?? null}
+          onCancel={() => setShowStartTestModal(false)}
+        />
+      )}
     </div>
   );
 }

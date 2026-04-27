@@ -332,8 +332,8 @@ export function TestModeClient({
         maxPoints: currentProgress.maxPoints,
         answeredAt: new Date().toISOString(),
       };
-      // Take first 2 from history + current = 3 total for traffic lights
-      return [currentAttempt, ...historicalHistory.slice(0, 2)];
+      // Prepend current attempt to full history so streak detection sees all of it
+      return [currentAttempt, ...historicalHistory];
     }
     return historicalHistory;
   })();

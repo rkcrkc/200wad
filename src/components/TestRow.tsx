@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Eye, ChevronRight } from "lucide-react";
 import { ProgressRing } from "@/components/ui/progress-ring";
@@ -7,6 +8,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
+import { LessonStartTestModal } from "@/components/study";
 import { TestForList } from "@/lib/queries/tests";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,7 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
   const wordCount = test.lessonWordCount || 0;
   const learnedPct = wordCount > 0 ? Math.round((test.wordsLearned / wordCount) * 100) : 0;
   const masteredPct = wordCount > 0 ? Math.round((test.wordsMastered / wordCount) * 100) : 0;
+  const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   return (
     <tr className={cn(
@@ -134,19 +137,26 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
               <Eye className="h-4 w-4" />
             </Link>
           </Tooltip>
-          <Link
-            href={
-              test.isDue && test.milestone
-                ? `/lesson/${test.lessonId}/test?milestone=${test.milestone}`
-                : `/lesson/${test.lessonId}/test`
-            }
+          <button
+            type="button"
+            onClick={() => setShowStartTestModal(true)}
             className="group/btn inline-flex items-center gap-0.5 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white"
           >
             Test
             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-          </Link>
+          </button>
         </div>
       </td>
+
+      {showStartTestModal && (
+        <LessonStartTestModal
+          lessonId={test.lessonId}
+          lessonTitle={test.lessonTitle}
+          wordCount={wordCount}
+          milestone={test.isDue && test.milestone ? test.milestone : null}
+          onCancel={() => setShowStartTestModal(false)}
+        />
+      )}
     </tr>
   );
 }

@@ -74,10 +74,11 @@ export function LessonPageContent({
   // Count words with memory trigger images (for picture-only mode)
   const wordsWithImages = words.filter((w) => w.memory_trigger_image_url).length;
 
-  const handleStartTest = (testType: TestType, testTwice: boolean) => {
+  const handleStartTest = (testType: TestType, testTwice: boolean, randomOrder: boolean) => {
     setShowStartTestModal(false);
     const params = new URLSearchParams({ type: testType });
     if (testTwice) params.set("twice", "true");
+    if (randomOrder) params.set("random", "true");
     router.push(`/lesson/${lesson.id}/test?${params.toString()}`);
   };
 
@@ -204,6 +205,7 @@ export function LessonPageContent({
               activities={activityHistory.activities}
               counts={activityHistory.counts}
               lessonWordCount={lesson.word_count || undefined}
+              averageTestScore={averageTestScore}
               rightContent={
                 <Tooltip label={t("tip_show_words")}>
                   <button
@@ -227,7 +229,6 @@ export function LessonPageContent({
             wordsLearning={wordsLearning}
             wordsLearned={wordsLearned}
             wordsMastered={wordsMastered}
-            averageTestScore={averageTestScore}
             lessonTitle={lesson.title}
             lessonNumber={lesson.number}
             onWordSelected={setIsWordSelected}

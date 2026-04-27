@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/ui/primary-button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   TestType,
@@ -35,7 +36,7 @@ interface StartTestModalProps {
   /** Number of words that have memory trigger images (for picture-only mode) */
   wordsWithImages: number;
   defaultTestType?: TestType;
-  onStart: (testType: TestType, testTwice: boolean) => void;
+  onStart: (testType: TestType, testTwice: boolean, randomOrder: boolean) => void;
   onCancel: () => void;
 }
 
@@ -50,6 +51,22 @@ export function StartTestModal({
 }: StartTestModalProps) {
   const [selectedType, setSelectedType] = useState<TestType>(defaultTestType);
   const [testTwice, setTestTwice] = useState(false);
+  const [randomOrder, setRandomOrder] = useState(false);
+
+  // Capture-phase Escape handler: when this modal is stacked over another
+  // modal (e.g. LessonCompletedModal) we need to close *only* this modal.
+  // Capture phase + stopImmediatePropagation ensures any window-level
+  // bubble-phase listeners on the underlying modal don't also fire.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, [onCancel]);
 
   // Picture-only mode is only available if there are words with images
   const pictureOnlyAvailable = wordsWithImages > 0;
@@ -115,7 +132,7 @@ export function StartTestModal({
               const isDisabled = type === "picture-only" && !pictureOnlyAvailable;
               const isSelected = selectedType === type;
 
-              return (
+              const button = (
                 <button
                   key={type}
                   onClick={() => !isDisabled && setSelectedType(type)}
@@ -146,11 +163,6 @@ export function StartTestModal({
                     <div className="text-xs text-muted-foreground">
                       {getDescription(type)}
                     </div>
-                    {type === "picture-only" && !pictureOnlyAvailable && (
-                      <div className="text-small text-orange-500">
-                        No words with images in this lesson
-                      </div>
-                    )}
                   </div>
                   {/* Selection indicator */}
                   {isSelected && (
@@ -160,6 +172,15 @@ export function StartTestModal({
                   )}
                 </button>
               );
+
+              if (isDisabled) {
+                return (
+                  <Tooltip key={type} label="No words with images in this lesson" align="left">
+                    {button}
+                  </Tooltip>
+                );
+              }
+              return button;
             })}
         </div>
 
@@ -167,7 +188,7 @@ export function StartTestModal({
         <div className="mb-4 border-t border-gray-200" />
 
         {/* Test settings */}
-        <label className="mb-6 flex cursor-pointer items-center gap-3 rounded-xl p-3 hover:bg-gray-50">
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl p-3 hover:bg-gray-50">
           <div
             className={cn(
               "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
@@ -183,8 +204,24 @@ export function StartTestModal({
           </div>
         </label>
 
+        <label className="mb-6 flex cursor-pointer items-center gap-3 rounded-xl p-3 hover:bg-gray-50">
+          <div
+            className={cn(
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
+              randomOrder ? "border-primary bg-primary" : "border-gray-300 bg-white"
+            )}
+            onClick={() => setRandomOrder(!randomOrder)}
+          >
+            {randomOrder && <Check className="h-3 w-3 text-white" />}
+          </div>
+          <div>
+            <span className="text-base font-medium text-foreground">Test in random order</span>
+            <p className="text-xs text-muted-foreground">Shuffle words instead of testing in lesson order</p>
+          </div>
+        </label>
+
         {/* Actions */}
-        <PrimaryButton fullWidth onClick={() => onStart(selectedType, testTwice)}>
+        <PrimaryButton fullWidth onClick={() => onStart(selectedType, testTwice, randomOrder)}>
           Start Test
         </PrimaryButton>
       </div>

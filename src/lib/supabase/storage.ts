@@ -5,7 +5,7 @@
 
 import { createClient } from "./server";
 
-export type StorageBucket = "images" | "audio";
+export type StorageBucket = "word-images" | "audio";
 export type EntityType = "languages" | "words" | "sentences";
 
 export interface UploadResult {
@@ -24,7 +24,7 @@ export interface DeleteResult {
  * Pattern: {entityType}/{entityId}/{fileName}
  * 
  * Examples:
- * - images/words/abc123/trigger.jpg
+ * - word-images/words/abc123/trigger.jpg
  * - audio/words/abc123/english.mp3
  */
 function generatePath(
@@ -48,7 +48,7 @@ function getExtension(file: File): string {
 /**
  * Upload a file to Supabase Storage
  * 
- * @param bucket - "images" or "audio"
+ * @param bucket - "word-images" or "audio"
  * @param file - The file to upload
  * @param entityType - Type of entity (languages, words, sentences)
  * @param entityId - UUID of the entity
@@ -101,7 +101,7 @@ export async function uploadFile(
 /**
  * Delete a file from Supabase Storage
  * 
- * @param bucket - "images" or "audio"
+ * @param bucket - "word-images" or "audio"
  * @param path - Full path to the file (e.g., "words/abc123/trigger.jpg")
  * @returns Delete result
  */
@@ -133,7 +133,7 @@ export async function deleteFile(
  * Delete all files for an entity
  * Useful when deleting a word or sentence with multiple files
  * 
- * @param bucket - "images" or "audio"
+ * @param bucket - "word-images" or "audio"
  * @param entityType - Type of entity
  * @param entityId - UUID of the entity
  * @returns Delete result

@@ -137,3 +137,29 @@ export function calculateProgressPercent(
   if (total === 0) return 0;
   return Math.round((completed / total) * 100);
 }
+
+/**
+ * Format an ISO timestamp as a short relative-time string.
+ *
+ * Examples: "now", "5m ago", "3h ago", "2d ago", "1w ago", "Mar 12".
+ * Falls back to a localized date for anything older than ~30 days.
+ */
+export function formatRelativeTime(input: string | Date | null | undefined): string {
+  if (!input) return "";
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffSec / 60);
+  const diffHr = Math.round(diffMin / 60);
+  const diffDay = Math.round(diffHr / 24);
+
+  if (diffSec < 45) return "now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}w ago`;
+
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}

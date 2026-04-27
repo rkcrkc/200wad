@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
+import Link from "next/link";
 import { X, ChevronsRightLeft, ChevronsLeftRight } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { WordDetailView } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
-import { WordWithDetails } from "@/lib/queries/words";
+import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
 import { useText } from "@/context/TextContext";
+import { cn } from "@/lib/utils";
 
 interface WordListItem {
   id: string;
@@ -18,6 +20,12 @@ interface WordDetailSidebarProps {
   word: WordWithDetails;
   lessonTitle: string;
   lessonNumber: number;
+  /** When provided, the lesson chip in the header becomes a link to the lesson. */
+  lessonId?: string;
+  /** All lessons containing this word, ordered by lesson number. When omitted,
+   *  WordDetailView will fetch lazily. Used to render the "Lessons" tab when
+   *  a word belongs to 2+ lessons. */
+  lessons?: AdjacentLesson[];
   onClose: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -50,6 +58,8 @@ export function WordDetailSidebar({
   word,
   lessonTitle,
   lessonNumber,
+  lessonId,
+  lessons,
   onClose,
   onPrevious,
   onNext,
@@ -154,25 +164,39 @@ export function WordDetailSidebar({
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="flex min-w-0 items-center gap-2">
-                {lessonNumber > 0 && (
-                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                    Lesson {lessonNumber}
-                  </span>
-                )}
-                {lessonTitle && (
-                  <>
-                    {lessonNumber > 0 && (
-                      <span className="shrink-0 text-muted-foreground/50">·</span>
-                    )}
-                    <span className="truncate text-small-semibold text-foreground">
-                      {lessonTitle}
+            ) : (() => {
+              const lessonChipContent = (
+                <>
+                  {lessonNumber > 0 && (
+                    <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
+                      Lesson #{lessonNumber}
                     </span>
-                  </>
-                )}
-              </div>
-            )}
+                  )}
+                  {lessonTitle && (
+                    <>
+                      {lessonNumber > 0 && (
+                        <span className="shrink-0 text-muted-foreground/50">·</span>
+                      )}
+                      <span className="truncate text-small-semibold text-foreground">
+                        {lessonTitle}
+                      </span>
+                    </>
+                  )}
+                </>
+              );
+              const chipBaseClass =
+                "-ml-2 flex min-w-0 items-center gap-1 rounded-lg px-2 py-1 transition-colors";
+              return lessonId ? (
+                <Link
+                  href={`/lesson/${lessonId}`}
+                  className={cn(chipBaseClass, "hover:bg-bone-hover")}
+                >
+                  {lessonChipContent}
+                </Link>
+              ) : (
+                <div className={chipBaseClass}>{lessonChipContent}</div>
+              );
+            })()}
 
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -199,6 +223,7 @@ export function WordDetailSidebar({
             word={word}
             lessonTitle={lessonTitle}
             lessonNumber={lessonNumber}
+            lessons={lessons}
             onBack={handleClose}
             onPrevious={onPrevious}
             onNext={onNext}

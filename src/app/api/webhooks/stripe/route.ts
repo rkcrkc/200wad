@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { insertFromTemplate } from "@/lib/notifications/template";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdated(supabase, subscription);
+        await handleSubscriptionUpdated(supabase, subscription, event);
         break;
       }
 
@@ -150,7 +151,7 @@ async function handleInvoicePaid(
 
   if (!stripeSubId) return;
 
-  await supabase
+  const { data: sub } = await supabase
     .from("subscriptions")
     .update({
       status: "active",
@@ -161,12 +162,24 @@ async function handleInvoicePaid(
         ? new Date(invoice.lines.data[0].period.end * 1000).toISOString()
         : null,
     })
-    .eq("stripe_subscription_id", stripeSubId);
+    .eq("stripe_subscription_id", stripeSubId)
+    .select("user_id")
+    .single();
+
+  // Only fire a renewal notification on cycle renewals — the first payment
+  // (`subscription_create`) is already implicitly acknowledged via the
+  // checkout flow, so we don't double-notify.
+  if (sub?.user_id && invoice.billing_reason === "subscription_cycle") {
+    await insertFromTemplate("billing.subscription_renewed", {
+      userId: sub.user_id,
+    });
+  }
 }
 
 async function handleSubscriptionUpdated(
   supabase: AdminClient,
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  event: Stripe.Event
 ) {
   const statusMap: Record<string, string> = {
     active: "active",
@@ -186,7 +199,7 @@ async function handleSubscriptionUpdated(
   const periodStart = firstItem?.current_period_start;
   const periodEnd = firstItem?.current_period_end;
 
-  await supabase
+  const { data: sub } = await supabase
     .from("subscriptions")
     .update({
       status: mappedStatus,
@@ -198,17 +211,38 @@ async function handleSubscriptionUpdated(
         ? new Date(periodEnd * 1000).toISOString()
         : null,
     })
-    .eq("stripe_subscription_id", subscription.id);
+    .eq("stripe_subscription_id", subscription.id)
+    .select("user_id")
+    .single();
+
+  // Detect a real plan/price change by checking previous_attributes.items —
+  // Stripe only includes that key on the event when items actually changed.
+  // We avoid notifying on every status flip or metadata tweak.
+  const prev = (event.data.previous_attributes ?? {}) as Record<string, unknown>;
+  const itemsChanged = "items" in prev || "plan" in prev;
+  if (sub?.user_id && itemsChanged) {
+    await insertFromTemplate("billing.plan_changed", {
+      userId: sub.user_id,
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(
   supabase: AdminClient,
   subscription: Stripe.Subscription
 ) {
-  await supabase
+  const { data: sub } = await supabase
     .from("subscriptions")
     .update({ status: "expired" })
-    .eq("stripe_subscription_id", subscription.id);
+    .eq("stripe_subscription_id", subscription.id)
+    .select("user_id")
+    .single();
+
+  if (sub?.user_id) {
+    await insertFromTemplate("billing.subscription_cancelled", {
+      userId: sub.user_id,
+    });
+  }
 }
 
 async function handleInvoicePaymentFailed(
@@ -230,14 +264,12 @@ async function handleInvoicePaymentFailed(
     .select("user_id")
     .single();
 
-  // Insert in-app notification so user sees an alert
+  // Insert in-app notification so user sees an alert. Content + channels
+  // come from the 'billing.payment_failed' template, which admins can edit
+  // or disable via /admin/notifications.
   if (sub?.user_id) {
-    await supabase.from("notifications").insert({
-      user_id: sub.user_id,
-      type: "payment_failed",
-      title: "Payment failed",
-      message:
-        "Your latest subscription payment failed. Please update your payment method to avoid losing access.",
+    await insertFromTemplate("billing.payment_failed", {
+      userId: sub.user_id,
     });
   }
 }

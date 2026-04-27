@@ -45,6 +45,7 @@ export async function POST() {
       "user_tip_dismissals",
       "weekly_leaderboard_snapshots",
       "notifications",
+      "user_notification_preferences",
     ] as const;
 
     for (const table of tablesToClear) {

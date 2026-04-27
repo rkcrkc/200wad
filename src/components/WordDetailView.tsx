@@ -2,11 +2,14 @@
 
 import { useEffect, useCallback, useState, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { WordWithDetails } from "@/lib/queries/words";
+import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
+import { fetchWordLessons } from "@/lib/actions/words";
 import { useAudio } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
+import { SubBadge } from "@/components/ui/sub-badge";
 import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
@@ -23,6 +26,9 @@ interface WordDetailViewProps {
   word: WordWithDetails;
   lessonTitle: string;
   lessonNumber: number;
+  /** All lessons containing this word, ordered by lesson number ASC. When
+   *  omitted, the component will fetch them lazily on word change. */
+  lessons?: AdjacentLesson[];
   onBack: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -148,6 +154,7 @@ export function WordDetailView({
   word,
   lessonTitle,
   lessonNumber,
+  lessons,
   onBack,
   onPrevious,
   onNext,
@@ -206,7 +213,12 @@ export function WordDetailView({
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
   // Sidebar tab state
-  const [sidebarTab, setSidebarTab] = useState<"word" | "test-history">("word");
+  const [sidebarTab, setSidebarTab] = useState<"word" | "test-history" | "lessons">("word");
+
+  // Lessons containing this word — supplied via prop when available, else fetched lazily
+  const [fetchedLessons, setFetchedLessons] = useState<AdjacentLesson[] | null>(null);
+  const effectiveLessons: AdjacentLesson[] = lessons ?? fetchedLessons ?? [];
+  const showLessonsTab = effectiveLessons.length > 1;
 
   // Audio sequence state
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
@@ -233,6 +245,21 @@ export function WordDetailView({
     // Reset sidebar tab to "word" when navigating to a new word
     setSidebarTab("word");
   }, [word.id, word.progress?.user_notes, word.notes, word.developer_notes, word.picture_wrong, word.picture_wrong_notes, word.picture_missing, word.picture_bad_svg, word.notes_in_memory_trigger]);
+
+  // Lazily fetch the lessons list when the embedder didn't supply it
+  // (e.g. the legacy direct-mount path inside a lesson page). When `lessons`
+  // is provided we skip the fetch entirely — `effectiveLessons` prefers the
+  // prop, so any stale fetched value is harmless.
+  useEffect(() => {
+    if (lessons !== undefined) return;
+    let cancelled = false;
+    void fetchWordLessons(word.id).then((rows) => {
+      if (!cancelled) setFetchedLessons(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [word.id, lessons]);
 
   // User notes handlers
   const handleSaveUserNotes = async () => {
@@ -576,13 +603,28 @@ export function WordDetailView({
           tabs={[
             { id: "word", label: "Word" },
             { id: "test-history", label: "Test History" },
+            ...(showLessonsTab
+              ? [
+                  {
+                    id: "lessons",
+                    label: (
+                      <span className="inline-flex items-center gap-1.5">
+                        Lessons
+                        <SubBadge variant="row">{effectiveLessons.length}</SubBadge>
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
           ]}
           activeTab={sidebarTab}
-          onChange={(tabId) => setSidebarTab(tabId as "word" | "test-history")}
+          onChange={(tabId) =>
+            setSidebarTab(tabId as "word" | "test-history" | "lessons")
+          }
         />
       )}
 
-      {/* Word Card — hidden on test-history tab in sidebar */}
+      {/* Word Card — only on the Word tab in sidebar (or always in page layout) */}
       {(!isSidebar || sidebarTab === "word") && (
         <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
           <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-3"}>
@@ -648,7 +690,13 @@ export function WordDetailView({
                     hour: "numeric",
                     minute: "2-digit",
                   });
-                  const isPass = attempt.pointsEarned > 0;
+                  // Match ScoreIndicator: full = green, partial = orange, zero = red
+                  let dotColor = "bg-destructive";
+                  if (attempt.pointsEarned >= attempt.maxPoints) {
+                    dotColor = "bg-success";
+                  } else if (attempt.pointsEarned > 0) {
+                    dotColor = "bg-warning";
+                  }
                   return (
                     <div key={index}>
                       <div className="flex items-center justify-between">
@@ -656,11 +704,7 @@ export function WordDetailView({
                           <span className="w-5 text-right text-xs tabular-nums text-foreground/40">
                             {word.testHistory.length - index}
                           </span>
-                          <div
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              isPass ? "bg-success" : "bg-destructive"
-                            }`}
-                          />
+                          <div className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
                           <span className="text-sm text-foreground">
                             {attempt.pointsEarned}/{attempt.maxPoints}
                           </span>
@@ -683,6 +727,34 @@ export function WordDetailView({
               <p className="text-sm text-muted-foreground">No test history yet.</p>
             </div>
           )
+        ) : null}
+
+        {/* Lessons Tab Content */}
+        {isSidebar && sidebarTab === "lessons" ? (
+          <div className="w-full rounded-2xl bg-white shadow-card">
+            <div className="border-b border-gray-200 px-6 py-3">
+              <span className="text-xs-medium text-muted-foreground">
+                This word appears in {effectiveLessons.length} lessons
+              </span>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {effectiveLessons.map((lesson) => (
+                <Link
+                  key={lesson.id}
+                  href={`/lesson/${lesson.id}`}
+                  className="grid grid-cols-[64px_1fr_24px] items-center gap-3 px-6 py-4 transition-colors hover:bg-[#FAF8F3]"
+                >
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    #{lesson.number}
+                  </span>
+                  <span className="truncate text-small-semibold text-foreground">
+                    {lesson.title}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         {/* Word Tab Content (or page layout) */}

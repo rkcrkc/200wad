@@ -106,7 +106,7 @@ export function WordGrid({
               )}
               {result && (
                 <div
-                  className={`mt-1.5 text-[11px] font-medium ${
+                  className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${
                     result.grade === "correct"
                       ? "text-success"
                       : result.grade === "half-correct"
@@ -114,7 +114,18 @@ export function WordGrid({
                         : "text-destructive"
                   }`}
                 >
-                  {result.pointsEarned} {result.pointsEarned === 1 ? "point" : "points"}
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${
+                      result.grade === "correct"
+                        ? "bg-success"
+                        : result.grade === "half-correct"
+                          ? "bg-warning"
+                          : "bg-destructive"
+                    }`}
+                  />
+                  <span>
+                    {result.pointsEarned} {result.pointsEarned === 1 ? "point" : "points"}
+                  </span>
                 </div>
               )}
               {showStatus && (

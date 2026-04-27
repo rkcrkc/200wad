@@ -414,10 +414,156 @@ export type Database = {
           },
         ]
       }
+      notification_broadcasts: {
+        Row: {
+          audience: Json
+          channels: string[]
+          created_at: string | null
+          created_by: string | null
+          data: Json | null
+          id: string
+          message: string
+          recipient_count: number | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          audience?: Json
+          channels?: string[]
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          audience?: Json
+          channels?: string[]
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_broadcasts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          channels: string[]
+          created_at: string
+          default_data: Json | null
+          description: string | null
+          enabled: boolean
+          id: string
+          is_system: boolean
+          key: string
+          label: string
+          message: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          default_data?: Json | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          is_system?: boolean
+          key: string
+          label: string
+          message: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          default_data?: Json | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          is_system?: boolean
+          key?: string
+          label?: string
+          message?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_type_fkey"
+            columns: ["type"]
+            isOneToOne: false
+            referencedRelation: "notification_types"
+            referencedColumns: ["type"]
+          },
+        ]
+      }
+      notification_types: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          label: string
+          sort_order: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          label: string
+          sort_order?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          label?: string
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
+          broadcast_id: string | null
+          channel: string
           created_at: string | null
           data: Json | null
+          dismissed_at: string | null
+          expires_at: string | null
           id: string
           is_read: boolean | null
           message: string
@@ -426,8 +572,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          broadcast_id?: string | null
+          channel?: string
           created_at?: string | null
           data?: Json | null
+          dismissed_at?: string | null
+          expires_at?: string | null
           id?: string
           is_read?: boolean | null
           message: string
@@ -436,8 +586,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          broadcast_id?: string | null
+          channel?: string
           created_at?: string | null
           data?: Json | null
+          dismissed_at?: string | null
+          expires_at?: string | null
           id?: string
           is_read?: boolean | null
           message?: string
@@ -446,6 +600,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "notification_broadcasts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
@@ -942,6 +1103,38 @@ export type Database = {
           },
           {
             foreignKeyName: "user_lesson_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notification_preferences: {
+        Row: {
+          email: boolean
+          in_app: boolean
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          email?: boolean
+          in_app?: boolean
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: boolean
+          in_app?: boolean
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1780,6 +1973,20 @@ export type StudySession = Database["public"]["Tables"]["study_sessions"]["Row"]
 export type UserTestScore = Database["public"]["Tables"]["user_test_scores"]["Row"];
 export type TestQuestion = Database["public"]["Tables"]["test_questions"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type NotificationInsert = Database["public"]["Tables"]["notifications"]["Insert"];
+export type NotificationUpdate = Database["public"]["Tables"]["notifications"]["Update"];
+export type NotificationBroadcast = Database["public"]["Tables"]["notification_broadcasts"]["Row"];
+export type NotificationBroadcastInsert = Database["public"]["Tables"]["notification_broadcasts"]["Insert"];
+export type NotificationBroadcastUpdate = Database["public"]["Tables"]["notification_broadcasts"]["Update"];
+export type NotificationTypeConfig = Database["public"]["Tables"]["notification_types"]["Row"];
+export type NotificationTypeConfigInsert = Database["public"]["Tables"]["notification_types"]["Insert"];
+export type NotificationTypeConfigUpdate = Database["public"]["Tables"]["notification_types"]["Update"];
+export type NotificationTemplate = Database["public"]["Tables"]["notification_templates"]["Row"];
+export type NotificationTemplateInsert = Database["public"]["Tables"]["notification_templates"]["Insert"];
+export type NotificationTemplateUpdate = Database["public"]["Tables"]["notification_templates"]["Update"];
+export type UserNotificationPreference = Database["public"]["Tables"]["user_notification_preferences"]["Row"];
+export type UserNotificationPreferenceInsert = Database["public"]["Tables"]["user_notification_preferences"]["Insert"];
+export type UserNotificationPreferenceUpdate = Database["public"]["Tables"]["user_notification_preferences"]["Update"];
 export type StudyMusicTrack = Database["public"]["Tables"]["study_music_tracks"]["Row"];
 
 // Insert types

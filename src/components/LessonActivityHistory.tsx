@@ -7,6 +7,7 @@ import { LessonActivity } from "@/lib/queries";
 import { formatDuration, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type FilterType = "all" | "study" | "test";
 type SortColumn = "index" | "date" | "score" | "duration";
@@ -21,6 +22,8 @@ interface LessonActivityHistoryProps {
   };
   /** Total word count for the lesson — used to detect partial study sessions. */
   lessonWordCount?: number;
+  /** Average test score across all test sessions for this lesson (0-100). */
+  averageTestScore?: number | null;
   rightContent?: ReactNode;
 }
 
@@ -112,6 +115,7 @@ export function LessonActivityHistory({
   activities,
   counts,
   lessonWordCount,
+  averageTestScore,
   rightContent,
 }: LessonActivityHistoryProps) {
   const [filter, setFilter] = useState<FilterType>("all");
@@ -237,13 +241,22 @@ export function LessonActivityHistory({
               </th>
               <th className="px-3 py-3 text-left">
                 {filter !== "study" ? (
-                  <SortableHeader
-                    label="Score"
-                    column="score"
-                    currentColumn={sortColumn}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  />
+                  <div className="flex items-center gap-2">
+                    <SortableHeader
+                      label="Score"
+                      column="score"
+                      currentColumn={sortColumn}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    />
+                    {averageTestScore !== null && averageTestScore !== undefined && (
+                      <Tooltip label="Average test score">
+                        <SubBadge variant="header">
+                          {formatPercent(averageTestScore)}
+                        </SubBadge>
+                      </Tooltip>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center gap-0.5">
                     <span className="text-xs-medium font-medium text-muted-foreground opacity-0">Score</span>

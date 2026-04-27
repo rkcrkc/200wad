@@ -86,6 +86,50 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 // RTF Color Parsing
 // ============================================================================
 
+/**
+ * Windows-1252 → Unicode mapping for the 0x80–0x9F range, where Win-1252
+ * defines printable typographic characters but Unicode reserves C1 controls.
+ * RTF \'XX escapes are byte values in the document code page (cpg1252 here),
+ * not Unicode code points, so values below must be remapped before they are
+ * stored. All other byte values (0x00–0x7F, 0xA0–0xFF) coincide with Unicode.
+ */
+const WIN1252_C1_MAP: Record<number, number> = {
+  0x80: 0x20ac, // €
+  0x82: 0x201a, // ‚
+  0x83: 0x0192, // ƒ
+  0x84: 0x201e, // „
+  0x85: 0x2026, // …
+  0x86: 0x2020, // †
+  0x87: 0x2021, // ‡
+  0x88: 0x02c6, // ˆ
+  0x89: 0x2030, // ‰
+  0x8a: 0x0160, // Š
+  0x8b: 0x2039, // ‹
+  0x8c: 0x0152, // Œ
+  0x8e: 0x017d, // Ž
+  0x91: 0x2018, // ‘
+  0x92: 0x2019, // ’
+  0x93: 0x201c, // “
+  0x94: 0x201d, // ”
+  0x95: 0x2022, // •
+  0x96: 0x2013, // –
+  0x97: 0x2014, // —
+  0x98: 0x02dc, // ˜
+  0x99: 0x2122, // ™
+  0x9a: 0x0161, // š
+  0x9b: 0x203a, // ›
+  0x9c: 0x0153, // œ
+  0x9e: 0x017e, // ž
+  0x9f: 0x0178, // Ÿ
+};
+
+function decodeWin1252Byte(byte: number): string {
+  if (byte >= 0x80 && byte <= 0x9f && WIN1252_C1_MAP[byte] !== undefined) {
+    return String.fromCharCode(WIN1252_C1_MAP[byte]);
+  }
+  return String.fromCharCode(byte);
+}
+
 interface ColorDef {
   red: number;
   green: number;
@@ -188,6 +232,20 @@ function removeBalancedBlock(content: string, startPattern: RegExp): string {
 }
 
 /**
+ * Repeatedly strip every balanced block matching startPattern.
+ * Used for destinations that can occur many times (e.g. \pict, \*\...).
+ */
+function removeAllBalancedBlocks(content: string, startPattern: RegExp): string {
+  let prev: string;
+  let next = content;
+  do {
+    prev = next;
+    next = removeBalancedBlock(prev, startPattern);
+  } while (next !== prev);
+  return next;
+}
+
+/**
  * Extract plain text from RTF content, preserving color markers
  * Returns the text with {{...}} markers around colored portions
  */
@@ -204,6 +262,15 @@ function extractTextWithColorMarkers(rtfContent: string): string {
   content = removeBalancedBlock(content, /\{\\stylesheet/);
   content = removeBalancedBlock(content, /\{\\info/);
   content = removeBalancedBlock(content, /\{\\\*\\generator/);
+
+  // Remove embedded binary destinations that can leak hex/byte residue into
+  // plain text. These can appear multiple times in a document, so use the
+  // exhaustive variant. Order matters: \*-prefixed destinations are stripped
+  // last so that more specific patterns (\pict, \object) match first.
+  content = removeAllBalancedBlocks(content, /\{\\pict\b/);
+  content = removeAllBalancedBlocks(content, /\{\\object\b/);
+  content = removeAllBalancedBlocks(content, /\{\\result\b/);
+  content = removeAllBalancedBlocks(content, /\{\\\*\\[a-z]+\b/i);
 
   // Remove the outer RTF wrapper - match the opening brace and rtf1 declaration with properties
   content = content.replace(/^\{\\rtf1(?:\\[a-z]+\d*)*\s*/, "");
@@ -242,10 +309,36 @@ function extractTextWithColorMarkers(rtfContent: string): string {
         continue;
       }
 
+      // \binN — the next N bytes are raw binary and must be skipped wholesale.
+      // The catch-all below would only advance one byte at a time, leaking any
+      // printable bytes (`_`, `?`, `B`, `+`, …) into the output text.
+      const binMatch = content.slice(i).match(/^\\bin(\d+)[ ]?/i);
+      if (binMatch) {
+        const byteCount = parseInt(binMatch[1], 10);
+        i += binMatch[0].length + (Number.isFinite(byteCount) ? byteCount : 0);
+        continue;
+      }
+
       // Skip other control words
       const controlMatch = content.slice(i).match(/^\\([a-z]+)(-?\d+)?[ ]?/i);
       if (controlMatch) {
         const controlWord = controlMatch[1].toLowerCase();
+
+        // \uN — Unicode escape (signed 16-bit). Followed by an ASCII fallback
+        // character whose length defaults to 1 (\uc1). Most legacy 200WAD RTFs
+        // use the default, so we emit the codepoint and skip one fallback char.
+        if (controlWord === "u" && controlMatch[2]) {
+          let codepoint = parseInt(controlMatch[2], 10);
+          if (codepoint < 0) codepoint += 65536; // signed → unsigned
+          result += String.fromCharCode(codepoint);
+          i += controlMatch[0].length;
+          // Skip one ASCII fallback char unless it's another control sequence
+          // or grouping brace (those belong to subsequent tokens).
+          if (i < content.length && content[i] !== "\\" && content[i] !== "{" && content[i] !== "}") {
+            i += 1;
+          }
+          continue;
+        }
 
         // Handle special characters
         if (controlWord === "par") {
@@ -260,6 +353,20 @@ function extractTextWithColorMarkers(rtfContent: string): string {
           result += "\t";
         } else if (controlWord === "line") {
           result += "\n";
+        } else if (controlWord === "ldblquote") {
+          result += "\u201C"; // “ left double quotation mark
+        } else if (controlWord === "rdblquote") {
+          result += "\u201D"; // ” right double quotation mark
+        } else if (controlWord === "lquote") {
+          result += "\u2018"; // ‘ left single quotation mark
+        } else if (controlWord === "rquote") {
+          result += "\u2019"; // ’ right single quotation mark
+        } else if (controlWord === "emdash") {
+          result += "\u2014"; // — em dash
+        } else if (controlWord === "endash") {
+          result += "\u2013"; // – en dash
+        } else if (controlWord === "bullet") {
+          result += "\u2022"; // • bullet
         }
         // Skip formatting codes like \b, \i, \f0, \fs24, \s1 (style refs), etc.
         i += controlMatch[0].length;
@@ -278,10 +385,12 @@ function extractTextWithColorMarkers(rtfContent: string): string {
 
       // Handle escaped characters
       if (content[i + 1] === "'" && content.length > i + 3) {
-        // Hex character like \'e0
+        // Hex character like \'e0 — interpreted in the RTF code page (Windows-1252).
+        // Must remap 0x80–0x9F bytes to their Win-1252 typographic Unicode points,
+        // otherwise \'85 (…) becomes U+0085 (NEL control char) which renders as □.
         const hexCode = content.slice(i + 2, i + 4);
         const charCode = parseInt(hexCode, 16);
-        result += String.fromCharCode(charCode);
+        result += decodeWin1252Byte(charCode);
         i += 4;
         continue;
       }
@@ -289,6 +398,25 @@ function extractTextWithColorMarkers(rtfContent: string): string {
       // Handle literal characters
       if (content[i + 1] === "{" || content[i + 1] === "}" || content[i + 1] === "\\") {
         result += content[i + 1];
+        i += 2;
+        continue;
+      }
+
+      // Special symbol escapes that don't match the [a-z]+ control-word regex
+      if (content[i + 1] === "~") {
+        // Non-breaking space
+        result += "\u00A0";
+        i += 2;
+        continue;
+      }
+      if (content[i + 1] === "-") {
+        // Optional (soft) hyphen — drop it; renderers don't show it inline
+        i += 2;
+        continue;
+      }
+      if (content[i + 1] === "_") {
+        // Non-breaking hyphen — render as a normal hyphen
+        result += "-";
         i += 2;
         continue;
       }

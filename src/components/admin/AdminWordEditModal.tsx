@@ -462,7 +462,7 @@ export function AdminWordEditModal({
         if (fileUploads.triggerImage) {
           uploadPromises.push(
             uploadFileClient(
-              "images",
+              "word-images",
               fileUploads.triggerImage,
               "words",
               wordId,

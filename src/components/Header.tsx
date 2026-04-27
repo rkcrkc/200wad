@@ -3,8 +3,9 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronLeft, ChevronRight, Menu, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, TrendingUp } from "lucide-react";
 import { SearchBar } from "./SearchBar";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { useUser } from "@/context/UserContext";
 import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
@@ -289,11 +290,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               )}
 
               {/* Notification Bell */}
-              <button className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover">
-                <Bell className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
-                {/* Notification badge */}
-                <div className="bg-destructive absolute top-1 right-1 h-2 w-2 rounded-full" />
-              </button>
+              {!isGuest && <NotificationBell />}
 
               {/* User Account Button */}
               <Link

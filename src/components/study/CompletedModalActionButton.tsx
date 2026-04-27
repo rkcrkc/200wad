@@ -11,7 +11,7 @@ interface CompletedModalActionButtonProps {
   /** Muted action (dimmed text). */
   muted?: boolean;
   /** Icon animation on hover. Defaults to "rotate". */
-  iconHover?: "rotate" | "shift";
+  iconHover?: "rotate" | "shift" | "none";
 }
 
 /**
@@ -39,9 +39,11 @@ export function CompletedModalActionButton({
     >
       <span
         className={
-          iconHover === "shift"
-            ? "transition-transform duration-200 group-hover:translate-x-1"
-            : "transition-transform duration-200 group-hover:-rotate-90"
+          iconHover === "none"
+            ? ""
+            : iconHover === "shift"
+              ? "transition-transform duration-200 group-hover:translate-x-1"
+              : "transition-transform duration-200 group-hover:-rotate-90"
         }
       >
         {icon}

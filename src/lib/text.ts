@@ -134,6 +134,12 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     group: "Study Action Bar",
     defaultValue: "{count} times tested",
   },
+  pop_streak: {
+    label: "Current correct streak popover label",
+    category: "tooltips_popovers",
+    group: "Study Action Bar",
+    defaultValue: "{count} correct in a row",
+  },
 
   // Word Detail
   tip_show_flashcard: {
@@ -583,6 +589,12 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     category: "buttons_actions",
     group: "Start Test Modal",
     defaultValue: "Test twice",
+  },
+  btn_test_random_order: {
+    label: "Test in random order toggle",
+    category: "buttons_actions",
+    group: "Start Test Modal",
+    defaultValue: "Test in random order",
   },
 
   // Study Action Bar Labels

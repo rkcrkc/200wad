@@ -157,12 +157,16 @@ interface StudyActionBarProps {
   onStrictModeChange?: (enabled: boolean) => void;
   /** For test mode: whether user has submitted answer (enables replay) */
   hasSubmittedAnswer?: boolean;
+  /** For test mode: picture-only test type — also hide English word until submit */
+  pictureOnlyMode?: boolean;
   /** For test mode: whether nerves of steel mode is enabled (punctuation counts) */
   nervesOfSteelMode?: boolean;
   /** Callback when nerves of steel mode changes */
   onNervesOfSteelModeChange?: (enabled: boolean) => void;
   /** For test mode: whether test twice mode is enabled (read-only display) */
   testTwice?: boolean;
+  /** For test mode: whether random order mode is enabled (read-only display) */
+  randomOrder?: boolean;
   /** Language code for accented characters (e.g., "fr", "de", "it") */
   languageCode?: string | null;
   /** Callback to insert an accented character into the answer input */
@@ -263,9 +267,11 @@ export function StudyActionBar({
   strictMode = false,
   onStrictModeChange,
   hasSubmittedAnswer = false,
+  pictureOnlyMode = false,
   nervesOfSteelMode = false,
   onNervesOfSteelModeChange,
   testTwice = false,
+  randomOrder = false,
   languageCode,
   onInsertCharacter,
   imageMode = "memory-trigger",
@@ -360,31 +366,37 @@ export function StudyActionBar({
       <div className="flex items-center justify-between gap-4">
         {/* Left section - word info, score */}
         <div className="flex items-center gap-4">
-          {/* Word text: english · foreign + part of speech */}
-          {/* In test mode, hide foreign word until answer submitted */}
-          <div className="flex items-center gap-2">
-            <span className="text-regular-semibold text-foreground">
-              {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
-            </span>
-            {posDisplay && (
-              <Tooltip label={posTooltipLabel}>
-                <span className="text-small-medium text-foreground/50 cursor-default">
-                  {posDisplay}
-                </span>
-              </Tooltip>
-            )}
-          </div>
-
-          {/* Traffic lights + score — hidden for info pages */}
-          {category !== "information" && scoreStats && (
+          {/* Word text + part of speech */}
+          {/* In picture-only mode, hide word/pos (and the divider before score) until submit */}
+          {!(isTestMode && pictureOnlyMode && !hasSubmittedAnswer) && (
             <>
-              <span className="text-foreground/25">|</span>
-              <ScoreIndicator
-                testHistory={testHistory}
-                scoreStats={scoreStats}
-                wordStatus={wordStatus}
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-regular-semibold text-foreground">
+                  {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
+                </span>
+                {posDisplay && (
+                  <Tooltip label={posTooltipLabel}>
+                    <span className="text-small-medium text-foreground/50 cursor-default">
+                      {posDisplay}
+                    </span>
+                  </Tooltip>
+                )}
+              </div>
+
+              {/* Divider — only shown when both word info and score are visible */}
+              {category !== "information" && scoreStats && (
+                <span className="text-foreground/25">|</span>
+              )}
             </>
+          )}
+
+          {/* Traffic lights + score — hidden for info pages, shown in picture-only mode too */}
+          {category !== "information" && scoreStats && (
+            <ScoreIndicator
+              testHistory={testHistory}
+              scoreStats={scoreStats}
+              wordStatus={wordStatus}
+            />
           )}
         </div>
 
@@ -746,6 +758,30 @@ export function StudyActionBar({
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {testTwice ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Random Order Display (locked) */}
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={cn(
+                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 opacity-60",
+                            randomOrder ? "border-primary bg-primary" : "border-gray-300 bg-white"
+                          )}
+                        >
+                          {randomOrder && (
+                            <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1 opacity-60">
+                          <div className="text-sm font-medium text-foreground">
+                            {t("btn_test_random_order")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {randomOrder ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
                           </div>
                         </div>
                       </div>

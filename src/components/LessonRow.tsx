@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
+import { LessonStartTestModal } from "@/components/study";
 import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
   const router = useRouter();
   const statusType = mapStatus(lesson.status, lesson.isLocked);
   const wordCount = lesson.word_count ?? 0;
+  const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   const handleClick = () => {
     if (lesson.isLocked) {
@@ -124,7 +127,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/lesson/${lesson.id}/test`);
+                  setShowStartTestModal(true);
                 }}
                 className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
               >
@@ -133,6 +136,15 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
             )}
           </div>
         </td>
+
+        {showStartTestModal && (
+          <LessonStartTestModal
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            wordCount={wordCount}
+            onCancel={() => setShowStartTestModal(false)}
+          />
+        )}
       </tr>
     );
   }
@@ -232,7 +244,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.push(`/lesson/${lesson.id}/test`);
+                    setShowStartTestModal(true);
                   }}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
                 >
@@ -247,6 +259,15 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
           )}
         </div>
       </td>
+
+      {showStartTestModal && (
+        <LessonStartTestModal
+          lessonId={lesson.id}
+          lessonTitle={lesson.title}
+          wordCount={wordCount}
+          onCancel={() => setShowStartTestModal(false)}
+        />
+      )}
     </tr>
   );
 }

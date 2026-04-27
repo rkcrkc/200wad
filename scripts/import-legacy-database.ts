@@ -248,16 +248,55 @@ function safeParseInt(value: string): number | null {
 }
 
 /**
+ * Map Windows-1252 typographic characters that share code points with C1
+ * control characters (0x80–0x9F) to their proper Unicode equivalents.
+ * Anything in this range that isn't a known Win-1252 char is dropped because
+ * it's a non-printing control that browsers render as a missing-glyph box.
+ */
+const WIN1252_C1_TO_UNICODE: Record<string, string> = {
+  "\u0080": "\u20ac", // €
+  "\u0082": "\u201a", // ‚
+  "\u0083": "\u0192", // ƒ
+  "\u0084": "\u201e", // „
+  "\u0085": "\u2026", // …
+  "\u0086": "\u2020", // †
+  "\u0087": "\u2021", // ‡
+  "\u0088": "\u02c6", // ˆ
+  "\u0089": "\u2030", // ‰
+  "\u008a": "\u0160", // Š
+  "\u008b": "\u2039", // ‹
+  "\u008c": "\u0152", // Œ
+  "\u008e": "\u017d", // Ž
+  "\u0091": "\u2018", // ‘
+  "\u0092": "\u2019", // ’
+  "\u0093": "\u201c", // “
+  "\u0094": "\u201d", // ”
+  "\u0095": "\u2022", // •
+  "\u0096": "\u2013", // –
+  "\u0097": "\u2014", // —
+  "\u0098": "\u02dc", // ˜
+  "\u0099": "\u2122", // ™
+  "\u009a": "\u0161", // š
+  "\u009b": "\u203a", // ›
+  "\u009c": "\u0153", // œ
+  "\u009e": "\u017e", // ž
+  "\u009f": "\u0178", // Ÿ
+};
+
+/**
  * Strip binary control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) from text.
  * Preserves tabs (0x09), newlines (0x0A), and carriage returns (0x0D).
- * Also replaces curly/smart quotes with straight apostrophes and
- * normalises Italian elided articles (l' x → l'x).
+ * Also replaces curly/smart quotes with straight apostrophes,
+ * normalises Italian elided articles (l' x → l'x), and remaps any leaked
+ * Windows-1252 C1-range bytes (e.g. 0x85 = …) to their proper Unicode points.
  */
 function sanitizeText(text: string | null): string | null {
   if (!text) return text;
   let cleaned = text
     // Strip binary control characters (keep \t, \n, \r)
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    // Remap Win-1252 typographic chars that landed in the C1 control range
+    .replace(/[\u0080-\u009F]/g, (ch) => WIN1252_C1_TO_UNICODE[ch] ?? "")
     // Replace curly/smart quotes with straight apostrophes
     .replace(/[\u2018\u2019]/g, "'")
     // Normalise Italian elided articles: l' x → l'x

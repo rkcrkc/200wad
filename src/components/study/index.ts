@@ -11,6 +11,7 @@ export { LessonCompletedModal } from "./LessonCompletedModal";
 export { TestAnswerInput } from "./TestAnswerInput";
 export { TestCompletedModal } from "./TestCompletedModal";
 export { StartTestModal } from "./StartTestModal";
+export { LessonStartTestModal } from "./LessonStartTestModal";
 export { BreathingIndicator } from "./BreathingIndicator";
 export { InformationCard } from "./InformationCard";
 export { InformationNextButton } from "./InformationNextButton";

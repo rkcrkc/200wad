@@ -9,7 +9,6 @@ import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightCo
 interface MemoryTriggerCardProps {
   imageUrl: string | null;
   triggerText: string | null;
-  englishWord: string;
   foreignWord: string;
   /** Word gender for color-coded highlighting (f=red, m=blue, n=purple) */
   gender?: string | null;
@@ -178,7 +177,6 @@ function parseAndHighlightText(
 export function MemoryTriggerCard({
   imageUrl,
   triggerText,
-  englishWord,
   foreignWord,
   gender,
   playingAudioType,
@@ -210,9 +208,6 @@ export function MemoryTriggerCard({
     : pictureOnlyMode
       ? true  // Always show image in picture-only mode
       : (clueLevel !== undefined ? clueLevel >= 1 : isVisible);
-  const showEnglishLabel = pictureOnlyMode && clueLevel !== undefined
-    ? clueLevel >= 1  // Show English word at clue level 1 in picture-only mode
-    : false;
   const showTrigger = showTriggerTextProp !== undefined
     ? showTriggerTextProp
     : (clueLevel !== undefined ? clueLevel >= 2 : isVisible);
@@ -240,15 +235,6 @@ export function MemoryTriggerCard({
   return (
     <div className="w-full rounded-2xl bg-white shadow-card">
       <div className="flex flex-col gap-5 px-6 py-5">
-        {/* Picture-only mode: Show English word as clue 1 */}
-        {pictureOnlyMode && showEnglishLabel && (
-          <div className="flex items-center gap-3">
-            <span className="text-[32px] font-semibold leading-tight tracking-tight text-primary">
-              {englishWord}
-            </span>
-          </div>
-        )}
-
         {/* Trigger text row - audio button on left, matching word card layout */}
         {showTriggerTextProp !== undefined && triggerText && showTrigger ? (
           // Study mode: show trigger text when visible

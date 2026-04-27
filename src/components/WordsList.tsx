@@ -12,8 +12,6 @@ import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
 import { cn } from "@/lib/utils";
-import { formatPercent } from "@/lib/utils/helpers";
-import { SubBadge } from "@/components/ui/sub-badge";
 
 interface WordsListProps {
   words: WordWithDetails[];
@@ -22,7 +20,6 @@ interface WordsListProps {
   wordsLearning: number;
   wordsLearned: number;
   wordsMastered: number;
-  averageTestScore?: number | null;
   lessonTitle: string;
   lessonNumber: number;
   onWordSelected?: (isSelected: boolean) => void;
@@ -39,7 +36,6 @@ export function WordsList({
   wordsLearning,
   wordsLearned,
   wordsMastered,
-  averageTestScore,
   lessonTitle,
   lessonNumber,
   onWordSelected,
@@ -264,14 +260,7 @@ export function WordsList({
                 </th>
                 <th className="px-2 py-3 text-left font-medium">Status</th>
                 <th className="px-2 py-3 text-left font-medium">
-                  <div className="flex items-center gap-2">
-                    Avg. score
-                    {averageTestScore !== null && averageTestScore !== undefined && (
-                      <SubBadge variant="header">
-                        {formatPercent(averageTestScore)}
-                      </SubBadge>
-                    )}
-                  </div>
+                  Avg. score
                 </th>
                 <th className={cn(
                   "sticky right-0 z-10 bg-background px-2 py-3",

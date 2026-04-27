@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
+import { useWordPreview } from "@/context/WordPreviewContext";
 import {
   searchCourse,
   SearchWordResult,
@@ -60,6 +61,7 @@ interface FlatItem {
 export function SearchBar() {
   const router = useRouter();
   const { courseId, languageId } = useCourseContext();
+  const { openWord } = useWordPreview();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
@@ -143,14 +145,14 @@ export function SearchBar() {
       inputRef.current?.blur();
 
       if (item.type === "word" && item.word) {
-        router.push(
-          `/course/${courseId}/dictionary?word=${item.word.id}`
-        );
+        // Open the global word-preview panel in place (no route change).
+        // The provider syncs ?word=<id> into the URL for shareability.
+        openWord(item.word.id);
       } else if (item.type === "lesson" && item.lesson) {
         router.push(`/lesson/${item.lesson.id}`);
       }
     },
-    [router, courseId]
+    [router, openWord]
   );
 
   // Keyboard navigation

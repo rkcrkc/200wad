@@ -11,7 +11,7 @@ import {
   LayoutGrid,
   Play,
   RotateCcw,
-  X,
+  ArrowRight,
 } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import { Lesson } from "@/types/database";
@@ -261,9 +261,10 @@ export function LessonCompletedModal({
               onClick={onStudyAgain}
             />
             <CompletedModalActionButton
-              icon={<X className="h-6 w-6" />}
+              icon={<ArrowRight className="h-6 w-6" />}
               label="Not now"
               onClick={onDismiss}
+              iconHover="shift"
             />
           </div>
         </CompletedModalShell.Footer>

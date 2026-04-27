@@ -7,13 +7,14 @@ import { TestType, DEFAULT_TEST_TYPE } from "@/types/test";
 
 interface TestPageProps {
   params: Promise<{ lessonId: string }>;
-  searchParams: Promise<{ type?: string; twice?: string; milestone?: string }>;
+  searchParams: Promise<{ type?: string; twice?: string; random?: string; milestone?: string }>;
 }
 
 export default async function TestPage({ params, searchParams }: TestPageProps) {
   const { lessonId } = await params;
-  const { type, twice, milestone } = await searchParams;
+  const { type, twice, random, milestone } = await searchParams;
   const testTwice = twice === "true";
+  const randomOrder = random === "true";
   const { language, course, lesson, words, isGuest, userId } = await getWords(lessonId);
 
   if (!lesson || words.length === 0) {
@@ -71,6 +72,7 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       isGuest={isGuest}
       testType={testType}
       testTwice={testTwice}
+      randomOrder={randomOrder}
       milestone={milestone || null}
       initialCourseVocabCount={initialCourseVocabCount}
     />
