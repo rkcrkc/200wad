@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { SocialLoginButtons } from "./SocialLoginButtons";
-import type { LanguageWithCourses, CoursePreview } from "@/lib/queries/onboarding";
+import type { LanguageWithCourses } from "@/lib/queries/onboarding";
 
 // Flag emoji mapping by language code
 const FLAG_MAP: Record<string, string> = {
@@ -30,23 +30,6 @@ const FLAG_MAP: Record<string, string> = {
   el: "🇬🇷",
   he: "🇮🇱",
 };
-
-// Level emoji placeholders
-const LEVEL_EMOJI: Record<string, string> = {
-  beginner: "🌱",
-  intermediate: "🌿",
-  advanced: "🌳",
-  default: "📚",
-};
-
-function getLevelEmoji(level: string | null): string {
-  if (!level) return LEVEL_EMOJI.default;
-  const normalized = level.toLowerCase();
-  if (normalized.includes("beginner") || normalized.includes("1")) return LEVEL_EMOJI.beginner;
-  if (normalized.includes("intermediate") || normalized.includes("2")) return LEVEL_EMOJI.intermediate;
-  if (normalized.includes("advanced") || normalized.includes("3")) return LEVEL_EMOJI.advanced;
-  return LEVEL_EMOJI.default;
-}
 
 interface OnboardingModalProps {
   languages: LanguageWithCourses[];
@@ -137,6 +120,10 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       setLoading(false);
       return;
     }
+
+    // Mark this browser as a fresh signup so the schedule page can auto-open the upgrade modal.
+    // Survives the auth/callback round-trip on the email-verification path (same device).
+    localStorage.setItem("just_signed_up", "1");
 
     // If we got a session, redirect immediately (user can verify email later)
     if (data.session) {
@@ -254,48 +241,33 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                   <button
                     key={language.id}
                     onClick={() => setSelectedLanguageId(language.id)}
-                    className={`flex w-full flex-col rounded-xl border bg-white p-6 text-left transition-colors ${
+                    className={`flex w-full items-center gap-4 rounded-xl border bg-white p-6 text-left transition-colors ${
                       isSelected
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <span className="text-4xl">{flag}</span>
-                      <div className="flex-1">
-                        <div className="text-xl-semibold text-foreground">
-                          {language.name}
-                        </div>
-                        <div className="text-muted-foreground text-sm">
-                          {language.courses.length}{" "}
-                          {language.courses.length === 1 ? "course" : "courses"}
-                        </div>
+                    <span className="text-4xl">{flag}</span>
+                    <div className="text-xl-semibold text-foreground flex-1">
+                      {language.name}
+                    </div>
+                    {isSelected && (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+                        <svg
+                          className="h-5 w-5 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
                       </div>
-                      {isSelected && (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-                          <svg
-                            className="h-5 w-5 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Course previews */}
-                    <div className="mt-3 flex gap-2 overflow-x-auto">
-                      {language.courses.map((course) => (
-                        <CourseThumb key={course.id} course={course} />
-                      ))}
-                    </div>
+                    )}
                   </button>
                 );
               })}
@@ -492,23 +464,3 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   );
 }
 
-function CourseThumb({ course }: { course: CoursePreview }) {
-  const emoji = getLevelEmoji(course.level);
-
-  return (
-    <div className="flex min-w-[80px] flex-col items-center rounded-lg bg-muted/50 p-2">
-      {course.thumbnailUrl ? (
-        <img
-          src={course.thumbnailUrl}
-          alt={course.name}
-          className="h-8 w-8 rounded object-cover"
-        />
-      ) : (
-        <span className="text-xl">{emoji}</span>
-      )}
-      <span className="mt-1 text-xs text-muted-foreground line-clamp-1">
-        {course.name}
-      </span>
-    </div>
-  );
-}

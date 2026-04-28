@@ -116,7 +116,18 @@ export function DashboardContent({
   displayInfo,
 }: DashboardContentProps) {
   const pathname = usePathname();
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  // Auto-open the upgrade modal once for users who just signed up and don't yet
+  // have any active subscription. The "just_signed_up" flag is set by OnboardingModal
+  // after a successful signup; we consume it on the very first render here.
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (subscriptions.some((s) => s.isEffective)) return false;
+    if (plans.length === 0) return false;
+    if (localStorage.getItem("just_signed_up") !== "1") return false;
+    localStorage.removeItem("just_signed_up");
+    return true;
+  });
 
   const handleViewPlans = useCallback(() => {
     setUpgradeModalOpen(true);

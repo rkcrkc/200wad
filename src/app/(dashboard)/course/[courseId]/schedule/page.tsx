@@ -161,14 +161,14 @@ function getGreeting(
   userName: string | null
 ): { greeting: string; translation: string | undefined } {
   const hour = new Date().getHours();
-  const name = userName || "there";
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const suffix = userName ? `, ${userName}` : "";
 
   if (greetings?.[timeOfDay]) {
     const entry = greetings[timeOfDay];
     return {
-      greeting: `${entry.text}, ${name}`,
-      translation: entry.translation ? `${entry.translation}, ${name}` : undefined,
+      greeting: `${entry.text}${suffix}`,
+      translation: entry.translation ? `${entry.translation}${suffix}` : undefined,
     };
   }
 
@@ -180,7 +180,7 @@ function getGreeting(
   };
 
   return {
-    greeting: `${english[timeOfDay]}, ${name}`,
+    greeting: `${english[timeOfDay]}${suffix}`,
     translation: undefined,
   };
 }

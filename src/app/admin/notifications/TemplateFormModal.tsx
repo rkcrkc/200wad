@@ -316,70 +316,10 @@ export function TemplateFormModal({
         {/* ---------------- Details tab ---------------- */}
         {activeTab === "details" && (
           <div className="space-y-5">
-            {/* Controls row — keeps the small toggles and importance selector
-                visible at the top so admins don't have to hunt across tabs.
-                Enabled = template-level kill switch; In-app/Email = delivery
-                channels; Importance = accent styling in the bell dropdown. */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-gray-200 px-4 py-3">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.enabled}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, enabled: e.target.checked }))
-                  }
-                />
-                Enabled
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.channelInApp}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      channelInApp: e.target.checked,
-                    }))
-                  }
-                />
-                In-app
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-500">
-                <input
-                  type="checkbox"
-                  checked={form.channelEmail}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      channelEmail: e.target.checked,
-                    }))
-                  }
-                />
-                Email
-                <span className="rounded-full bg-bone px-2 py-0.5 text-[11px] text-muted-foreground">
-                  scaffolded
-                </span>
-              </label>
-              <label
-                className="ml-auto flex items-center gap-2 text-sm text-gray-700"
-                title="Shows a red dot (instead of blue) in the bell dropdown while unread. Reserve for genuinely urgent items: payment failures, security alerts, account-impacting events."
-              >
-                <input
-                  type="checkbox"
-                  checked={form.isCritical}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isCritical: e.target.checked }))
-                  }
-                />
-                Mark as critical
-              </label>
-            </div>
-
-            {/* Name + Type row. On edit the immutable key shows as recessed
-                muted text below the Name input rather than its own field, since
-                it can't be changed and just needs to be referenceable. On
-                create the key is a separate input alongside Name so admins can
-                set it. */}
+            {/* Name + Type row. On edit the immutable key lives in the
+                metadata sub-section below, not under Name, so the input row
+                is purely editable fields. On create the key sits next to
+                Name as its own input. */}
             <div className="grid grid-cols-2 items-start gap-3">
               <AdminFormField label="Name" name="label" required>
                 <AdminInput
@@ -391,11 +331,6 @@ export function TemplateFormModal({
                   maxLength={120}
                   placeholder="Payment failed"
                 />
-                {editing && (
-                  <p className="font-mono text-xs text-muted-foreground">
-                    key:&nbsp;{form.key}
-                  </p>
-                )}
               </AdminFormField>
 
               {!editing ? (
@@ -450,42 +385,74 @@ export function TemplateFormModal({
               </AdminFormField>
             )}
 
-            {/* Description — collapsed-by-default admin note. Sits here as
-                quiet metadata under the identity row. Click the pencil to
-                open the textarea; click Done to collapse it again. */}
-            {editingDescription ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor="description"
-                    className="text-xs-medium text-muted-foreground"
+            {/* Metadata sub-section — quiet recessed lines that document the
+                template without being editable. On edit: the immutable key
+                sits as line 1, locked description as line 2. On create:
+                only the description appears (the key is being entered above)
+                and gets the collapsed-by-default pencil editor.
+                Negative top-margin overrides the parent space-y-5 so the
+                metadata reads as a tight extension of the Name+Type row. */}
+            <div className="-mt-3">
+            {!editing ? (
+              editingDescription ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="description"
+                      className="text-xs-medium text-muted-foreground"
+                    >
+                      Description
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingDescription(false)}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Done
+                    </button>
+                  </div>
+                  <AdminTextarea
+                    id="description"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, description: e.target.value }))
+                    }
+                    maxLength={500}
+                    rows={2}
+                    placeholder="Internal note shown to admins only."
+                  />
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <p
+                    className={cn(
+                      "flex-1 text-xs",
+                      form.description.trim()
+                        ? "text-muted-foreground"
+                        : "italic text-muted-foreground/70"
+                    )}
                   >
-                    Description
-                  </label>
+                    {form.description.trim() || "No description"}
+                  </p>
                   <button
                     type="button"
-                    onClick={() => setEditingDescription(false)}
-                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => setEditingDescription(true)}
+                    title={
+                      form.description.trim()
+                        ? "Edit description"
+                        : "Add description"
+                    }
+                    className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-bone hover:text-foreground"
                   >
-                    Done
+                    <Pencil className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <AdminTextarea
-                  id="description"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                  maxLength={500}
-                  rows={2}
-                  placeholder="Internal note shown to admins only."
-                />
-              </div>
+              )
             ) : (
-              <div className="flex items-start gap-2">
+              <div className="space-y-0.5">
                 <p
                   className={cn(
-                    "flex-1 text-xs",
+                    "text-xs",
                     form.description.trim()
                       ? "text-muted-foreground"
                       : "italic text-muted-foreground/70"
@@ -493,20 +460,66 @@ export function TemplateFormModal({
                 >
                   {form.description.trim() || "No description"}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setEditingDescription(true)}
-                  title={
-                    form.description.trim()
-                      ? "Edit description"
-                      : "Add description"
-                  }
-                  className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-bone hover:text-foreground"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <p className="text-xs text-muted-foreground">
+                  key:&nbsp;{form.key}
+                </p>
               </div>
             )}
+            </div>
+
+            {/* Controls row — Enabled / channels / critical. Sits beneath
+                the metadata sub-section so the form reads top-to-bottom as
+                identity → behaviour → content. */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-gray-200 px-4 py-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.enabled}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, enabled: e.target.checked }))
+                  }
+                />
+                Enabled
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.channelInApp}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      channelInApp: e.target.checked,
+                    }))
+                  }
+                />
+                In-app
+              </label>
+              {/* Email channel is scaffolded server-side but not yet wired to a
+                  provider — disable the toggle so admins can't opt templates
+                  into a no-op delivery channel. */}
+              <label className="flex cursor-not-allowed items-center gap-2 text-sm text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={form.channelEmail}
+                  disabled
+                  readOnly
+                />
+                Email
+              </label>
+              <label
+                className="ml-auto flex items-center gap-2 text-sm text-gray-700"
+                title="Shows a red dot (instead of blue) in the bell dropdown while unread. Reserve for genuinely urgent items: payment failures, security alerts, account-impacting events."
+              >
+                <input
+                  type="checkbox"
+                  checked={form.isCritical}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isCritical: e.target.checked }))
+                  }
+                />
+                Mark as critical
+              </label>
+            </div>
 
             {/* Live preview — mirrors how this notification will render in the
                 bell dropdown (NotificationRow). Updates as the admin edits
