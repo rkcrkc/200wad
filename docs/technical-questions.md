@@ -95,3 +95,62 @@ not in the bucket — those will show broken images regardless of optimizer
 state. Needs a separate audit pass before launch.
 
 ---
+
+## 2. Notifications cron frequency: Hobby plan vs. upgrade to Pro
+
+### Background
+
+The notifications system (commit `130cdfb`) ships scheduled push/email
+notifications via a Vercel cron at `/api/cron/dispatch-notifications`,
+configured in `vercel.json`.
+
+The original schedule was `* * * * *` (every minute) so that scheduled
+notifications would fire close to their target send time. On 28 Apr 2026 we
+discovered that this expression had been silently blocking *every* production
+deploy since `130cdfb` — Vercel's deploy validator rejects sub-daily cron
+expressions on the Hobby plan with:
+
+> Error: Hobby accounts are limited to daily cron jobs. This cron expression
+> would run more than once per day.
+
+That explains the seven-commit backlog on the Vercel dashboard: each push
+since `130cdfb` failed validation before any build started.
+
+### Current decision (interim)
+
+Cron schedule changed to `0 8 * * *` (daily at 08:00 UTC). This unblocks
+production deploys. Notifications scheduled for any time today are dispatched
+in tomorrow morning's run — fine for low-volume usage and pre-launch testing.
+
+### What we lose
+
+- **Sub-daily granularity.** A user who schedules a reminder for 6 PM will
+  not receive it until the next 08:00 UTC dispatch — up to ~14 hours late
+  in the worst case.
+- **Reactive notifications** (e.g. "your test is due now") are not viable on
+  this cadence; anything requiring near-real-time delivery has to use a
+  different transport (e.g. server action on user activity, push on demand).
+
+### Decision points to make before launch
+
+- [ ] **Upgrade to Vercel Pro ($20/mo)** to unlock unlimited cron frequency.
+  Pro allows expressions as fine-grained as `* * * * *` (every minute);
+  reasonable production target is `*/5 * * * *` (every 5 minutes) or
+  `*/15 * * * *` (every 15 minutes), which is plenty for human-facing
+  reminders without burning function-invocation budget.
+- [ ] **Confirm the notifications use case** before paying. If notifications
+  end up being daily-digest only, Hobby's daily cron is sufficient and we
+  can stay on the free tier. If we want hourly or sub-hourly delivery
+  (which the original `* * * * *` schedule implied was the intent), Pro
+  is required.
+- [ ] **Audit other cron candidates** that might appear before launch
+  (streak resets, leaderboard rebuilds, subscription expiry sweeps). If any
+  of those need sub-daily cadence, Pro becomes effectively mandatory.
+
+### Note: this is the same Pro tier as Section 1
+
+If we upgrade to Vercel Pro for image optimization (Section 1), unlimited
+crons come bundled — same $20/mo. The two questions collapse into one
+decision: do we move to Pro before launch, yes or no?
+
+---
