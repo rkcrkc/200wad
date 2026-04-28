@@ -81,6 +81,53 @@ interface ProfileSectionProps {
   settings: UserSettings;
 }
 
+/**
+ * Hard cap on the raw file the user picks. The Server Action body limit is
+ * 1 MB; we compress on the client before sending, so anything that decodes
+ * fits comfortably. Anything larger than this is almost certainly a RAW or
+ * a mistake — fail fast.
+ */
+const MAX_RAW_AVATAR_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Resize an avatar to at most 512px on its longest edge and re-encode as
+ * WebP @ q=0.85. Output is typically 30–80 KB, well under the 1 MB Server
+ * Action body limit. Falls back to the original file if anything fails.
+ */
+async function compressAvatar(file: File): Promise<File> {
+  const MAX_EDGE = 512;
+  const QUALITY = 0.85;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = longest > MAX_EDGE ? MAX_EDGE / longest : 1;
+    const targetWidth = Math.round(bitmap.width * scale);
+    const targetHeight = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close?.();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/webp", QUALITY)
+    );
+    if (!blob) return file;
+
+    return new File([blob], "avatar.webp", { type: "image/webp" });
+  } catch (err) {
+    console.warn("compressAvatar: falling back to original file", err);
+    return file;
+  }
+}
+
 export function ProfileSection({ settings }: ProfileSectionProps) {
   const { refreshUser } = useUser();
   const [isEditing, setIsEditing] = useState(false);
@@ -125,22 +172,41 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
     setIsUploadingAvatar(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("avatar", file);
+    try {
+      // Hard guard against absurdly large source files (RAW, etc.).
+      if (file.size > MAX_RAW_AVATAR_BYTES) {
+        setError("Image is too large. Please choose a file under 10 MB.");
+        return;
+      }
 
-    const result = await uploadAvatar(formData);
+      // Compress on the client so we always fit under the 1 MB Server
+      // Action body limit.
+      const compressed = await compressAvatar(file);
 
-    if (result.success && result.avatarUrl) {
-      setAvatarUrl(result.avatarUrl);
-      await refreshUser();
-    } else {
-      setError(result.error || "Failed to upload avatar");
-    }
+      const formData = new FormData();
+      formData.append("avatar", compressed);
 
-    setIsUploadingAvatar(false);
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      const result = await uploadAvatar(formData);
+
+      if (result.success && result.avatarUrl) {
+        setAvatarUrl(result.avatarUrl);
+        try {
+          await refreshUser();
+        } catch (refreshErr) {
+          console.error("Failed to refresh user after avatar upload", refreshErr);
+        }
+      } else {
+        setError(result.error || "Failed to upload avatar");
+      }
+    } catch (err) {
+      console.error("Avatar upload failed", err);
+      setError("Failed to upload avatar. Please try again.");
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input so the same file can be picked again.
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -148,16 +214,25 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
     setIsUploadingAvatar(true);
     setError(null);
 
-    const result = await removeAvatar();
+    try {
+      const result = await removeAvatar();
 
-    if (result.success) {
-      setAvatarUrl(null);
-      await refreshUser();
-    } else {
-      setError(result.error || "Failed to remove avatar");
+      if (result.success) {
+        setAvatarUrl(null);
+        try {
+          await refreshUser();
+        } catch (refreshErr) {
+          console.error("Failed to refresh user after avatar removal", refreshErr);
+        }
+      } else {
+        setError(result.error || "Failed to remove avatar");
+      }
+    } catch (err) {
+      console.error("Avatar removal failed", err);
+      setError("Failed to remove avatar. Please try again.");
+    } finally {
+      setIsUploadingAvatar(false);
     }
-
-    setIsUploadingAvatar(false);
   };
 
   const handleSave = () => {
@@ -234,6 +309,7 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
         <div className="space-y-6">
           {/* Avatar and Basic Info */}
           <div className="flex flex-col items-start gap-4">
+            <div className="flex items-center gap-4">
             <div className="relative group">
               <input
                 ref={fileInputRef}
@@ -280,6 +356,10 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
                   <X className="h-4 w-4" />
                 </button>
               )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              JPEG, PNG, or WebP. Larger images are resized automatically.
+            </p>
             </div>
             <div className="w-full space-y-3">
               <div>
