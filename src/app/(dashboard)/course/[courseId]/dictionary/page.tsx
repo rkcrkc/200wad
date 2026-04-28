@@ -1,12 +1,9 @@
 import { getDictionaryWords } from "@/lib/queries";
 import { getCourseById } from "@/lib/queries/courses";
-import { setCurrentCourse } from "@/lib/mutations";
-import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { DictionaryList } from "@/components/DictionaryList";
-import { getFlagFromCode } from "@/lib/utils/flags";
 import { notFound } from "next/navigation";
 
 // Disable caching for this page to always show fresh data
@@ -33,22 +30,10 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
     getDictionaryWords(courseId, "all"),
   ]);
 
-  const languageFlag = getFlagFromCode(language?.code);
   const isGuest = myWordsResult.isGuest;
 
-  // Update the user's current course (fire-and-forget, don't block render)
-  if (!isGuest) {
-    setCurrentCourse(courseId);
-  }
-
   return (
-    <SetCourseContext
-      languageId={language?.id}
-      languageFlag={languageFlag}
-      courseId={course.id}
-      courseName={course.name}
-    >
-      <PageShell withTopPadding={false} className="pt-8">
+    <PageShell withTopPadding={false} className="pt-8">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-page-header">Dictionary</h1>
@@ -71,6 +56,5 @@ export default async function CourseDictionaryPage({ params }: DictionaryPagePro
           <GuestCTA title="Sign up to track your vocabulary progress" />
         )}
       </PageShell>
-    </SetCourseContext>
   );
 }

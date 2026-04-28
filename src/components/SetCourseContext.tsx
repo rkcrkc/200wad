@@ -18,6 +18,9 @@ export function SetCourseContext({
   courseId,
   courseName,
   dueTestsCount,
+  wordsMastered,
+  totalWords,
+  courseProgressPercent,
 }: SetCourseContextProps) {
   useSetCourseContext({
     languageId,
@@ -26,6 +29,9 @@ export function SetCourseContext({
     courseId,
     courseName,
     dueTestsCount,
+    wordsMastered,
+    totalWords,
+    courseProgressPercent,
   });
   return <>{children}</>;
 }

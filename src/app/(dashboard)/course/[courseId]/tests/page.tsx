@@ -1,14 +1,11 @@
 import { Clock } from "lucide-react";
 import { getTests } from "@/lib/queries";
 import { getCourseById } from "@/lib/queries/courses";
-import { setCurrentCourse } from "@/lib/mutations";
-import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { TestsList } from "@/components/TestsList";
 import { formatDuration } from "@/lib/utils/helpers";
-import { getFlagFromCode } from "@/lib/utils/flags";
 import { notFound } from "next/navigation";
 
 interface TestsPageProps {
@@ -18,29 +15,17 @@ interface TestsPageProps {
 export default async function CourseTestsPage({ params }: TestsPageProps) {
   const { courseId } = await params;
 
-  // Get course and language info
-  const { course, language } = await getCourseById(courseId);
+  // Get course info
+  const { course } = await getCourseById(courseId);
 
   if (!course) {
     notFound();
   }
 
   const { dueTests, previousTests, stats, isGuest } = await getTests(course.id);
-  const languageFlag = getFlagFromCode(language?.code);
-
-  // Update the user's current course (fire-and-forget, don't block render)
-  if (!isGuest) {
-    setCurrentCourse(courseId);
-  }
 
   return (
-    <SetCourseContext
-      languageId={language?.id}
-      languageFlag={languageFlag}
-      courseId={course.id}
-      courseName={course.name}
-    >
-      <PageShell withTopPadding={false} className="pt-8">
+    <PageShell withTopPadding={false} className="pt-8">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-page-header">Tests</h1>
@@ -73,7 +58,6 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
         {isGuest && (
           <GuestCTA title="Sign up to track your test progress" />
         )}
-      </PageShell>
-    </SetCourseContext>
+    </PageShell>
   );
 }

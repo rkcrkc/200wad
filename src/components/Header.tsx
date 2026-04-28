@@ -46,7 +46,8 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
   const { t } = useText();
   const { user, avatarUrl, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
-  const { languageFlag, languageId, courseId, courseName } = useCourseContext();
+  const courseContext = useCourseContext();
+  const { languageFlag, languageId, courseId, courseName } = courseContext;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCloseMobileMenu = useCallback(() => {
@@ -55,7 +56,21 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
   // In preview mode, treat guest as logged in for UI purposes
   const showAsLoggedIn = !isGuest || showPreviewMode;
-  const effectiveStats = showPreviewMode && isGuest ? PREVIEW_STATS : stats;
+  const baseStats = showPreviewMode && isGuest ? PREVIEW_STATS : stats;
+  // Course-scoped stats from CourseContext override the layout-level prop.
+  // The (dashboard)/layout.tsx fetches stats against users.current_course_id,
+  // which can be stale when navigating between courses. The course-scoped
+  // layout pushes accurate per-course values into CourseContext; prefer those
+  // when available so the header always matches the URL courseId.
+  const effectiveStats = baseStats
+    ? {
+        ...baseStats,
+        wordsMastered: courseContext.wordsMastered ?? baseStats.wordsMastered,
+        totalWords: courseContext.totalWords ?? baseStats.totalWords,
+        courseProgressPercent:
+          courseContext.courseProgressPercent ?? baseStats.courseProgressPercent,
+      }
+    : baseStats;
 
   // Determine if we have a course context to show
   const hasContext = languageFlag && courseId && courseName;

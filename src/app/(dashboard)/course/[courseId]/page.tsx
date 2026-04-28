@@ -1,9 +1,7 @@
 import { Suspense } from "react";
 import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
-import { setCurrentCourse } from "@/lib/mutations";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { LessonsList } from "@/components/LessonsList";
-import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
@@ -33,11 +31,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  // Update the user's current course (fire-and-forget, don't block render)
-  if (!isGuest) {
-    setCurrentCourse(courseId);
-  }
-
   // Lesson-level stats (exclude auto-lessons: My Notes, Best Words, Worst Words)
   const realLessons = lessons.filter((l) => !l.isAutoLesson);
   const totalLessons = realLessons.length;
@@ -47,7 +40,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const languageFlag = getFlagFromCode(language?.code);
 
   return (
-    <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={courseId} courseName={course.name}>
+    <>
     <Suspense><LockedLessonToast /></Suspense>
     <PageShell withTopPadding={false} className="pt-8">
       {/* Header */}
@@ -85,6 +78,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <GuestCTA title="Sign up to save your learning progress" />
       )}
     </PageShell>
-    </SetCourseContext>
+    </>
   );
 }

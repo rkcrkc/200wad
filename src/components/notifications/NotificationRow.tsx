@@ -25,18 +25,11 @@ interface NotificationCta {
 
 interface NotificationDataShape {
   cta?: NotificationCta;
-  severity?: "info" | "warning" | "critical";
+  // `severity` is stored as a string for backward compat with previously
+  // seeded templates that may have "info" / "warning" / "critical". Render
+  // logic only treats "critical" specially — anything else is normal.
+  severity?: "info" | "warning" | "critical" | string;
 }
-
-const TYPE_DOT: Record<string, string> = {
-  system: "bg-muted-foreground",
-  billing: "bg-warning",
-  learning: "bg-success",
-  reminder: "bg-primary",
-  achievement: "bg-warning",
-  content: "bg-primary",
-  admin: "bg-foreground",
-};
 
 export function NotificationRow({ notification, onAction }: NotificationRowProps) {
   const router = useRouter();
@@ -44,7 +37,7 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
 
   const data = (notification.data ?? null) as NotificationDataShape | null;
   const cta = data?.cta;
-  const severity = data?.severity;
+  const isCritical = data?.severity === "critical";
 
   const handleMarkRead = () => {
     if (notification.is_read) return;
@@ -76,30 +69,41 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
     onAction?.();
   };
 
-  const dotClass = TYPE_DOT[notification.type] ?? "bg-muted-foreground";
   const Body = (
     <div
       className={cn(
         "group/row relative flex gap-3 px-4 py-3 transition-colors hover:bg-bone",
-        !notification.is_read && "bg-bone/40"
+        !notification.is_read && "bg-bone"
       )}
     >
-      {/* Type indicator + unread dot stack */}
-      <div className="mt-1 flex shrink-0 flex-col items-center gap-1">
-        <div className={cn("h-2 w-2 rounded-full", dotClass)} />
-        {!notification.is_read && (
-          <div className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="Unread" />
-        )}
+      {/* Status dot — the only signal we use to flag state:
+          • unread + critical → red
+          • unread (normal)   → blue
+          • read              → grey
+          A fixed 8px rail keeps title alignment consistent across rows. */}
+      <div className="mt-1.5 w-2 shrink-0">
+        <div
+          className={cn(
+            "h-2 w-2 rounded-full",
+            notification.is_read
+              ? "bg-gray-300"
+              : isCritical
+                ? "bg-destructive"
+                : "bg-primary"
+          )}
+          aria-label={
+            notification.is_read
+              ? "Read"
+              : isCritical
+                ? "Unread, critical"
+                : "Unread"
+          }
+        />
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <span
-            className={cn(
-              "text-small-semibold text-foreground line-clamp-2",
-              severity === "critical" && "text-destructive"
-            )}
-          >
+          <span className="text-small-semibold line-clamp-2 text-foreground">
             {notification.title}
           </span>
           <span className="shrink-0 text-xs text-muted-foreground">

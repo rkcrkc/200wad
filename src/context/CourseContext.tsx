@@ -9,6 +9,12 @@ export interface CourseContextValue {
   courseId?: string;
   courseName?: string;
   dueTestsCount?: number;
+  // Course-scoped header stats. Populated by the course-scoped layout so the
+  // header shows numbers for the course in the URL, not whichever course is
+  // persisted in users.current_course_id (which can be stale on navigation).
+  wordsMastered?: number;
+  totalWords?: number;
+  courseProgressPercent?: number;
 }
 
 interface CourseContextState {
@@ -64,6 +70,9 @@ export function useSetCourseContext(contextValue: CourseContextValue) {
       courseId: contextValue.courseId !== undefined ? contextValue.courseId : prev.courseId,
       courseName: contextValue.courseName !== undefined ? contextValue.courseName : prev.courseName,
       dueTestsCount: contextValue.dueTestsCount !== undefined ? contextValue.dueTestsCount : prev.dueTestsCount,
+      wordsMastered: contextValue.wordsMastered !== undefined ? contextValue.wordsMastered : prev.wordsMastered,
+      totalWords: contextValue.totalWords !== undefined ? contextValue.totalWords : prev.totalWords,
+      courseProgressPercent: contextValue.courseProgressPercent !== undefined ? contextValue.courseProgressPercent : prev.courseProgressPercent,
     }));
     // Don't clear context on unmount - preserve it for navigation
   }, [
@@ -73,6 +82,9 @@ export function useSetCourseContext(contextValue: CourseContextValue) {
     contextValue.courseId,
     contextValue.courseName,
     contextValue.dueTestsCount,
+    contextValue.wordsMastered,
+    contextValue.totalWords,
+    contextValue.courseProgressPercent,
     setValue,
   ]);
 }

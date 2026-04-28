@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { AdminModal } from "@/components/admin/AdminModal";
 import {
   AdminFormField,
@@ -47,14 +49,19 @@ interface FormState {
   channelEmail: boolean;
   ctaLabel: string;
   ctaHref: string;
-  severity: "" | "info" | "warning" | "critical";
+  isCritical: boolean;
 }
 
-const SEVERITY_OPTIONS = [
-  { value: "", label: "Default" },
-  { value: "info", label: "Info" },
-  { value: "warning", label: "Warning" },
-  { value: "critical", label: "Critical" },
+// Stored under data.severity in the DB as the literal string "critical" when
+// flagged. Anything else (including legacy "info" / "warning" from earlier
+// templates) renders as a normal notification — the picker is now binary so
+// admins don't have to agonise over levels that have no visible difference.
+
+type FormTab = "details" | "trigger";
+
+const FORM_TABS: { key: FormTab; label: string }[] = [
+  { key: "details", label: "Details" },
+  { key: "trigger", label: "Trigger" },
 ];
 
 function emptyForm(defaultType: NotificationType = "system"): FormState {
@@ -70,14 +77,14 @@ function emptyForm(defaultType: NotificationType = "system"): FormState {
     channelEmail: false,
     ctaLabel: "",
     ctaHref: "",
-    severity: "",
+    isCritical: false,
   };
 }
 
 interface NormalizedData {
   ctaLabel: string;
   ctaHref: string;
-  severity: "" | "info" | "warning" | "critical";
+  isCritical: boolean;
 }
 
 function dataFromJson(raw: unknown): NormalizedData {
@@ -89,14 +96,12 @@ function dataFromJson(raw: unknown): NormalizedData {
     d.cta && typeof d.cta === "object"
       ? (d.cta as Record<string, unknown>)
       : null;
-  const severity = d.severity;
+  // Only the literal "critical" trips the toggle. Legacy "info" / "warning"
+  // values normalise to false here — saving will then drop them from the DB.
   return {
     ctaLabel: cta && typeof cta.label === "string" ? cta.label : "",
     ctaHref: cta && typeof cta.href === "string" ? cta.href : "",
-    severity:
-      severity === "info" || severity === "warning" || severity === "critical"
-        ? severity
-        : "",
+    isCritical: d.severity === "critical",
   };
 }
 
@@ -110,10 +115,19 @@ export function TemplateFormModal({
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<FormTab>("details");
+  // Description is locked-by-default to keep the form quiet (it's just an
+  // internal admin note). Click the pencil to expand into an editable
+  // textarea. Reset on every open so we never land in edit mode by accident.
+  const [editingDescription, setEditingDescription] = useState(false);
 
   // Hydrate when opened.
   useEffect(() => {
     if (!isOpen) return;
+    // Always start on Details when (re)opening so users see the headline
+    // metadata first, regardless of which tab the previous edit ended on.
+    setActiveTab("details");
+    setEditingDescription(false);
     if (!editing) {
       setForm(emptyForm());
       setError(null);
@@ -132,7 +146,7 @@ export function TemplateFormModal({
       channelEmail: editing.channels.includes("email"),
       ctaLabel: d.ctaLabel,
       ctaHref: d.ctaHref,
-      severity: d.severity,
+      isCritical: d.isCritical,
     });
     setError(null);
   }, [isOpen, editing]);
@@ -159,6 +173,24 @@ export function TemplateFormModal({
     return true;
   }, [form, editing]);
 
+  // Per-tab "has unmet required fields" flags. Used to render a small dot
+  // indicator on tabs that still need attention so admins know where to look
+  // when the global Save button is disabled. All required gates (key, name,
+  // title, message, at-least-one-channel) live in Details, so any unmet
+  // requirement surfaces a dot there.
+  const tabIssues = useMemo<Record<FormTab, boolean>>(() => {
+    const detailsBad =
+      (!editing && !form.key.trim()) ||
+      !form.label.trim() ||
+      !form.title.trim() ||
+      !form.message.trim() ||
+      (!form.channelInApp && !form.channelEmail);
+    return {
+      details: detailsBad,
+      trigger: false,
+    };
+  }, [form, editing]);
+
   const handleSave = async () => {
     setError(null);
 
@@ -167,7 +199,7 @@ export function TemplateFormModal({
     if (form.channelEmail) channels.push("email");
 
     const default_data: Record<string, unknown> = {};
-    if (form.severity) default_data.severity = form.severity;
+    if (form.isCritical) default_data.severity = "critical";
     if (form.ctaLabel.trim() && form.ctaHref.trim()) {
       default_data.cta = {
         label: form.ctaLabel.trim(),
@@ -245,271 +277,487 @@ export function TemplateFormModal({
           </div>
         )}
 
-        {/* Key (immutable on edit) */}
-        <AdminFormField
-          label="Key"
-          name="key"
-          required={!editing}
-          hint={
-            editing
-              ? "Immutable. Code paths look up this template by key."
-              : "Stable identifier. Use dot-namespacing: <type>.<event>. Lowercase, with dots/hyphens/underscores only."
-          }
-        >
-          <AdminInput
-            id="key"
-            value={form.key}
-            onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
-            disabled={!!editing}
-            placeholder="billing.payment_failed"
-            maxLength={120}
-          />
-        </AdminFormField>
-
-        <div className="grid grid-cols-2 gap-3">
-          <AdminFormField label="Label" name="label" required>
-            <AdminInput
-              id="label"
-              value={form.label}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, label: e.target.value }))
-              }
-              maxLength={120}
-              placeholder="Payment failed"
-            />
-          </AdminFormField>
-
-          <AdminFormField label="Type" name="type" required>
-            <AdminSelect
-              id="type"
-              value={form.type}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  type: e.target.value as NotificationType,
-                }))
-              }
-              options={typeOptions}
-            />
-          </AdminFormField>
+        {/* Tab nav. A small amber dot on a tab signals that tab still has
+            unmet required fields, so admins know where to go when the global
+            Save button is disabled. */}
+        <div className="flex gap-1 border-b border-gray-200">
+          {FORM_TABS.map((tab) => {
+            const isActive = tab.key === activeTab;
+            const hasIssue = tabIssues[tab.key];
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "relative -mb-px inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "border-b-2 border-primary text-primary"
+                    : "border-b-2 border-transparent text-gray-500 hover:text-gray-900"
+                )}
+              >
+                <span>{tab.label}</span>
+                {hasIssue && (
+                  <span
+                    title="This tab has required fields that need attention"
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-warning"
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        <AdminFormField
-          label="Description"
-          name="description"
-          hint="Internal note shown to admins only."
-        >
-          <AdminTextarea
-            id="description"
-            value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
-            maxLength={500}
-            rows={2}
-          />
-        </AdminFormField>
+        {/* Tab content. min-h prevents the modal from resizing as the user
+            switches tabs — Details has the most fields, so we lock the panel
+            to that height and let Trigger render its placeholder card inside. */}
+        <div className="min-h-[560px]">
 
-        {/* Content */}
-        <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-          <span className="block text-sm font-medium text-gray-700">
-            Default content
-          </span>
+        {/* ---------------- Details tab ---------------- */}
+        {activeTab === "details" && (
+          <div className="space-y-5">
+            {/* Controls row — keeps the small toggles and importance selector
+                visible at the top so admins don't have to hunt across tabs.
+                Enabled = template-level kill switch; In-app/Email = delivery
+                channels; Importance = accent styling in the bell dropdown. */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-gray-200 px-4 py-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.enabled}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, enabled: e.target.checked }))
+                  }
+                />
+                Enabled
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.channelInApp}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      channelInApp: e.target.checked,
+                    }))
+                  }
+                />
+                In-app
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={form.channelEmail}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      channelEmail: e.target.checked,
+                    }))
+                  }
+                />
+                Email
+                <span className="rounded-full bg-bone px-2 py-0.5 text-[11px] text-muted-foreground">
+                  scaffolded
+                </span>
+              </label>
+              <label
+                className="ml-auto flex items-center gap-2 text-sm text-gray-700"
+                title="Shows a red dot (instead of blue) in the bell dropdown while unread. Reserve for genuinely urgent items: payment failures, security alerts, account-impacting events."
+              >
+                <input
+                  type="checkbox"
+                  checked={form.isCritical}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isCritical: e.target.checked }))
+                  }
+                />
+                Mark as critical
+              </label>
+            </div>
 
-          <AdminFormField
-            label="Title"
-            name="title"
-            required
-            hint="Shown as the bold headline. Plain text only."
-          >
-            <AdminInput
-              id="title"
-              value={form.title}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, title: e.target.value }))
-              }
-              maxLength={200}
-              placeholder="Payment failed"
-            />
-          </AdminFormField>
+            {/* Name + Type row. On edit the immutable key shows as recessed
+                muted text below the Name input rather than its own field, since
+                it can't be changed and just needs to be referenceable. On
+                create the key is a separate input alongside Name so admins can
+                set it. */}
+            <div className="grid grid-cols-2 items-start gap-3">
+              <AdminFormField label="Name" name="label" required>
+                <AdminInput
+                  id="label"
+                  value={form.label}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, label: e.target.value }))
+                  }
+                  maxLength={120}
+                  placeholder="Payment failed"
+                />
+                {editing && (
+                  <p className="font-mono text-xs text-muted-foreground">
+                    key:&nbsp;{form.key}
+                  </p>
+                )}
+              </AdminFormField>
 
-          <AdminFormField
-            label="Message"
-            name="message"
-            required
-            hint="Body copy. Up to 2000 characters."
-          >
-            <AdminTextarea
-              id="message"
-              value={form.message}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, message: e.target.value }))
-              }
-              maxLength={2000}
-              rows={4}
-              placeholder="We couldn't process your payment. Please update your payment method to keep your subscription active."
-            />
-          </AdminFormField>
-        </div>
+              {!editing ? (
+                <AdminFormField
+                  label="Key"
+                  name="key"
+                  required
+                  hint="<type>.<event>. Lowercase, dots/hyphens/underscores only."
+                >
+                  <AdminInput
+                    id="key"
+                    value={form.key}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, key: e.target.value }))
+                    }
+                    placeholder="billing.payment_failed"
+                    maxLength={120}
+                  />
+                </AdminFormField>
+              ) : (
+                <AdminFormField label="Type" name="type" required>
+                  <AdminSelect
+                    id="type"
+                    value={form.type}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        type: e.target.value as NotificationType,
+                      }))
+                    }
+                    options={typeOptions}
+                  />
+                </AdminFormField>
+              )}
+            </div>
 
-        {/* Channels */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Channels
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={form.channelInApp}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, channelInApp: e.target.checked }))
-                }
-              />
-              In-app (bell dropdown)
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-500">
-              <input
-                type="checkbox"
-                checked={form.channelEmail}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, channelEmail: e.target.checked }))
-                }
-              />
-              Email
-              <span className="rounded-full bg-bone px-2 py-0.5 text-xs text-muted-foreground">
-                scaffolded — not yet delivered
-              </span>
-            </label>
-          </div>
-        </div>
+            {/* On create the Type select gets a row of its own since the
+                first row holds Name + Key. */}
+            {!editing && (
+              <AdminFormField label="Type" name="type" required>
+                <AdminSelect
+                  id="type"
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as NotificationType,
+                    }))
+                  }
+                  options={typeOptions}
+                />
+              </AdminFormField>
+            )}
 
-        {/* Optional default data */}
-        <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-          <span className="block text-sm font-medium text-gray-700">
-            Default data (optional)
-          </span>
-          <p className="text-xs text-muted-foreground">
-            Merged into each generated notification&apos;s data payload. Code
-            paths can override these per-call.
-          </p>
+            {/* Description — collapsed-by-default admin note. Sits here as
+                quiet metadata under the identity row. Click the pencil to
+                open the textarea; click Done to collapse it again. */}
+            {editingDescription ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="description"
+                    className="text-xs-medium text-muted-foreground"
+                  >
+                    Description
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingDescription(false)}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Done
+                  </button>
+                </div>
+                <AdminTextarea
+                  id="description"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, description: e.target.value }))
+                  }
+                  maxLength={500}
+                  rows={2}
+                  placeholder="Internal note shown to admins only."
+                />
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <p
+                  className={cn(
+                    "flex-1 text-xs",
+                    form.description.trim()
+                      ? "text-muted-foreground"
+                      : "italic text-muted-foreground/70"
+                  )}
+                >
+                  {form.description.trim() || "No description"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingDescription(true)}
+                  title={
+                    form.description.trim()
+                      ? "Edit description"
+                      : "Add description"
+                  }
+                  className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-bone hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
 
-          <AdminFormField label="Severity" name="severity">
-            <AdminSelect
-              id="severity"
-              value={form.severity}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  severity: e.target.value as FormState["severity"],
-                }))
-              }
-              options={SEVERITY_OPTIONS}
-            />
-          </AdminFormField>
+            {/* Live preview — mirrors how this notification will render in the
+                bell dropdown (NotificationRow). Updates as the admin edits
+                title/message/cta/importance. {var} placeholders are left
+                intact (matching real behaviour) so admins can spot missing
+                substitutions in QA. */}
+            <NotificationPreview form={form} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <AdminFormField label="CTA label" name="cta_label">
+            {/* Title + Message live here in Details (not a separate Content
+                tab) so the headline metadata and the rendered copy are next
+                to each other — they're what admins edit most often. */}
+            <AdminFormField
+              label="Title"
+              name="title"
+              required
+              hint="Shown as the bold headline. Plain text only. Supports {var} placeholders."
+            >
               <AdminInput
-                id="cta_label"
-                value={form.ctaLabel}
+                id="title"
+                value={form.title}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, ctaLabel: e.target.value }))
+                  setForm((f) => ({ ...f, title: e.target.value }))
                 }
-                placeholder="Update payment"
+                maxLength={200}
+                placeholder="Payment failed"
               />
             </AdminFormField>
-            <AdminFormField label="CTA link" name="cta_href">
-              <AdminInput
-                id="cta_href"
-                value={form.ctaHref}
+
+            <AdminFormField
+              label="Message"
+              name="message"
+              required
+              hint="Body copy. Up to 2000 characters. Supports {var} placeholders."
+            >
+              <AdminTextarea
+                id="message"
+                value={form.message}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, ctaHref: e.target.value }))
+                  setForm((f) => ({ ...f, message: e.target.value }))
                 }
-                placeholder="/account/billing"
+                maxLength={2000}
+                rows={4}
+                placeholder="We couldn't process your payment. Please update your payment method to keep your subscription active."
               />
             </AdminFormField>
-          </div>
-        </div>
 
-        {/* Trigger — placeholder for future admin-configurable scheduling.
-            Today, the "when" of every notification is hardcoded at the call
+            {/* Optional CTA — both fields must be set for the button to render
+                in the bell dropdown. Sits directly under Message since it's
+                tied to the rendered notification copy. */}
+            <div className="grid grid-cols-2 gap-3">
+              <AdminFormField
+                label="CTA label"
+                name="cta_label"
+                hint="Button text shown after the message."
+              >
+                <AdminInput
+                  id="cta_label"
+                  value={form.ctaLabel}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, ctaLabel: e.target.value }))
+                  }
+                  placeholder="Update payment"
+                />
+              </AdminFormField>
+              <AdminFormField
+                label="CTA link"
+                name="cta_href"
+                hint="Any in-app path: /account/billing, /lesson/<id>, /dictionary/<wordId>. For per-instance dynamic ids, the trigger code overrides this at fire time."
+              >
+                <AdminInput
+                  id="cta_href"
+                  value={form.ctaHref}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, ctaHref: e.target.value }))
+                  }
+                  placeholder="/account/billing"
+                />
+              </AdminFormField>
+            </div>
+          </div>
+        )}
+
+        {/* ---------------- Trigger tab (placeholder) ---------------- */}
+        {/* Today, the "when" of every notification is hardcoded at the call
             site (Stripe webhook, test completion, auth callback, etc.). This
-            stub stays in the modal as a reminder to build out a real rules
-            engine later (cron schedules, inactivity windows, threshold
-            triggers). Controls are disabled to make it obvious it's not
-            wired. */}
-        <div className="space-y-3 rounded-lg border border-dashed border-gray-300 bg-bone/40 p-3">
-          <div className="flex items-center justify-between">
-            <span className="block text-sm font-medium text-gray-700">
-              Trigger
-            </span>
-            <span className="rounded-full bg-bone px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              coming soon — currently hardcoded
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            When this notification fires is set in code today (e.g. Stripe
-            webhooks, test completion, signup). A future admin-configurable
-            trigger system will live here — e.g. cron schedules, inactivity
-            windows, threshold conditions.
-          </p>
+            stub stays as a reminder to build out a real rules engine later
+            (cron schedules, inactivity windows, threshold triggers).
+            Controls are disabled to make it obvious it's not wired. */}
+        {activeTab === "trigger" && (
+          <div className="space-y-3 rounded-lg border border-dashed border-gray-300 bg-bone/40 p-3">
+            <div className="flex items-center justify-between">
+              <span className="block text-sm font-medium text-gray-700">
+                Trigger
+              </span>
+              <span className="rounded-full bg-bone px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                coming soon — currently hardcoded
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              When this notification fires is set in code today (e.g. Stripe
+              webhooks, test completion, signup). A future admin-configurable
+              trigger system will live here — e.g. cron schedules, inactivity
+              windows, threshold conditions.
+            </p>
 
-          <AdminFormField label="Trigger mode" name="trigger_mode">
-            <AdminSelect
-              id="trigger_mode"
-              value="code"
-              onChange={() => {
-                /* placeholder */
-              }}
-              disabled
-              options={[
-                { value: "code", label: "Hardcoded in code (current)" },
-                { value: "schedule", label: "On a schedule (planned)" },
-                { value: "event", label: "On a user event (planned)" },
-                { value: "condition", label: "When a condition is met (planned)" },
-              ]}
-            />
-          </AdminFormField>
-
-          <div className="grid grid-cols-2 gap-3">
-            <AdminFormField label="Schedule (cron)" name="trigger_cron">
-              <AdminInput
-                id="trigger_cron"
-                value=""
+            <AdminFormField label="Trigger mode" name="trigger_mode">
+              <AdminSelect
+                id="trigger_mode"
+                value="code"
                 onChange={() => {
                   /* placeholder */
                 }}
                 disabled
-                placeholder="0 9 * * *  (daily at 9am)"
+                options={[
+                  { value: "code", label: "Hardcoded in code (current)" },
+                  { value: "schedule", label: "On a schedule (planned)" },
+                  { value: "event", label: "On a user event (planned)" },
+                  {
+                    value: "condition",
+                    label: "When a condition is met (planned)",
+                  },
+                ]}
               />
             </AdminFormField>
-            <AdminFormField label="Condition expression" name="trigger_condition">
-              <AdminInput
-                id="trigger_condition"
-                value=""
-                onChange={() => {
-                  /* placeholder */
-                }}
-                disabled
-                placeholder="streak_days >= 3 AND last_active < now() - 24h"
-              />
-            </AdminFormField>
+
+            <div className="grid grid-cols-2 gap-3">
+              <AdminFormField label="Schedule (cron)" name="trigger_cron">
+                <AdminInput
+                  id="trigger_cron"
+                  value=""
+                  onChange={() => {
+                    /* placeholder */
+                  }}
+                  disabled
+                  placeholder="0 9 * * *  (daily at 9am)"
+                />
+              </AdminFormField>
+              <AdminFormField
+                label="Condition expression"
+                name="trigger_condition"
+              >
+                <AdminInput
+                  id="trigger_condition"
+                  value=""
+                  onChange={() => {
+                    /* placeholder */
+                  }}
+                  disabled
+                  placeholder="streak_days >= 3 AND last_active < now() - 24h"
+                />
+              </AdminFormField>
+            </div>
           </div>
+        )}
         </div>
-
-        {/* Enabled */}
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={form.enabled}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, enabled: e.target.checked }))
-            }
-          />
-          Enabled — code paths that look up this key will write notifications.
-        </label>
       </div>
     </AdminModal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NotificationPreview — faithful render of how this template will look in
+// the bell dropdown (mirrors NotificationRow). Updates live as the admin
+// edits Title, Message, CTA, and the Mark-as-critical toggle.
+// ---------------------------------------------------------------------------
+
+function NotificationPreview({ form }: { form: FormState }) {
+  const hasCta = form.ctaLabel.trim() !== "" && form.ctaHref.trim() !== "";
+  // Default to unread so admins see the at-arrival look first; flip to
+  // preview the post-click state (greyed dot, no tint).
+  const [isRead, setIsRead] = useState(false);
+
+  const dotClass = isRead
+    ? "bg-gray-300"
+    : form.isCritical
+      ? "bg-destructive"
+      : "bg-primary";
+
+  return (
+    <div className="rounded-xl border border-dashed border-primary/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs-medium text-muted-foreground">Preview</span>
+        {/* Segmented toggle between unread/read so admins can see how the
+            same notification looks in both states without leaving the modal. */}
+        <div className="inline-flex rounded-full bg-white p-0.5 ring-1 ring-gray-200">
+          {(
+            [
+              { key: false, label: "Unread" },
+              { key: true, label: "Read" },
+            ] as const
+          ).map((opt) => {
+            const active = isRead === opt.key;
+            return (
+              <button
+                key={String(opt.key)}
+                type="button"
+                onClick={() => setIsRead(opt.key)}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                  active
+                    ? "bg-foreground text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl border border-gray-200 shadow-sm",
+          isRead ? "bg-white" : "bg-bone"
+        )}
+      >
+        {/* Mirrors NotificationRow exactly: red dot when critical+unread,
+            blue when normal+unread, grey when read. */}
+        <div className="flex gap-3 px-4 py-3">
+          <div className="mt-1.5 w-2 shrink-0">
+            <div
+              className={cn("h-2 w-2 rounded-full", dotClass)}
+              aria-hidden
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-small-semibold line-clamp-2 text-foreground">
+                {form.title.trim() || (
+                  <span className="text-muted-foreground italic">
+                    Title preview…
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                now
+              </span>
+            </div>
+            <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground">
+              {form.message.trim() || (
+                <span className="italic">Message preview…</span>
+              )}
+            </p>
+            {hasCta && (
+              <span className="mt-1 inline-block text-xs font-medium text-primary">
+                {form.ctaLabel} →
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -2,14 +2,12 @@ import { notFound } from "next/navigation";
 import { getScheduleData } from "@/lib/queries/schedule";
 import { getCourseById } from "@/lib/queries/courses";
 import { getLanguagesWithCourses } from "@/lib/queries/onboarding";
-import { setCurrentCourse, addLanguageWithCourse } from "@/lib/mutations";
-import { SetCourseContext } from "@/components/SetCourseContext";
+import { addLanguageWithCourse } from "@/lib/mutations";
 import { SchedulerSection, LessonGridSection } from "@/components/schedule";
 import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/PageContainer";
 import { PageShell } from "@/components/PageShell";
-import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
 import type { LanguageGreetings } from "@/types/database";
 
@@ -48,13 +46,11 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
       .single();
     userName = userData?.name || null;
 
-    // For new users (no language set), set up their first language/course
+    // For new users (no language set), set up their first language/course.
+    // (Existing users' current_course_id is updated by the course-scoped layout
+    // at (dashboard)/course/[courseId]/layout.tsx.)
     if (!userData?.current_language_id && language?.id) {
-      // This is a new user - persist their language and course selection
       await addLanguageWithCourse(language.id);
-    } else {
-      // Existing user - just update the current course (fire-and-forget)
-      setCurrentCourse(courseId);
     }
   }
 
@@ -117,18 +113,8 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     ? recentLessons.filter((l) => l.id !== schedulerLessonId)
     : recentLessons;
 
-  const languageFlag = getFlagFromCode(language?.code);
-
   return (
-    <SetCourseContext
-      languageId={language?.id}
-      languageFlag={languageFlag}
-      languageName={language?.name}
-      courseId={course.id}
-      courseName={course.name}
-      dueTestsCount={dueTestsCount}
-    >
-      <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-8 pb-24">
+    <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-8 pb-24">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}
@@ -162,8 +148,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
           isGuest={isGuest}
           languages={languages}
         />
-      </PageShell>
-    </SetCourseContext>
+    </PageShell>
   );
 }
 

@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { getCourseById } from "@/lib/queries/courses";
 import { getProgressStats } from "@/lib/queries/stats";
-import { SetCourseContext } from "@/components/SetCourseContext";
 import { PageShell } from "@/components/PageShell";
 import { ProgressClient } from "./ProgressClient";
-import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
 
 interface ProgressPageProps {
@@ -14,7 +12,7 @@ interface ProgressPageProps {
 export default async function ProgressPage({ params }: ProgressPageProps) {
   const { courseId } = await params;
 
-  const [{ course, language }, stats] = await Promise.all([
+  const [{ course }, stats] = await Promise.all([
     getCourseById(courseId),
     getProgressStats(courseId),
   ]);
@@ -30,19 +28,10 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
   } = await supabase.auth.getUser();
   const isGuest = !user;
 
-  const languageFlag = getFlagFromCode(language?.code);
-
   return (
-    <SetCourseContext
-      languageId={language?.id}
-      languageFlag={languageFlag}
-      courseId={courseId}
-      courseName={course.name}
-    >
-      <PageShell backLink={{ href: `/course/${courseId}/schedule`, label: "Schedule" }} withTopPadding={false} className="pt-8">
-        <h1 className="text-page-header mb-6">Progress</h1>
-        <ProgressClient stats={stats} isGuest={isGuest} />
-      </PageShell>
-    </SetCourseContext>
+    <PageShell backLink={{ href: `/course/${courseId}/schedule`, label: "Schedule" }} withTopPadding={false} className="pt-8">
+      <h1 className="text-page-header mb-6">Progress</h1>
+      <ProgressClient stats={stats} isGuest={isGuest} />
+    </PageShell>
   );
 }
