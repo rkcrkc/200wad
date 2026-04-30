@@ -622,7 +622,6 @@ export async function getWord(wordId: string): Promise<{
     legacy_refn: word.legacy_refn,
     legacy_gender_code: word.legacy_gender_code,
     legacy_image_suffix: word.legacy_image_suffix,
-    information_body: word.information_body,
     notes: word.notes,
     admin_notes: word.admin_notes,
     developer_notes: word.developer_notes,

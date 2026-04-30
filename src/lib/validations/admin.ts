@@ -92,12 +92,11 @@ export const createWordSchema = z.object({
   grammatical_number: z.enum(["sg", "pl"]).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   developer_notes: z.string().max(2000).optional().nullable(),
-  memory_trigger_text: z.string().max(2000).optional().nullable(),
+  memory_trigger_text: z.string().max(10000).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),
   audio_url_english: z.string().url().optional().nullable(),
   audio_url_foreign: z.string().url().optional().nullable(),
   audio_url_trigger: z.string().url().optional().nullable(),
-  information_body: z.string().max(10000).optional().nullable(),
   related_word_ids: z.array(z.string().uuid()).optional().default([]),
   sort_order: z.number().int().min(0).optional().default(0),
 });

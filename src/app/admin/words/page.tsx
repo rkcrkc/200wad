@@ -38,7 +38,6 @@ interface WordWithLessons {
   transitivity: string | null;
   is_irregular: boolean | null;
   grammatical_number: string | null;
-  information_body: string | null;
   notes: string | null;
   developer_notes: string | null;
   memory_trigger_text: string | null;
@@ -78,7 +77,8 @@ async function getData(searchParams: SearchParams) {
   const { data: courses } = await supabase
     .from("courses")
     .select("id, name, language_id")
-    .order("sort_order");
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   // Fetch all lessons for the "add to lesson" dropdown
   const { data: allLessons } = await supabase
@@ -103,7 +103,6 @@ async function getData(searchParams: SearchParams) {
       transitivity,
       is_irregular,
       grammatical_number,
-      information_body,
       notes,
       developer_notes,
       memory_trigger_text,

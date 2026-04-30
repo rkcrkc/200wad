@@ -171,7 +171,6 @@ interface WordInsert {
   category: string;
   phrase_type: string | null;
   tags: string[] | null;
-  information_body: string | null;
   is_false_friend: boolean;
   legacy_refn: number;
   legacy_gender_code: string | null;
@@ -286,9 +285,12 @@ const WIN1252_C1_TO_UNICODE: Record<string, string> = {
 /**
  * Strip binary control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) from text.
  * Preserves tabs (0x09), newlines (0x0A), and carriage returns (0x0D).
- * Also replaces curly/smart quotes with straight apostrophes,
- * normalises Italian elided articles (l' x → l'x), and remaps any leaked
- * Windows-1252 C1-range bytes (e.g. 0x85 = …) to their proper Unicode points.
+ * Also replaces curly/smart quotes with straight apostrophes, backticks (`)
+ * with straight apostrophes (legacy data uses them as both apostrophes and
+ * single quotes), diaeresis (¨ U+00A8) with straight double quotes (legacy
+ * data uses ¨ as paired double quotes), normalises Italian elided articles
+ * (l' x → l'x), and remaps any leaked Windows-1252 C1-range bytes
+ * (e.g. 0x85 = …) to their proper Unicode points.
  */
 function sanitizeText(text: string | null): string | null {
   if (!text) return text;
@@ -297,10 +299,28 @@ function sanitizeText(text: string | null): string | null {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
     // Remap Win-1252 typographic chars that landed in the C1 control range
     .replace(/[\u0080-\u009F]/g, (ch) => WIN1252_C1_TO_UNICODE[ch] ?? "")
-    // Replace curly/smart quotes with straight apostrophes
-    .replace(/[\u2018\u2019]/g, "'")
+    // Replace curly/smart quotes and backticks with straight apostrophes
+    .replace(/[\u2018\u2019`]/g, "'")
+    // Replace diaeresis (¨) used as paired double quotes with straight "
+    .replace(/\u00A8/g, '"')
     // Normalise Italian elided articles: l' x → l'x
     .replace(/l' /gi, (m) => m[0] + "'");
+  // Promote whole-line underlines to headings: a line whose content is
+  // entirely wrapped in <u>...</u> (with optional surrounding whitespace) was
+  // used in legacy data as a sub-heading. Convert to "# ..." so the new
+  // parser renders it as <h2>.
+  cleaned = cleaned
+    .split("\n")
+    .map((line) => {
+      const m = line.match(/^(\s*)<u>([\s\S]*?)<\/u>(\s*)$/);
+      if (!m) return line;
+      const inner = m[2].trim();
+      if (!inner) return line;
+      // If the inner text itself contains <u> tags, leave it alone.
+      if (/<\/?u>/i.test(inner)) return line;
+      return `${m[1]}# ${inner}${m[3]}`;
+    })
+    .join("\n");
   return cleaned;
 }
 
@@ -760,9 +780,8 @@ async function main() {
       headword: sanitizeText(headword.trim()) || headword.trim(),
       lemma: sanitizeText(lemma.trim() || headword.trim()) || headword.trim(),
       notes: sanitizeText(row.notes || row.Notes || null),
-      // For information pages, migrate trigger text to information_body
-      memory_trigger_text: category === "information" ? null : rawTriggerText,
-      information_body: category === "information" ? rawTriggerText : null,
+      // All categories store content in memory_trigger_text
+      memory_trigger_text: rawTriggerText,
       memory_trigger_image_url: cleanFilename(row.memory_trigger_image || row.FileFgnPic),
       audio_url_english: cleanFilename(row.audio_url_english || row.FileEngSouRTF),
       audio_url_foreign: cleanFilename(row.audio_url_foreign || row.FileFgnSouRTF),

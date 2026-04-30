@@ -1511,7 +1511,6 @@ export type Database = {
           grammatical_number: string | null
           headword: string
           id: string
-          information_body: string | null
           is_false_friend: boolean | null
           is_irregular: boolean | null
           is_plural_only: boolean | null
@@ -1553,7 +1552,6 @@ export type Database = {
           grammatical_number?: string | null
           headword: string
           id?: string
-          information_body?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
@@ -1595,7 +1593,6 @@ export type Database = {
           grammatical_number?: string | null
           headword?: string
           id?: string
-          information_body?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null

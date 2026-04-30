@@ -1,7 +1,9 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
 import { EditableText } from "@/components/admin/EditableText";
+import { EditableBodyText } from "@/components/admin/EditableBodyText";
+import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
+import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 
 interface InformationCardProps {
   title: string;
@@ -66,20 +68,31 @@ export function InformationCard({
       <div className="flex flex-col gap-6 md:flex-row">
         {canEdit ? (
           <div className={imageUrl ? "flex-1" : "w-full"}>
-            <EditableText
+            <EditableBodyText
               value={body || ""}
-              field="information_body"
+              field="memory_trigger_text"
               wordId={wordId}
               isEditMode={isEditMode}
               onSave={onFieldSave}
               className="prose prose-base max-w-none"
-              inputClassName="w-full min-h-[200px] text-base"
-              multiline
+              renderPreview={(v) =>
+                v ? (
+                  parseFormattedText(v)
+                ) : (
+                  <p className="text-muted-foreground">No body text yet — click to add</p>
+                )
+              }
+              rows={10}
+              placeholder="Write the information page content..."
+              variant="multi"
             />
+            <div className="mt-3">
+              <BodyTextSyntaxHelp defaultOpen={false} variant="multi" />
+            </div>
           </div>
         ) : body ? (
           <div className={`prose prose-base max-w-none ${imageUrl ? "flex-1" : "w-full"}`}>
-            <ReactMarkdown>{body}</ReactMarkdown>
+            {parseFormattedText(body)}
           </div>
         ) : null}
         {imageUrl && (
