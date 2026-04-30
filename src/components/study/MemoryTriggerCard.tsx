@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
-import { EditableText, EditableImage } from "@/components/admin";
+import { EditableImage } from "@/components/admin";
 import { EditableBodyText } from "@/components/admin/EditableBodyText";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { genderColorDark, defaultHighlightColorDark } from "@/lib/design-tokens";
@@ -245,16 +245,24 @@ export function MemoryTriggerCard({
         >
           <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
           {isEditMode && wordId && onFieldSave ? (
-            <EditableText
-              value={triggerText}
-              field="memory_trigger_text"
-              wordId={wordId}
-              isEditMode={isEditMode}
-              onSave={onFieldSave}
-              className="text-[22px] font-medium leading-normal"
-              inputClassName="text-[22px] font-medium w-full"
-              multiline
-            />
+            <div className="flex-1">
+              <EditableBodyText
+                value={triggerText}
+                field="memory_trigger_text"
+                wordId={wordId}
+                isEditMode={isEditMode}
+                onSave={onFieldSave}
+                className="text-[22px] font-medium leading-normal"
+                textareaClassName="text-[22px] font-medium"
+                rows={3}
+                variant="word"
+                renderPreview={(v) => (
+                  <p className="text-[22px] font-medium leading-normal">
+                    {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+                  </p>
+                )}
+              />
+            </div>
           ) : (
             <p className="text-[22px] font-medium leading-normal">
               {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
@@ -275,16 +283,24 @@ export function MemoryTriggerCard({
         >
           <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
           {isEditMode && wordId && onFieldSave ? (
-            <EditableText
-              value={triggerText}
-              field="memory_trigger_text"
-              wordId={wordId}
-              isEditMode={isEditMode}
-              onSave={onFieldSave}
-              className="text-[22px] font-medium leading-normal"
-              inputClassName="text-[22px] font-medium w-full"
-              multiline
-            />
+            <div className="flex-1">
+              <EditableBodyText
+                value={triggerText}
+                field="memory_trigger_text"
+                wordId={wordId}
+                isEditMode={isEditMode}
+                onSave={onFieldSave}
+                className="text-[22px] font-medium leading-normal"
+                textareaClassName="text-[22px] font-medium"
+                rows={3}
+                variant="word"
+                renderPreview={(v) => (
+                  <p className="text-[22px] font-medium leading-normal">
+                    {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+                  </p>
+                )}
+              />
+            </div>
           ) : (
             <p className="text-[22px] font-medium leading-normal">
               {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
@@ -295,16 +311,25 @@ export function MemoryTriggerCard({
         // Edit mode: allow adding trigger text when none exists
         <div className="flex items-center gap-3">
           <AudioButton isPlaying={false} />
-          <EditableText
-            value=""
-            field="memory_trigger_text"
-            wordId={wordId}
-            isEditMode={isEditMode}
-            onSave={onFieldSave}
-            className="text-large-semibold leading-normal text-muted-foreground"
-            inputClassName="text-large-semibold w-full"
-            multiline
-          />
+          <div className="flex-1">
+            <EditableBodyText
+              value=""
+              field="memory_trigger_text"
+              wordId={wordId}
+              isEditMode={isEditMode}
+              onSave={onFieldSave}
+              className="text-large-semibold leading-normal text-muted-foreground"
+              textareaClassName="text-large-semibold"
+              rows={3}
+              variant="word"
+              placeholder="Add memory trigger text..."
+              renderPreview={() => (
+                <p className="text-large-semibold leading-normal text-muted-foreground">
+                  Click to add memory trigger text
+                </p>
+              )}
+            />
+          </div>
         </div>
       ) : showTriggerTextProp === undefined && (!pictureOnlyMode || showTrigger) ? (
         // Test mode: show animated skeleton when trigger text not yet revealed
