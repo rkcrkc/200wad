@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,31 +12,62 @@ import type { LessonForScheduler } from "@/lib/queries";
 interface LessonGridSectionProps {
   newLessons: LessonForScheduler[];
   recentLessons: LessonForScheduler[];
+  needsReviewLessons: LessonForScheduler[];
   hasDueTests: boolean;
   courseId: string;
+}
+
+type TabId = "new" | "recent" | "needs-review";
+
+function getDefaultTab(
+  hasNew: boolean,
+  hasNeedsReview: boolean
+): TabId {
+  if (hasNew) return "new";
+  if (hasNeedsReview) return "needs-review";
+  return "recent";
 }
 
 export function LessonGridSection({
   newLessons,
   recentLessons,
+  needsReviewLessons,
   hasDueTests,
   courseId,
 }: LessonGridSectionProps) {
-  const [activeTab, setActiveTab] = useState<string>("new");
+  const showNew = newLessons.length > 0;
+  const showRecent = recentLessons.length > 0;
+  const showNeedsReview = needsReviewLessons.length > 0;
+
+  const tabs: { id: TabId; label: string }[] = [];
+  if (showNew) tabs.push({ id: "new", label: "New lessons" });
+  if (showRecent) tabs.push({ id: "recent", label: "Recent lessons" });
+  if (showNeedsReview) tabs.push({ id: "needs-review", label: "Needs review" });
+
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    getDefaultTab(showNew, showNeedsReview)
+  );
+
+  // If the active tab is no longer rendered (e.g. needs-review emptied out
+  // between renders), fall back to default-tab logic.
+  useEffect(() => {
+    if (!tabs.some((t) => t.id === activeTab)) {
+      setActiveTab(getDefaultTab(showNew, showNeedsReview));
+    }
+  }, [tabs, activeTab, showNew, showNeedsReview]);
 
   // Determine heading based on whether there are due tests
   const heading = hasDueTests ? "Or study a lesson" : "Or study something else";
 
   // Determine which lessons to show
-  const displayLessons = activeTab === "new" ? newLessons : recentLessons;
+  const displayLessons =
+    activeTab === "new"
+      ? newLessons
+      : activeTab === "needs-review"
+        ? needsReviewLessons
+        : recentLessons;
 
-  // Only show tabs if there are recent lessons
-  const showTabs = recentLessons.length > 0;
-
-  const tabs = [
-    { id: "new", label: "New lessons" },
-    { id: "recent", label: "Recent lessons" },
-  ];
+  const showTabs = tabs.length >= 2;
 
   return (
     <section>
@@ -54,7 +85,11 @@ export function LessonGridSection({
       {/* Filter tabs */}
       {showTabs && (
         <div className="mb-4">
-          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onChange={(id) => setActiveTab(id as TabId)}
+          />
         </div>
       )}
 
@@ -70,12 +105,16 @@ export function LessonGridSection({
           title={
             activeTab === "new"
               ? "You've started all available lessons"
-              : "No recent lessons yet"
+              : activeTab === "needs-review"
+                ? "Nothing to review right now"
+                : "No recent lessons yet"
           }
           description={
             activeTab === "new"
               ? "Great job! Check your tests or review recent lessons."
-              : "Start studying to see your recent lessons here."
+              : activeTab === "needs-review"
+                ? "You're all caught up. Come back later for review suggestions."
+                : "Start studying to see your recent lessons here."
           }
         />
       )}

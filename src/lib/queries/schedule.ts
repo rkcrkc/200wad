@@ -62,6 +62,7 @@ export interface ScheduleData {
   // Lesson grid
   newLessons: LessonForScheduler[];
   recentLessons: LessonForScheduler[];
+  needsReviewLessons: LessonForScheduler[];
 
   // Auth state
   isGuest: boolean;
@@ -90,7 +91,8 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
     const { data: firstCourse } = await supabase
       .from("courses")
       .select("*, languages(*)")
-      .order("sort_order")
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true })
       .limit(1)
       .single();
 
@@ -141,7 +143,8 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
     const { data: firstCourse } = await supabase
       .from("courses")
       .select("*, languages(*)")
-      .order("sort_order")
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true })
       .limit(1)
       .single();
 
@@ -157,7 +160,8 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
     .from("courses")
     .select("*, languages(*)")
     .eq("language_id", currentLanguageId)
-    .order("sort_order")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true })
     .limit(1)
     .single();
 
@@ -348,6 +352,7 @@ export async function getScheduleData(
       dueTestsCount: 0,
       newLessons: [],
       recentLessons: [],
+      needsReviewLessons: [],
       isGuest,
       error: lessonsError.message,
     };
@@ -361,6 +366,7 @@ export async function getScheduleData(
       dueTestsCount: 0,
       newLessons: [],
       recentLessons: [],
+      needsReviewLessons: [],
       isGuest,
       error: null,
     };
@@ -389,6 +395,7 @@ export async function getScheduleData(
       dueTestsCount: 0,
       newLessons: schedulerLessons,
       recentLessons: [],
+      needsReviewLessons: [],
       isGuest,
       error: null,
     };
@@ -437,11 +444,12 @@ export async function getScheduleData(
   const userWordProgress = await fetchAllRows<{
     word_id: string | null;
     status: string | null;
+    next_review_at: string | null;
   }>(
     (from, to) =>
       supabase
         .from("user_word_progress")
-        .select("word_id, status")
+        .select("word_id, status, next_review_at")
         .eq("user_id", user.id)
         .in("status", ["learning", "learned", "mastered"])
         .range(from, to),
@@ -553,11 +561,113 @@ export async function getScheduleData(
     }
   }
 
-  // Find next lesson to study (first non-mastered lesson, using live status)
-  let nextLesson: LessonForScheduler | null = null;
-  const nextLessonData = allLessons.find((lesson) => {
-    return liveStatusByLesson[lesson.id] !== "mastered";
+  // Build "Needs review" candidates via two-tier sort. Shared by the scheduler
+  // fallback (when no not-started lessons exist) and the "Needs review" grid.
+  //   Tier 1 — Overdue: lesson has ≥1 word with next_review_at < now()
+  //   Tier 2 — Stale: no overdue words, but last_studied_at older than 14 days
+  // Mastered lessons are excluded — they should never be suggested.
+  const STALE_THRESHOLD_MS = 14 * 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+
+  // Word -> next_review_at map (only words with a value)
+  const nextReviewByWord = new Map<string, string>();
+  userWordProgress.forEach((p) => {
+    if (p.word_id && p.next_review_at) {
+      nextReviewByWord.set(p.word_id, p.next_review_at);
+    }
   });
+
+  // Per-lesson overdue stats
+  const overdueCountByLesson: Record<string, number> = {};
+  const maxDaysOverdueByLesson: Record<string, number> = {};
+
+  for (const lw of testableRows) {
+    if (!lw.lesson_id || !lw.word_id) continue;
+    const nextReviewAt = nextReviewByWord.get(lw.word_id);
+    if (!nextReviewAt) continue;
+    const dueMs = new Date(nextReviewAt).getTime();
+    if (Number.isNaN(dueMs) || dueMs >= nowMs) continue;
+    const daysOverdue = (nowMs - dueMs) / (24 * 60 * 60 * 1000);
+    overdueCountByLesson[lw.lesson_id] = (overdueCountByLesson[lw.lesson_id] || 0) + 1;
+    if (daysOverdue > (maxDaysOverdueByLesson[lw.lesson_id] || 0)) {
+      maxDaysOverdueByLesson[lw.lesson_id] = daysOverdue;
+    }
+  }
+
+  type ReviewCandidate = {
+    lesson: Lesson;
+    tier: 1 | 2;
+    overdueCount: number;
+    maxDaysOverdue: number;
+    lastStudiedAt: string;
+  };
+
+  const reviewCandidates: ReviewCandidate[] = [];
+  for (const lesson of allLessons) {
+    if (liveStatusByLesson[lesson.id] === "mastered") continue;
+
+    const progress = progressByLesson.get(lesson.id);
+    if (!progress) continue;
+    const overdueCount = overdueCountByLesson[lesson.id] || 0;
+    const maxDaysOverdue = maxDaysOverdueByLesson[lesson.id] || 0;
+    const lastStudiedAt = progress.last_studied_at || "";
+
+    if (overdueCount > 0) {
+      reviewCandidates.push({
+        lesson,
+        tier: 1,
+        overdueCount,
+        maxDaysOverdue,
+        lastStudiedAt,
+      });
+      continue;
+    }
+
+    if (lastStudiedAt) {
+      const lastMs = new Date(lastStudiedAt).getTime();
+      if (!Number.isNaN(lastMs) && nowMs - lastMs > STALE_THRESHOLD_MS) {
+        reviewCandidates.push({
+          lesson,
+          tier: 2,
+          overdueCount: 0,
+          maxDaysOverdue: 0,
+          lastStudiedAt,
+        });
+      }
+    }
+  }
+
+  // Sort: tier asc; Tier 1 by overdueCount desc, then maxDaysOverdue desc;
+  // Tier 2 by lastStudiedAt asc (oldest first).
+  reviewCandidates.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    if (a.tier === 1) {
+      if (b.overdueCount !== a.overdueCount) return b.overdueCount - a.overdueCount;
+      return b.maxDaysOverdue - a.maxDaysOverdue;
+    }
+    return a.lastStudiedAt.localeCompare(b.lastStudiedAt);
+  });
+
+  // Find next lesson to study. Priority:
+  //   1. First not-started lesson (fresh content always wins)
+  //   2. Top "Needs review" candidate — most-overdue unmastered lesson
+  //      (Tier 1 by overdue count, then Tier 2 by stale date)
+  //   3. Any non-mastered lesson with progress (final safety net so the
+  //      scheduler is only empty when every lesson is mastered)
+  let nextLesson: LessonForScheduler | null = null;
+  let nextLessonData: Lesson | undefined = allLessons.find(
+    (lesson) => liveStatusByLesson[lesson.id] === "not-started"
+  );
+  if (!nextLessonData && reviewCandidates.length > 0) {
+    nextLessonData = reviewCandidates[0].lesson;
+  }
+  if (!nextLessonData) {
+    nextLessonData = allLessons.find(
+      (lesson) =>
+        liveStatusByLesson[lesson.id] !== "mastered" &&
+        progressByLesson.has(lesson.id)
+    );
+  }
 
   if (nextLessonData) {
     const [sampleWords, images] = await Promise.all([
@@ -594,11 +704,22 @@ export async function getScheduleData(
     return bDate.localeCompare(aDate);
   });
 
-  // Get sample words and images for grid lessons
-  const gridLessonIds = [
-    ...newLessonsData.map((l) => l.id),
-    ...recentLessonsData.map((l) => l.id),
-  ];
+  // "Needs review" grid threshold: requires ≥5 lessons started AND ≥3
+  // qualifying candidates (independent of the scheduler fallback above).
+  const startedLessonsCount = lessonProgress?.length ?? 0;
+  const meetsThreshold = startedLessonsCount >= 5 && reviewCandidates.length >= 3;
+  const needsReviewLessonsData: Lesson[] = meetsThreshold
+    ? reviewCandidates.slice(0, 6).map((c) => c.lesson)
+    : [];
+
+  // Get sample words and images for grid lessons (dedupe lesson IDs)
+  const gridLessonIds = Array.from(
+    new Set([
+      ...newLessonsData.map((l) => l.id),
+      ...recentLessonsData.map((l) => l.id),
+      ...needsReviewLessonsData.map((l) => l.id),
+    ])
+  );
 
   const [gridSampleWords, gridImages] = await Promise.all([
     getLessonSampleWords(supabase, gridLessonIds),
@@ -617,6 +738,12 @@ export async function getScheduleData(
     gridImages,
     liveStatusByLesson
   );
+  const needsReviewLessons = transformToSchedulerFormat(
+    needsReviewLessonsData,
+    gridSampleWords,
+    gridImages,
+    liveStatusByLesson
+  );
 
   return {
     dueTests,
@@ -625,6 +752,7 @@ export async function getScheduleData(
     dueTestsCount,
     newLessons,
     recentLessons,
+    needsReviewLessons,
     isGuest,
     error: null,
   };

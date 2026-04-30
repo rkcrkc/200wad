@@ -75,6 +75,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     dueTestsCount,
     newLessons,
     recentLessons,
+    needsReviewLessons,
     isGuest,
   } = scheduleData;
 
@@ -92,7 +93,8 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     dueTests.length > 0 ||
     nextLesson ||
     newLessons.length > 0 ||
-    recentLessons.length > 0;
+    recentLessons.length > 0 ||
+    needsReviewLessons.length > 0;
 
   // Determine which lesson is shown in the scheduler (same alternating logic as SchedulerSection)
   let schedulerLessonId: string | undefined;
@@ -112,9 +114,12 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   const filteredRecentLessons = schedulerLessonId
     ? recentLessons.filter((l) => l.id !== schedulerLessonId)
     : recentLessons;
+  const filteredNeedsReviewLessons = schedulerLessonId
+    ? needsReviewLessons.filter((l) => l.id !== schedulerLessonId)
+    : needsReviewLessons;
 
   return (
-    <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-8 pb-24">
+    <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-12 pb-20">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}
@@ -131,6 +136,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
             <LessonGridSection
               newLessons={filteredNewLessons}
               recentLessons={filteredRecentLessons}
+              needsReviewLessons={filteredNeedsReviewLessons}
               hasDueTests={dueTests.length > 0}
               courseId={course.id}
             />
