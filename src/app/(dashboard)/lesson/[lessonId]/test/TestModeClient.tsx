@@ -1113,7 +1113,6 @@ export function TestModeClient({
           // Answer input
           validAnswers: [currentWord?.english || "", ...(currentWord?.alternate_english_answers || [])],
           inputLanguageName: "English",
-          inputPlaceholder: "Type the word in English...",
           showAccentsPanel: false,
           // Memory trigger clues work the same
           // For picture-only mode in MemoryTriggerCard
@@ -1127,7 +1126,6 @@ export function TestModeClient({
           // Answer input
           validAnswers: [currentWord?.headword || "", ...(currentWord?.alternate_answers || [])],
           inputLanguageName: language?.name || "Foreign",
-          inputPlaceholder: `Type the word in ${language?.name || "the language"}...`,
           showAccentsPanel: true,
           // Picture is the question, clues reveal English word then text
           pictureOnlyMode: true,
@@ -1141,7 +1139,6 @@ export function TestModeClient({
           // Answer input
           validAnswers: [currentWord?.headword || "", ...(currentWord?.alternate_answers || [])],
           inputLanguageName: language?.name || "Foreign",
-          inputPlaceholder: `Type the word in ${language?.name || "the language"}...`,
           showAccentsPanel: true,
           pictureOnlyMode: false,
         };

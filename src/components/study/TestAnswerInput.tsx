@@ -286,7 +286,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             onBlur={handleBlur}
-            placeholder={`Type the word in ${languageName}${hasGender ? " + (m/f)" : ""}...`}
+            placeholder={`Type the ${languageName}${hasGender ? " + (m/f)" : ""}...`}
             className="flex-1 bg-transparent text-xl font-medium text-foreground outline-none placeholder:text-black/50"
           />
         )}
