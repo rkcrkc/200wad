@@ -358,7 +358,9 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              JPEG, PNG, or WebP. Larger images are resized automatically.
+              JPEG or PNG
+              <br />
+              Max 1MB
             </p>
             </div>
             <div className="w-full space-y-3">
@@ -369,6 +371,9 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Used for greetings and profile
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-sm text-gray-600">
@@ -379,6 +384,9 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="username"
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Shown publicly on the leaderboard
+                </p>
               </div>
             </div>
           </div>

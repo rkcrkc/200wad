@@ -31,7 +31,10 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Push to root so the server-side smart redirect lands the user on
+    // their last active course (users.current_course_id), falling back
+    // to /dashboard if none is set.
+    router.push("/");
     router.refresh();
   };
 
