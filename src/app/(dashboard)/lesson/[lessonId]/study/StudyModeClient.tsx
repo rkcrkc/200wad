@@ -123,6 +123,12 @@ export function StudyModeClient({
   const [wordProgressMap, setWordProgressMap] = useState<Map<string, WordProgress>>(
     new Map()
   );
+
+  // Local system notes overrides keyed by word id (admin only) — so saved
+  // edits show immediately without refresh.
+  const [systemNotesOverrides, setSystemNotesOverrides] = useState<Map<string, string | null>>(
+    new Map()
+  );
   const [viewedWordIndices, setViewedWordIndices] = useState<number[]>([0]); // Start with first word viewed
   
   // Tips dismissal state
@@ -750,7 +756,13 @@ export function StudyModeClient({
   // Handle system notes change (admin only)
   const handleSystemNotesChange = useCallback(
     async (notes: string | null) => {
-      const result = await saveSystemNotes(currentWord.id, notes);
+      const wordId = currentWord.id;
+      setSystemNotesOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(wordId, notes);
+        return next;
+      });
+      const result = await saveSystemNotes(wordId, notes);
       if (!result.success) {
         console.error("Failed to save system notes:", result.error);
       }
@@ -971,6 +983,11 @@ export function StudyModeClient({
   const currentWordProgress = wordProgressMap.get(currentWord.id);
   const currentUserNotes = currentWordProgress?.userNotes || currentWord.progress?.user_notes || null;
 
+  // Honor any local override first; falls back to the original DB value.
+  const currentSystemNotes = systemNotesOverrides.has(currentWord.id)
+    ? systemNotesOverrides.get(currentWord.id) ?? null
+    : currentWord.notes ?? null;
+
   // Determine what to show based on phase
   const showForeign = phase !== "reveal-first";
   const showTrigger =
@@ -1095,7 +1112,7 @@ export function StudyModeClient({
                     )}
                     <StudySidebar
                       wordId={currentWord.id}
-                      systemNotes={currentWord.notes}
+                      systemNotes={currentSystemNotes}
                       userNotes={currentUserNotes}
                       exampleSentences={currentWord.exampleSentences}
                       relatedWords={currentWord.relatedWords}
@@ -1150,7 +1167,7 @@ export function StudyModeClient({
                     <div className="flex-1">
                       <StudySidebar
                         wordId={currentWord.id}
-                        systemNotes={currentWord.notes}
+                        systemNotes={currentSystemNotes}
                         userNotes={currentUserNotes}
                         exampleSentences={currentWord.exampleSentences}
                         relatedWords={currentWord.relatedWords}

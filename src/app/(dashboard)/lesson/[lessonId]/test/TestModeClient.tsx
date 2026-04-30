@@ -253,6 +253,12 @@ export function TestModeClient({
     new Map()
   );
 
+  // Local system notes overrides keyed by word id (admin only) — same
+  // pattern as user notes so saved edits show immediately without refresh.
+  const [systemNotesOverrides, setSystemNotesOverrides] = useState<Map<string, string | null>>(
+    new Map()
+  );
+
   // Completion modal state
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -989,6 +995,13 @@ export function TestModeClient({
       : currentWord?.progress?.user_notes ?? null
     : null;
 
+  // Honor any local override first; falls back to the original DB value.
+  const currentSystemNotes = currentWord?.id
+    ? systemNotesOverrides.has(currentWord.id)
+      ? systemNotesOverrides.get(currentWord.id) ?? null
+      : currentWord?.notes ?? null
+    : null;
+
   // Handle user notes change
   const handleUserNotesChange = useCallback(
     async (notes: string | null) => {
@@ -1013,7 +1026,13 @@ export function TestModeClient({
   const handleSystemNotesChange = useCallback(
     async (notes: string | null) => {
       if (!currentWord) return;
-      const result = await saveSystemNotes(currentWord.id, notes);
+      const wordId = currentWord.id;
+      setSystemNotesOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(wordId, notes);
+        return next;
+      });
+      const result = await saveSystemNotes(wordId, notes);
       if (!result.success) {
         console.error("Failed to save system notes:", result.error);
       }
@@ -1248,7 +1267,7 @@ export function TestModeClient({
                 )}
                 <StudySidebar
                   wordId={currentWord?.id || ""}
-                  systemNotes={currentWord?.notes}
+                  systemNotes={currentSystemNotes}
                   userNotes={currentUserNotes}
                   exampleSentences={currentWord?.exampleSentences}
                   relatedWords={currentWord?.relatedWords}
@@ -1300,7 +1319,7 @@ export function TestModeClient({
                 <div className="flex-1">
                   <StudySidebar
                     wordId={currentWord?.id || ""}
-                    systemNotes={currentWord?.notes}
+                    systemNotes={currentSystemNotes}
                     userNotes={currentUserNotes}
                     exampleSentences={currentWord?.exampleSentences}
                     relatedWords={currentWord?.relatedWords}
