@@ -49,9 +49,40 @@ export function StartTestModal({
   onStart,
   onCancel,
 }: StartTestModalProps) {
-  const [selectedType, setSelectedType] = useState<TestType>(defaultTestType);
-  const [testTwice, setTestTwice] = useState(false);
-  const [randomOrder, setRandomOrder] = useState(false);
+  const [selectedType, setSelectedType] = useState<TestType>(() => {
+    if (typeof window === "undefined") return defaultTestType;
+    const saved = localStorage.getItem("startTestModal:testType");
+    if (saved === "english-to-foreign" || saved === "foreign-to-english" || saved === "picture-only") {
+      return saved;
+    }
+    return defaultTestType;
+  });
+  const [testTwice, setTestTwice] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("startTestModal:testTwice") === "true";
+  });
+  const [randomOrder, setRandomOrder] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("startTestModal:randomOrder") === "true";
+  });
+
+  // Persist settings whenever they change
+  useEffect(() => {
+    localStorage.setItem("startTestModal:testType", selectedType);
+  }, [selectedType]);
+  useEffect(() => {
+    localStorage.setItem("startTestModal:testTwice", String(testTwice));
+  }, [testTwice]);
+  useEffect(() => {
+    localStorage.setItem("startTestModal:randomOrder", String(randomOrder));
+  }, [randomOrder]);
+
+  // If picture-only was saved but isn't available for this lesson, fall back
+  useEffect(() => {
+    if (selectedType === "picture-only" && wordsWithImages === 0) {
+      setSelectedType(defaultTestType);
+    }
+  }, [selectedType, wordsWithImages, defaultTestType]);
 
   // Capture-phase Escape handler: when this modal is stacked over another
   // modal (e.g. LessonCompletedModal) we need to close *only* this modal.
