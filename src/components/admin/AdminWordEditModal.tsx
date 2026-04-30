@@ -14,6 +14,8 @@ import {
   AdminFileUpload,
 } from "@/components/admin";
 import { AdminAudioUpload } from "@/components/admin/AdminAudioUpload";
+import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
+import { BodyTextEditor } from "@/components/admin/BodyTextEditor";
 import {
   createWord,
   updateWord,
@@ -59,7 +61,6 @@ export interface WordWithDetails {
   transitivity: string | null;
   is_irregular: boolean | null;
   grammatical_number: string | null;
-  information_body: string | null;
   notes: string | null;
   developer_notes: string | null;
   alternate_answers: string[] | null;
@@ -169,7 +170,6 @@ interface FormData {
   notes: string;
   developer_notes: string;
   memory_trigger_text: string;
-  information_body: string;
 }
 
 interface FormErrors {
@@ -202,7 +202,6 @@ const INITIAL_FORM_DATA: FormData = {
   notes: "",
   developer_notes: "",
   memory_trigger_text: "",
-  information_body: "",
 };
 
 const INITIAL_FILE_UPLOADS: FileUploads = {
@@ -296,7 +295,6 @@ export function AdminWordEditModal({
         notes: editingWord.notes || "",
         developer_notes: editingWord.developer_notes || "",
         memory_trigger_text: editingWord.memory_trigger_text || "",
-        information_body: editingWord.information_body || "",
       });
       setPreviewUrls({
         triggerImage: editingWord.memory_trigger_image_url,
@@ -397,34 +395,36 @@ export function AdminWordEditModal({
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
+    await performSubmit(formData);
+  };
 
+  const performSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
       const wordData: Record<string, unknown> = {
-        headword: formData.headword,
-        lemma: formData.lemma || formData.headword,
-        english: formData.english,
+        headword: data.headword,
+        lemma: data.lemma || data.headword,
+        english: data.english,
         alternate_answers:
-          formData.alternate_answers.length > 0
-            ? formData.alternate_answers
+          data.alternate_answers.length > 0
+            ? data.alternate_answers
             : null,
         alternate_english_answers:
-          formData.alternate_english_answers.length > 0
-            ? formData.alternate_english_answers
+          data.alternate_english_answers.length > 0
+            ? data.alternate_english_answers
             : null,
-        category: formData.category || null,
+        category: data.category || null,
         part_of_speech:
-          formData.category === "word"
-            ? formData.part_of_speech || null
+          data.category === "word"
+            ? data.part_of_speech || null
             : null,
-        gender: formData.gender || null,
-        transitivity: formData.transitivity || null,
-        is_irregular: formData.is_irregular,
-        grammatical_number: formData.grammatical_number || null,
-        notes: formData.notes || null,
-        developer_notes: formData.developer_notes || null,
-        memory_trigger_text: formData.memory_trigger_text || null,
-        information_body: formData.information_body || null,
+        gender: data.gender || null,
+        transitivity: data.transitivity || null,
+        is_irregular: data.is_irregular,
+        grammatical_number: data.grammatical_number || null,
+        notes: data.notes || null,
+        developer_notes: data.developer_notes || null,
+        memory_trigger_text: data.memory_trigger_text || null,
       };
 
       let wordId = editingWord?.id;
@@ -444,8 +444,8 @@ export function AdminWordEditModal({
         }
         const result = await createWord({
           lesson_id: lessonId,
-          headword: formData.headword,
-          english: formData.english,
+          headword: data.headword,
+          english: data.english,
           ...wordData,
         });
         if (!result.success || !result.id) {
@@ -652,7 +652,10 @@ export function AdminWordEditModal({
     { id: "word", label: isInformation ? "Information" : "Word" },
   ];
   if (!isInformation) {
-    tabs.push({ id: "trigger", label: "Memory Trigger" });
+    tabs.push({
+      id: "trigger",
+      label: formData.category === "word" ? "Memory Trigger" : "Body",
+    });
   }
   tabs.push({ id: "audio", label: "Audio Files" });
   if (lessons) {
@@ -785,16 +788,18 @@ export function AdminWordEditModal({
                     />
                   </AdminFormField>
 
-                  <AdminFormField label="Body" name="information_body" hint="Supports Markdown">
-                    <AdminTextarea
-                      id="information_body"
-                      name="information_body"
-                      value={formData.information_body}
-                      onChange={(e) =>
-                        setFormData({ ...formData, information_body: e.target.value })
+                  <AdminFormField label="Body" name="memory_trigger_text">
+                    <BodyTextSyntaxHelp defaultOpen={false} variant="multi" />
+                    <BodyTextEditor
+                      id="memory_trigger_text"
+                      name="memory_trigger_text"
+                      value={formData.memory_trigger_text}
+                      onChange={(v) =>
+                        setFormData({ ...formData, memory_trigger_text: v })
                       }
                       placeholder="Write the information page content..."
                       rows={10}
+                      variant="multi"
                     />
                   </AdminFormField>
 
@@ -1474,18 +1479,31 @@ export function AdminWordEditModal({
           {/* ============================================================ */}
           {activeTab === "trigger" && (
             <div className="space-y-6">
-              <AdminFormField label="Trigger Text" name="memory_trigger_text">
-                <AdminTextarea
+              <AdminFormField
+                label={formData.category === "fact" ? "Body" : "Trigger Text"}
+                name="memory_trigger_text"
+              >
+                <BodyTextSyntaxHelp
+                  defaultOpen={false}
+                  variant={formData.category === "word" ? "word" : "multi"}
+                />
+                <BodyTextEditor
                   id="memory_trigger_text"
                   name="memory_trigger_text"
                   value={formData.memory_trigger_text}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setFormData({
                       ...formData,
-                      memory_trigger_text: e.target.value,
+                      memory_trigger_text: v,
                     })
                   }
-                  placeholder="Mnemonic or memory aid..."
+                  placeholder={
+                    formData.category === "fact"
+                      ? "Write the fact body content..."
+                      : "Mnemonic or memory aid..."
+                  }
+                  rows={formData.category === "fact" ? 10 : 6}
+                  variant={formData.category === "word" ? "word" : "multi"}
                 />
               </AdminFormField>
 
@@ -1620,6 +1638,7 @@ export function AdminWordEditModal({
         confirmVariant="destructive"
         isLoading={isDeleting}
       />
+
     </>
   );
 }

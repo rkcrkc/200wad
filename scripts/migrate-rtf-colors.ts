@@ -246,8 +246,16 @@ function removeAllBalancedBlocks(content: string, startPattern: RegExp): string 
 }
 
 /**
- * Extract plain text from RTF content, preserving color markers
- * Returns the text with {{...}} markers around colored portions
+ * Extract plain text from RTF content, preserving color and italic markers.
+ *
+ * Returns text with:
+ *   - `{{...}}` around color-coded portions (gender / part-of-speech emphasis)
+ *   - `*...*`   around italic portions (typically the English gloss)
+ *
+ * Markers may overlap when the source RTF interleaves \i / \cfN spans.
+ * Each state is tracked independently and the renderer
+ * (`src/lib/utils/parseTriggerText.tsx`) parses both syntaxes via recursive
+ * descent so nesting in either direction renders correctly.
  */
 function extractTextWithColorMarkers(rtfContent: string): string {
   // IMPORTANT: Parse color table BEFORE removing blocks
@@ -277,10 +285,11 @@ function extractTextWithColorMarkers(rtfContent: string): string {
   // Remove trailing closing brace, whitespace, and null characters
   content = content.replace(/\}[\s\x00]*$/, "");
 
-  // Build the output with color markers
+  // Build the output with color and italic markers
   let result = "";
   let currentColor: "red" | "blue" | "green" | null = null;
   let inColorSpan = false;
+  let inItalic = false;
   let i = 0;
 
   while (i < content.length) {
@@ -306,6 +315,26 @@ function extractTextWithColorMarkers(rtfContent: string): string {
 
         currentColor = newColor;
         i += cfMatch[0].length;
+        continue;
+      }
+
+      // \i  → italic on, \i0 → italic off, \iN (N>0) → italic on (rare).
+      // Must be checked BEFORE the catch-all control-word handler below, which
+      // silently drops every formatting code (\b, \i, \fs24, …). The negative
+      // lookahead `(?![a-zA-Z])` keeps `\itap`, `\info`, `\intbl`, `\insrsid`,
+      // etc. from matching this branch — the optional digit group `(-?\d+)?`
+      // captures the toggle argument when present.
+      const italicMatch = content.slice(i).match(/^\\i(-?\d+)?(?![a-zA-Z])/);
+      if (italicMatch) {
+        const newItalic = italicMatch[1] !== "0";
+        if (newItalic !== inItalic) {
+          result += "*";
+          inItalic = newItalic;
+        }
+        i += italicMatch[0].length;
+        // RTF terminates control words with an optional space; consume it so
+        // it isn't emitted as a stray leading/trailing space inside the marker.
+        if (i < content.length && content[i] === " ") i += 1;
         continue;
       }
 
@@ -342,11 +371,15 @@ function extractTextWithColorMarkers(rtfContent: string): string {
 
         // Handle special characters
         if (controlWord === "par") {
-          // Close any open span before paragraph
+          // Close any open spans before paragraph
           if (inColorSpan) {
             result += "}}";
             inColorSpan = false;
             currentColor = null;
+          }
+          if (inItalic) {
+            result += "*";
+            inItalic = false;
           }
           result += "\n";
         } else if (controlWord === "tab") {
@@ -437,9 +470,12 @@ function extractTextWithColorMarkers(rtfContent: string): string {
     i++;
   }
 
-  // Close any remaining open span
+  // Close any remaining open spans
   if (inColorSpan) {
     result += "}}";
+  }
+  if (inItalic) {
+    result += "*";
   }
 
   // Clean up the result
@@ -588,7 +624,7 @@ async function main() {
 
   let query = supabase
     .from("words")
-    .select("id, legacy_refn, memory_trigger_text, headword, audio_url_trigger")
+    .select("id, legacy_refn, memory_trigger_text, category, headword, audio_url_trigger")
     .gte("legacy_refn", refnMin)
     .lte("legacy_refn", refnMax)
     .not("legacy_refn", "is", null);
@@ -619,7 +655,7 @@ async function main() {
   let noFile = 0;
   let noColor = 0;
 
-  const updates: { id: string; memory_trigger_text: string; headword: string }[] = [];
+  const updates: { id: string; value: string; headword: string }[] = [];
 
   for (const word of words) {
     processed++;
@@ -638,31 +674,34 @@ async function main() {
     // Parse the RTF and extract text with color markers
     const markedText = extractTextWithColorMarkers(rtfContent);
 
-    // Check if any color markers were added
-    if (!markedText.includes("{{")) {
+    // Check if any markers were added (color {{...}} or italic *...*)
+    if (!markedText.includes("{{") && !markedText.includes("*")) {
       noColor++;
       if (dryRun && processed <= 20) {
-        console.log(`[${processed}] No colors found in RTF for: ${word.headword} (refn: ${word.legacy_refn})`);
+        console.log(`[${processed}] No markers found in RTF for: ${word.headword} (refn: ${word.legacy_refn})`);
       }
       continue;
     }
 
+    // All categories now use memory_trigger_text.
+    const currentText = word.memory_trigger_text;
+
     // Check if the text changed
-    if (markedText === word.memory_trigger_text) {
+    if (markedText === currentText) {
       skipped++;
       continue;
     }
 
     updates.push({
       id: word.id,
-      memory_trigger_text: markedText,
+      value: markedText,
       headword: word.headword,
     });
     updated++;
 
     if (dryRun) {
-      console.log(`\n[${processed}] ${word.headword} (refn: ${word.legacy_refn})`);
-      console.log("  Current:", word.memory_trigger_text?.slice(0, 80) || "(empty)");
+      console.log(`\n[${processed}] ${word.headword} (refn: ${word.legacy_refn}) -> memory_trigger_text`);
+      console.log("  Current:", currentText?.slice(0, 80) || "(empty)");
       console.log("  New:    ", markedText.slice(0, 80));
     }
   }
@@ -694,7 +733,7 @@ async function main() {
       for (const update of batch) {
         const { error: updateError } = await supabase
           .from("words")
-          .update({ memory_trigger_text: update.memory_trigger_text })
+          .update({ memory_trigger_text: update.value })
           .eq("id", update.id);
 
         if (updateError) {
