@@ -36,7 +36,8 @@ export async function getLanguagesWithCourses(): Promise<LanguageWithCourses[]> 
     .from("courses")
     .select("id, name, level, thumbnail_url, word_count, language_id")
     .eq("is_published", true)
-    .order("sort_order");
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   if (courseError) {
     console.error("Error fetching courses:", courseError);

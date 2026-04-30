@@ -18,7 +18,8 @@ async function getData() {
       language:languages(id, name, code),
       lessons:lessons(count)
     `)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   // Fetch all lessons with word count
   const { data: lessons } = await supabase

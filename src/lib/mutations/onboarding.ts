@@ -51,6 +51,7 @@ export async function addLanguageWithCourse(
     .eq("language_id", languageId)
     .eq("is_published", true)
     .order("sort_order", { ascending: true })
+    .order("name", { ascending: true })
     .limit(1);
 
   if (courseError) {

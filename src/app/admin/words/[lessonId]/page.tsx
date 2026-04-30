@@ -52,7 +52,8 @@ async function getData(lessonId: string) {
   const { data: allCourses } = await supabase
     .from("courses")
     .select("id, name, language_id")
-    .order("sort_order");
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   // Fetch words via lesson_words join table
   const { data: lessonWords, error: wordsError } = await supabase

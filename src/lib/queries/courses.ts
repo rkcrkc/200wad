@@ -70,7 +70,8 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     .select("*")
     .eq("language_id", languageId)
     .eq("is_published", true)
-    .order("sort_order");
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
 
   if (coursesError) {
     console.error("Error fetching courses:", coursesError);
