@@ -688,36 +688,56 @@ export function WordDetailView({
                 <div className="flex flex-col gap-5 p-6">
                   {/* Trigger text */}
                   {triggerText && (
-                    <button
-                      onClick={handlePlayTrigger}
-                      className="flex cursor-pointer items-center gap-4 text-left"
-                    >
-                      <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
-                      <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
-                        {parseFormattedText(triggerText, {
-                          gender: word.gender,
-                          headword: word.headword,
-                          isPlaying: isPlayingTrigger,
-                          paragraphs: false,
-                        })}
-                      </p>
-                    </button>
+                    word.category === "fact" ? (
+                      // Fact body: plain text, block formatting (headings/lists),
+                      // no audio button (matches study/test mode horizontal layout).
+                      <div className={isSidebar ? "space-y-4 text-base leading-relaxed text-foreground" : "space-y-4 text-lg leading-relaxed text-foreground"}>
+                        {parseFormattedText(triggerText, { gender: word.gender })}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handlePlayTrigger}
+                        className="flex cursor-pointer items-center gap-4 text-left"
+                      >
+                        <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+                        <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
+                          {parseFormattedText(triggerText, {
+                            gender: word.gender,
+                            headword: word.headword,
+                            isPlaying: isPlayingTrigger,
+                            paragraphs: false,
+                          })}
+                        </p>
+                      </button>
+                    )
                   )}
 
                   {/* Trigger image */}
                   {word.memory_trigger_image_url && (
-                    <button
-                      onClick={handlePlayTrigger}
-                      className="relative h-[300px] w-full cursor-pointer overflow-hidden rounded-lg"
-                    >
-                      <Image
-                        src={word.memory_trigger_image_url}
-                        alt="Memory trigger"
-                        fill
-                        className="object-contain"
-                        sizes="(max-width: 768px) 100vw, 500px"
-                      />
-                    </button>
+                    word.category === "fact" ? (
+                      <div className="relative h-[300px] w-full overflow-hidden rounded-lg">
+                        <Image
+                          src={word.memory_trigger_image_url}
+                          alt="Memory trigger"
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 768px) 100vw, 500px"
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handlePlayTrigger}
+                        className="relative h-[300px] w-full cursor-pointer overflow-hidden rounded-lg"
+                      >
+                        <Image
+                          src={word.memory_trigger_image_url}
+                          alt="Memory trigger"
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 768px) 100vw, 500px"
+                        />
+                      </button>
+                    )
                   )}
                 </div>
               </div>

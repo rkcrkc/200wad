@@ -152,9 +152,20 @@ export function WordDetailActionBar({
 
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
-  const label = category === "word" || posAbbrev ? posAbbrev : "";
-  const posDisplay = label && genderAbbrev ? `${label} ${genderAbbrev}` : label;
-  const posTooltipLabel = posAbbrev ? fullPartOfSpeech(partOfSpeech) : (category || "Word");
+  // Show POS abbreviation for words; show category name for facts/phrases/sentences/information
+  const label = category === "word"
+    ? posAbbrev
+    : category
+      ? category
+      : posAbbrev;
+  const posDisplay = label && genderAbbrev && category === "word"
+    ? `${label} ${genderAbbrev}`
+    : label;
+  const posTooltipLabel = category === "word"
+    ? (posAbbrev ? fullPartOfSpeech(partOfSpeech) : "")
+    : category
+      ? category.charAt(0).toUpperCase() + category.slice(1)
+      : "";
 
   const handleWordSelect = (index: number) => {
     onJumpToWord(index);
