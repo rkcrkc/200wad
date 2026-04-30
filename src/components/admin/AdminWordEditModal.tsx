@@ -1199,14 +1199,17 @@ export function AdminWordEditModal({
                   name="notes"
                   hint="The student will see these"
                 >
-                  <AdminTextarea
+                  <BodyTextSyntaxHelp defaultOpen={false} variant="multi" />
+                  <BodyTextEditor
                     id="notes"
                     name="notes"
                     value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
+                    onChange={(v) =>
+                      setFormData({ ...formData, notes: v })
                     }
                     placeholder="Grammar notes, usage tips, etc."
+                    rows={6}
+                    variant="multi"
                   />
                 </AdminFormField>
                 <AdminFormField

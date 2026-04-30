@@ -7,6 +7,8 @@ import { ExampleSentence, Word } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
+import { BodyTextEditor } from "@/components/admin/BodyTextEditor";
+import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { TipCard } from "./TipCard";
 import type { TipForWord } from "@/lib/queries/tips";
 
@@ -286,9 +288,10 @@ export function StudySidebar({
             {/* System notes */}
             {isEditingSystemNotes ? (
               <div className="flex flex-col gap-3">
-                <textarea
+                <BodyTextSyntaxHelp defaultOpen={false} variant="multi" />
+                <BodyTextEditor
                   value={systemNotesInput}
-                  onChange={(e) => setSystemNotesInput(e.target.value)}
+                  onChange={(v) => setSystemNotesInput(v)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && e.shiftKey) {
                       e.preventDefault();
@@ -296,7 +299,8 @@ export function StudySidebar({
                     }
                   }}
                   placeholder="Add system notes..."
-                  className="min-h-[80px] w-full resize-none rounded-lg border border-gray-200 p-3 text-small-regular focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  rows={5}
+                  variant="multi"
                   autoFocus
                 />
                 <div className="flex gap-2">
