@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ModalShell, ModalHeader, ModalBody } from "@/components/ui/modal-shell";
 import { useUser } from "@/context/UserContext";
 
 interface EmailVerificationReminderProps {
@@ -84,62 +85,58 @@ export function EmailVerificationReminder({
   if (!showReminder) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white">
-        {/* Header */}
-        <div className="bg-[#EDE8DF] px-8 py-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-warning/10">
-            <svg
-              className="h-6 w-6 text-warning"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
+    <ModalShell maxWidth="md" className="rounded-2xl">
+      <ModalHeader className="py-6">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-warning/10">
+          <svg
+            className="h-6 w-6 text-warning"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold">Verify your email</h2>
+      </ModalHeader>
+
+      <ModalBody>
+        <p className="mb-4 text-center text-muted-foreground">
+          Please verify your email address to continue using 200 Words a Day.
+          We sent a confirmation link to:
+        </p>
+        <p className="mb-6 text-center font-medium">{user?.email}</p>
+
+        {error && (
+          <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-center text-sm text-destructive">
+            {error}
           </div>
-          <h2 className="text-xl font-bold">Verify your email</h2>
-        </div>
+        )}
 
-        {/* Content */}
-        <div className="px-8 py-6">
-          <p className="mb-4 text-center text-muted-foreground">
-            Please verify your email address to continue using 200 Words a Day.
-            We sent a confirmation link to:
-          </p>
-          <p className="mb-6 text-center font-medium">{user?.email}</p>
+        {resent ? (
+          <div className="mb-4 rounded-lg bg-success/10 p-3 text-center text-sm text-success">
+            Verification email sent! Check your inbox.
+          </div>
+        ) : (
+          <Button
+            onClick={handleResendEmail}
+            disabled={resending}
+            className="w-full"
+            size="lg"
+          >
+            {resending ? "Sending..." : "Resend verification email"}
+          </Button>
+        )}
 
-          {error && (
-            <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-center text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          {resent ? (
-            <div className="mb-4 rounded-lg bg-success/10 p-3 text-center text-sm text-success">
-              Verification email sent! Check your inbox.
-            </div>
-          ) : (
-            <Button
-              onClick={handleResendEmail}
-              disabled={resending}
-              className="w-full"
-              size="lg"
-            >
-              {resending ? "Sending..." : "Resend verification email"}
-            </Button>
-          )}
-
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Can&apos;t find the email? Check your spam folder.
-          </p>
-        </div>
-      </div>
-    </div>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Can&apos;t find the email? Check your spam folder.
+        </p>
+      </ModalBody>
+    </ModalShell>
   );
 }
