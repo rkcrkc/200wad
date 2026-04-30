@@ -350,17 +350,26 @@ export function StudyActionBar({
   const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
   // In test mode, hide gender until answer submitted (same as foreign word)
   const showGender = !isTestMode || hasSubmittedAnswer;
-  const label = category === "word" || posAbbrev ? posAbbrev : "";
-  const posDisplay = label && genderAbbrev && showGender
+  // Show POS abbreviation for words; show category name for facts/phrases/sentences/information
+  const label = category === "word"
+    ? posAbbrev
+    : category
+      ? category
+      : posAbbrev;
+  const posDisplay = label && genderAbbrev && showGender && category === "word"
     ? `${label} ${genderAbbrev}`
     : label;
   const fullGenderName = gender === "m" ? "masculine" : gender === "f" ? "feminine" : gender === "n" ? "neuter" : gender === "mf" ? "mixed" : null;
   const isNoun = partOfSpeech?.toLowerCase().includes("noun");
-  const posTooltipLabel = posAbbrev
-    ? isNoun && fullGenderName && showGender
-      ? `${fullPartOfSpeech(partOfSpeech)} (${fullGenderName})`
-      : fullPartOfSpeech(partOfSpeech)
-    : "";
+  const posTooltipLabel = category === "word"
+    ? posAbbrev
+      ? isNoun && fullGenderName && showGender
+        ? `${fullPartOfSpeech(partOfSpeech)} (${fullGenderName})`
+        : fullPartOfSpeech(partOfSpeech)
+      : ""
+    : category
+      ? category.charAt(0).toUpperCase() + category.slice(1)
+      : "";
   return (
     <div className="px-4 py-4 sm:px-6">
       <div className="flex items-center justify-between gap-4">

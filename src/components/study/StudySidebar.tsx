@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { ExampleSentence, Word } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { saveDeveloperData, type DeveloperData } from "@/lib/mutations";
+import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { TipCard } from "./TipCard";
 import type { TipForWord } from "@/lib/queries/tips";
 
@@ -315,7 +316,9 @@ export function StudySidebar({
               </div>
             ) : displaySystemNotes ? (
               <div className="flex flex-col gap-2">
-                <p className="text-small-regular text-foreground whitespace-pre-wrap">{displaySystemNotes}</p>
+                <div className="text-small-regular text-foreground">
+                  {parseFormattedText(displaySystemNotes)}
+                </div>
                 {isAdmin && (
                   <button
                     onClick={() => {

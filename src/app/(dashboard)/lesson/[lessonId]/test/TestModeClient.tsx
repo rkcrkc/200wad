@@ -1217,24 +1217,25 @@ export function TestModeClient({
               />
             </div>
 
-            {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-            <div className="flex gap-4">
-              <div className="flex w-[700px] flex-col gap-4">
+            {currentWord?.category === "fact" ? (
+              <>
+                {/* Fact page: Memory Trigger (horizontal) full width, sidebar full width below */}
                 {imageMode === "memory-trigger" ? (
                   <MemoryTriggerCard
                     imageUrl={currentWord?.memory_trigger_image_url}
                     triggerText={currentWord?.memory_trigger_text}
                     foreignWord={currentWord?.headword || ""}
                     gender={currentWord?.gender}
-                    isVisible={hasSubmittedAnswer}
+                    showImage={true}
+                    showTriggerText={true}
                     playingAudioType={currentAudioType}
                     onPlayTriggerAudio={() => {
                       if (currentWord?.audio_url_trigger) {
                         playAudio(currentWord.audio_url_trigger, "trigger");
                       }
                     }}
-                    clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
                     pictureOnlyMode={testTypeConfig.pictureOnlyMode}
+                    layout="horizontal"
                     wordId={currentWord?.id}
                     isEditMode={isEditMode}
                     onFieldSave={handleFieldSave}
@@ -1248,8 +1249,6 @@ export function TestModeClient({
                     clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
                   />
                 )}
-              </div>
-              <div className="flex-1">
                 <StudySidebar
                   wordId={currentWord?.id || ""}
                   systemNotes={currentWord?.notes}
@@ -1267,8 +1266,61 @@ export function TestModeClient({
                   pictureBadSvg={currentWord?.picture_bad_svg}
                   notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
                 />
+              </>
+            ) : (
+              /* Two columns: Memory Trigger (left), Notes/Sentences (right) */
+              <div className="flex gap-4">
+                <div className="flex w-[700px] flex-col gap-4">
+                  {imageMode === "memory-trigger" ? (
+                    <MemoryTriggerCard
+                      imageUrl={currentWord?.memory_trigger_image_url}
+                      triggerText={currentWord?.memory_trigger_text}
+                      foreignWord={currentWord?.headword || ""}
+                      gender={currentWord?.gender}
+                      isVisible={hasSubmittedAnswer}
+                      playingAudioType={currentAudioType}
+                      onPlayTriggerAudio={() => {
+                        if (currentWord?.audio_url_trigger) {
+                          playAudio(currentWord.audio_url_trigger, "trigger");
+                        }
+                      }}
+                      clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
+                      pictureOnlyMode={testTypeConfig.pictureOnlyMode}
+                      wordId={currentWord?.id}
+                      isEditMode={isEditMode}
+                      onFieldSave={handleFieldSave}
+                      onImageUpload={handleImageUpload}
+                    />
+                  ) : (
+                    <FlashcardCard
+                      imageUrl={currentWord?.flashcard_image_url || null}
+                      englishWord={currentWord?.english || ""}
+                      isVisible={hasSubmittedAnswer}
+                      clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
+                    />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <StudySidebar
+                    wordId={currentWord?.id || ""}
+                    systemNotes={currentWord?.notes}
+                    userNotes={currentUserNotes}
+                    exampleSentences={currentWord?.exampleSentences}
+                    relatedWords={currentWord?.relatedWords}
+                    isEnabled={hasSubmittedAnswer}
+                    onUserNotesChange={handleUserNotesChange}
+                    isAdmin={isAdmin}
+                    onSystemNotesChange={handleSystemNotesChange}
+                    developerNotes={currentWord?.developer_notes}
+                    pictureWrong={currentWord?.picture_wrong}
+                    pictureWrongNotes={currentWord?.picture_wrong_notes}
+                    pictureMissing={currentWord?.picture_missing}
+                    pictureBadSvg={currentWord?.picture_bad_svg}
+                    notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

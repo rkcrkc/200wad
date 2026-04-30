@@ -186,6 +186,7 @@ export function StudyModeClient({
   const currentWord = localWords[currentWordIndex];
   const isLastWord = currentWordIndex === localWords.length - 1;
   const isInformationPage = currentWord.category === "information";
+  const isFactPage = currentWord.category === "fact";
 
   // Initialize study session (always fresh - study mode is sandboxed)
   useEffect(() => {
@@ -469,8 +470,8 @@ export function StudyModeClient({
 
   // Trigger breathing cycle when word changes or restart is pressed
   useEffect(() => {
-    // Skip if breathing mode is disabled or for information pages
-    if (!breathingModeEnabled || isInformationPage) {
+    // Skip if breathing mode is disabled or for information/fact pages (no audio)
+    if (!breathingModeEnabled || isInformationPage || isFactPage) {
       return;
     }
 
@@ -977,7 +978,8 @@ export function StudyModeClient({
     phase === "show-input" ||
     phase === "show-feedback";
   const showInput = true;
-  const sidebarEnabled = phase === "show-input" || phase === "show-feedback";
+  // Fact pages have no audio reveal cycle, so show sidebar immediately
+  const sidebarEnabled = isFactPage || phase === "show-input" || phase === "show-feedback";
 
   // Derive answered word indices for sidebar checkmarks (only words with submitted answers)
   const answeredWordIndices = localWords
@@ -1023,7 +1025,7 @@ export function StudyModeClient({
               <InformationCard
                 title={currentWord.english}
                 subheading={currentWord.headword}
-                body={currentWord.information_body}
+                body={currentWord.memory_trigger_text}
                 imageUrl={currentWord.memory_trigger_image_url}
                 wordId={currentWord.id}
                 isEditMode={isEditMode}
@@ -1059,9 +1061,9 @@ export function StudyModeClient({
                   />
                 </div>
 
-                {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-                <div className="flex gap-4">
-                  <div className="flex w-[800px] flex-col gap-4">
+                {isFactPage ? (
+                  <>
+                    {/* Fact page: Memory Trigger (horizontal) full width, sidebar full width below */}
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         key={currentWord.id}
@@ -1077,6 +1079,7 @@ export function StudyModeClient({
                             playAudio(currentWord.audio_url_trigger, "trigger");
                           }
                         }}
+                        layout="horizontal"
                         wordId={currentWord.id}
                         isEditMode={isEditMode}
                         onFieldSave={handleFieldSave}
@@ -1090,8 +1093,6 @@ export function StudyModeClient({
                         isVisible={showTrigger}
                       />
                     )}
-                  </div>
-                  <div className="flex-1">
                     <StudySidebar
                       wordId={currentWord.id}
                       systemNotes={currentWord.notes}
@@ -1112,8 +1113,64 @@ export function StudyModeClient({
                       dismissedTipIds={Array.from(dismissedTipIds)}
                       onDismissTip={handleDismissTip}
                     />
+                  </>
+                ) : (
+                  /* Two columns: Memory Trigger (left), Notes/Sentences (right) */
+                  <div className="flex gap-4">
+                    <div className="flex w-[800px] flex-col gap-4">
+                      {imageMode === "memory-trigger" ? (
+                        <MemoryTriggerCard
+                          key={currentWord.id}
+                          imageUrl={currentWord.memory_trigger_image_url}
+                          triggerText={currentWord.memory_trigger_text}
+                          foreignWord={currentWord.headword}
+                          gender={currentWord.gender}
+                          showImage={true}
+                          showTriggerText={showTrigger}
+                          playingAudioType={currentAudioType}
+                          onPlayTriggerAudio={() => {
+                            if (currentWord.audio_url_trigger) {
+                              playAudio(currentWord.audio_url_trigger, "trigger");
+                            }
+                          }}
+                          wordId={currentWord.id}
+                          isEditMode={isEditMode}
+                          onFieldSave={handleFieldSave}
+                          onImageUpload={handleImageUpload}
+                        />
+                      ) : (
+                        <FlashcardCard
+                          key={currentWord.id}
+                          imageUrl={currentWord.flashcard_image_url}
+                          englishWord={currentWord.english}
+                          isVisible={showTrigger}
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <StudySidebar
+                        wordId={currentWord.id}
+                        systemNotes={currentWord.notes}
+                        userNotes={currentUserNotes}
+                        exampleSentences={currentWord.exampleSentences}
+                        relatedWords={currentWord.relatedWords}
+                        isEnabled={sidebarEnabled}
+                        onUserNotesChange={handleUserNotesChange}
+                        isAdmin={isAdmin}
+                        onSystemNotesChange={handleSystemNotesChange}
+                        developerNotes={currentWord.developer_notes}
+                        pictureWrong={currentWord.picture_wrong}
+                        pictureWrongNotes={currentWord.picture_wrong_notes}
+                        pictureMissing={currentWord.picture_missing}
+                        pictureBadSvg={currentWord.picture_bad_svg}
+                        notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
+                        tips={currentWord.tips}
+                        dismissedTipIds={Array.from(dismissedTipIds)}
+                        onDismissTip={handleDismissTip}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
           </div>

@@ -15,6 +15,7 @@ import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
 import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
+import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 
 export interface WordListItem {
   id: string;
@@ -51,10 +52,7 @@ interface WordDetailViewProps {
   showTabs?: boolean;
 }
 
-/**
- * Determine the highlight color based on word's gender.
- * Uses centralized gender color tokens from design-tokens.
- */
+/** Determine the highlight color based on word's gender. */
 function getHighlightColor(gender?: string | null): string {
   if (gender && gender in genderColor) {
     return genderColor[gender];
@@ -68,86 +66,6 @@ function getHighlightColorDark(gender?: string | null): string {
     return genderColorDark[gender];
   }
   return defaultHighlightColorDark;
-}
-
-/**
- * Parse trigger text and highlight:
- * - If text contains {{...}} markers: highlight marked text with color based on gender/partOfSpeech
- * - Otherwise: use legacy auto-detection (ALL CAPS = green, English word = blue italic)
- */
-function parseAndHighlightText(
-  text: string,
-  foreignWord: string,
-  isPlaying: boolean,
-  gender?: string | null,
-): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const highlightColor = getHighlightColor(gender);
-  const darkColor = getHighlightColorDark(gender);
-
-  // Check if text uses {{...}} marker syntax
-  if (text.includes("{{")) {
-    const regex = /\{\{([^}]+)\}\}/g;
-    let lastIndex = 0;
-    let match;
-    let keyIndex = 0;
-
-    while ((match = regex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        const beforeText = text.slice(lastIndex, match.index);
-        parts.push(
-          <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
-            {beforeText}
-          </span>
-        );
-      }
-      parts.push(
-        <span key={keyIndex++} className="font-bold" style={{ color: highlightColor }}>
-          {match[1]}
-        </span>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(
-        <span key={keyIndex++} style={{ color: isPlaying ? darkColor : "#141515" }}>
-          {text.slice(lastIndex)}
-        </span>
-      );
-    }
-    return parts;
-  }
-
-  // Legacy auto-detection mode
-  const words = text.split(/(\s+)/);
-  const cleanForeign = foreignWord.toLowerCase().replace(/[!?.,'"]/g, "");
-
-  words.forEach((word, index) => {
-    const cleanWord = word.toLowerCase().replace(/[!?.,'"]/g, "");
-
-    if (cleanWord === cleanForeign || cleanWord.includes(cleanForeign)) {
-      parts.push(
-        <span key={index} className="font-bold" style={{ color: highlightColor }}>
-          {word}
-        </span>
-      );
-    } else if (word.match(/^[A-Z]{2,}[!?.,'"]*$/) && word.trim().length > 1) {
-      parts.push(
-        <span key={index} className="font-bold" style={{ color: highlightColor }}>
-          {word}
-        </span>
-      );
-    } else {
-      parts.push(
-        <span key={index} style={{ color: isPlaying ? darkColor : "#141515" }}>
-          {word}
-        </span>
-      );
-    }
-  });
-
-  return parts;
 }
 
 export function WordDetailView({
@@ -466,7 +384,8 @@ export function WordDetailView({
     }
   }, [word.audio_url_trigger, playAudio]);
 
-  const hasMemoryTrigger = word.memory_trigger_image_url || word.memory_trigger_text;
+  const triggerText = word.memory_trigger_text;
+  const hasMemoryTrigger = word.memory_trigger_image_url || triggerText;
 
   // Handler for replay button in action bar - plays full sequence
   const handleReplay = useCallback(async () => {
@@ -768,19 +687,19 @@ export function WordDetailView({
               <div className="w-full rounded-2xl bg-white shadow-card">
                 <div className="flex flex-col gap-5 p-6">
                   {/* Trigger text */}
-                  {word.memory_trigger_text && (
+                  {triggerText && (
                     <button
                       onClick={handlePlayTrigger}
                       className="flex cursor-pointer items-center gap-4 text-left"
                     >
                       <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
                       <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
-                        {parseAndHighlightText(
-                          word.memory_trigger_text,
-                          word.headword,
-                          isPlayingTrigger,
-                          word.gender
-                        )}
+                        {parseFormattedText(triggerText, {
+                          gender: word.gender,
+                          headword: word.headword,
+                          isPlaying: isPlayingTrigger,
+                          paragraphs: false,
+                        })}
                       </p>
                     </button>
                   )}
@@ -848,7 +767,7 @@ export function WordDetailView({
                 </div>
               ) : systemNotes ? (
                 <div className="flex flex-col gap-2">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{systemNotes}</p>
+                  <div className="text-sm text-foreground">{parseFormattedText(systemNotes)}</div>
                   {isAdmin && (
                     <button
                       onClick={() => {
