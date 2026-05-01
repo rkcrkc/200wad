@@ -15,6 +15,7 @@ export { LessonStartTestModal } from "./LessonStartTestModal";
 export { BreathingIndicator } from "./BreathingIndicator";
 export { InformationCard } from "./InformationCard";
 export { InformationNextButton } from "./InformationNextButton";
+export { FactBodyCard } from "./FactBodyCard";
 
 // Type exports
 export type { AnswerInputHandle } from "./AnswerInput";

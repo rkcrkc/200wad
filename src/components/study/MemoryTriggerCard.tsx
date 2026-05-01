@@ -52,6 +52,12 @@ interface MemoryTriggerCardProps {
    * - "horizontal": trigger text on left, image on right (used for fact pages)
    */
   layout?: "stacked" | "horizontal";
+  /**
+   * When true (stacked layout only), hides the audio button + trigger text row,
+   * rendering only the image. The image is also non-clickable. Used for fact
+   * pages where the body text lives in a separate sidebar card.
+   */
+  imageOnly?: boolean;
   /** Admin edit mode props */
   wordId?: string;
   isEditMode?: boolean;
@@ -80,6 +86,7 @@ export function MemoryTriggerCard({
   clueLevel,
   pictureOnlyMode = false,
   layout = "stacked",
+  imageOnly = false,
   wordId,
   isEditMode = false,
   onFieldSave,
@@ -355,18 +362,30 @@ export function MemoryTriggerCard({
       className="w-full"
     />
   ) : showImage && imageUrl ? (
-    <button
-      onClick={onPlayTriggerAudio}
-      className="relative h-[400px] w-full cursor-pointer overflow-hidden rounded-lg"
-    >
-      <Image
-        src={imageUrl}
-        alt="Memory trigger"
-        fill
-        className="object-contain"
-        sizes="(max-width: 768px) 100vw, 730px"
-      />
-    </button>
+    imageOnly ? (
+      <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
+        <Image
+          src={imageUrl}
+          alt="Memory trigger"
+          fill
+          className="object-contain"
+          sizes="(max-width: 768px) 100vw, 730px"
+        />
+      </div>
+    ) : (
+      <button
+        onClick={onPlayTriggerAudio}
+        className="relative h-[400px] w-full cursor-pointer overflow-hidden rounded-lg"
+      >
+        <Image
+          src={imageUrl}
+          alt="Memory trigger"
+          fill
+          className="object-contain"
+          sizes="(max-width: 768px) 100vw, 730px"
+        />
+      </button>
+    )
   ) : showImage && !imageUrl ? (
     // No image but should show - show placeholder
     <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">
@@ -380,7 +399,7 @@ export function MemoryTriggerCard({
   return (
     <div className="w-full rounded-2xl bg-white shadow-card">
       <div className="flex flex-col gap-5 px-6 py-5">
-        {triggerBlock}
+        {!imageOnly && triggerBlock}
         {imageBlock}
       </div>
     </div>
