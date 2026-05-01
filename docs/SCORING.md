@@ -56,7 +56,8 @@ Points depend on both mistakes and clues used:
 
 Formula: `points = max(0, (3 - clueLevel) - mistakeCount)`
 
-Max points per word: 3 (no clues, no mistakes).
+Max points per word: **always 3**. Clues reduce `points_earned` only — they do **not**
+reduce the available maximum. A clued perfect answer is therefore 2/3, not 2/2.
 
 ## Score Letters (A-L)
 
@@ -73,7 +74,7 @@ Each word result gets a letter for analytics:
 
 - 2 clues available per word
 - Each clue reveals letters in the answer
-- Each clue used reduces max points by 1
+- Each clue used reduces `points_earned` by 1; max remains 3
 
 ## Word Mastery & Streaks
 
@@ -129,7 +130,7 @@ When enabled:
 
 Per-word historical display showing last 3 test results (oldest left, newest right):
 
-- Green: full points (`pointsEarned >= maxPoints`)
+- Green: full points (`pointsEarned === 3` — no clues, no mistakes)
 - Yellow: partial points (`pointsEarned > 0`)
 - Red: zero points
 - Gray: not yet tested

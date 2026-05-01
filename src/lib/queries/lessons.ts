@@ -118,7 +118,7 @@ async function generateAutoLessons(
     testScoreIds.length > 0
       ? supabase
           .from("test_questions")
-          .select("word_id, points_earned, max_points")
+          .select("word_id, points_earned")
           .in("test_score_id", testScoreIds)
       : Promise.resolve({ data: [] }),
   ]);
@@ -129,7 +129,8 @@ async function generateAutoLessons(
     ?.map((w) => w.word_id)
     .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
 
-  // Calculate best/worst word scores and extract sorted word IDs
+  // Calculate best/worst word scores and extract sorted word IDs.
+  // Available is always 3 per attempt; clues reduce points earned, not the max.
   const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
   bestWorstData.data?.forEach((tq) => {
     if (!tq.word_id) return;
@@ -137,7 +138,7 @@ async function generateAutoLessons(
       wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
     }
     wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-    wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+    wordScores[tq.word_id].totalMax += 3;
   });
 
   const sortedByScore = Object.entries(wordScores)

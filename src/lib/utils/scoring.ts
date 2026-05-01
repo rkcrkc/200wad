@@ -342,10 +342,14 @@ export function calculatePoints(clueLevel: 0 | 1 | 2, mistakeCount: number): num
 }
 
 /**
- * Get max possible points for a given clue level
+ * Max possible points per test attempt.
+ *
+ * Always 3, regardless of clues used. Clues reduce `pointsEarned` only
+ * (see `calculatePoints`); they do NOT reduce the available maximum.
+ * The clueLevel argument is kept for backwards-compat callsites.
  */
-export function getMaxPoints(clueLevel: 0 | 1 | 2): number {
-  return 3 - clueLevel;
+export function getMaxPoints(_clueLevel?: 0 | 1 | 2): number {
+  return 3;
 }
 
 // ============================================================================

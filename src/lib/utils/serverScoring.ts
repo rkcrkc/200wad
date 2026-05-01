@@ -58,7 +58,8 @@ export function serverScoreAllQuestions(
       q.clientPointsEarned,
       options
     );
-    const maxPoints = 3 - q.clueLevel;
+    // Max is always 3 per attempt; clues reduce points earned, not the max.
+    const maxPoints = 3;
     totalPointsEarned += pointsEarned;
     totalMaxPoints += maxPoints;
     if (!matches) hasMismatches = true;

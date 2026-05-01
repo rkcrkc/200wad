@@ -224,9 +224,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     if (testScoreIds.length > 0) {
       const { data: testQuestions } = await supabase
         .from("test_questions")
-        .select("word_id, points_earned, max_points")
+        .select("word_id, points_earned")
         .in("test_score_id", testScoreIds);
 
+      // Available is always 3 per attempt; clues reduce points earned, not the max.
       const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
       testQuestions?.forEach((tq) => {
         if (!tq.word_id) return;
@@ -234,7 +235,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
         }
         wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-        wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+        wordScores[tq.word_id].totalMax += 3;
       });
 
       // Pick 4 words with worst average score (only from studied words)
@@ -418,7 +419,8 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       if (!wordId) return;
 
       const pointsEarned = tq.points_earned ?? 0;
-      const maxPoints = tq.max_points ?? 3;
+      // Available is always 3 per attempt; clues reduce points earned, not the max.
+      const maxPoints = 3;
 
       // Initialize structures if needed
       if (!testHistoryByWord[wordId]) {
@@ -580,7 +582,8 @@ export async function getWord(wordId: string): Promise<{
 
     (testQuestions || []).forEach((tq, index) => {
       const pointsEarned = tq.points_earned ?? 0;
-      const maxPoints = tq.max_points ?? 3;
+      // Available is always 3 per attempt; clues reduce points earned, not the max.
+      const maxPoints = 3;
 
       totalPointsEarned += pointsEarned;
       totalMaxPoints += maxPoints;
@@ -778,10 +781,11 @@ async function getAutoLessonWords(
     // No word_id filter needed — test_score_ids are already scoped to this course.
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("word_id, points_earned, max_points")
+      .select("word_id, points_earned")
       .in("test_score_id", testScoreIds);
 
-    // Calculate average score per word
+    // Calculate average score per word.
+    // Available is always 3 per attempt; clues reduce points earned, not the max.
     const wordScores: Record<string, { totalEarned: number; totalMax: number; avgPercent: number }> = {};
     testQuestions?.forEach((tq) => {
       if (!tq.word_id) return;
@@ -789,7 +793,7 @@ async function getAutoLessonWords(
         wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0, avgPercent: 0 };
       }
       wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-      wordScores[tq.word_id].totalMax += tq.max_points ?? 3;
+      wordScores[tq.word_id].totalMax += 3;
     });
 
     // Calculate percentages and sort
@@ -923,7 +927,8 @@ async function getAutoLessonWords(
     if (!wordId) return;
 
     const pointsEarned = tq.points_earned ?? 0;
-    const maxPoints = tq.max_points ?? 3;
+    // Available is always 3 per attempt; clues reduce points earned, not the max.
+    const maxPoints = 3;
 
     if (!testHistoryByWord[wordId]) {
       testHistoryByWord[wordId] = [];
