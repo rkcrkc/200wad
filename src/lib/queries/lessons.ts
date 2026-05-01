@@ -65,6 +65,57 @@ const AUTO_LESSON_DEFINITIONS: {
 ];
 
 /**
+ * Pick the top N word IDs by avg test score (descending for "best",
+ * ascending for "worst"). Ties are broken deterministically by word_id
+ * (UUID string, ascending) so the same input always produces the same
+ * output and different call sites stay in sync.
+ *
+ * For "worst", words that are already mastered are excluded before the
+ * slice — mastered words shouldn't show up in the practice pool.
+ *
+ * Available points are always 3 per attempt — clues reduce points earned,
+ * not the max.
+ */
+export function selectBestWorstWordIds(
+  testQuestions: Array<{ word_id: string | null; points_earned: number | null }>,
+  type: "best" | "worst",
+  masteredWordIds: Set<string>,
+  limit = 20,
+): string[] {
+  const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
+  testQuestions.forEach((tq) => {
+    if (!tq.word_id) return;
+    if (!wordScores[tq.word_id]) {
+      wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
+    }
+    wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
+    wordScores[tq.word_id].totalMax += 3;
+  });
+
+  const scored = Object.entries(wordScores).map(([wordId, scores]) => ({
+    wordId,
+    avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
+  }));
+
+  scored.sort((a, b) => {
+    const primary =
+      type === "best"
+        ? b.avgPercent - a.avgPercent
+        : a.avgPercent - b.avgPercent;
+    if (primary !== 0) return primary;
+    // Stable, deterministic tiebreak by word_id (UUID string)
+    return a.wordId.localeCompare(b.wordId);
+  });
+
+  const filtered =
+    type === "worst"
+      ? scored.filter((w) => !masteredWordIds.has(w.wordId))
+      : scored;
+
+  return filtered.slice(0, limit).map((w) => w.wordId);
+}
+
+/**
  * Generate virtual auto-lessons for a course based on user data
  */
 async function generateAutoLessons(
@@ -102,8 +153,11 @@ async function generateAutoLessons(
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
-  // Get word IDs and test data for each auto-lesson type in parallel
-  const [notesResult, bestWorstData] = await Promise.all([
+  // Fetch notes word IDs, best/worst test data, and the user's per-word
+  // status all in parallel. We need masteredWordIds before computing the
+  // "worst" pool (mastered words are excluded), so it has to be available
+  // by the time `selectBestWorstWordIds` is called.
+  const [notesResult, bestWorstData, wordProgressData] = await Promise.all([
     // Fetch word IDs with user notes. No word_id filter — pushing ~1k UUIDs
     // through PostgREST silently returns empty on long URLs. The
     // `user_notes is not null` predicate already bounds this to a small set.
@@ -121,55 +175,11 @@ async function generateAutoLessons(
           .select("word_id, points_earned")
           .in("test_score_id", testScoreIds)
       : Promise.resolve({ data: [] }),
-  ]);
 
-  // Intersect notes client-side with this course's words.
-  const courseWordIdSet = new Set(courseWordIds);
-  const notesWordIds = notesResult.data
-    ?.map((w) => w.word_id)
-    .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
-
-  // Calculate best/worst word scores and extract sorted word IDs.
-  // Available is always 3 per attempt; clues reduce points earned, not the max.
-  const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
-  bestWorstData.data?.forEach((tq) => {
-    if (!tq.word_id) return;
-    if (!wordScores[tq.word_id]) {
-      wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
-    }
-    wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-    wordScores[tq.word_id].totalMax += 3;
-  });
-
-  const sortedByScore = Object.entries(wordScores)
-    .map(([wordId, scores]) => ({
-      wordId,
-      avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
-    }))
-    .sort((a, b) => a.avgPercent - b.avgPercent);
-
-  const worstWordIds = sortedByScore.map((w) => w.wordId);
-  const bestWordIds = [...sortedByScore].reverse().slice(0, 20).map((w) => w.wordId);
-
-  const wordIdsByType: Record<AutoLessonType, string[]> = {
-    notes: notesWordIds,
-    best: bestWordIds,
-    worst: worstWordIds,
-  };
-
-  // Query word progress for all auto-lesson words (learning, learned, mastered)
-  const allAutoWordIds = [...new Set([...notesWordIds, ...bestWordIds, ...worstWordIds])];
-  const masteredWordIds = new Set<string>();
-  const learnedWordIds = new Set<string>();
-  const learningWordIds = new Set<string>();
-
-  if (allAutoWordIds.length > 0) {
-    // Scope by user_id only. `allAutoWordIds` can include every "worst"
-    // word in the course (1500+ UUIDs), and passing that many through
-    // `.in("word_id", …)` creates a ~55KB URL that PostgREST silently
-    // returns empty for. Paginate via .range() and intersect client-side.
-    const allAutoWordIdSet = new Set(allAutoWordIds);
-    const wordProgress = await fetchAllRows<{ word_id: string | null; status: string | null }>(
+    // Per-word status. Scope by user_id + status only and paginate via
+    // .range() — pushing every course word_id through `.in(…)` creates a
+    // multi-KB URL that PostgREST silently returns empty for.
+    fetchAllRows<{ word_id: string | null; status: string | null }>(
       (from, to) =>
         supabase
           .from("user_word_progress")
@@ -178,20 +188,45 @@ async function generateAutoLessons(
           .in("status", ["learning", "learned", "mastered"])
           .range(from, to),
       { label: "generateAutoLessons:user_word_progress" }
-    );
+    ),
+  ]);
 
-    wordProgress.forEach((wp) => {
-      if (!wp.word_id || !allAutoWordIdSet.has(wp.word_id)) return;
-      if (wp.status === "mastered") masteredWordIds.add(wp.word_id);
-      if (wp.status === "learned") learnedWordIds.add(wp.word_id);
-      if (wp.status === "learning") learningWordIds.add(wp.word_id);
-    });
-  }
+  // Intersect notes client-side with this course's words.
+  const courseWordIdSet = new Set(courseWordIds);
+  const notesWordIds = notesResult.data
+    ?.map((w) => w.word_id)
+    .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
 
-  // Exclude mastered words from worst words and cap at 20
-  wordIdsByType.worst = worstWordIds
-    .filter((id) => !masteredWordIds.has(id))
-    .slice(0, 20);
+  // Build per-status sets, scoped to this course's words.
+  const masteredWordIds = new Set<string>();
+  const learnedWordIds = new Set<string>();
+  const learningWordIds = new Set<string>();
+  wordProgressData.forEach((wp) => {
+    if (!wp.word_id || !courseWordIdSet.has(wp.word_id)) return;
+    if (wp.status === "mastered") masteredWordIds.add(wp.word_id);
+    if (wp.status === "learned") learnedWordIds.add(wp.word_id);
+    if (wp.status === "learning") learningWordIds.add(wp.word_id);
+  });
+
+  // Best/Worst word IDs come from the shared helper so the All-Lessons
+  // summary and the lesson detail page always agree on which 20 words
+  // each auto-lesson contains.
+  const bestWordIds = selectBestWorstWordIds(
+    bestWorstData.data ?? [],
+    "best",
+    masteredWordIds,
+  );
+  const worstWordIds = selectBestWorstWordIds(
+    bestWorstData.data ?? [],
+    "worst",
+    masteredWordIds,
+  );
+
+  const wordIdsByType: Record<AutoLessonType, string[]> = {
+    notes: notesWordIds,
+    best: bestWordIds,
+    worst: worstWordIds,
+  };
 
   // Generate auto-lesson objects with live mastery data
   const now = new Date().toISOString();

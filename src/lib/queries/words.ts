@@ -8,7 +8,7 @@ import {
   UserWordProgress,
   Word,
 } from "@/types/database";
-import { isAutoLesson, parseAutoLessonId, AutoLessonType } from "./lessons";
+import { isAutoLesson, parseAutoLessonId, AutoLessonType, selectBestWorstWordIds } from "./lessons";
 import { getTipsForWords, type TipForWord } from "./tips";
 
 // Helper function to extract course without nested relations
@@ -778,62 +778,43 @@ async function getAutoLessonWords(
       return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
     }
 
-    // No word_id filter needed — test_score_ids are already scoped to this course.
-    const { data: testQuestions } = await supabase
-      .from("test_questions")
-      .select("word_id, points_earned")
-      .in("test_score_id", testScoreIds);
+    // Fetch test_questions and (for "worst") mastered word IDs in parallel.
+    // No word_id filter on test_questions — test_score_ids already scope to
+    // this course. The mastered fetch paginates by user_id + status because
+    // pushing every course word_id through `.in(…)` creates a multi-KB URL
+    // that PostgREST silently returns empty for.
+    const [testQuestionsResult, masteredProgress] = await Promise.all([
+      supabase
+        .from("test_questions")
+        .select("word_id, points_earned")
+        .in("test_score_id", testScoreIds),
+      type === "worst"
+        ? fetchAllRows<{ word_id: string | null }>(
+            (from, to) =>
+              supabase
+                .from("user_word_progress")
+                .select("word_id")
+                .eq("user_id", userId)
+                .eq("status", "mastered")
+                .range(from, to),
+            { label: "getAutoLessonWords:worst:user_word_progress" }
+          )
+        : Promise.resolve([] as { word_id: string | null }[]),
+    ]);
 
-    // Calculate average score per word.
-    // Available is always 3 per attempt; clues reduce points earned, not the max.
-    const wordScores: Record<string, { totalEarned: number; totalMax: number; avgPercent: number }> = {};
-    testQuestions?.forEach((tq) => {
-      if (!tq.word_id) return;
-      if (!wordScores[tq.word_id]) {
-        wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0, avgPercent: 0 };
-      }
-      wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-      wordScores[tq.word_id].totalMax += 3;
-    });
+    const masteredWordIds = new Set(
+      masteredProgress
+        .map((wp) => wp.word_id)
+        .filter((id): id is string => !!id)
+    );
 
-    // Calculate percentages and sort
-    const sortedWords = Object.entries(wordScores)
-      .map(([wordId, scores]) => ({
-        wordId,
-        avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
-      }))
-      .sort((a, b) => type === "best" ? b.avgPercent - a.avgPercent : a.avgPercent - b.avgPercent);
-
-    // For worst words, exclude mastered words before taking top 20. Scope by
-    // user_id + status only; `sortedWords` can carry every tested word in the
-    // course, so `.in("word_id", …)` would produce a ~55KB URL that PostgREST
-    // silently returns empty for. Paginate via .range() and intersect with
-    // the sorted-score set client-side.
-    if (type === "worst") {
-      const candidateSet = new Set(sortedWords.map((w) => w.wordId));
-      const masteredProgress = await fetchAllRows<{ word_id: string | null }>(
-        (from, to) =>
-          supabase
-            .from("user_word_progress")
-            .select("word_id")
-            .eq("user_id", userId)
-            .eq("status", "mastered")
-            .range(from, to),
-        { label: "getAutoLessonWords:worst:user_word_progress" }
-      );
-
-      const masteredIds = new Set(
-        masteredProgress
-          .map((wp) => wp.word_id)
-          .filter((id): id is string => !!id && candidateSet.has(id))
-      );
-      targetWordIds = sortedWords
-        .filter((w) => !masteredIds.has(w.wordId))
-        .slice(0, 20)
-        .map((w) => w.wordId);
-    } else {
-      targetWordIds = sortedWords.slice(0, 20).map((w) => w.wordId);
-    }
+    // Shared helper guarantees the same 20 words as the All-Lessons summary
+    // for both "best" and "worst" (deterministic tiebreaker by word_id).
+    targetWordIds = selectBestWorstWordIds(
+      testQuestionsResult.data ?? [],
+      type,
+      masteredWordIds,
+    );
   }
 
   if (targetWordIds.length === 0) {
