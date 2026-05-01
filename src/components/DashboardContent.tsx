@@ -10,6 +10,7 @@ import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context
 import { SubscriptionProvider, type SimpleSubscription } from "@/context/SubscriptionContext";
 import { TextProvider } from "@/context/TextContext";
 import { WordPreviewProvider } from "@/context/WordPreviewContext";
+import { UpgradeModalProvider } from "@/context/UpgradeModalContext";
 import type { PricingPlan } from "@/types/database";
 import type { SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 
@@ -186,24 +187,26 @@ export function DashboardContent({
     <CourseProvider>
       <SubscriptionProvider subscriptions={subscriptions}>
         <TextProvider overrides={textOverrides}>
-          <WordPreviewProvider>
-            <DefaultContextSetter context={defaultCourseContext} />
-            <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
-            <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
-            <div className="h-screen overflow-visible pt-[72px]">
-              <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
-                {children}
-              </main>
-            </div>
-            <UpgradeModalWithContext
-              isOpen={upgradeModalOpen}
-              onClose={handleCloseUpgradeModal}
-              plans={plans}
-              enabledTiers={enabledTiers}
-              freeLessons={displayInfo?.freeLessons}
-            />
-            {!showPreviewMode && <EmailVerificationReminder />}
-          </WordPreviewProvider>
+          <UpgradeModalProvider openUpgradeModal={handleViewPlans}>
+            <WordPreviewProvider>
+              <DefaultContextSetter context={defaultCourseContext} />
+              <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+              <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+              <div className="h-screen overflow-visible pt-[72px]">
+                <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
+                  {children}
+                </main>
+              </div>
+              <UpgradeModalWithContext
+                isOpen={upgradeModalOpen}
+                onClose={handleCloseUpgradeModal}
+                plans={plans}
+                enabledTiers={enabledTiers}
+                freeLessons={displayInfo?.freeLessons}
+              />
+              {!showPreviewMode && <EmailVerificationReminder />}
+            </WordPreviewProvider>
+          </UpgradeModalProvider>
         </TextProvider>
       </SubscriptionProvider>
     </CourseProvider>

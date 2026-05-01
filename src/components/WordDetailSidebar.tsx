@@ -37,6 +37,8 @@ interface WordDetailSidebarProps {
   wordList: WordListItem[];
   isAdmin?: boolean;
   showProgress?: boolean;
+  /** When true, hides the memory trigger and shows an upgrade overlay instead. */
+  isLocked?: boolean;
 }
 
 const SIDEBAR_SIZES = [
@@ -71,6 +73,7 @@ export function WordDetailSidebar({
   wordList,
   isAdmin = false,
   showProgress = true,
+  isLocked = false,
 }: WordDetailSidebarProps) {
   const { t, tt } = useText();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -236,6 +239,7 @@ export function WordDetailSidebar({
             isAdmin={isAdmin}
             layout="sidebar"
             autoPlayAudio={false}
+            isLocked={isLocked}
           />
         </div>
 

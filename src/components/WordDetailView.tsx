@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
 import { fetchWordLessons } from "@/lib/actions/words";
 import { useAudio } from "@/hooks/useAudio";
@@ -16,6 +16,7 @@ import { FlashcardCard } from "@/components/study/FlashcardCard";
 import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
+import { useUpgradeModal } from "@/context/UpgradeModalContext";
 
 export interface WordListItem {
   id: string;
@@ -50,6 +51,8 @@ interface WordDetailViewProps {
   autoPlayAudio?: boolean;
   /** Whether to show the Word/Test History tabs in sidebar layout (default true) */
   showTabs?: boolean;
+  /** When true, hides the memory trigger and shows an upgrade overlay instead. */
+  isLocked?: boolean;
 }
 
 /** Determine the highlight color based on word's gender. */
@@ -87,9 +90,11 @@ export function WordDetailView({
   layout = "page",
   autoPlayAudio = true,
   showTabs = true,
+  isLocked = false,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
+  const upgradeModal = useUpgradeModal();
 
   // Handle back navigation - go to dictionary if accessed from there
   const handleBackClick = useCallback(() => {
@@ -682,6 +687,107 @@ export function WordDetailView({
         {/* Left column - Memory Trigger or Flashcard */}
         <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
+            isLocked && hasMemoryTrigger ? (
+              // Locked state — trigger text is fully visible; only the image is
+              // blurred behind the upgrade CTA.
+              <div className="w-full rounded-2xl bg-white shadow-card">
+                <div className="flex flex-col gap-5 p-6">
+                  {/* Trigger text — rendered identically to the unlocked card */}
+                  {triggerText && (
+                    word.category === "fact" ? (
+                      <div className={isSidebar ? "space-y-4 text-base leading-relaxed text-foreground" : "space-y-4 text-lg leading-relaxed text-foreground"}>
+                        {parseFormattedText(triggerText, { gender: word.gender })}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handlePlayTrigger}
+                        className="flex cursor-pointer items-center gap-4 text-left"
+                      >
+                        <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+                        <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
+                          {parseFormattedText(triggerText, {
+                            gender: word.gender,
+                            headword: word.headword,
+                            isPlaying: isPlayingTrigger,
+                            paragraphs: false,
+                          })}
+                        </p>
+                      </button>
+                    )
+                  )}
+
+                  {/* Trigger image — blurred with CTA on top */}
+                  {word.memory_trigger_image_url ? (
+                    <div className="relative h-[300px] w-full overflow-hidden rounded-lg">
+                      <Image
+                        src={word.memory_trigger_image_url}
+                        alt="Memory trigger"
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, 500px"
+                      />
+                      {/* Translucent overlay only over the picture */}
+                      <div className="absolute inset-0 bg-white/40 backdrop-blur-md" />
+                      {/* CTA centred on top of the picture overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center p-6">
+                        <div className="flex flex-col items-center gap-3 rounded-xl bg-white px-5 py-4 text-center shadow-card">
+                          <Lock className="h-6 w-6 text-foreground" />
+                          <div className="flex flex-col items-center gap-1">
+                            <p className="text-regular-semibold text-foreground">
+                              Memory trigger locked
+                            </p>
+                            <p className="max-w-xs text-sm text-foreground/70">
+                              Upgrade to view this word&rsquo;s memory trigger.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (upgradeModal) {
+                                upgradeModal.openUpgradeModal();
+                              } else {
+                                router.push("/account/subscriptions");
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            Upgrade to view
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // No image — show CTA inline so users still see the upgrade path
+                    <div className="flex flex-col items-center gap-3 rounded-xl bg-white px-5 py-4 text-center">
+                      <Lock className="h-6 w-6 text-foreground" />
+                      <div className="flex flex-col items-center gap-1">
+                        <p className="text-regular-semibold text-foreground">
+                          Memory trigger locked
+                        </p>
+                        <p className="max-w-xs text-sm text-foreground/70">
+                          Upgrade to view this word&rsquo;s memory trigger.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (upgradeModal) {
+                            upgradeModal.openUpgradeModal();
+                          } else {
+                            router.push("/account/subscriptions");
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Upgrade to view
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
             // Memory Trigger mode
             hasMemoryTrigger && (
               <div className="w-full rounded-2xl bg-white shadow-card">
@@ -741,6 +847,7 @@ export function WordDetailView({
                   )}
                 </div>
               </div>
+            )
             )
           ) : (
             // Flashcard mode

@@ -56,6 +56,8 @@ interface PanelState {
   lessons: AdjacentLesson[];
   wordList: WordPreviewListItem[] | null;
   currentIndex: number;
+  /** True when every lesson containing this word is locked for the user. */
+  isLocked: boolean;
 }
 
 export function WordPreviewProvider({ children }: { children: ReactNode }) {
@@ -91,7 +93,7 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
       providedNumber?: number
     ) => {
       const token = ++fetchTokenRef.current;
-      const { word, lessonId, lessonTitle, lessonNumber, lessons } =
+      const { word, lessonId, lessonTitle, lessonNumber, lessons, isLocked } =
         await fetchWordPreview(id);
       if (token !== fetchTokenRef.current) return;
 
@@ -112,6 +114,7 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
         lessons,
         wordList: list,
         currentIndex: index,
+        isLocked,
       });
     },
     [buildUrl, router]
@@ -136,6 +139,7 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
               lessons: [],
               wordList: list,
               currentIndex: index,
+              isLocked: false,
             }
       );
 
@@ -224,6 +228,7 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
             lessons: [],
             wordList: opts?.wordList ?? null,
             currentIndex: opts?.currentIndex ?? 0,
+            isLocked: false,
           }
     );
     // We intentionally only depend on urlWordId — panel changes shouldn't retrigger
@@ -286,6 +291,7 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
           }
           isAdmin={isAdmin}
           showProgress={hasList}
+          isLocked={panel.isLocked}
         />
       )}
     </WordPreviewContext.Provider>

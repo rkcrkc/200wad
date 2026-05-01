@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
@@ -76,7 +77,31 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showStats, setShowStats] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [lockedLesson, setLockedLesson] = useState<LessonWithProgress | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-open the UpgradeModal when arriving via a redirect from a locked
+  // lesson (e.g. clicking the lesson chip in the word-preview sidebar header).
+  // The redirect carries `?upgrade-lesson=<lessonId>`. We resolve it lazily on
+  // first render, then strip the param so refresh doesn't re-open the modal.
+  const [lockedLesson, setLockedLesson] = useState<LessonWithProgress | null>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const params = new URLSearchParams(window.location.search);
+      const lessonId = params.get("upgrade-lesson");
+      if (!lessonId) return null;
+      return lessons.find((l) => l.id === lessonId) ?? null;
+    }
+  );
+
+  useEffect(() => {
+    if (!searchParams.get("upgrade-lesson")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("upgrade-lesson");
+    const qs = params.toString();
+    const newPath = window.location.pathname + (qs ? `?${qs}` : "");
+    router.replace(newPath, { scroll: false });
+  }, [router, searchParams]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {

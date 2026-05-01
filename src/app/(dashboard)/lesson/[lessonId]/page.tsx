@@ -35,7 +35,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
     );
     if (!access.hasAccess) {
-      redirect(`/course/${course.id}?locked=${encodeURIComponent(lesson.title)}`);
+      redirect(`/course/${course.id}?upgrade-lesson=${encodeURIComponent(lesson.id)}`);
     }
   }
 

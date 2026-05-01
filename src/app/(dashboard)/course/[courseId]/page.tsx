@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { LessonsList } from "@/components/LessonsList";
@@ -6,7 +5,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { CourseStatsBar } from "@/components/CourseStatsBar";
-import { LockedLessonToast } from "@/components/LockedLessonToast";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
 
@@ -40,8 +38,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const languageFlag = getFlagFromCode(language?.code);
 
   return (
-    <>
-    <Suspense><LockedLessonToast /></Suspense>
     <PageShell withTopPadding={false} className="pt-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -78,6 +74,5 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <GuestCTA title="Sign up to save your learning progress" />
       )}
     </PageShell>
-    </>
   );
 }
