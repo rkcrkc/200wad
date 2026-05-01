@@ -46,8 +46,8 @@ const LEGEND_CONFIG: Record<
   },
   performance: {
     items: [
-      { color: "#00c950", label: "Course completion % (left axis)" },
-      { color: "#0b6cff", label: "Words per day rate (right axis)" },
+      { color: "#00c950", label: "Course completion % (right axis)" },
+      { color: "#0b6cff", label: "Words per day rate (left axis)" },
     ],
   },
 };
@@ -243,28 +243,28 @@ export function LearningChart({ data }: LearningChartProps) {
       );
     }
 
-    // performance: dual Y-axis — completion % on left, WPD on right
+    // performance: dual Y-axis — WPD on left, completion % on right
     return (
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart data={chartPoints}>
           <XAxis {...xAxisProps} />
           <YAxis
             yAxisId="left"
-            domain={[0, 100]}
-            ticks={[0, 20, 40, 60, 80, 100]}
-            tickFormatter={(v: number) => `${v}%`}
+            domain={[0, 250]}
+            ticks={[0, 50, 100, 150, 200, 250]}
             {...yAxisProps}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            domain={[0, 250]}
-            ticks={[0, 50, 100, 150, 200, 250]}
+            domain={[0, 100]}
+            ticks={[0, 20, 40, 60, 80, 100]}
+            tickFormatter={(v: number) => `${v}%`}
             {...yAxisProps}
           />
           <RechartsTooltip content={<CustomTooltip />} />
           {/* Grid lines — CartesianGrid doesn't work with dual Y-axes */}
-          {[20, 40, 60, 80].map((v) => (
+          {[50, 100, 150, 200].map((v) => (
             <ReferenceLine
               key={v}
               yAxisId="left"
@@ -273,32 +273,36 @@ export function LearningChart({ data }: LearningChartProps) {
               strokeDasharray="3 3"
             />
           ))}
-          <ReferenceLine
+          {/* Course completion as a line with green fill below */}
+          <Area
             yAxisId="right"
-            y={200}
-            stroke="#0b6cff"
-            strokeDasharray="4 4"
-            strokeOpacity={0.5}
-            label={{
-              value: "200 wpd",
-              position: "insideTopRight",
-              fill: "#0b6cff",
-              fontSize: 11,
-              fontWeight: 500,
-              opacity: 0.7,
-            }}
-          />
-          <Line
-            yAxisId="left"
             type="monotone"
             dataKey="value"
+            fill="#00c950"
+            fillOpacity={0.15}
             stroke="#00c950"
             strokeWidth={2}
             dot={chartPoints.length <= 31}
             activeDot={{ r: 5, fill: "#00c950" }}
+            isAnimationActive={false}
+          />
+          <ReferenceLine
+            yAxisId="left"
+            y={200}
+            stroke="#0b6cff"
+            strokeWidth={2}
+            strokeDasharray="2 4"
+            strokeLinecap="round"
+            label={{
+              value: "200 words/day",
+              position: "insideTopLeft",
+              fill: "#0b6cff",
+              fontSize: 11,
+              fontWeight: 500,
+            }}
           />
           <Line
-            yAxisId="right"
+            yAxisId="left"
             type="monotone"
             dataKey="value2"
             stroke="#0b6cff"
