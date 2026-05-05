@@ -73,8 +73,14 @@ export const notificationDataSchema = z
 
 export type NotificationData = z.infer<typeof notificationDataSchema>;
 
-/** Channels supported by the dispatcher. Email is scaffolded but not wired. */
-export const channelSchema = z.enum(["in_app", "email"]);
+/**
+ * Channels supported by the dispatcher.
+ *  - "in_app": persistent bell entry (notifications row).
+ *  - "email":  scaffolded but not wired to a provider yet.
+ *  - "toast":  transient client-side toast. Never persists to the DB —
+ *              the dispatcher skips inserts for this channel.
+ */
+export const channelSchema = z.enum(["in_app", "email", "toast"]);
 export type NotificationChannel = z.infer<typeof channelSchema>;
 
 // ============================================================================
@@ -139,6 +145,11 @@ export const createTemplateSchema = z.object({
   enabled: z.boolean().default(true),
   title: z.string().min(1).max(200),
   message: z.string().min(1).max(2000),
+  // Optional toast-specific copy. Used when the template's channels include
+  // "toast" so the transient toast can have different wording than the bell
+  // entry. Empty/null = fall back to title/message.
+  toast_title: z.string().max(200).optional().nullable(),
+  toast_message: z.string().max(2000).optional().nullable(),
   channels: z.array(channelSchema).min(1),
   default_data: notificationDataSchema.optional().nullable(),
 });

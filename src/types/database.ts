@@ -486,6 +486,8 @@ export type Database = {
           label: string
           message: string
           title: string
+          toast_message: string | null
+          toast_title: string | null
           type: string
           updated_at: string
         }
@@ -501,6 +503,8 @@ export type Database = {
           label: string
           message: string
           title: string
+          toast_message?: string | null
+          toast_title?: string | null
           type: string
           updated_at?: string
         }
@@ -516,6 +520,8 @@ export type Database = {
           label?: string
           message?: string
           title?: string
+          toast_message?: string | null
+          toast_title?: string | null
           type?: string
           updated_at?: string
         }

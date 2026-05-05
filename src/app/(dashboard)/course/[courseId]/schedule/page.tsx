@@ -73,6 +73,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     nextLesson,
     isFirstLesson,
     dueTestsCount,
+    totalLessons,
     newLessons,
     recentLessons,
     needsReviewLessons,
@@ -128,6 +129,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
               nextLesson={nextLesson}
               isFirstLesson={isFirstLesson}
               dueTestsCount={dueTestsCount}
+              totalLessons={totalLessons}
               justCompletedTest={justCompletedTest}
               justCompletedLesson={justCompletedLesson}
             />
@@ -139,6 +141,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
               needsReviewLessons={filteredNeedsReviewLessons}
               hasDueTests={dueTests.length > 0}
               courseId={course.id}
+              totalLessons={totalLessons}
             />
           </>
         ) : (

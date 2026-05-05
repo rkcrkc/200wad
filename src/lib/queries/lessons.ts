@@ -157,7 +157,7 @@ async function generateAutoLessons(
   // status all in parallel. We need masteredWordIds before computing the
   // "worst" pool (mastered words are excluded), so it has to be available
   // by the time `selectBestWorstWordIds` is called.
-  const [notesResult, bestWorstData, wordProgressData] = await Promise.all([
+  const [notesResult, bestWorstQuestions, wordProgressData] = await Promise.all([
     // Fetch word IDs with user notes. No word_id filter — pushing ~1k UUIDs
     // through PostgREST silently returns empty on long URLs. The
     // `user_notes is not null` predicate already bounds this to a small set.
@@ -168,13 +168,21 @@ async function generateAutoLessons(
       .not("user_notes", "is", null),
 
     // Get test data for best/worst calculation (via test_score_id).
-    // No word_id filter needed — test_score_ids are already scoped to this course.
+    // Paginate via fetchAllRows — PostgREST silently caps at 1,000 rows, and
+    // a power user with hundreds of tests can exceed that. Truncated data
+    // skews per-word averages and breaks the best/worst ordering.
     testScoreIds.length > 0
-      ? supabase
-          .from("test_questions")
-          .select("word_id, points_earned")
-          .in("test_score_id", testScoreIds)
-      : Promise.resolve({ data: [] }),
+      ? fetchAllRows<{ word_id: string | null; points_earned: number | null }>(
+          (from, to) =>
+            supabase
+              .from("test_questions")
+              .select("word_id, points_earned")
+              .in("test_score_id", testScoreIds)
+              .order("id", { ascending: true })
+              .range(from, to),
+          { label: "generateAutoLessons:test_questions" }
+        )
+      : Promise.resolve([] as { word_id: string | null; points_earned: number | null }[]),
 
     // Per-word status. Scope by user_id + status only and paginate via
     // .range() — pushing every course word_id through `.in(…)` creates a
@@ -212,12 +220,12 @@ async function generateAutoLessons(
   // summary and the lesson detail page always agree on which 20 words
   // each auto-lesson contains.
   const bestWordIds = selectBestWorstWordIds(
-    bestWorstData.data ?? [],
+    bestWorstQuestions,
     "best",
     masteredWordIds,
   );
   const worstWordIds = selectBestWorstWordIds(
-    bestWorstData.data ?? [],
+    bestWorstQuestions,
     "worst",
     masteredWordIds,
   );

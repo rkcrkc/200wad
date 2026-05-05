@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AdminModal } from "@/components/admin/AdminModal";
@@ -45,8 +45,12 @@ interface FormState {
   enabled: boolean;
   title: string;
   message: string;
+  /** Toast-only copy. Optional; falls back to title/message when blank. */
+  toastTitle: string;
+  toastMessage: string;
   channelInApp: boolean;
   channelEmail: boolean;
+  channelToast: boolean;
   ctaLabel: string;
   ctaHref: string;
   isCritical: boolean;
@@ -73,8 +77,11 @@ function emptyForm(defaultType: NotificationType = "system"): FormState {
     enabled: true,
     title: "",
     message: "",
+    toastTitle: "",
+    toastMessage: "",
     channelInApp: true,
     channelEmail: false,
+    channelToast: false,
     ctaLabel: "",
     ctaHref: "",
     isCritical: false,
@@ -142,8 +149,11 @@ export function TemplateFormModal({
       enabled: editing.enabled,
       title: editing.title,
       message: editing.message,
+      toastTitle: editing.toast_title ?? "",
+      toastMessage: editing.toast_message ?? "",
       channelInApp: editing.channels.includes("in_app"),
       channelEmail: editing.channels.includes("email"),
+      channelToast: editing.channels.includes("toast"),
       ctaLabel: d.ctaLabel,
       ctaHref: d.ctaHref,
       isCritical: d.isCritical,
@@ -169,7 +179,9 @@ export function TemplateFormModal({
     if (!editing && !form.key.trim()) return false;
     if (!form.label.trim()) return false;
     if (!form.title.trim() || !form.message.trim()) return false;
-    if (!form.channelInApp && !form.channelEmail) return false;
+    // Need at least one delivery channel.
+    if (!form.channelInApp && !form.channelEmail && !form.channelToast)
+      return false;
     return true;
   }, [form, editing]);
 
@@ -184,7 +196,7 @@ export function TemplateFormModal({
       !form.label.trim() ||
       !form.title.trim() ||
       !form.message.trim() ||
-      (!form.channelInApp && !form.channelEmail);
+      (!form.channelInApp && !form.channelEmail && !form.channelToast);
     return {
       details: detailsBad,
       trigger: false,
@@ -194,9 +206,10 @@ export function TemplateFormModal({
   const handleSave = async () => {
     setError(null);
 
-    const channels: ("in_app" | "email")[] = [];
+    const channels: ("in_app" | "email" | "toast")[] = [];
     if (form.channelInApp) channels.push("in_app");
     if (form.channelEmail) channels.push("email");
+    if (form.channelToast) channels.push("toast");
 
     const default_data: Record<string, unknown> = {};
     if (form.isCritical) default_data.severity = "critical";
@@ -208,6 +221,16 @@ export function TemplateFormModal({
     }
     const data = Object.keys(default_data).length > 0 ? default_data : null;
 
+    // Toast copy is only relevant when the toast channel is enabled. When
+    // disabled, persist null so re-enabling later starts from a clean slate
+    // rather than resurfacing stale copy.
+    const toast_title = form.channelToast
+      ? form.toastTitle.trim() || null
+      : null;
+    const toast_message = form.channelToast
+      ? form.toastMessage.trim() || null
+      : null;
+
     setIsSaving(true);
     try {
       if (editing) {
@@ -218,6 +241,8 @@ export function TemplateFormModal({
           enabled: form.enabled,
           title: form.title.trim(),
           message: form.message.trim(),
+          toast_title,
+          toast_message,
           channels,
           default_data: data,
         });
@@ -234,6 +259,8 @@ export function TemplateFormModal({
           enabled: form.enabled,
           title: form.title.trim(),
           message: form.message.trim(),
+          toast_title,
+          toast_message,
           channels,
           default_data: data,
         });
@@ -494,6 +521,25 @@ export function TemplateFormModal({
                 />
                 In-app
               </label>
+              {/* Toast channel — transient, never persists. When enabled the
+                  toast-specific copy fields appear below so admins can write
+                  shorter wording for the popup vs the bell entry. */}
+              <label
+                className="flex items-center gap-2 text-sm text-gray-700"
+                title="Show as a transient toast at the moment of the event. Doesn't persist in the bell dropdown."
+              >
+                <input
+                  type="checkbox"
+                  checked={form.channelToast}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      channelToast: e.target.checked,
+                    }))
+                  }
+                />
+                Toast
+              </label>
               {/* Email channel is scaffolded server-side but not yet wired to a
                   provider — disable the toggle so admins can't opt templates
                   into a no-op delivery channel. */}
@@ -525,8 +571,11 @@ export function TemplateFormModal({
                 bell dropdown (NotificationRow). Updates as the admin edits
                 title/message/cta/importance. {var} placeholders are left
                 intact (matching real behaviour) so admins can spot missing
-                substitutions in QA. */}
-            <NotificationPreview form={form} />
+                substitutions in QA. Hidden when only Toast is enabled — the
+                in-app entry won't render, so the bell preview would be
+                misleading; the toast-specific preview renders instead inside
+                the Toast section below. */}
+            {form.channelInApp && <NotificationPreview form={form} />}
 
             {/* Title + Message live here in Details (not a separate Content
                 tab) so the headline metadata and the rendered copy are next
@@ -599,6 +648,64 @@ export function TemplateFormModal({
                 />
               </AdminFormField>
             </div>
+
+            {/* ---------------- Toast section ---------------- */}
+            {/* Only renders when the toast channel is enabled — keeps the
+                form quiet for templates that only need a bell entry. Toast
+                copy can be shorter / punchier than the bell entry; both
+                fields fall back to title/message above when left blank, so
+                admins can opt-in only the bits they want different. */}
+            {form.channelToast && (
+              <div className="space-y-4 rounded-lg border border-gray-200 bg-bone/40 p-4">
+                <div>
+                  <h3 className="text-small-semibold text-foreground">
+                    Toast copy
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Shown as a transient pop-up at the moment of the event.
+                    Leave blank to fall back to the in-app title / message
+                    above.
+                  </p>
+                </div>
+
+                <ToastPreview form={form} />
+
+                <AdminFormField
+                  label="Toast title"
+                  name="toast_title"
+                  hint="Headline shown in the toast. Defaults to the in-app title when blank."
+                >
+                  <AdminInput
+                    id="toast_title"
+                    value={form.toastTitle}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, toastTitle: e.target.value }))
+                    }
+                    maxLength={200}
+                    placeholder={form.title || "First word learned!"}
+                  />
+                </AdminFormField>
+
+                <AdminFormField
+                  label="Toast message"
+                  name="toast_message"
+                  hint="Body of the toast. Keep it short. Defaults to the in-app message when blank."
+                >
+                  <AdminTextarea
+                    id="toast_message"
+                    value={form.toastMessage}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, toastMessage: e.target.value }))
+                    }
+                    maxLength={2000}
+                    rows={3}
+                    placeholder={
+                      form.message || "Full marks (3/3) — no clues, no mistakes."
+                    }
+                  />
+                </AdminFormField>
+              </div>
+            )}
           </div>
         )}
 
@@ -685,6 +792,59 @@ export function TemplateFormModal({
 // the bell dropdown (mirrors NotificationRow). Updates live as the admin
 // edits Title, Message, CTA, and the Mark-as-critical toggle.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// ToastPreview — mirrors the warm `<AchievementToast>` card used at runtime
+// (cream bg, gold border, rounded-2xl, 🎉 emoji prefix). Falls back to the
+// in-app title/message when the toast-specific fields are blank, matching
+// the runtime behaviour in fireTemplateToast.
+// ---------------------------------------------------------------------------
+
+function ToastPreview({ form }: { form: FormState }) {
+  const title = form.toastTitle.trim() || form.title.trim();
+  const message = form.toastMessage.trim() || form.message.trim();
+
+  return (
+    <div className="rounded-xl border border-dashed border-primary/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs-medium text-muted-foreground">
+          Toast preview
+        </span>
+        <span className="text-[11px] text-muted-foreground/70">
+          transient · client-only
+        </span>
+      </div>
+      <div className="w-full max-w-[420px] rounded-2xl border-[1.5px] border-[#F0C878] bg-[#FFF9E6] px-5 py-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-small-semibold text-foreground">
+              {title ? (
+                <>🎉 {title}</>
+              ) : (
+                <span className="italic text-foreground/40">Title preview…</span>
+              )}
+            </p>
+            {message ? (
+              <p className="mt-1 line-clamp-3 text-small-regular text-foreground/80">
+                {message}
+              </p>
+            ) : (
+              <p className="mt-1 text-small-regular italic text-foreground/40">
+                Message preview…
+              </p>
+            )}
+          </div>
+          <span
+            className="mt-0.5 shrink-0 rounded-lg p-1 text-foreground/40"
+            aria-hidden
+          >
+            <X className="h-4 w-4" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function NotificationPreview({ form }: { form: FormState }) {
   const hasCta = form.ctaLabel.trim() !== "" && form.ctaHref.trim() !== "";

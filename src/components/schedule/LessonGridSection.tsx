@@ -15,6 +15,7 @@ interface LessonGridSectionProps {
   needsReviewLessons: LessonForScheduler[];
   hasDueTests: boolean;
   courseId: string;
+  totalLessons: number;
 }
 
 type TabId = "new" | "recent" | "needs-review";
@@ -34,6 +35,7 @@ export function LessonGridSection({
   needsReviewLessons,
   hasDueTests,
   courseId,
+  totalLessons,
 }: LessonGridSectionProps) {
   const showNew = newLessons.length > 0;
   const showRecent = recentLessons.length > 0;
@@ -76,7 +78,7 @@ export function LessonGridSection({
         <h2 className="text-xxl2-semibold text-foreground">{heading}</h2>
         <Button asChild variant="ghost" size="sm" className="gap-1.5">
           <Link href={`/course/${courseId}`}>
-            All lessons
+            All lessons ({totalLessons})
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>

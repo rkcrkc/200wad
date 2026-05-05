@@ -261,6 +261,26 @@ export async function saveUserNotes(
     return { success: false, error: error.message };
   }
 
+  // Revalidate course pages so the "My Notes" auto-lesson word_count
+  // (rendered server-side on /course/[courseId]) reflects the change.
+  const { data: lessonRows } = await supabase
+    .from("lesson_words")
+    .select("lessons!inner(course_id)")
+    .eq("word_id", wordId);
+
+  const courseIds = new Set<string>();
+  for (const row of lessonRows ?? []) {
+    const courseId = (row as { lessons: { course_id: string | null } }).lessons
+      ?.course_id;
+    if (courseId) courseIds.add(courseId);
+  }
+
+  for (const courseId of courseIds) {
+    revalidatePath(`/course/${courseId}`);
+    revalidatePath(`/course/${courseId}/schedule`);
+    revalidatePath(`/lesson/auto-notes-${courseId}`);
+  }
+
   return { success: true, error: null };
 }
 

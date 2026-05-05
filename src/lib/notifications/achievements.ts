@@ -156,8 +156,15 @@ export async function recordProgressAchievements(
     const supabase = createAdminClient();
     const { userId, testResult } = input;
 
-    // Two cheap count queries with index on (user_id, status).
-    const [{ count: lessonsCount }, { count: wordsCount }] = await Promise.all([
+    // Three cheap count queries with index on (user_id, ...).
+    // `learned` covers both learned and mastered (mastery requires learned
+    // first), so we test for the learned timestamp being non-null rather than
+    // status='learned' which would exclude already-mastered words.
+    const [
+      { count: lessonsCount },
+      { count: wordsCount },
+      { count: learnedCount },
+    ] = await Promise.all([
       supabase
         .from("user_lesson_progress")
         .select("id", { count: "exact", head: true })
@@ -168,12 +175,21 @@ export async function recordProgressAchievements(
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("status", "mastered"),
+      supabase
+        .from("user_word_progress")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .not("learned_at", "is", null),
     ]);
 
     const masteredLessons = lessonsCount ?? 0;
     const masteredWords = wordsCount ?? 0;
+    const learnedWords = learnedCount ?? 0;
 
     // First-time achievements
+    if (learnedWords >= 1) {
+      await fireFirstTimeNotification(userId, "achievement.first_word_learned");
+    }
     if (masteredWords >= 1) {
       await fireFirstTimeNotification(userId, "achievement.first_word_mastered");
     }

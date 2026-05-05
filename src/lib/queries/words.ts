@@ -222,14 +222,23 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     let targetWordIds: string[] = [];
 
     if (testScoreIds.length > 0) {
-      const { data: testQuestions } = await supabase
-        .from("test_questions")
-        .select("word_id, points_earned")
-        .in("test_score_id", testScoreIds);
+      // Paginate via fetchAllRows — PostgREST silently caps at 1,000 rows,
+      // and a power user can easily exceed that across all course tests.
+      // Truncating here would skew the worst-word pick.
+      const testQuestions = await fetchAllRows<{ word_id: string | null; points_earned: number | null }>(
+        (from, to) =>
+          supabase
+            .from("test_questions")
+            .select("word_id, points_earned")
+            .in("test_score_id", testScoreIds)
+            .order("id", { ascending: true })
+            .range(from, to),
+        { label: "getWords:adminTest:test_questions" }
+      );
 
       // Available is always 3 per attempt; clues reduce points earned, not the max.
       const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
-      testQuestions?.forEach((tq) => {
+      testQuestions.forEach((tq) => {
         if (!tq.word_id) return;
         if (!wordScores[tq.word_id]) {
           wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
@@ -779,15 +788,21 @@ async function getAutoLessonWords(
     }
 
     // Fetch test_questions and (for "worst") mastered word IDs in parallel.
-    // No word_id filter on test_questions — test_score_ids already scope to
-    // this course. The mastered fetch paginates by user_id + status because
-    // pushing every course word_id through `.in(…)` creates a multi-KB URL
-    // that PostgREST silently returns empty for.
-    const [testQuestionsResult, masteredProgress] = await Promise.all([
-      supabase
-        .from("test_questions")
-        .select("word_id, points_earned")
-        .in("test_score_id", testScoreIds),
+    // Both must paginate via fetchAllRows — PostgREST silently caps responses
+    // at 1,000 rows. A power user with hundreds of tests can exceed that and
+    // get a truncated test_questions set, which would skew per-word averages
+    // and break the worst-word ordering.
+    const [testQuestions, masteredProgress] = await Promise.all([
+      fetchAllRows<{ word_id: string | null; points_earned: number | null }>(
+        (from, to) =>
+          supabase
+            .from("test_questions")
+            .select("word_id, points_earned")
+            .in("test_score_id", testScoreIds)
+            .order("id", { ascending: true })
+            .range(from, to),
+        { label: "getAutoLessonWords:test_questions" }
+      ),
       type === "worst"
         ? fetchAllRows<{ word_id: string | null }>(
             (from, to) =>
@@ -811,7 +826,7 @@ async function getAutoLessonWords(
     // Shared helper guarantees the same 20 words as the All-Lessons summary
     // for both "best" and "worst" (deterministic tiebreaker by word_id).
     targetWordIds = selectBestWorstWordIds(
-      testQuestionsResult.data ?? [],
+      testQuestions,
       type,
       masteredWordIds,
     );

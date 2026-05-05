@@ -70,6 +70,29 @@ export async function markAsRead(id: string): Promise<MutationResult> {
   return { success: true, error: null };
 }
 
+/** Mark a single notification as unread. RLS scopes to the current user. */
+export async function markAsUnread(id: string): Promise<MutationResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: false })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("markAsUnread error:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true, error: null };
+}
+
 /** Mark every unread in-app notification for the current user as read. */
 export async function markAllAsRead(): Promise<MutationResult> {
   const supabase = await createClient();

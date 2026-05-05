@@ -535,17 +535,106 @@ const HEADING_CLASS: Record<2 | 3 | 4, string> = {
 };
 const UL_CLASS = "list-disc list-outside pl-6 my-2 space-y-1";
 const OL_CLASS = "list-decimal list-outside pl-6 my-2 space-y-1";
-const HR_CLASS = "my-4 border-0 border-t border-gray-200";
+const HR_CLASS = "my-4 border-0 border-t border-border";
+const TABLE_WRAPPER_CLASS = "my-3 overflow-x-auto";
 const TABLE_CLASS =
-  "my-3 w-full border-collapse text-sm overflow-x-auto block md:table";
+  "w-full border-collapse text-sm table-fixed";
 const TH_CLASS =
-  "border border-gray-300 bg-gray-50 px-3 py-1.5 text-left font-semibold align-top";
-const TD_CLASS = "border border-gray-300 px-3 py-1.5 align-top";
+  "border border-border bg-bone px-3 py-1.5 text-left font-semibold align-top break-words";
+const TD_CLASS = "border border-border px-3 py-1.5 align-top break-words";
+
+// Approximate per-column width based on the longest cell (in characters)
+// across a group of tables that share the same column count. Returns an
+// array of CSS percentage strings that sum to 100%.
+function computeColumnWidths(tables: { rows: string[][] }[]): string[] {
+  if (tables.length === 0) return [];
+  const colCount = tables[0].rows[0]?.length ?? 0;
+  if (colCount === 0) return [];
+  const maxChars = new Array<number>(colCount).fill(1);
+  for (const t of tables) {
+    for (const row of t.rows) {
+      for (let c = 0; c < colCount; c++) {
+        // Strip inline markers for a closer-to-rendered length estimate.
+        const raw = (row[c] ?? "")
+          .replace(/\{\{[^|}]*\|([^}]*)\}\}/g, "$1")
+          .replace(/\{\{([^}]*)\}\}/g, "$1")
+          .replace(/[*_`<>]/g, "");
+        // Use the longest single line in the cell, not the joined length.
+        const longest = raw
+          .split(/\s+/)
+          .reduce((m, w) => Math.max(m, w.length), raw.length);
+        // Slight floor so very short labels still get a sensible share.
+        const len = Math.max(longest, 4);
+        if (len > maxChars[c]) maxChars[c] = len;
+      }
+    }
+  }
+  const total = maxChars.reduce((a, b) => a + b, 0);
+  return maxChars.map((n) => `${((n / total) * 100).toFixed(2)}%`);
+}
+
+// Approximate min-width (in rem) for a column group so the table preserves
+// readable proportions; the wrapper's overflow-x-auto kicks in below this.
+function computeMinWidthRem(tables: { rows: string[][] }[]): number {
+  if (tables.length === 0) return 0;
+  const colCount = tables[0].rows[0]?.length ?? 0;
+  const maxChars = new Array<number>(colCount).fill(1);
+  for (const t of tables) {
+    for (const row of t.rows) {
+      for (let c = 0; c < colCount; c++) {
+        const raw = (row[c] ?? "")
+          .replace(/\{\{[^|}]*\|([^}]*)\}\}/g, "$1")
+          .replace(/\{\{([^}]*)\}\}/g, "$1")
+          .replace(/[*_`<>]/g, "");
+        const longest = raw
+          .split(/\s+/)
+          .reduce((m, w) => Math.max(m, w.length), 0);
+        if (longest > maxChars[c]) maxChars[c] = longest;
+      }
+    }
+  }
+  // ~0.5rem per character + padding per column. Cap so very wide tables
+  // still scroll inside narrow notes panes.
+  const totalChars = maxChars.reduce((a, b) => a + b, 0);
+  const padding = colCount * 1.25; // px-3 padding per cell, both sides
+  return Math.min(totalChars * 0.5 + padding, 36);
+}
 
 function renderBlocks(
   blocks: BlockNode[],
   ctx: Ctx,
 ): React.ReactNode {
+  // Pre-compute shared column widths for runs of consecutive tables that
+  // share the same column count. Tables in the same run align with each
+  // other; the widths are derived from the longest cell content per column
+  // across the entire run.
+  const widthsByIndex = new Map<number, string[]>();
+  const minWidthByIndex = new Map<number, number>();
+  for (let i = 0; i < blocks.length; ) {
+    const b = blocks[i];
+    if (b.kind !== "table") {
+      i++;
+      continue;
+    }
+    const colCount = b.rows[0]?.length ?? 0;
+    const group: { idx: number; table: { rows: string[][] } }[] = [];
+    let j = i;
+    while (j < blocks.length) {
+      const bj = blocks[j];
+      if (bj.kind !== "table") break;
+      if ((bj.rows[0]?.length ?? 0) !== colCount) break;
+      group.push({ idx: j, table: { rows: bj.rows } });
+      j++;
+    }
+    const widths = computeColumnWidths(group.map((g) => g.table));
+    const minWidth = computeMinWidthRem(group.map((g) => g.table));
+    for (const g of group) {
+      widthsByIndex.set(g.idx, widths);
+      minWidthByIndex.set(g.idx, minWidth);
+    }
+    i = j === i ? i + 1 : j;
+  }
+
   return blocks.map((block, idx) => {
     if (block.kind === "heading") {
       const Tag = (`h${block.level}` as "h2" | "h3" | "h4");
@@ -583,31 +672,48 @@ function renderBlocks(
     if (block.kind === "table") {
       const headerRow = block.hasHeader ? block.rows[0] : null;
       const bodyRows = block.hasHeader ? block.rows.slice(1) : block.rows;
+      const widths = widthsByIndex.get(idx);
+      const minWidth = minWidthByIndex.get(idx);
       return (
-        <table key={`b${idx}`} className={TABLE_CLASS}>
-          {headerRow && (
-            <thead>
-              <tr>
-                {headerRow.map((cell, ci) => (
-                  <th key={`b${idx}h${ci}`} className={TH_CLASS}>
-                    {parseInline(cell, ctx, `b${idx}h${ci}-`)}
-                  </th>
+        <div
+          key={`b${idx}`}
+          className={TABLE_WRAPPER_CLASS}
+        >
+          <table
+            className={TABLE_CLASS}
+            style={minWidth ? { minWidth: `${minWidth}rem` } : undefined}
+          >
+            {widths && widths.length > 0 && (
+              <colgroup>
+                {widths.map((w, ci) => (
+                  <col key={`b${idx}col${ci}`} style={{ width: w }} />
                 ))}
-              </tr>
-            </thead>
-          )}
-          <tbody>
-            {bodyRows.map((row, ri) => (
-              <tr key={`b${idx}r${ri}`}>
-                {row.map((cell, ci) => (
-                  <td key={`b${idx}r${ri}c${ci}`} className={TD_CLASS}>
-                    {parseInline(cell, ctx, `b${idx}r${ri}c${ci}-`)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </colgroup>
+            )}
+            {headerRow && (
+              <thead>
+                <tr>
+                  {headerRow.map((cell, ci) => (
+                    <th key={`b${idx}h${ci}`} className={TH_CLASS}>
+                      {parseInline(cell, ctx, `b${idx}h${ci}-`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {bodyRows.map((row, ri) => (
+                <tr key={`b${idx}r${ri}`}>
+                  {row.map((cell, ci) => (
+                    <td key={`b${idx}r${ri}c${ci}`} className={TD_CLASS}>
+                      {parseInline(cell, ctx, `b${idx}r${ri}c${ci}-`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       );
     }
     return (

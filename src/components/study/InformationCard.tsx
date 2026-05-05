@@ -4,6 +4,7 @@ import { EditableText } from "@/components/admin/EditableText";
 import { EditableBodyText } from "@/components/admin/EditableBodyText";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
+import { DeveloperSection } from "./DeveloperSection";
 
 interface InformationCardProps {
   title: string;
@@ -14,6 +15,15 @@ interface InformationCardProps {
   wordId?: string;
   isEditMode?: boolean;
   onFieldSave?: (field: string, value: string) => Promise<boolean>;
+  /** Whether current user is an admin (controls developer section visibility) */
+  isAdmin?: boolean;
+  /** Developer data for admin debugging */
+  developerNotes?: string | null;
+  pictureWrong?: boolean | null;
+  pictureWrongNotes?: string | null;
+  pictureMissing?: boolean | null;
+  pictureBadSvg?: boolean | null;
+  notesInMemoryTrigger?: boolean | null;
 }
 
 export function InformationCard({
@@ -24,11 +34,19 @@ export function InformationCard({
   wordId,
   isEditMode = false,
   onFieldSave,
+  isAdmin = false,
+  developerNotes,
+  pictureWrong,
+  pictureWrongNotes,
+  pictureMissing,
+  pictureBadSvg,
+  notesInMemoryTrigger,
 }: InformationCardProps) {
   const canEdit = isEditMode && wordId && onFieldSave;
 
   return (
-    <div className="w-full rounded-2xl bg-white p-8">
+    <div className="flex flex-col gap-4">
+      <div className="w-full rounded-2xl bg-white p-8">
       {/* Title */}
       {canEdit ? (
         <EditableText
@@ -105,6 +123,19 @@ export function InformationCard({
           </div>
         )}
       </div>
+      </div>
+
+      {isAdmin && wordId && (
+        <DeveloperSection
+          wordId={wordId}
+          developerNotes={developerNotes}
+          pictureWrong={pictureWrong}
+          pictureWrongNotes={pictureWrongNotes}
+          pictureMissing={pictureMissing}
+          pictureBadSvg={pictureBadSvg}
+          notesInMemoryTrigger={notesInMemoryTrigger}
+        />
+      )}
     </div>
   );
 }

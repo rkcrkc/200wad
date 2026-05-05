@@ -91,6 +91,8 @@ export async function createNotificationTemplate(
         enabled: v.enabled,
         title: v.title,
         message: v.message,
+        toast_title: v.toast_title ?? null,
+        toast_message: v.toast_message ?? null,
         channels: v.channels,
         default_data: (v.default_data ?? null) as Json | null,
         // Admin-created templates are never marked as system; only DB seeds
@@ -137,6 +139,8 @@ export async function updateNotificationTemplate(
     if (v.enabled !== undefined) payload.enabled = v.enabled;
     if (v.title !== undefined) payload.title = v.title;
     if (v.message !== undefined) payload.message = v.message;
+    if (v.toast_title !== undefined) payload.toast_title = v.toast_title;
+    if (v.toast_message !== undefined) payload.toast_message = v.toast_message;
     if (v.channels !== undefined) payload.channels = v.channels;
     if (v.default_data !== undefined) {
       payload.default_data = v.default_data as Json | null;

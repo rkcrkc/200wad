@@ -69,7 +69,7 @@ export default async function DashboardLayout({
     courseProgressPercent: courseProgress?.progressPercent ?? 0,
     wordsMastered: courseProgress?.wordsMastered ?? 0,
     totalWords: courseProgress?.totalWords ?? 0,
-    totalWordsStudied: learningStats.totalWordsStudied,
+    totalWordsLearned: learningStats.totalWordsLearned,
     totalTimeSeconds: learningStats.totalTimeSeconds,
     studyTimeSeconds: learningStats.studyTimeSeconds,
     testTimeSeconds: learningStats.testTimeSeconds,

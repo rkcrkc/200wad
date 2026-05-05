@@ -27,7 +27,7 @@ export interface HeaderStats {
   courseProgressPercent: number;
   wordsMastered?: number;
   totalWords?: number;
-  totalWordsStudied?: number;
+  totalWordsLearned?: number;
   totalTimeSeconds?: number;
   studyTimeSeconds?: number;
   testTimeSeconds?: number;

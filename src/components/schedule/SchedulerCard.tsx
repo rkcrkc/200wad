@@ -17,17 +17,49 @@ import { mapStatus } from "@/lib/utils/helpers";
 interface SchedulerCardProps {
   lesson: LessonForScheduler;
   mode: "test" | "lesson";
+  /** When true, the card's top-left corner is squared off so folder tabs can sit flush. */
+  flushTopLeft?: boolean;
 }
 
-export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
+// Compact milestone label used for both the kicker above the title and the
+// action button. Matches the language used in `learning.test_due`
+// notifications and the StartTestModal.
+const MILESTONE_LABEL: Record<string, string> = {
+  initial: "first",
+  "1-day": "1-day",
+  "1-week": "1-week",
+  "1-month": "1-month",
+  "1-quarter": "1-quarter",
+  "1-year": "1-year",
+};
+
+function milestoneShortLabel(milestone: string | undefined | null): string | null {
+  if (!milestone) return null;
+  return MILESTONE_LABEL[milestone] ?? milestone;
+}
+
+export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerCardProps) {
   const { t } = useText();
   const isTest = mode === "test";
   const statusType = mapStatus(lesson.status || "");
   const [showStartTestModal, setShowStartTestModal] = useState(false);
+  const milestoneLabel = isTest ? milestoneShortLabel(lesson.nextMilestone) : null;
+  // For test cards we surface the milestone (e.g. "1-week test"); for lesson
+  // cards we use a generic "New lesson" cue so both modes get the same
+  // pulse-kicker pairing.
+  const kickerLabel = isTest
+    ? milestoneLabel
+      ? `${milestoneLabel} test`
+      : "Test"
+    : "New lesson";
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-      <div className="flex min-h-[420px] flex-col gap-0 md:flex-row md:items-stretch">
+    <div
+      className={`relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-[0px_12px_32px_-8px_rgba(0,0,0,0.18)] ${
+        flushTopLeft ? "rounded-tl-none" : ""
+      }`}
+    >
+      <div className="flex min-h-[450px] flex-col gap-0 md:flex-row md:items-stretch md:gap-8">
         {/* Lesson Image */}
         <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden md:h-auto md:w-full md:max-w-[340px]">
           {lesson.imageUrl ? (
@@ -45,11 +77,15 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
 
         {/* Lesson Info */}
         <div className="flex min-w-0 flex-1 flex-col p-8">
-          {/* Lesson Number & Word Count */}
+          {/* Top row — milestone kicker badge on the left, word count + status on the right.
+              Test mode gets the milestone (e.g. "1-WEEK TEST"); lesson mode gets "NEW LESSON". */}
           <div className="flex items-center justify-between">
-            <p className="text-regular-semibold text-muted-foreground">
-              Lesson #{lesson.number}
-            </p>
+            <div className="inline-flex items-center gap-2 self-start rounded-md bg-primary/10 px-3 py-1.5">
+              <PulseDot />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                {kickerLabel}
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <WordsPreviewTooltip
                 lessonId={lesson.id}
@@ -61,6 +97,11 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
           </div>
 
           <div className="flex flex-1 flex-col justify-center">
+            {/* Lesson number — sits directly above the title */}
+            <p className="mb-3 text-regular-semibold text-muted-foreground">
+              Lesson #{lesson.number}
+            </p>
+
             {/* Title */}
             <h2 className="mb-4 text-[36px] font-semibold leading-tight text-foreground">
               {lesson.title}
@@ -71,21 +112,25 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-auto flex items-center gap-3 pt-6">
+          <div className="mt-auto flex items-center gap-3 pt-10">
             {isTest ? (
-              <PrimaryButton
-                className="flex-1"
-                onClick={() => setShowStartTestModal(true)}
-              >
-                Start test
-              </PrimaryButton>
+              <span className="animate-button-pulse-delayed inline-flex flex-1 rounded-xl">
+                <PrimaryButton
+                  className="animate-button-pulse w-full"
+                  onClick={() => setShowStartTestModal(true)}
+                >
+                  {milestoneLabel ? `Start ${milestoneLabel} test` : "Start test"}
+                </PrimaryButton>
+              </span>
             ) : (
-              <PrimaryButton
-                className="flex-1"
-                href={`/lesson/${lesson.id}/study`}
-              >
-                Study lesson
-              </PrimaryButton>
+              <span className="animate-button-pulse-delayed inline-flex flex-1 rounded-xl">
+                <PrimaryButton
+                  className="animate-button-pulse w-full"
+                  href={`/lesson/${lesson.id}/study`}
+                >
+                  Study lesson
+                </PrimaryButton>
+              </span>
             )}
 
             <Tooltip label={t("tip_preview_lesson")}>
@@ -109,5 +154,20 @@ export function SchedulerCard({ lesson, mode }: SchedulerCardProps) {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Live "focus" dot for the milestone kicker badge — primary-colored centre
+ * with two staggered outward pings synced to the button's twin halo pulse
+ * so all four rings breathe together.
+ */
+function PulseDot() {
+  return (
+    <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
+      <span className="animate-scheduler-pulse absolute inline-flex h-full w-full rounded-full bg-primary" />
+      <span className="animate-scheduler-pulse-delayed absolute inline-flex h-full w-full rounded-full bg-primary" />
+      <span className="relative inline-flex h-full w-full rounded-full bg-primary" />
+    </span>
   );
 }

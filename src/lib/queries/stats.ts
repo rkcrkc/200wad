@@ -37,8 +37,10 @@ export interface HeatmapDay {
 export interface ChartDailyRow {
   date: string;              // "YYYY-MM-DD"
   newWordsStarted: number;   // words with learning_at on this day
+  newlyLearned: number;      // words with learned_at on this day (≥1 full-mark 3/3 test)
   newlyMastered: number;     // words with mastered_at on this day
   cumulativeVocab: number;   // running sum of started
+  cumulativeLearned: number; // running sum of learned (≥1 full-mark 3/3 test)
   cumulativeMastered: number;// running sum of mastered
   studyTimeSeconds: number;  // study + test time on this day
   cumulativeStudyTimeSeconds: number; // running sum of study time
@@ -63,8 +65,8 @@ export interface ProgressPageStats {
 // ============================================================================
 
 export interface UserLearningStats {
-  /** Total words studied across all sessions */
-  totalWordsStudied: number;
+  /** Total words learned (≥1 full-mark 3/3 test) across all courses */
+  totalWordsLearned: number;
   /** Total time spent studying in seconds */
   totalTimeSeconds: number;
   /** Study-only time in seconds */
@@ -77,10 +79,11 @@ export interface UserLearningStats {
 
 /**
  * Get user learning stats from word progress, study sessions, and tests.
- * Words per day is calculated as: (new_words_encountered / total_time_hours) * 8
- * where new_words_encountered = words that transitioned from not-started to learning
- * (i.e. user_word_progress rows with a learning_at timestamp).
- * Total time includes both study and test time.
+ * Words per day is calculated as: (words_learned / total_time_hours) * 8
+ * where words_learned = words that have reached at least 'learned' status (i.e.
+ * answered with full marks 3/3 in a test at least once — `user_word_progress`
+ * rows with a non-null `learned_at` timestamp). Total time includes both study
+ * and test time.
  */
 export async function getUserLearningStats(): Promise<UserLearningStats> {
   const supabase = await createClient();
@@ -90,7 +93,7 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
 
   if (!user) {
     return {
-      totalWordsStudied: 0,
+      totalWordsLearned: 0,
       totalTimeSeconds: 0,
       studyTimeSeconds: 0,
       testTimeSeconds: 0,
@@ -104,7 +107,7 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
       .from("user_word_progress")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .not("learning_at", "is", null),
+      .not("learned_at", "is", null),
     supabase
       .from("study_sessions")
       .select("duration_seconds")
@@ -115,7 +118,7 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
       .eq("user_id", user.id),
   ]);
 
-  const totalWordsStudied = wordsResult.count || 0;
+  const totalWordsLearned = wordsResult.count || 0;
   const sessions = sessionsResult.data || [];
   const tests = testsResult.data || [];
 
@@ -132,10 +135,10 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
 
   // Calculate words per 8-hour day
   const wordsPerDay =
-    totalHours > 0 ? Math.round((totalWordsStudied / totalHours) * 8) : 0;
+    totalHours > 0 ? Math.round((totalWordsLearned / totalHours) * 8) : 0;
 
   return {
-    totalWordsStudied,
+    totalWordsLearned,
     totalTimeSeconds,
     studyTimeSeconds,
     testTimeSeconds,
@@ -372,14 +375,14 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   // returns empty on long URLs for big courses. Downstream consumers
   // intersect with courseWordIds to keep things course-scoped.
   const fetchAllScopedWordProgress = async (): Promise<
-    { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[]
+    { word_id: string | null; learning_at: string | null; learned_at: string | null; mastered_at: string | null; status: string | null }[]
   > => {
     const pageSize = 1000;
-    const rows: { word_id: string | null; learning_at: string | null; mastered_at: string | null; status: string | null }[] = [];
+    const rows: { word_id: string | null; learning_at: string | null; learned_at: string | null; mastered_at: string | null; status: string | null }[] = [];
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await supabase
         .from("user_word_progress")
-        .select("word_id, learning_at, mastered_at, status")
+        .select("word_id, learning_at, learned_at, mastered_at, status")
         .eq("user_id", user.id)
         .not("learning_at", "is", null)
         .range(offset, offset + pageSize - 1);
@@ -435,8 +438,9 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   const tests = testsResult.data || [];
 
   // --- Words per day rates ---
-  // Same formula as the header: (new_words_encountered / total_hours) * 8
-  // new_words_encountered = user_word_progress rows with learning_at in period
+  // Same formula as the header: (words_learned / total_hours) * 8
+  // words_learned = user_word_progress rows with `learned_at` in period (i.e.
+  // words that received at least one full-mark 3/3 test answer in the period).
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -456,8 +460,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     const startMs = startDate ? startDate.getTime() : 0;
 
     const newWords = wordProgressRows.filter((w) => {
-      if (!w.learning_at) return false;
-      return !startDate || new Date(w.learning_at).getTime() >= startMs;
+      if (!w.learned_at) return false;
+      return !startDate || new Date(w.learned_at).getTime() >= startMs;
     }).length;
 
     const studyTime = sessions
@@ -560,11 +564,16 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   );
 
   const startedByDate = new Map<string, number>();
+  const learnedByDate = new Map<string, number>();
   const masteredByDate = new Map<string, number>();
   for (const row of courseWordProgressRows) {
     if (row.learning_at) {
       const d = row.learning_at.slice(0, 10);
       startedByDate.set(d, (startedByDate.get(d) || 0) + 1);
+    }
+    if (row.learned_at) {
+      const d = row.learned_at.slice(0, 10);
+      learnedByDate.set(d, (learnedByDate.get(d) || 0) + 1);
     }
     if (row.mastered_at) {
       const d = row.mastered_at.slice(0, 10);
@@ -590,26 +599,32 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   // Collect all unique dates
   const allDates = new Set<string>();
   for (const d of startedByDate.keys()) allDates.add(d);
+  for (const d of learnedByDate.keys()) allDates.add(d);
   for (const d of masteredByDate.keys()) allDates.add(d);
   for (const d of sessionTimeByDate.keys()) allDates.add(d);
 
   const sortedDates = Array.from(allDates).sort();
   let cumulativeVocab = 0;
+  let cumulativeLearned = 0;
   let cumulativeMastered = 0;
   let cumulativeStudyTime = 0;
 
   const dailyRows: ChartDailyRow[] = sortedDates.map((date) => {
     const newWordsStarted = startedByDate.get(date) || 0;
+    const newlyLearned = learnedByDate.get(date) || 0;
     const newlyMastered = masteredByDate.get(date) || 0;
     const dayStudyTime = sessionTimeByDate.get(date) || 0;
     cumulativeVocab += newWordsStarted;
+    cumulativeLearned += newlyLearned;
     cumulativeMastered += newlyMastered;
     cumulativeStudyTime += dayStudyTime;
     return {
       date,
       newWordsStarted,
+      newlyLearned,
       newlyMastered,
       cumulativeVocab,
+      cumulativeLearned,
       cumulativeMastered,
       studyTimeSeconds: dayStudyTime,
       cumulativeStudyTimeSeconds: cumulativeStudyTime,

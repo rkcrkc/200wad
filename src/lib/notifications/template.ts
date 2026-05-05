@@ -23,7 +23,7 @@ import { insertNotification } from "@/lib/notifications/insert";
 import { getTemplateByKey, isTypeEnabled } from "@/lib/queries/notification-config";
 import type { Json, NotificationTemplate } from "@/types/database";
 
-type Channel = "in_app" | "email";
+type Channel = "in_app" | "email" | "toast";
 
 export interface InsertFromTemplateInput {
   userId: string;
@@ -77,7 +77,7 @@ function pickChannels(
   if (override && override.length > 0) return override;
   // Defensively narrow to known channel literals.
   const known = template.channels.filter(
-    (c): c is Channel => c === "in_app" || c === "email"
+    (c): c is Channel => c === "in_app" || c === "email" || c === "toast"
   );
   return known.length > 0 ? known : ["in_app"];
 }

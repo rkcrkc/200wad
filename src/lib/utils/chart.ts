@@ -151,11 +151,13 @@ export function transformChartData(
 
   // Find the last known cumulative values before rangeStart (for carry-forward)
   let lastCumulativeVocab = 0;
+  let lastCumulativeLearned = 0;
   let lastCumulativeMastered = 0;
   let lastCumulativeStudyTime = 0;
   for (const row of dailyRows) {
     if (row.date >= (startDate || "")) break;
     lastCumulativeVocab = row.cumulativeVocab;
+    lastCumulativeLearned = row.cumulativeLearned;
     lastCumulativeMastered = row.cumulativeMastered;
     lastCumulativeStudyTime = row.cumulativeStudyTimeSeconds;
   }
@@ -167,6 +169,7 @@ export function transformChartData(
     const existing = rowMap.get(ds);
     if (existing) {
       lastCumulativeVocab = existing.cumulativeVocab;
+      lastCumulativeLearned = existing.cumulativeLearned;
       lastCumulativeMastered = existing.cumulativeMastered;
       lastCumulativeStudyTime = existing.cumulativeStudyTimeSeconds;
       filledDays.push(existing);
@@ -174,8 +177,10 @@ export function transformChartData(
       filledDays.push({
         date: ds,
         newWordsStarted: 0,
+        newlyLearned: 0,
         newlyMastered: 0,
         cumulativeVocab: lastCumulativeVocab,
+        cumulativeLearned: lastCumulativeLearned,
         cumulativeMastered: lastCumulativeMastered,
         studyTimeSeconds: 0,
         cumulativeStudyTimeSeconds: lastCumulativeStudyTime,
@@ -188,10 +193,12 @@ export function transformChartData(
   interface Bucket {
     key: string;
     newWordsStarted: number;
+    newlyLearned: number;
     newlyMastered: number;
     studyTimeSeconds: number;
     // For cumulatives, take the last value in the bucket
     lastCumulativeVocab: number;
+    lastCumulativeLearned: number;
     lastCumulativeMastered: number;
     lastCumulativeStudyTimeSeconds: number;
   }
@@ -217,18 +224,22 @@ export function transformChartData(
       bucket = {
         key,
         newWordsStarted: 0,
+        newlyLearned: 0,
         newlyMastered: 0,
         studyTimeSeconds: 0,
         lastCumulativeVocab: 0,
+        lastCumulativeLearned: 0,
         lastCumulativeMastered: 0,
         lastCumulativeStudyTimeSeconds: 0,
       };
       buckets.set(key, bucket);
     }
     bucket.newWordsStarted += day.newWordsStarted;
+    bucket.newlyLearned += day.newlyLearned;
     bucket.newlyMastered += day.newlyMastered;
     bucket.studyTimeSeconds += day.studyTimeSeconds;
     bucket.lastCumulativeVocab = day.cumulativeVocab;
+    bucket.lastCumulativeLearned = day.cumulativeLearned;
     bucket.lastCumulativeMastered = day.cumulativeMastered;
     bucket.lastCumulativeStudyTimeSeconds = day.cumulativeStudyTimeSeconds;
   }
@@ -251,14 +262,15 @@ export function transformChartData(
         value2 = bucket.lastCumulativeMastered;
         break;
       case "performance": {
-        // value = course completion % (left Y-axis)
+        // value = course completion % (right Y-axis)
         value = totalCourseWords > 0
           ? Math.round((bucket.lastCumulativeMastered / totalCourseWords) * 1000) / 10
           : 0;
-        // value2 = words per day rate (right Y-axis)
+        // value2 = words per day rate (left Y-axis), based on words learned
+        // (≥1 full-mark 3/3 test answer) per hour of total study + test time
         const hours = bucket.lastCumulativeStudyTimeSeconds / 3600;
         value2 = hours > 0
-          ? Math.round((bucket.lastCumulativeVocab / hours) * 8 * 10) / 10
+          ? Math.round((bucket.lastCumulativeLearned / hours) * 8 * 10) / 10
           : 0;
         break;
       }

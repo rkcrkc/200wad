@@ -1053,6 +1053,13 @@ export function StudyModeClient({
                 wordId={currentWord.id}
                 isEditMode={isEditMode}
                 onFieldSave={handleFieldSave}
+                isAdmin={isAdmin}
+                developerNotes={currentWord.developer_notes}
+                pictureWrong={currentWord.picture_wrong}
+                pictureWrongNotes={currentWord.picture_wrong_notes}
+                pictureMissing={currentWord.picture_missing}
+                pictureBadSvg={currentWord.picture_bad_svg}
+                notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
               />
             ) : (
               <>

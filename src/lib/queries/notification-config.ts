@@ -74,6 +74,66 @@ export async function getTemplateByKey(
 }
 
 /**
+ * Client-safe shape for transient toast notifications. Strips DB internals
+ * (id, timestamps, default_data, etc.) so this can be passed to Client
+ * Components without leaking unnecessary fields.
+ */
+export interface ToastTemplate {
+  key: string;
+  enabled: boolean;
+  channels: string[];
+  /** Falls back to `title` when null/empty. */
+  toast_title: string | null;
+  /** Falls back to `message` when null/empty. */
+  toast_message: string | null;
+  title: string;
+  message: string;
+  /** Whether this template is type-enabled at the master level. */
+  type_enabled: boolean;
+}
+
+/**
+ * Batch lookup for toast-eligible templates. Returns a map keyed by template
+ * key; missing keys are absent from the map (not null entries) so callers can
+ * treat "no template" identically to "template disabled". Type-disabled
+ * templates are stripped here too — `type_enabled: false` would silently no-op
+ * downstream anyway, so we save the client a check.
+ *
+ * Used by render paths that need to know if/what to toast at submit time.
+ */
+export async function getToastTemplates(
+  keys: string[]
+): Promise<Record<string, ToastTemplate>> {
+  if (keys.length === 0) return {};
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("notification_templates")
+    .select(
+      "key, enabled, channels, toast_title, toast_message, title, message, notification_types(enabled)"
+    )
+    .in("key", keys);
+  if (error) {
+    console.error("getToastTemplates failed:", error.message);
+    return {};
+  }
+  const result: Record<string, ToastTemplate> = {};
+  for (const row of data ?? []) {
+    const typeRow = row.notification_types as { enabled: boolean } | null;
+    result[row.key] = {
+      key: row.key,
+      enabled: row.enabled,
+      channels: row.channels,
+      toast_title: row.toast_title ?? null,
+      toast_message: row.toast_message ?? null,
+      title: row.title,
+      message: row.message,
+      type_enabled: typeRow?.enabled ?? true,
+    };
+  }
+  return result;
+}
+
+/**
  * Returns true when the given type is enabled at the master level.
  * Missing rows default to enabled (forward-compat for newly-introduced types).
  */

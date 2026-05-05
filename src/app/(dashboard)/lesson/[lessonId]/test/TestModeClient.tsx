@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { showAchievementToast } from "@/lib/toast/achievement";
 import { Course, Language, Lesson } from "@/types/database";
+import type { ToastTemplate } from "@/lib/queries/notification-config";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useAudio } from "@/hooks/useAudio";
 import { useStudyMusic } from "@/hooks/useStudyMusic";
@@ -168,6 +170,24 @@ function calculateTestStats(params: {
   };
 }
 
+/**
+ * Render a toast from a template. No-ops when the template is missing,
+ * disabled, or doesn't include the "toast" channel — so admins can turn the
+ * toast off without a deploy. Falls back to title/message when toast_title /
+ * toast_message are empty so toast and bell can be the same copy if desired.
+ */
+function fireTemplateToast(template: ToastTemplate | undefined): void {
+  if (!template) return;
+  if (!template.enabled || !template.type_enabled) return;
+  if (!template.channels.includes("toast")) return;
+
+  const title = template.toast_title?.trim() || template.title;
+  const message = template.toast_message?.trim() || template.message;
+  if (!title) return;
+
+  showAchievementToast({ title, message: message || undefined });
+}
+
 interface TestModeClientProps {
   lesson: Lesson;
   language: Language | null;
@@ -182,6 +202,16 @@ interface TestModeClientProps {
   milestone?: string | null;
   /** Initial course vocab count fetched server-side (pre-test). null for guests. */
   initialCourseVocabCount?: number | null;
+  /** Lifetime count of words the user has ever learned (across all courses). Used for first-time toast. */
+  priorLearnedCount?: number;
+  /** Lifetime count of words the user has ever mastered (across all courses). Used for first-time toast. */
+  priorMasteredCount?: number;
+  /**
+   * Admin-managed toast templates fetched server-side. Map keyed by template
+   * key (e.g. "achievement.first_word_learned"). Missing keys = template not
+   * configured for toast; empty/falsy values = falls back to title/message.
+   */
+  toastTemplates?: Record<string, ToastTemplate>;
 }
 
 export function TestModeClient({
@@ -195,6 +225,9 @@ export function TestModeClient({
   randomOrder = false,
   milestone = null,
   initialCourseVocabCount = null,
+  priorLearnedCount = 0,
+  priorMasteredCount = 0,
+  toastTemplates = {},
 }: TestModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -294,10 +327,20 @@ export function TestModeClient({
   // Admin edit mode
   const [isEditMode, setIsEditMode] = useState(false);
 
+  // Idle/pause state
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIMEOUT_MS = 60 * 1000; // 1 minute
+
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const testAnswerInputRef = useRef<TestAnswerInputHandle>(null);
+
+  // Guards so the first-time learned/mastered toasts can only fire once per
+  // page load (defence-in-depth alongside the priorLearnedCount === 0 check).
+  const firedFirstLearnedRef = useRef(false);
+  const firedFirstMasteredRef = useRef(false);
 
   // Build test sequence - in testTwice mode, test all words then test them all again
   const testSequence = testTwice ? [...activeWords, ...activeWords] : activeWords;
@@ -329,35 +372,48 @@ export function TestModeClient({
       }
     : null;
 
-  // Compute merged traffic lights and score stats including current session's answer
+  // Gather every answered attempt for the current word in this session (in attempt order).
+  // In testTwice mode this includes both round 1 and round 2 answers, so when the user is
+  // on round 2 the traffic lights and average score reflect their round 1 answer too.
+  const currentWordSessionAttempts = (() => {
+    if (!currentWord) return [] as { pointsEarned: number; maxPoints: number }[];
+    const keys = testTwice ? [`${currentWord.id}_1`, `${currentWord.id}_2`] : [currentWord.id];
+    const attempts: { pointsEarned: number; maxPoints: number }[] = [];
+    for (const key of keys) {
+      const p = testProgressMap.get(key);
+      if (p?.hasAnswered) {
+        attempts.push({ pointsEarned: p.pointsEarned, maxPoints: p.maxPoints });
+      }
+    }
+    return attempts;
+  })();
+
+  // Compute merged traffic lights and score stats including all in-session attempts
   const mergedTestHistory = (() => {
     const historicalHistory = currentWord?.testHistory || [];
-    if (currentProgress?.hasAnswered) {
-      // Prepend current session's result as most recent
-      const currentAttempt = {
-        pointsEarned: currentProgress.pointsEarned,
-        maxPoints: currentProgress.maxPoints,
-        answeredAt: new Date().toISOString(),
-      };
-      // Prepend current attempt to full history so streak detection sees all of it
-      return [currentAttempt, ...historicalHistory];
-    }
-    return historicalHistory;
+    if (currentWordSessionAttempts.length === 0) return historicalHistory;
+    // Newest attempt should come first, so reverse so attempt 2 precedes attempt 1
+    const sessionEntries = [...currentWordSessionAttempts].reverse().map((a) => ({
+      pointsEarned: a.pointsEarned,
+      maxPoints: a.maxPoints,
+      answeredAt: new Date().toISOString(),
+    }));
+    return [...sessionEntries, ...historicalHistory];
   })();
 
   const mergedScoreStats = (() => {
     const historicalStats = currentWord?.scoreStats || { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
-    if (currentProgress?.hasAnswered) {
-      const newTotalPoints = historicalStats.totalPointsEarned + currentProgress.pointsEarned;
-      const newTotalMax = historicalStats.totalMaxPoints + currentProgress.maxPoints;
-      return {
-        totalPointsEarned: newTotalPoints,
-        totalMaxPoints: newTotalMax,
-        scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
-        timesTested: historicalStats.timesTested + 1,
-      };
-    }
-    return historicalStats;
+    if (currentWordSessionAttempts.length === 0) return historicalStats;
+    const addedPoints = currentWordSessionAttempts.reduce((s, a) => s + a.pointsEarned, 0);
+    const addedMax = currentWordSessionAttempts.reduce((s, a) => s + a.maxPoints, 0);
+    const newTotalPoints = historicalStats.totalPointsEarned + addedPoints;
+    const newTotalMax = historicalStats.totalMaxPoints + addedMax;
+    return {
+      totalPointsEarned: newTotalPoints,
+      totalMaxPoints: newTotalMax,
+      scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
+      timesTested: historicalStats.timesTested + currentWordSessionAttempts.length,
+    };
   })();
 
   // Initialize test session (always fresh - tests are sandboxed)
@@ -400,8 +456,17 @@ export function TestModeClient({
     initSession();
   }, [lesson.id, isGuest]);
 
-  // Timer
+  // Timer (pauses when idle or test complete)
   useEffect(() => {
+    if (isTimerPaused || showCompletionModal) {
+      // Clear interval when paused or test complete
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
     timerRef.current = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
@@ -411,7 +476,41 @@ export function TestModeClient({
         clearInterval(timerRef.current);
       }
     };
-  }, []);
+  }, [isTimerPaused, showCompletionModal]);
+
+  // Idle detection - pause timer after 1 minute of inactivity
+  useEffect(() => {
+    const startIdleTimer = () => {
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+      idleTimeoutRef.current = setTimeout(() => {
+        setIsTimerPaused(true);
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const handleActivity = () => {
+      setIsTimerPaused(false);
+      startIdleTimer();
+    };
+
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+
+    events.forEach((event) => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    startIdleTimer();
+
+    return () => {
+      events.forEach((event) => {
+        window.removeEventListener(event, handleActivity);
+      });
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+    };
+  }, []); // Empty deps - only run once on mount
 
   // Preload all English audio on mount for instant playback
   useEffect(() => {
@@ -555,7 +654,7 @@ export function TestModeClient({
   // Handle answer submission
   const handleSubmit = useCallback(
     (result: TestAnswerResult) => {
-      if (!progressKey) return;
+      if (!progressKey || !currentWord) return;
       setTestProgressMap((prev) => {
         const newMap = new Map(prev);
         newMap.set(progressKey, {
@@ -572,12 +671,82 @@ export function TestModeClient({
         return newMap;
       });
 
+      // First-time learned/mastered toasts. Strict-correct = no mistakes, no clues.
+      // Server-loaded `priorLearnedCount` / `priorMasteredCount` are lifetime
+      // snapshots at page load; once non-zero on a future test, the conditions
+      // fail and the toast never fires again.
+      //
+      // Toast copy + on/off comes from admin-managed notification templates
+      // (toastTemplates prop). Gate: template exists, type-enabled, template
+      // enabled, and channels include "toast". The bell entry is fired
+      // separately at test completion via recordProgressAchievements.
+      const isFullMark = result.mistakeCount === 0 && clueLevel === 0;
+      if (isFullMark && !isGuest) {
+        const wasAlreadyLearned =
+          currentWord.status === "learned" || currentWord.status === "mastered";
+        const wasAlreadyMastered = currentWord.status === "mastered";
+
+        if (
+          priorLearnedCount === 0 &&
+          !wasAlreadyLearned &&
+          !firedFirstLearnedRef.current
+        ) {
+          firedFirstLearnedRef.current = true;
+          fireTemplateToast(
+            toastTemplates["achievement.first_word_learned"]
+          );
+        }
+
+        if (
+          priorMasteredCount === 0 &&
+          !wasAlreadyMastered &&
+          !firedFirstMasteredRef.current
+        ) {
+          // Compute the new streak by replaying this word's session attempts
+          // alongside the prior server streak. Matches calculateTestStats logic.
+          const priorStreak = currentWord.progress?.correct_streak || 0;
+          let streak = priorStreak;
+          const attempts = testTwice
+            ? [`${currentWord.id}_1`, `${currentWord.id}_2`]
+            : [currentWord.id];
+          for (const key of attempts) {
+            if (key === progressKey) {
+              // The answer being submitted right now is full-mark.
+              streak = streak + 1;
+            } else {
+              const p = testProgressMap.get(key);
+              if (p?.hasAnswered) {
+                streak =
+                  p.mistakeCount === 0 && p.clueLevel === 0 ? streak + 1 : 0;
+              }
+            }
+          }
+          if (streak >= 3) {
+            firedFirstMasteredRef.current = true;
+            fireTemplateToast(
+              toastTemplates["achievement.first_word_mastered"]
+            );
+          }
+        }
+      }
+
       // Play foreign word audio after answer is marked
       if (currentWord.audio_url_foreign) {
         playAudio(currentWord.audio_url_foreign, "foreign");
       }
     },
-    [progressKey, currentWord?.audio_url_foreign, clueLevel, playAudio]
+    [
+      progressKey,
+      currentWord,
+      clueLevel,
+      playAudio,
+      isGuest,
+      priorLearnedCount,
+      priorMasteredCount,
+      testTwice,
+      testProgressMap,
+      toastTemplates,
+    ]
   );
 
   // Handle finish test (defined before handleNextWord to avoid stale reference)
@@ -1122,6 +1291,24 @@ export function TestModeClient({
     }
   });
 
+  // In testTwice mode a word appears twice. If a later occurrence of the same
+  // word.id is still unanswered, hide the foreign answer on every earlier
+  // occurrence in the sidebar — otherwise the user could read the answer for
+  // the upcoming round-2 word from the round-1 entry above it.
+  const hideSecondaryIndices = new Set<number>();
+  if (testTwice) {
+    const laterUnansweredIds = new Set<string>();
+    for (let i = testSequence.length - 1; i >= 0; i--) {
+      const w = testSequence[i];
+      if (laterUnansweredIds.has(w.id)) {
+        hideSecondaryIndices.add(i);
+      }
+      if (!testResults.has(i)) {
+        laterUnansweredIds.add(w.id);
+      }
+    }
+  }
+
   // Test-type-specific computed values
   const testTypeConfig = (() => {
     switch (testType) {
@@ -1175,6 +1362,7 @@ export function TestModeClient({
         onJumpToWord={handleJumpToWord}
         mode="test"
         testResults={testResults}
+        hideSecondaryIndices={hideSecondaryIndices}
         primaryField={testType === "foreign-to-english" ? "foreign" : "english"}
       />
 
@@ -1184,6 +1372,7 @@ export function TestModeClient({
         <StudyNavbar
           courseName={course?.name}
           elapsedSeconds={elapsedSeconds}
+          isTimerPaused={isTimerPaused}
           onExitLesson={handleExitTest}
           mode="test"
           lessonNumber={lesson.number}

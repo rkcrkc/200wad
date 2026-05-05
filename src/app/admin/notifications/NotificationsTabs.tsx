@@ -24,15 +24,15 @@ interface NotificationsTabsProps {
 
 const TABS: { key: TabKey; label: string; description: string }[] = [
   {
-    key: "broadcasts",
-    label: "Broadcasts",
-    description: "Author one-off notifications, target cohorts, schedule delivery.",
-  },
-  {
     key: "templates",
     label: "Templates",
     description:
       "Edit content for system-generated notifications (Stripe failures, achievements, reminders).",
+  },
+  {
+    key: "broadcasts",
+    label: "Broadcasts",
+    description: "Author one-off notifications, target cohorts, schedule delivery.",
   },
   {
     key: "types",
@@ -47,7 +47,7 @@ export function NotificationsTabs({
   types,
   templates,
 }: NotificationsTabsProps) {
-  const [active, setActive] = useState<TabKey>("broadcasts");
+  const [active, setActive] = useState<TabKey>("templates");
 
   const activeTab = TABS.find((t) => t.key === active) ?? TABS[0];
 

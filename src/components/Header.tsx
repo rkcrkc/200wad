@@ -35,7 +35,7 @@ const PREVIEW_STATS: HeaderStats = {
   wordsPerDay: 24,
   wordsMastered: 24,
   totalWords: 200,
-  totalWordsStudied: 48,
+  totalWordsLearned: 48,
   totalTimeSeconds: 3600, // 1 hour
   studyTimeSeconds: 2400,
   testTimeSeconds: 1200,
@@ -199,7 +199,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 <Popover
                   className="flex flex-col items-center"
                   content={(() => {
-                    const words = effectiveStats.totalWordsStudied ?? 0;
+                    const words = effectiveStats.totalWordsLearned ?? 0;
                     const hours = (effectiveStats.totalTimeSeconds ?? 0) / 3600;
                     const perHour = hours > 0 ? (words / hours) : 0;
                     const perHourDisplay = perHour.toFixed(1);
@@ -210,7 +210,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                         </span>
                         <div className="flex flex-col gap-0.5">
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                            {formatNumber(words)} words studied ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                            {formatNumber(words)} words learned ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
                           </span>
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
                             {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>

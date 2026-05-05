@@ -38,6 +38,22 @@ const TYPE_STYLES: Record<string, string> = {
 
 type TypeFilter = "all" | string;
 
+/**
+ * Display order for channel pills. Sorting before render keeps rows visually
+ * aligned (e.g. always "in-app · toast", never "toast · in-app").
+ */
+const CHANNEL_ORDER: Record<string, number> = {
+  in_app: 0,
+  toast: 1,
+  email: 2,
+};
+
+function sortChannels(channels: string[]): string[] {
+  return [...channels].sort(
+    (a, b) => (CHANNEL_ORDER[a] ?? 99) - (CHANNEL_ORDER[b] ?? 99)
+  );
+}
+
 export function TemplatesTab({ templates: initial, types }: TemplatesTabProps) {
   const router = useRouter();
   const [templates, setTemplates] = useState(initial);
@@ -258,9 +274,9 @@ export function TemplatesTab({ templates: initial, types }: TemplatesTabProps) {
                     )}
                   </div>
 
-                  {/* Channels */}
+                  {/* Channels — render in a fixed order so rows align visually */}
                   <div className="flex flex-wrap gap-1">
-                    {t.channels.map((c) => (
+                    {sortChannels(t.channels).map((c) => (
                       <span
                         key={c}
                         className="inline-block rounded-full bg-bone px-2 py-0.5 text-[11px] font-medium text-muted-foreground"

@@ -12,7 +12,8 @@ export function Tooltip({
   align = "center",
 }: {
   children: React.ReactNode;
-  label: string;
+  /** Tooltip body. String for short labels; ReactNode for richer content. */
+  label: React.ReactNode;
   /** Show above or below the trigger (default: above) */
   position?: "above" | "below";
   /** Horizontal alignment (default: center) */

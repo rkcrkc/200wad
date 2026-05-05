@@ -20,7 +20,13 @@ import { NOTIFICATION_TYPES } from "@/lib/validations/notifications";
 
 type AdminClient = SupabaseClient<Database>;
 
-export type NotificationChannel = "in_app" | "email";
+/**
+ * Channels supported by the dispatcher. The "toast" channel is intentionally
+ * NOT persisted — toasts are transient client-side renders. We accept it here
+ * so a single template can declare both "in_app" + "toast" without callers
+ * having to filter; the insert step drops it.
+ */
+export type NotificationChannel = "in_app" | "email" | "toast";
 
 export interface InsertNotificationInput {
   userId: string;
@@ -56,7 +62,19 @@ export async function insertNotification(
     ? input.channels
     : ["in_app"];
 
-  const rows: NotificationInsert[] = channels.map((channel) => ({
+  // Toast is a client-only transient channel; it never writes to the inbox.
+  // Filter it out before building rows so a template declaring both "in_app"
+  // and "toast" lands a single inbox row, not two.
+  const persistedChannels = channels.filter((c) => c !== "toast");
+
+  if (persistedChannels.length === 0) {
+    // Toast-only template — nothing to write here. Caller (insertFromTemplate)
+    // still treats this as success because the template is valid; the toast
+    // itself fires from the client.
+    return { success: true, error: null, notificationIds: [] };
+  }
+
+  const rows: NotificationInsert[] = persistedChannels.map((channel) => ({
     user_id: input.userId,
     channel,
     type: input.type,
@@ -80,7 +98,7 @@ export async function insertNotification(
   const ids = (data ?? []).map((r) => r.id);
 
   // Best-effort email transport. Driver is no-op by default.
-  if (channels.includes("email")) {
+  if (persistedChannels.includes("email")) {
     try {
       await sendBroadcastEmails(supabase, [input.userId], {
         broadcastId: "direct", // not tied to a broadcast row

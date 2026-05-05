@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { LessonStatus } from "./lessons";
+import { recordTestDueNotifications } from "@/lib/notifications/test-due";
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -58,6 +59,7 @@ export interface ScheduleData {
   // Context
   isFirstLesson: boolean;
   dueTestsCount: number;
+  totalLessons: number;
 
   // Lesson grid
   newLessons: LessonForScheduler[];
@@ -286,8 +288,14 @@ function transformToSchedulerFormat(
 // ============================================================================
 
 /**
- * Get the count of lessons with due tests (for sidebar badge)
- * Uses lesson-level milestone scheduling
+ * Get the count of lessons with due tests (for sidebar badge).
+ *
+ * Resolves target lesson IDs via a standalone lessons query, then counts
+ * matching user_lesson_progress rows. This mirrors the filtering used by
+ * `getTests` (src/lib/queries/tests.ts) so the sidebar badge can never
+ * disagree with the Tests page count. Earlier versions used an embedded
+ * `lessons!inner(course_id)` join, which could silently drop progress rows
+ * due to PostgREST embed/RLS quirks and produce a lower count than the page.
  */
 export async function getDueTestsCount(courseId?: string): Promise<number> {
   const supabase = await createClient();
@@ -297,29 +305,44 @@ export async function getDueTestsCount(courseId?: string): Promise<number> {
 
   if (!user) return 0;
 
-  const now = new Date().toISOString();
+  // Step 1: resolve published lesson IDs for the (optional) course scope.
+  let lessonsQuery = supabase
+    .from("lessons")
+    .select("id")
+    .eq("is_published", true);
 
-  // Build query for due lesson tests
-  let query = supabase
-    .from("user_lesson_progress")
-    .select("lesson_id, lessons!inner(course_id)")
-    .eq("user_id", user.id)
-    .not("next_milestone", "is", null)
-    .lte("next_test_due_at", now);
-
-  // Filter by course if specified
   if (courseId) {
-    query = query.eq("lessons.course_id", courseId);
+    lessonsQuery = lessonsQuery.eq("course_id", courseId);
   }
 
-  const { data: dueProgress, error } = await query;
+  const { data: lessons, error: lessonsError } = await lessonsQuery;
+
+  if (lessonsError) {
+    console.error("Error fetching lessons for due tests count:", lessonsError);
+    return 0;
+  }
+
+  if (!lessons || lessons.length === 0) return 0;
+
+  const lessonIds = lessons.map((l) => l.id);
+  const now = new Date().toISOString();
+
+  // Step 2: count due progress rows scoped to those lessons.
+  // Uses head:true so only the count is returned over the wire.
+  const { count, error } = await supabase
+    .from("user_lesson_progress")
+    .select("lesson_id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("lesson_id", lessonIds)
+    .not("next_milestone", "is", null)
+    .lte("next_test_due_at", now);
 
   if (error) {
     console.error("Error fetching due tests count:", error);
     return 0;
   }
 
-  return dueProgress?.length || 0;
+  return count ?? 0;
 }
 
 /**
@@ -350,6 +373,7 @@ export async function getScheduleData(
       nextLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
+      totalLessons: 0,
       newLessons: [],
       recentLessons: [],
       needsReviewLessons: [],
@@ -364,6 +388,7 @@ export async function getScheduleData(
       nextLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
+      totalLessons: 0,
       newLessons: [],
       recentLessons: [],
       needsReviewLessons: [],
@@ -393,6 +418,7 @@ export async function getScheduleData(
       nextLesson: schedulerLessons[0] || null,
       isFirstLesson: true,
       dueTestsCount: 0,
+      totalLessons: schedulerLessons.length,
       newLessons: schedulerLessons,
       recentLessons: [],
       needsReviewLessons: [],
@@ -400,6 +426,15 @@ export async function getScheduleData(
       error: null,
     };
   }
+
+  // Lazy "test due" notifications: any milestone test whose
+  // next_test_due_at <= now() that hasn't already been notified for this
+  // (lesson, milestone) cycle gets a bell entry. Idempotent + non-critical
+  // (errors swallowed by the helper). Runs in parallel with the lesson queries
+  // so it doesn't add to the response time.
+  const testDuePromise = user
+    ? recordTestDueNotifications(user.id)
+    : Promise.resolve();
 
   // Get lesson progress and lesson_words in parallel; user_word_progress is fetched
   // after so it can be scoped to this course's words. lesson_words and
@@ -745,11 +780,17 @@ export async function getScheduleData(
     liveStatusByLesson
   );
 
+  // Settle the test-due notifications side-effect before returning so it
+  // completes reliably under serverless runtimes. The helper swallows its own
+  // errors, so this never throws.
+  await testDuePromise;
+
   return {
     dueTests,
     nextLesson,
     isFirstLesson,
     dueTestsCount,
+    totalLessons: allLessons.length,
     newLessons,
     recentLessons,
     needsReviewLessons,

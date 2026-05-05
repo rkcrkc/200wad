@@ -17,6 +17,13 @@ interface StudyWordListSidebarProps {
   mode?: "study" | "test";
   /** For test mode: map of word index -> grade */
   testResults?: Map<number, "correct" | "half-correct" | "incorrect">;
+  /**
+   * For test mode: indices whose secondary text (foreign answer) must be
+   * hidden even when the word has a testResult. Used in testTwice mode so
+   * an already-answered round-1 entry doesn't reveal the answer for the
+   * upcoming round-2 occurrence of the same word.
+   */
+  hideSecondaryIndices?: Set<number>;
   /** Which word to show first: "foreign" (default) or "english" */
   primaryField?: "foreign" | "english";
   /** Category per word index — information pages get no number */
@@ -30,6 +37,7 @@ export function StudyWordListSidebar({
   onJumpToWord,
   mode = "study",
   testResults,
+  hideSecondaryIndices,
   primaryField = "foreign",
   categories,
 }: StudyWordListSidebarProps) {
@@ -98,6 +106,7 @@ export function StudyWordListSidebar({
               const isCurrent = index === currentWordIndex;
               const isCompleted = completedSet.has(index);
               const testResult = testResults?.get(index);
+              const hideSecondary = hideSecondaryIndices?.has(index) ?? false;
               const isInfoPage = categories?.[index] === "information";
               const primaryText = primaryField === "english" ? word.english : word.foreign;
               const secondaryText = primaryField === "english" ? word.foreign : word.english;
@@ -146,8 +155,13 @@ export function StudyWordListSidebar({
                       )}>
                         {word.english}
                       </div>
-                    ) : isTestMode && !testResult ? (
-                      /* Current word in test mode (not yet answered): show only primary (prompt) */
+                    ) : isTestMode && (!testResult || hideSecondary) ? (
+                      /*
+                       * Test mode, secondary text suppressed:
+                       *   - !testResult → word not yet answered (current word)
+                       *   - hideSecondary → testTwice mode, this word still has an
+                       *     unanswered later occurrence; don't spoil the answer
+                       */
                       <div className="truncate text-sm font-medium text-foreground">
                         {primaryText}
                       </div>

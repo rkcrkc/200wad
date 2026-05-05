@@ -21,7 +21,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
   const statusType = mapStatus(lesson.status || "");
 
   return (
-    <div className="flex flex-col overflow-hidden pt-2 px-6 rounded-2xl bg-white shadow-card">
+    <div className="flex flex-col overflow-hidden pt-2 px-6 rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-[0px_12px_32px_-8px_rgba(0,0,0,0.18)]">
       <Link href={`/lesson/${lesson.id}`}>
         {/* Lesson Image */}
         <div className="relative h-[220px] w-full overflow-hidden">
