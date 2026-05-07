@@ -1015,10 +1015,10 @@ export function TestModeClient({
     // Reset finishing guard so handleFinishTest works again
     isFinishingRef.current = false;
 
-    // Filter to only words that were not fully correct
+    // Filter to only words that did not score full marks (any mistake or clue use).
     const incorrectWordIds = new Set<string>();
     testProgressMap.forEach((progress, key) => {
-      if (progress.hasAnswered && !progress.isCorrect) {
+      if (progress.hasAnswered && progress.pointsEarned < progress.maxPoints) {
         // In testTwice mode, key is "wordId_attemptNum", otherwise just "wordId"
         const wordId = testTwice ? key.split("_")[0] : key;
         incorrectWordIds.add(wordId);
@@ -1069,10 +1069,10 @@ export function TestModeClient({
   }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords, isGuest]);
 
   const handleStudyIncorrect = useCallback(() => {
-    // Collect incorrect word IDs from test progress
+    // Collect word IDs that did not score full marks (any mistake or clue use).
     const incorrectWordIds = new Set<string>();
     testProgressMap.forEach((progress, key) => {
-      if (progress.hasAnswered && !progress.isCorrect) {
+      if (progress.hasAnswered && progress.pointsEarned < progress.maxPoints) {
         const wordId = testTwice ? key.split("_")[0] : key;
         incorrectWordIds.add(wordId);
       }

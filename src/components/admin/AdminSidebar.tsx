@@ -16,6 +16,7 @@ import {
   FileText,
   Lightbulb,
   Bell,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ const navSections: NavItem[][] = [
     { label: "Tips", href: "/admin/tips", icon: <Lightbulb className="h-5 w-5" /> },
     { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
     { label: "Notifications", href: "/admin/notifications", icon: <Bell className="h-5 w-5" /> },
+    { label: "Celebrations", href: "/admin/celebrations", icon: <Sparkles className="h-5 w-5" /> },
     { label: "Music", href: "/admin/music", icon: <Music className="h-5 w-5" /> },
   ],
   // Section 3: Billing

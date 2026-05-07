@@ -87,10 +87,11 @@ export function TestCompletedModal({
   // Exclude information pages from all word counts/tabs (non-testable)
   const testableWords = words.filter((w) => w.category !== "information");
 
-  // Filter words by result
+  // Filter words by result: anything less than full marks (mistakes and/or
+  // clue use) counts as incorrect for the "Incorrect words" tab.
   const incorrectWords = testableWords.filter((word) => {
     const result = wordResultsMap.get(word.id);
-    return result && result.grade !== "correct";
+    return result && result.pointsEarned < result.maxPoints;
   });
 
   const [activeTab, setActiveTab] = useState<"incorrect" | "all">(
