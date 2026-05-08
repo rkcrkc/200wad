@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Milestone } from "@/lib/utils/milestones";
+import { isAutoLesson, parseAutoLessonId } from "@/lib/queries/lessons";
 
 // ============================================================================
 // STUDY SESSION ACTIONS
@@ -700,14 +701,22 @@ export async function completeStudySession(
     }
   }
 
-  // Update lesson progress to record study time
-  const lessonResult = await updateLessonProgress(lessonId, stats.durationSeconds);
-  if (!lessonResult.success) {
-    return lessonResult;
-  }
+  // Auto-lessons (auto-{type}-{courseId}) aren't rows in `lessons` and don't
+  // participate in milestone scheduling, so skip the lesson-progress / milestone
+  // writes — both would fail on the FK to `lessons.id`. The study_session row
+  // is already saved above, which is all auto-lessons need.
+  const autoInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
 
-  // Set initial test milestone if this is the first time completing this lesson
-  await setInitialMilestoneIfNeeded(user.id, lessonId);
+  if (!autoInfo) {
+    // Update lesson progress to record study time
+    const lessonResult = await updateLessonProgress(lessonId, stats.durationSeconds);
+    if (!lessonResult.success) {
+      return lessonResult;
+    }
+
+    // Set initial test milestone if this is the first time completing this lesson
+    await setInitialMilestoneIfNeeded(user.id, lessonId);
+  }
 
   // Complete any pending referral (triggers credit on first lesson completion)
   try {
@@ -719,13 +728,27 @@ export async function completeStudySession(
 
   // Record daily activity for leaderboard/streak tracking
   try {
-    const { data: lesson } = await supabase
-      .from("lessons")
-      .select("course_id, courses(language_id)")
-      .eq("id", lessonId)
-      .single();
+    let courseId: string | null = null;
+    let languageId: string | null = null;
 
-    const languageId = (lesson?.courses as { language_id: string } | null)?.language_id;
+    if (autoInfo) {
+      courseId = autoInfo.courseId;
+      const { data: courseRow } = await supabase
+        .from("courses")
+        .select("language_id")
+        .eq("id", courseId)
+        .single();
+      languageId = courseRow?.language_id ?? null;
+    } else {
+      const { data: lesson } = await supabase
+        .from("lessons")
+        .select("course_id, courses(language_id)")
+        .eq("id", lessonId)
+        .single();
+      courseId = lesson?.course_id ?? null;
+      languageId = (lesson?.courses as { language_id: string } | null)?.language_id ?? null;
+    }
+
     if (languageId) {
       const { recordActivity } = await import("./activity");
       await recordActivity({
@@ -735,11 +758,18 @@ export async function completeStudySession(
       });
     }
 
-    // Revalidate schedule page after milestone may have been set
-    // (updateLessonProgress already revalidated, but setInitialMilestoneIfNeeded
-    // may have written next_milestone/next_test_due_at after that)
-    if (lesson?.course_id) {
-      revalidatePath(`/course/${lesson.course_id}/schedule`);
+    // For auto-lessons, updateLessonProgress didn't run, so revalidate the
+    // affected pages here. For real lessons, updateLessonProgress already
+    // revalidated /lesson/[id] and the course pages, but the schedule page
+    // may need a refresh after setInitialMilestoneIfNeeded.
+    if (autoInfo && courseId) {
+      revalidatePath(`/lesson/${lessonId}`);
+      revalidatePath(`/course/${courseId}`);
+      revalidatePath(`/course/${courseId}/schedule`);
+      revalidatePath(`/course/${courseId}/tests`);
+      revalidatePath(`/course/${courseId}/progress`);
+    } else if (courseId) {
+      revalidatePath(`/course/${courseId}/schedule`);
     }
   } catch {
     // Non-critical — don't fail the session completion

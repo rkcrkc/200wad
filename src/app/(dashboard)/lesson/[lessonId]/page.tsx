@@ -58,6 +58,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
     notes: "No words yet — words you add notes to will appear here.",
     best: "No words yet — take some tests to see your best words here.",
     worst: "No words yet — take some tests to see words needing practice.",
+    unmastered: "No words yet — words you've learned but haven't mastered will appear here.",
+    lost_mastery: "No words here — words you've previously mastered will appear if you slip.",
   };
 
   const emptyMessage = autoLessonInfo

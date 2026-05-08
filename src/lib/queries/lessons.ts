@@ -2,6 +2,30 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import { getLessonAccessMap } from "@/lib/utils/accessControl";
+import {
+  AUTO_LESSON_DEFINITIONS,
+  createAutoLessonId,
+  selectBestWorstWordIds,
+  selectLostMasteryWordIds,
+  selectUnmasteredWordIds,
+} from "./auto-lessons";
+import type { AutoLessonType } from "./auto-lessons";
+
+// Re-export the client-safe helpers so existing imports from this module
+// keep working. New client code should import from "./auto-lessons" directly
+// to avoid dragging server-only modules into the client bundle.
+export {
+  AUTO_LESSON_META,
+  LOST_MASTERY_LIMIT,
+  UNMASTERED_LIMIT,
+  createAutoLessonId,
+  isAutoLesson,
+  parseAutoLessonId,
+  selectBestWorstWordIds,
+  selectLostMasteryWordIds,
+  selectUnmasteredWordIds,
+} from "./auto-lessons";
+export type { AutoLessonType } from "./auto-lessons";
 
 export type LessonStatus = "not-started" | "learning" | "learned" | "mastered";
 
@@ -16,24 +40,6 @@ export interface LessonWithProgress extends Lesson {
   isAutoLesson?: boolean;
   /** Whether this lesson is locked (requires subscription) */
   isLocked?: boolean;
-}
-
-// Auto-lesson types
-export type AutoLessonType = "notes" | "best" | "worst";
-
-// Auto-lesson ID helpers
-export function createAutoLessonId(type: AutoLessonType, courseId: string): string {
-  return `auto-${type}-${courseId}`;
-}
-
-export function parseAutoLessonId(lessonId: string): { type: AutoLessonType; courseId: string } | null {
-  const match = lessonId.match(/^auto-(notes|best|worst)-(.+)$/);
-  if (!match) return null;
-  return { type: match[1] as AutoLessonType, courseId: match[2] };
-}
-
-export function isAutoLesson(lessonId: string): boolean {
-  return lessonId.startsWith("auto-");
 }
 
 export interface GetLessonsResult {
@@ -52,67 +58,36 @@ export interface GetLessonsResult {
   isGuest: boolean;
 }
 
-// Auto-lesson definitions
-const AUTO_LESSON_DEFINITIONS: {
-  type: AutoLessonType;
-  number: number;
-  title: string;
-  emoji: string;
-}[] = [
-  { type: "notes", number: 800, title: "My Notes", emoji: "📝" },
-  { type: "best", number: 801, title: "Best Words", emoji: "🏆" },
-  { type: "worst", number: 802, title: "Worst Words", emoji: "🎯" },
-];
-
 /**
- * Pick the top N word IDs by avg test score (descending for "best",
- * ascending for "worst"). Ties are broken deterministically by word_id
- * (UUID string, ascending) so the same input always produces the same
- * output and different call sites stay in sync.
- *
- * For "worst", words that are already mastered are excluded before the
- * slice — mastered words shouldn't show up in the practice pool.
- *
- * Available points are always 3 per attempt — clues reduce points earned,
- * not the max.
+ * Insert a one-time "lost_mastery_introduced" notification for the user when
+ * their Lost Mastery special lesson first becomes populated. Dedupes via a
+ * single (user_id, type) lookup — both columns are indexed, so the cost is
+ * negligible. Safe to call on every render: the existence check skips the
+ * insert once a row is present.
  */
-export function selectBestWorstWordIds(
-  testQuestions: Array<{ word_id: string | null; points_earned: number | null }>,
-  type: "best" | "worst",
-  masteredWordIds: Set<string>,
-  limit = 20,
-): string[] {
-  const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
-  testQuestions.forEach((tq) => {
-    if (!tq.word_id) return;
-    if (!wordScores[tq.word_id]) {
-      wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
-    }
-    wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-    wordScores[tq.word_id].totalMax += 3;
+async function ensureLostMasteryIntroduced(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", "lost_mastery_introduced")
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return;
+
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: "lost_mastery_introduced",
+    channel: "in_app",
+    title: "New special lesson: Lost Mastery",
+    message:
+      "You've slipped on a word you previously mastered. Open Lost Mastery in your lessons to refresh it.",
+    is_read: false,
   });
-
-  const scored = Object.entries(wordScores).map(([wordId, scores]) => ({
-    wordId,
-    avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
-  }));
-
-  scored.sort((a, b) => {
-    const primary =
-      type === "best"
-        ? b.avgPercent - a.avgPercent
-        : a.avgPercent - b.avgPercent;
-    if (primary !== 0) return primary;
-    // Stable, deterministic tiebreak by word_id (UUID string)
-    return a.wordId.localeCompare(b.wordId);
-  });
-
-  const filtered =
-    type === "worst"
-      ? scored.filter((w) => !masteredWordIds.has(w.wordId))
-      : scored;
-
-  return filtered.slice(0, limit).map((w) => w.wordId);
 }
 
 /**
@@ -184,14 +159,21 @@ async function generateAutoLessons(
         )
       : Promise.resolve([] as { word_id: string | null; points_earned: number | null }[]),
 
-    // Per-word status. Scope by user_id + status only and paginate via
-    // .range() — pushing every course word_id through `.in(…)` creates a
-    // multi-KB URL that PostgREST silently returns empty for.
-    fetchAllRows<{ word_id: string | null; status: string | null }>(
+    // Per-word status + timestamps for unmastered/lost-mastery selection.
+    // Scope by user_id + status only and paginate via .range() — pushing every
+    // course word_id through `.in(…)` creates a multi-KB URL that PostgREST
+    // silently returns empty for.
+    fetchAllRows<{
+      word_id: string | null;
+      status: string | null;
+      mastered_at: string | null;
+      learned_at: string | null;
+      last_studied_at: string | null;
+    }>(
       (from, to) =>
         supabase
           .from("user_word_progress")
-          .select("word_id, status")
+          .select("word_id, status, mastered_at, learned_at, last_studied_at")
           .eq("user_id", userId)
           .in("status", ["learning", "learned", "mastered"])
           .range(from, to),
@@ -205,14 +187,30 @@ async function generateAutoLessons(
     ?.map((w) => w.word_id)
     .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
 
-  // Build per-status sets, scoped to this course's words.
+  // Build per-status sets, scoped to this course's words. We also collect
+  // the rows for "learned" words so the unmastered / lost-mastery selectors
+  // can sort by their timestamps without re-querying.
   const masteredWordIds = new Set<string>();
   const learnedWordIds = new Set<string>();
   const learningWordIds = new Set<string>();
+  const learnedRows: Array<{
+    word_id: string;
+    mastered_at: string | null;
+    learned_at: string | null;
+    last_studied_at: string | null;
+  }> = [];
   wordProgressData.forEach((wp) => {
     if (!wp.word_id || !courseWordIdSet.has(wp.word_id)) return;
     if (wp.status === "mastered") masteredWordIds.add(wp.word_id);
-    if (wp.status === "learned") learnedWordIds.add(wp.word_id);
+    if (wp.status === "learned") {
+      learnedWordIds.add(wp.word_id);
+      learnedRows.push({
+        word_id: wp.word_id,
+        mastered_at: wp.mastered_at,
+        learned_at: wp.learned_at,
+        last_studied_at: wp.last_studied_at,
+      });
+    }
     if (wp.status === "learning") learningWordIds.add(wp.word_id);
   });
 
@@ -230,11 +228,33 @@ async function generateAutoLessons(
     masteredWordIds,
   );
 
+  // Unmastered: status=learned AND mastered_at IS NULL — words the user has
+  // never reached mastery on. Sort by learned_at ASC so the "stuck the
+  // longest" words come up first; deterministic word_id tiebreak keeps the
+  // selection stable across reloads.
+  const unmasteredWordIds = selectUnmasteredWordIds(learnedRows);
+
+  // Lost Mastery: status=learned AND mastered_at IS NOT NULL — words the
+  // user has previously mastered but has since slipped on. Sort by
+  // last_studied_at DESC so the freshest losses surface first.
+  const lostMasteryWordIds = selectLostMasteryWordIds(learnedRows);
+
   const wordIdsByType: Record<AutoLessonType, string[]> = {
     notes: notesWordIds,
     best: bestWordIds,
     worst: worstWordIds,
+    unmastered: unmasteredWordIds,
+    lost_mastery: lostMasteryWordIds,
   };
+
+  // Fire-and-forget: when the user has any lost-mastery words, ensure they've
+  // been notified at least once that this special lesson exists. Wrapped in
+  // try/catch so notification failures never block lesson rendering.
+  if (lostMasteryWordIds.length > 0) {
+    void ensureLostMasteryIntroduced(supabase, userId).catch((err) => {
+      console.error("ensureLostMasteryIntroduced failed:", err);
+    });
+  }
 
   // Generate auto-lesson objects with live mastery data
   const now = new Date().toISOString();
@@ -344,6 +364,24 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
 
+    // Auto-lessons (Notes/Best/Worst/Unmastered/Lost Mastery) can be studied
+    // and tested standalone. Their sessions are written with a literal
+    // "auto-{type}-{courseId}" string in `lesson_id`, so include those IDs
+    // when summing course-level time — otherwise time spent on auto-lessons
+    // is silently dropped from the course total even though it counts
+    // toward the user's global total.
+    const autoLessonIdsForCourse: AutoLessonType[] = [
+      "notes",
+      "best",
+      "worst",
+      "unmastered",
+      "lost_mastery",
+    ];
+    const lessonIdsForTime = [
+      ...lessonIds,
+      ...autoLessonIdsForCourse.map((t) => createAutoLessonId(t, courseId)),
+    ];
+
     // Fetch lesson progress, study sessions, and test scores in parallel
     const [lessonProgressResult, studySessionsResult, testScoresResult] = await Promise.all([
       supabase
@@ -355,12 +393,12 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .from("study_sessions")
         .select("duration_seconds")
         .eq("user_id", user.id)
-        .in("lesson_id", lessonIds),
+        .in("lesson_id", lessonIdsForTime),
       supabase
         .from("user_test_scores")
         .select("duration_seconds")
         .eq("user_id", user.id)
-        .in("lesson_id", lessonIds),
+        .in("lesson_id", lessonIdsForTime),
     ]);
 
     const lessonProgress = lessonProgressResult.data;

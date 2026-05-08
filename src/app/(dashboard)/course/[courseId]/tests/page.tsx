@@ -1,10 +1,11 @@
 import { Clock } from "lucide-react";
-import { getTests } from "@/lib/queries";
+import { getLessons, getTests } from "@/lib/queries";
 import { getCourseById } from "@/lib/queries/courses";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { TestsList } from "@/components/TestsList";
+import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
 import { formatDuration } from "@/lib/utils/helpers";
 import { notFound } from "next/navigation";
 
@@ -22,7 +23,13 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
     notFound();
   }
 
-  const { dueTests, previousTests, stats, isGuest } = await getTests(course.id);
+  // Tests + lessons in parallel; lessons feed the Special Lessons row.
+  const [testsResult, lessonsResult] = await Promise.all([
+    getTests(course.id),
+    getLessons(course.id),
+  ]);
+  const { dueTests, previousTests, stats, isGuest } = testsResult;
+  const { lessons } = lessonsResult;
 
   return (
     <PageShell withTopPadding={false} className="pt-8">
@@ -42,6 +49,11 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Special lessons (auto-generated): Lost Mastery, Unmastered, Worst, Notes, Best */}
+        {!isGuest && lessons.length > 0 && (
+          <SpecialLessonsRow lessons={lessons} mode="test" />
+        )}
 
         {/* Tests List with Filter Tabs */}
         {dueTests.length === 0 && previousTests.length === 0 ? (

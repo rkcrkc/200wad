@@ -4,13 +4,18 @@ export type { LanguageWithProgress, GetLanguagesResult } from "./languages";
 export { getCourses, getCourseById } from "./courses";
 export type { CourseWithProgress, GetCoursesResult, GetCourseByIdResult } from "./courses";
 
-export { getLessons, isAutoLesson, parseAutoLessonId, createAutoLessonId } from "./lessons";
+export { getLessons } from "./lessons";
 export type {
   LessonStatus,
   LessonWithProgress,
   GetLessonsResult,
-  AutoLessonType,
 } from "./lessons";
+
+// Pure (no server imports) auto-lesson helpers — re-exported from the barrel
+// so client components can import them without dragging in lessons.ts (which
+// pulls in @/lib/supabase/server and next/headers).
+export { isAutoLesson, parseAutoLessonId, createAutoLessonId } from "./auto-lessons";
+export type { AutoLessonType } from "./auto-lessons";
 
 export { getWords, getWord } from "./words";
 export type {

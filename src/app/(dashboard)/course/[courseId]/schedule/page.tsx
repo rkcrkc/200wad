@@ -71,6 +71,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   const {
     dueTests,
     nextLesson,
+    worstWordsAutoLesson,
     isFirstLesson,
     dueTestsCount,
     totalLessons,
@@ -93,20 +94,25 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   const hasContent =
     dueTests.length > 0 ||
     nextLesson ||
+    worstWordsAutoLesson ||
     newLessons.length > 0 ||
     recentLessons.length > 0 ||
     needsReviewLessons.length > 0;
 
-  // Determine which lesson is shown in the scheduler (same alternating logic as SchedulerSection)
+  // Determine which lesson is shown in the scheduler (same alternating logic as SchedulerSection).
+  // Priority:
+  //   1. Just-completed test → next lesson (variety after a test)
+  //   2. Just-completed lesson → next due test (alternating tests/lessons)
+  //   3. Worst Words auto-lesson when due (≥7 days since last) — top weekly priority
+  //   4. Default: due test if any, else next lesson
   let schedulerLessonId: string | undefined;
   if (justCompletedTest && nextLesson) {
-    // Just finished a test - scheduler shows next lesson
     schedulerLessonId = nextLesson.id;
   } else if (justCompletedLesson && dueTests.length > 0) {
-    // Just finished a lesson - scheduler shows due test
     schedulerLessonId = dueTests[0].id;
+  } else if (worstWordsAutoLesson) {
+    schedulerLessonId = worstWordsAutoLesson.id;
   } else {
-    // Default: test if due, otherwise lesson
     schedulerLessonId = dueTests[0]?.id ?? nextLesson?.id;
   }
   const filteredNewLessons = schedulerLessonId
@@ -127,6 +133,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
             <SchedulerSection
               dueTests={dueTests}
               nextLesson={nextLesson}
+              worstWordsAutoLesson={worstWordsAutoLesson}
               isFirstLesson={isFirstLesson}
               dueTestsCount={dueTestsCount}
               totalLessons={totalLessons}

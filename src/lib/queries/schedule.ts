@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
-import { LessonStatus } from "./lessons";
+import { LessonStatus, createAutoLessonId, selectBestWorstWordIds } from "./lessons";
 import { recordTestDueNotifications } from "@/lib/notifications/test-due";
+
+/** Cadence for re-surfacing the Worst Words auto-lesson in the scheduler. */
+const WORST_WORDS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -55,6 +58,13 @@ export interface ScheduleData {
   // Primary action
   dueTests: LessonForScheduler[];
   nextLesson: LessonForScheduler | null;
+  /**
+   * Worst Words auto-lesson, surfaced once per week. Non-null only when the
+   * user has at least one non-mastered worst word AND has not completed a
+   * Worst Words test in the last 7 days. Takes top priority in the scheduler
+   * card when set, falling back to dueTests / nextLesson otherwise.
+   */
+  worstWordsAutoLesson: LessonForScheduler | null;
 
   // Context
   isFirstLesson: boolean;
@@ -283,6 +293,152 @@ function transformToSchedulerFormat(
   }));
 }
 
+/**
+ * Compute the Worst Words auto-lesson for the scheduler card, if eligible.
+ *
+ * Eligibility (all must hold):
+ *   1. The user has completed at least one test in this course (so the
+ *      best/worst algorithm has data to score from).
+ *   2. After excluding mastered words, the worst-words pool has ≥1 word.
+ *   3. The user has either never completed a Worst Words test in this
+ *      course, or the most recent completion was ≥7 days ago.
+ *
+ * Returns a synthetic `LessonForScheduler` whose `id` is
+ * `auto-worst-${courseId}` (matches `createAutoLessonId` so existing
+ * lesson/study/test routes already accept it).
+ *
+ * `userWordProgress` is reused from the caller to avoid a duplicate fetch
+ * of the user's per-word status set.
+ */
+async function getWorstWordsAutoLesson(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  courseId: string,
+  userId: string,
+  lessonIds: string[],
+  courseWordIds: Set<string>,
+  userWordProgress: Array<{ word_id: string | null; status: string | null }>,
+  nowMs: number
+): Promise<LessonForScheduler | null> {
+  if (lessonIds.length === 0 || courseWordIds.size === 0) return null;
+
+  const autoWorstId = createAutoLessonId("worst", courseId);
+
+  // 1. Find last completed Worst Words test in this course
+  const { data: lastSession } = await supabase
+    .from("study_sessions")
+    .select("ended_at")
+    .eq("user_id", userId)
+    .eq("lesson_id", autoWorstId)
+    .eq("session_type", "test")
+    .not("ended_at", "is", null)
+    .order("ended_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastEndedMs = lastSession?.ended_at
+    ? new Date(lastSession.ended_at).getTime()
+    : null;
+  if (lastEndedMs !== null && nowMs - lastEndedMs < WORST_WORDS_COOLDOWN_MS) {
+    return null;
+  }
+
+  // 2. Fetch test data scoped to this course's lessons (test_score_ids in this
+  //    course → test_questions with points_earned per word). Mirrors the
+  //    scoping in generateAutoLessons() so the All-Lessons "Worst Words"
+  //    pool and the scheduler always agree.
+  const { data: userTestScores } = await supabase
+    .from("user_test_scores")
+    .select("id")
+    .eq("user_id", userId)
+    .in("lesson_id", lessonIds);
+
+  const testScoreIds = userTestScores?.map((ts) => ts.id) ?? [];
+  if (testScoreIds.length === 0) return null;
+
+  const { data: testQuestions } = await supabase
+    .from("test_questions")
+    .select("word_id, points_earned")
+    .in("test_score_id", testScoreIds);
+
+  // 3. Build mastered/learned/learning sets scoped to this course's words
+  const masteredWordIds = new Set<string>();
+  const learnedWordIds = new Set<string>();
+  const learningWordIds = new Set<string>();
+  for (const wp of userWordProgress) {
+    if (!wp.word_id || !courseWordIds.has(wp.word_id)) continue;
+    if (wp.status === "mastered") masteredWordIds.add(wp.word_id);
+    if (wp.status === "learned") learnedWordIds.add(wp.word_id);
+    if (wp.status === "learning") learningWordIds.add(wp.word_id);
+  }
+
+  const worstWordIds = selectBestWorstWordIds(
+    testQuestions ?? [],
+    "worst",
+    masteredWordIds
+  );
+  if (worstWordIds.length === 0) return null;
+
+  // 4. Fetch sample words + first non-information image directly from `words`.
+  //    `lesson_words` has no rows for auto-lesson IDs, so the standard
+  //    `getLessonSampleWords` / `getLessonImages` helpers can't be reused.
+  const { data: wordRows } = await supabase
+    .from("words")
+    .select("id, english, memory_trigger_image_url, category")
+    .in("id", worstWordIds);
+
+  const worstWordOrder = new Map(worstWordIds.map((id, i) => [id, i]));
+  const orderedWords = (wordRows ?? [])
+    .filter((w) => w.category !== "information")
+    .sort((a, b) => {
+      const ai = worstWordOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bi = worstWordOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return ai - bi;
+    });
+  const sampleWords = orderedWords.map((w) => w.english);
+  const imageUrl =
+    orderedWords.find((w) => w.memory_trigger_image_url)
+      ?.memory_trigger_image_url ?? null;
+
+  // 5. Derive status for the auto-lesson from the worst-words pool's
+  //    aggregate progress (mirrors generateAutoLessons logic).
+  const totalWords = worstWordIds.length;
+  const masteredCount = worstWordIds.filter((id) => masteredWordIds.has(id))
+    .length;
+  const learnedOrMasteredCount = worstWordIds.filter(
+    (id) => learnedWordIds.has(id) || masteredWordIds.has(id)
+  ).length;
+  const learningCount = worstWordIds.filter((id) => learningWordIds.has(id))
+    .length;
+  const status: LessonStatus =
+    masteredCount === totalWords && totalWords > 0
+      ? "mastered"
+      : learnedOrMasteredCount === totalWords && totalWords > 0
+        ? "learned"
+        : masteredCount > 0 || learnedOrMasteredCount > 0 || learningCount > 0
+          ? "learning"
+          : "not-started";
+
+  const nowIso = new Date(nowMs).toISOString();
+  return {
+    id: autoWorstId,
+    course_id: courseId,
+    number: 802,
+    title: "Worst Words",
+    emoji: "🎯",
+    word_count: totalWords,
+    is_published: true,
+    sort_order: 802,
+    legacy_lesson_id: null,
+    created_at: nowIso,
+    updated_at: nowIso,
+    created_by: null,
+    updated_by: null,
+    sampleWords,
+    imageUrl,
+    status,
+  };
+}
+
 // ============================================================================
 // Main Query Functions
 // ============================================================================
@@ -371,6 +527,7 @@ export async function getScheduleData(
     return {
       dueTests: [],
       nextLesson: null,
+      worstWordsAutoLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
       totalLessons: 0,
@@ -386,6 +543,7 @@ export async function getScheduleData(
     return {
       dueTests: [],
       nextLesson: null,
+      worstWordsAutoLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
       totalLessons: 0,
@@ -416,6 +574,7 @@ export async function getScheduleData(
     return {
       dueTests: [],
       nextLesson: schedulerLessons[0] || null,
+      worstWordsAutoLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
       totalLessons: schedulerLessons.length,
@@ -780,6 +939,25 @@ export async function getScheduleData(
     liveStatusByLesson
   );
 
+  // Worst Words auto-lesson — surfaced once per week as the top scheduler
+  // priority. Reuses `userWordProgress` and `courseWordIds` already in scope
+  // to avoid extra round-trips. Failures are swallowed: a missing auto-lesson
+  // shouldn't break the rest of the schedule.
+  let worstWordsAutoLesson: LessonForScheduler | null = null;
+  try {
+    worstWordsAutoLesson = await getWorstWordsAutoLesson(
+      supabase,
+      courseId,
+      user.id,
+      lessonIds,
+      courseWordIds,
+      userWordProgress,
+      nowMs
+    );
+  } catch (err) {
+    console.error("Error computing worst-words auto-lesson:", err);
+  }
+
   // Settle the test-due notifications side-effect before returning so it
   // completes reliably under serverless runtimes. The helper swallows its own
   // errors, so this never throws.
@@ -788,6 +966,7 @@ export async function getScheduleData(
   return {
     dueTests,
     nextLesson,
+    worstWordsAutoLesson,
     isFirstLesson,
     dueTestsCount,
     totalLessons: allLessons.length,

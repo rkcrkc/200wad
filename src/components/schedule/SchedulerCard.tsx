@@ -11,6 +11,7 @@ import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonStartTestModal } from "@/components/study";
 import type { LessonForScheduler } from "@/lib/queries";
+import { isAutoLesson } from "@/lib/queries/auto-lessons";
 import { useText } from "@/context/TextContext";
 import { mapStatus } from "@/lib/utils/helpers";
 
@@ -41,17 +42,21 @@ function milestoneShortLabel(milestone: string | undefined | null): string | nul
 export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerCardProps) {
   const { t } = useText();
   const isTest = mode === "test";
+  const isAuto = isAutoLesson(lesson.id);
   const statusType = mapStatus(lesson.status || "");
   const [showStartTestModal, setShowStartTestModal] = useState(false);
   const milestoneLabel = isTest ? milestoneShortLabel(lesson.nextMilestone) : null;
-  // For test cards we surface the milestone (e.g. "1-week test"); for lesson
-  // cards we use a generic "New lesson" cue so both modes get the same
+  // For test cards we surface the milestone (e.g. "1-week test"); for the
+  // weekly Worst Words auto-lesson we use a "Weekly review" cue; otherwise
+  // we use a generic "New lesson" cue so all modes get the same
   // pulse-kicker pairing.
   const kickerLabel = isTest
     ? milestoneLabel
       ? `${milestoneLabel} test`
       : "Test"
-    : "New lesson";
+    : isAuto
+      ? "Weekly review"
+      : "New lesson";
 
   return (
     <div
@@ -97,9 +102,13 @@ export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerC
           </div>
 
           <div className="flex flex-1 flex-col justify-center">
-            {/* Lesson number — sits directly above the title */}
+            {/* Lesson number — sits directly above the title. Auto-lessons
+                (e.g. Worst Words) don't have a real lesson number, so we
+                show their emoji-led label instead. */}
             <p className="mb-3 text-regular-semibold text-muted-foreground">
-              Lesson #{lesson.number}
+              {isAuto
+                ? `${lesson.emoji ?? ""} Auto-lesson`.trim()
+                : `Lesson #${lesson.number}`}
             </p>
 
             {/* Title */}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils/milestones";
 import { updateLessonProgress } from "./study";
 import { recordProgressAchievements } from "@/lib/notifications/achievements";
+import { isAutoLesson, parseAutoLessonId } from "@/lib/queries/lessons";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -448,11 +449,18 @@ export async function completeTestSession(
     console.warn(`[Test Session] ${wordProgressFailures}/${questionResults.length} word progress updates failed`);
   }
 
-  // 5b. Recalculate lesson progress (words_mastered count) from updated word progress
-  const lessonProgressResult = await updateLessonProgress(lessonId, stats.durationSeconds);
-  if (!lessonProgressResult.success) {
-    console.error("Error updating lesson progress:", lessonProgressResult.error);
-    // Continue anyway - test score is already saved
+  // 5b. Recalculate lesson progress (words_mastered count) from updated word
+  // progress. Auto-lessons (auto-{type}-{courseId}) aren't rows in `lessons`
+  // and don't have a `user_lesson_progress` summary — their stats are derived
+  // live from per-word progress, and their test_score row is already saved.
+  const autoInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
+
+  if (!autoInfo) {
+    const lessonProgressResult = await updateLessonProgress(lessonId, stats.durationSeconds);
+    if (!lessonProgressResult.success) {
+      console.error("Error updating lesson progress:", lessonProgressResult.error);
+      // Continue anyway - test score is already saved
+    }
   }
 
   // 5c. Fire any achievement notifications the user just unlocked. Internally
@@ -475,16 +483,31 @@ export async function completeTestSession(
     );
   }
 
-  // Fetch course info for activity recording and mastered word count
-  const { data: lessonWithCourse } = await supabase
-    .from("lessons")
-    .select("course_id, courses(language_id)")
-    .eq("id", lessonId)
-    .single();
+  // Fetch course info for activity recording and mastered word count.
+  // Auto-lessons aren't in `lessons`, so derive course_id from the parsed
+  // auto-lesson ID and look up the language directly on the course.
+  let courseId: string | null = null;
+  let languageId: string | null = null;
+  if (autoInfo) {
+    courseId = autoInfo.courseId;
+    const { data: courseRow } = await supabase
+      .from("courses")
+      .select("language_id")
+      .eq("id", courseId)
+      .single();
+    languageId = courseRow?.language_id ?? null;
+  } else {
+    const { data: lessonWithCourse } = await supabase
+      .from("lessons")
+      .select("course_id, courses(language_id)")
+      .eq("id", lessonId)
+      .single();
+    courseId = lessonWithCourse?.course_id ?? null;
+    languageId = (lessonWithCourse?.courses as { language_id: string } | null)?.language_id ?? null;
+  }
 
   // Record daily activity for leaderboard/streak tracking
   try {
-    const languageId = (lessonWithCourse?.courses as { language_id: string } | null)?.language_id;
     if (languageId) {
       const { recordActivity } = await import("./activity");
       await recordActivity({
@@ -502,7 +525,6 @@ export async function completeTestSession(
 
   // 7. Get learned+mastered word count scoped to this course via DB function
   // (avoids massive .in() clause that exceeds PostgREST URL length limits)
-  const courseId = lessonWithCourse?.course_id;
   let courseWordsMastered = 0;
   if (courseId) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
@@ -516,7 +538,7 @@ export async function completeTestSession(
     console.log("[Test Session] courseVocab:", { courseId, userId: user.id, vocabCount, type: typeof vocabCount });
     courseWordsMastered = (vocabCount as number) || 0;
   } else {
-    console.warn("[Test Session] No courseId found for lesson", lessonId, "lessonWithCourse:", lessonWithCourse);
+    console.warn("[Test Session] No courseId found for lesson", lessonId);
   }
 
   // Revalidate all pages that display lesson/word stats

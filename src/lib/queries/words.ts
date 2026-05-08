@@ -8,7 +8,15 @@ import {
   UserWordProgress,
   Word,
 } from "@/types/database";
-import { isAutoLesson, parseAutoLessonId, AutoLessonType, selectBestWorstWordIds } from "./lessons";
+import {
+  isAutoLesson,
+  parseAutoLessonId,
+  AutoLessonType,
+  selectBestWorstWordIds,
+  selectUnmasteredWordIds,
+  selectLostMasteryWordIds,
+  AUTO_LESSON_META,
+} from "./lessons";
 import { getTipsForWords, type TipForWord } from "./tips";
 
 // Helper function to extract course without nested relations
@@ -734,6 +742,51 @@ async function getAutoLessonWords(
 
   const orderedLessons = courseLessons ?? [];
 
+  // Time spent and average score for THIS auto-lesson only — auto-lesson IDs
+  // (e.g. "auto-worst-{courseId}") are stored verbatim in study_sessions.lesson_id
+  // and user_test_scores.lesson_id when the user studies/tests the auto-lesson
+  // standalone, so the same query pattern as real lessons works here.
+  const [autoStudySessionsResult, autoTestScoresResult] = await Promise.all([
+    supabase
+      .from("study_sessions")
+      .select("duration_seconds")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId),
+    supabase
+      .from("user_test_scores")
+      .select("duration_seconds, score_percent")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId),
+  ]);
+
+  const autoStudyTimeSeconds = (autoStudySessionsResult.data || []).reduce(
+    (sum, ss) => sum + (ss.duration_seconds || 0),
+    0
+  );
+  const autoLessonTestScores = autoTestScoresResult.data || [];
+  const autoTestTimeSeconds = autoLessonTestScores.reduce(
+    (sum, ts) => sum + (ts.duration_seconds || 0),
+    0
+  );
+  const autoTotalTimeSeconds = autoStudyTimeSeconds + autoTestTimeSeconds;
+  const autoAverageTestScore = autoLessonTestScores.length > 0
+    ? Math.round(
+        autoLessonTestScores.reduce((sum, ts) => sum + (ts.score_percent || 0), 0) /
+          autoLessonTestScores.length
+      )
+    : null;
+
+  const autoTimeStats = {
+    totalWords: 0,
+    wordsStudied: 0,
+    wordsLearned: 0,
+    wordsMastered: 0,
+    totalTimeSeconds: autoTotalTimeSeconds,
+    studyTimeSeconds: autoStudyTimeSeconds,
+    testTimeSeconds: autoTestTimeSeconds,
+    averageTestScore: autoAverageTestScore,
+  };
+
   // Get all word IDs for this course. Paginate via .range() — PostgREST's
   // 1,000-row max-rows cap silently truncates single-request responses.
   const lessonIds = orderedLessons.map((l) => l.id);
@@ -750,7 +803,7 @@ async function getAutoLessonWords(
   const courseWordIds = lessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
 
   if (courseWordIds.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
   }
 
   // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
@@ -781,10 +834,44 @@ async function getAutoLessonWords(
     targetWordIds = wordsWithNotes
       ?.map((w) => w.word_id)
       .filter((id): id is string => id !== null && courseWordIdSet.has(id)) || [];
+  } else if (type === "unmastered" || type === "lost_mastery") {
+    // Both selectors operate on rows where status='learned'. Fetch once and
+    // pass to the shared helper so this page agrees with the All-Lessons
+    // summary on which words land in each lesson.
+    const learnedProgress = await fetchAllRows<{
+      word_id: string | null;
+      mastered_at: string | null;
+      learned_at: string | null;
+      last_studied_at: string | null;
+    }>(
+      (from, to) =>
+        supabase
+          .from("user_word_progress")
+          .select("word_id, mastered_at, learned_at, last_studied_at")
+          .eq("user_id", userId)
+          .eq("status", "learned")
+          .range(from, to),
+      { label: `getAutoLessonWords:${type}:user_word_progress` },
+    );
+
+    const courseWordIdSet = new Set(courseWordIds);
+    const learnedRows = learnedProgress
+      .filter((r) => r.word_id !== null && courseWordIdSet.has(r.word_id))
+      .map((r) => ({
+        word_id: r.word_id as string,
+        mastered_at: r.mastered_at,
+        learned_at: r.learned_at,
+        last_studied_at: r.last_studied_at,
+      }));
+
+    targetWordIds =
+      type === "unmastered"
+        ? selectUnmasteredWordIds(learnedRows)
+        : selectLostMasteryWordIds(learnedRows);
   } else {
     // Best or Worst words - need to calculate scores
     if (testScoreIds.length === 0) {
-      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
+      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
     }
 
     // Fetch test_questions and (for "worst") mastered word IDs in parallel.
@@ -833,7 +920,7 @@ async function getAutoLessonWords(
   }
 
   if (targetWordIds.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
   }
 
   // Fetch full word data
@@ -843,7 +930,7 @@ async function getAutoLessonWords(
     .in("id", targetWordIds);
 
   if (!words || words.length === 0) {
-    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId);
+    return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
   }
 
   // Maintain the order from targetWordIds (important for best/worst)
@@ -988,10 +1075,10 @@ async function getAutoLessonWords(
     wordsStudied,
     wordsLearned,
     wordsMastered,
-    totalTimeSeconds: 0,
-    studyTimeSeconds: 0,
-    testTimeSeconds: 0,
-    averageTestScore: null,
+    totalTimeSeconds: autoTotalTimeSeconds,
+    studyTimeSeconds: autoStudyTimeSeconds,
+    testTimeSeconds: autoTestTimeSeconds,
+    averageTestScore: autoAverageTestScore,
   });
 }
 
@@ -1008,13 +1095,7 @@ function buildAutoLessonResult(
   userId: string | null,
   stats?: { totalWords: number; wordsStudied: number; wordsLearned: number; wordsMastered: number; totalTimeSeconds: number; studyTimeSeconds: number; testTimeSeconds: number; averageTestScore: number | null }
 ): GetWordsResult {
-  const lessonTitles: Record<AutoLessonType, { number: number; title: string; emoji: string }> = {
-    notes: { number: 800, title: "My Notes", emoji: "📝" },
-    best: { number: 801, title: "Best Words", emoji: "🏆" },
-    worst: { number: 802, title: "Worst Words", emoji: "🎯" },
-  };
-
-  const def = lessonTitles[type];
+  const def = AUTO_LESSON_META[type];
   const now = new Date().toISOString();
 
   // Create virtual lesson object

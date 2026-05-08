@@ -9,6 +9,8 @@ import {
   BookOpen,
   ClipboardCheck,
   BookMarked,
+  LineChart,
+  Trophy,
   Lock,
   Gift,
   Settings,
@@ -24,6 +26,11 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
+];
+
+const getSecondaryNavItems = (courseId?: string) => [
+  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
+  { path: "/community", icon: Trophy, label: "Leaderboard" },
 ];
 
 const bottomNavItems = [
@@ -135,11 +142,18 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
     if (path.includes("/dictionary")) {
       return pathname === "/dictionary" || pathname.endsWith("/dictionary");
     }
-    if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary")) {
+    if (path.includes("/progress")) {
+      return pathname === "/progress" || pathname.endsWith("/progress");
+    }
+    if (path === "/community") {
+      return pathname === "/community" || pathname.startsWith("/community");
+    }
+    if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary") && !path.includes("/progress")) {
       const isSchedulePage = pathname.endsWith("/schedule");
       const isTestsPage = pathname.endsWith("/tests");
       const isDictionaryPage = pathname.endsWith("/dictionary");
-      return !isSchedulePage && !isTestsPage && !isDictionaryPage && (pathname.includes("/lesson") || pathname.includes("/course/"));
+      const isProgressPage = pathname.endsWith("/progress");
+      return !isSchedulePage && !isTestsPage && !isDictionaryPage && !isProgressPage && (pathname.includes("/lesson") || pathname.includes("/course/"));
     }
     return pathname === path || pathname.startsWith(path);
   };
@@ -179,6 +193,17 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               label={item.label}
               isActive={isActive(item.path)}
               badge={item.label === "Tests" ? dueTestsCount : undefined}
+              onClick={onClose}
+            />
+          ))}
+          <div className="my-2 h-px bg-gray-100" role="separator" />
+          {getSecondaryNavItems(courseId).map((item) => (
+            <MobileNavItem
+              key={item.label}
+              href={item.path}
+              icon={item.icon}
+              label={item.label}
+              isActive={isActive(item.path)}
               onClick={onClose}
             />
           ))}

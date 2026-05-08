@@ -8,6 +8,8 @@ import {
   BookOpen,
   ClipboardCheck,
   BookMarked,
+  LineChart,
+  Trophy,
   Lock,
   Coins,
   Settings,
@@ -24,6 +26,11 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
+];
+
+const getSecondaryNavItems = (courseId?: string) => [
+  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
+  { path: "/community", icon: Trophy, label: "Leaderboard" },
 ];
 
 const bottomNavItems = [
@@ -124,8 +131,16 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
     if (path.includes("/dictionary")) {
       return pathname === "/dictionary" || pathname.endsWith("/dictionary");
     }
+    // For progress, match /progress or /course/[id]/progress
+    if (path.includes("/progress")) {
+      return pathname === "/progress" || pathname.endsWith("/progress");
+    }
+    // For community (the leaderboard sidebar entry points here)
+    if (path === "/community") {
+      return pathname === "/community" || pathname.startsWith("/community");
+    }
     // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, /dictionary, or /progress) and /lesson routes
-    if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary")) {
+    if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary") && !path.includes("/progress")) {
       const isSchedulePage = pathname.endsWith("/schedule");
       const isTestsPage = pathname.endsWith("/tests");
       const isDictionaryPage = pathname.endsWith("/dictionary");
@@ -147,6 +162,16 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
             label={item.label}
             isActive={isActive(item.path)}
             badge={item.label === "Tests" ? dueTestsCount : undefined}
+          />
+        ))}
+        <div className="my-2 h-px bg-gray-100" role="separator" />
+        {getSecondaryNavItems(courseId).map((item) => (
+          <SidebarNavItem
+            key={item.label}
+            href={item.path}
+            icon={item.icon}
+            label={item.label}
+            isActive={isActive(item.path)}
           />
         ))}
       </nav>

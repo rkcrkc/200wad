@@ -1,6 +1,7 @@
 import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { LessonsList } from "@/components/LessonsList";
+import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
@@ -53,6 +54,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
           totalLessons={totalLessons}
         />
       </div>
+
+      {/* Special lessons (auto-generated): Lost Mastery, Unmastered, Worst, Notes, Best */}
+      {!isGuest && lessons.length > 0 && <SpecialLessonsRow lessons={lessons} />}
 
       {/* Lessons List with Filter Tabs */}
       {lessons.length === 0 ? (

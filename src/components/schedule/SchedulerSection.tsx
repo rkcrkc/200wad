@@ -13,6 +13,12 @@ const COMPACT_TABS_THRESHOLD = 4;
 interface SchedulerSectionProps {
   dueTests: LessonForScheduler[];
   nextLesson: LessonForScheduler | null;
+  /**
+   * Worst Words auto-lesson, surfaced once per week. When set (and the user
+   * hasn't just completed a test/lesson), it takes top priority over
+   * dueTests / nextLesson in the scheduler card.
+   */
+  worstWordsAutoLesson?: LessonForScheduler | null;
   isFirstLesson: boolean;
   dueTestsCount: number;
   totalLessons: number;
@@ -25,6 +31,7 @@ interface SchedulerSectionProps {
 export function SchedulerSection({
   dueTests,
   nextLesson,
+  worstWordsAutoLesson = null,
   isFirstLesson,
   dueTestsCount,
   totalLessons,
@@ -46,12 +53,14 @@ export function SchedulerSection({
 
   const primaryTest = dueTests[activeTestIndex] ?? dueTests[0];
 
-  // Alternating logic:
+  // Alternating / priority logic:
   // - After completing a test → show next lesson (even if more tests are due)
   // - After completing a lesson → show due test (if any)
-  // - Otherwise → show test if due, else lesson
+  // - Otherwise, when Worst Words is due (≥7 days since last) → it wins
+  // - Otherwise → show test if due, else next lesson
   let showTest: boolean;
   let displayLesson: LessonForScheduler | null;
+  let showWorstWords = false;
 
   if (justCompletedTest && nextLesson) {
     // Just finished a test - show next lesson for variety
@@ -61,6 +70,11 @@ export function SchedulerSection({
     // Just finished a lesson - show due test
     showTest = true;
     displayLesson = primaryTest;
+  } else if (worstWordsAutoLesson) {
+    // Weekly Worst Words slot — always wins outside the just-completed paths
+    showTest = false;
+    showWorstWords = true;
+    displayLesson = worstWordsAutoLesson;
   } else {
     // Default: show test if due, otherwise lesson
     showTest = hasDueTests;
@@ -86,6 +100,13 @@ export function SchedulerSection({
     linkText = "All tests due";
     linkHref = "/tests";
     linkCount = dueTestsCount;
+  } else if (showWorstWords) {
+    heading = "It's time for your weekly review";
+    linkText = "All lessons";
+    linkHref = displayLesson
+      ? `/course/${displayLesson.course_id}`
+      : "/dashboard";
+    linkCount = totalLessons;
   } else if (isFirstLesson) {
     heading = "It's time for your first lesson";
     linkText = "All lessons";

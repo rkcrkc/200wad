@@ -263,8 +263,10 @@ export function transformChartData(
         break;
       case "performance": {
         // value = course completion % (right Y-axis)
+        // Matches the SummaryCards "Course Completion" card: counts both
+        // learned + mastered words (i.e. total vocab) over total testable words.
         value = totalCourseWords > 0
-          ? Math.round((bucket.lastCumulativeMastered / totalCourseWords) * 1000) / 10
+          ? Math.round((bucket.lastCumulativeVocab / totalCourseWords) * 1000) / 10
           : 0;
         // value2 = words per day rate (left Y-axis), based on words learned
         // (≥1 full-mark 3/3 test answer) per hour of total study + test time
