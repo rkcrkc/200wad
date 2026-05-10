@@ -5,6 +5,7 @@ import { getLessonAccessMap } from "@/lib/utils/accessControl";
 import {
   AUTO_LESSON_DEFINITIONS,
   createAutoLessonId,
+  getAllAutoLessonIds,
   selectBestWorstWordIds,
   selectLostMasteryWordIds,
   selectUnmasteredWordIds,
@@ -19,6 +20,7 @@ export {
   LOST_MASTERY_LIMIT,
   UNMASTERED_LIMIT,
   createAutoLessonId,
+  getAllAutoLessonIds,
   isAutoLesson,
   parseAutoLessonId,
   selectBestWorstWordIds,
@@ -119,12 +121,18 @@ async function generateAutoLessons(
 
   // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
   // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
-  // through PostgREST and silently return empty on long URLs).
+  // through PostgREST and silently return empty on long URLs). Include the
+  // course's auto-lesson IDs so attempts on Worst/Best/etc. feed back into
+  // the rankings (otherwise the same words stay "worst" forever).
+  const lessonIdsWithAutos = [
+    ...lessonIds,
+    ...getAllAutoLessonIds(courseId),
+  ];
   const { data: userTestScores } = await supabase
     .from("user_test_scores")
     .select("id")
     .eq("user_id", userId)
-    .in("lesson_id", lessonIds);
+    .in("lesson_id", lessonIdsWithAutos);
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
@@ -169,11 +177,12 @@ async function generateAutoLessons(
       mastered_at: string | null;
       learned_at: string | null;
       last_studied_at: string | null;
+      correct_streak: number | null;
     }>(
       (from, to) =>
         supabase
           .from("user_word_progress")
-          .select("word_id, status, mastered_at, learned_at, last_studied_at")
+          .select("word_id, status, mastered_at, learned_at, last_studied_at, correct_streak")
           .eq("user_id", userId)
           .in("status", ["learning", "learned", "mastered"])
           .range(from, to),
@@ -198,6 +207,7 @@ async function generateAutoLessons(
     mastered_at: string | null;
     learned_at: string | null;
     last_studied_at: string | null;
+    correct_streak: number | null;
   }> = [];
   wordProgressData.forEach((wp) => {
     if (!wp.word_id || !courseWordIdSet.has(wp.word_id)) return;
@@ -209,6 +219,7 @@ async function generateAutoLessons(
         mastered_at: wp.mastered_at,
         learned_at: wp.learned_at,
         last_studied_at: wp.last_studied_at,
+        correct_streak: wp.correct_streak,
       });
     }
     if (wp.status === "learning") learningWordIds.add(wp.word_id);
@@ -370,16 +381,9 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     // when summing course-level time — otherwise time spent on auto-lessons
     // is silently dropped from the course total even though it counts
     // toward the user's global total.
-    const autoLessonIdsForCourse: AutoLessonType[] = [
-      "notes",
-      "best",
-      "worst",
-      "unmastered",
-      "lost_mastery",
-    ];
     const lessonIdsForTime = [
       ...lessonIds,
-      ...autoLessonIdsForCourse.map((t) => createAutoLessonId(t, courseId)),
+      ...getAllAutoLessonIds(courseId),
     ];
 
     // Fetch lesson progress, study sessions, and test scores in parallel

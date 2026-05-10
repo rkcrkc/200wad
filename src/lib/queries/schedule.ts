@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
-import { LessonStatus, createAutoLessonId, selectBestWorstWordIds } from "./lessons";
+import {
+  LessonStatus,
+  createAutoLessonId,
+  getAllAutoLessonIds,
+  selectBestWorstWordIds,
+} from "./lessons";
 import { recordTestDueNotifications } from "@/lib/notifications/test-due";
 
 /** Cadence for re-surfacing the Worst Words auto-lesson in the scheduler. */
@@ -345,12 +350,15 @@ async function getWorstWordsAutoLesson(
   // 2. Fetch test data scoped to this course's lessons (test_score_ids in this
   //    course → test_questions with points_earned per word). Mirrors the
   //    scoping in generateAutoLessons() so the All-Lessons "Worst Words"
-  //    pool and the scheduler always agree.
+  //    pool and the scheduler always agree. Includes the course's
+  //    auto-lesson IDs so attempts on Worst/Best/etc. feed back into the
+  //    ranking — otherwise completing a Worst Words test would never shift
+  //    its own list.
   const { data: userTestScores } = await supabase
     .from("user_test_scores")
     .select("id")
     .eq("user_id", userId)
-    .in("lesson_id", lessonIds);
+    .in("lesson_id", [...lessonIds, ...getAllAutoLessonIds(courseId)]);
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) ?? [];
   if (testScoreIds.length === 0) return null;

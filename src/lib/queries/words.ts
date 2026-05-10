@@ -12,6 +12,7 @@ import {
   isAutoLesson,
   parseAutoLessonId,
   AutoLessonType,
+  getAllAutoLessonIds,
   selectBestWorstWordIds,
   selectUnmasteredWordIds,
   selectLostMasteryWordIds,
@@ -808,12 +809,17 @@ async function getAutoLessonWords(
 
   // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
   // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
-  // through PostgREST and silently return empty on long URLs).
+  // through PostgREST and silently return empty on long URLs). Auto-lesson
+  // tests live under their own synthetic lesson_id (e.g. "auto-worst-…"),
+  // so include those too — otherwise per-word "last 3 attempts" panels and
+  // best/worst rankings on the auto-lesson page would silently miss any
+  // attempts taken from the auto-lesson itself.
+  const lessonIdsWithAutos = [...lessonIds, ...getAllAutoLessonIds(courseId)];
   const { data: userTestScores } = await supabase
     .from("user_test_scores")
     .select("id")
     .eq("user_id", userId)
-    .in("lesson_id", lessonIds);
+    .in("lesson_id", lessonIdsWithAutos);
 
   const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
@@ -843,11 +849,12 @@ async function getAutoLessonWords(
       mastered_at: string | null;
       learned_at: string | null;
       last_studied_at: string | null;
+      correct_streak: number | null;
     }>(
       (from, to) =>
         supabase
           .from("user_word_progress")
-          .select("word_id, mastered_at, learned_at, last_studied_at")
+          .select("word_id, mastered_at, learned_at, last_studied_at, correct_streak")
           .eq("user_id", userId)
           .eq("status", "learned")
           .range(from, to),
@@ -862,6 +869,7 @@ async function getAutoLessonWords(
         mastered_at: r.mastered_at,
         learned_at: r.learned_at,
         last_studied_at: r.last_studied_at,
+        correct_streak: r.correct_streak,
       }));
 
     targetWordIds =

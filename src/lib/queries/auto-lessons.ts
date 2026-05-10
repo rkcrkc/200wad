@@ -33,6 +33,22 @@ export function isAutoLesson(lessonId: string): boolean {
   return lessonId.startsWith("auto-");
 }
 
+/**
+ * All auto-lesson IDs for a given course.
+ *
+ * Auto-lesson tests (e.g. Worst Words) write `lesson_id =
+ * "auto-{type}-{courseId}"` to `user_test_scores`, `study_sessions`, and
+ * `test_questions` (via test_score_id). Course-scoped queries that filter
+ * `.in("lesson_id", lessonIdsFromLessonsTable)` would otherwise silently
+ * drop those rows. Spread this into the filter so auto-lesson activity is
+ * counted alongside real-lesson activity.
+ */
+export function getAllAutoLessonIds(courseId: string): string[] {
+  return AUTO_LESSON_DEFINITIONS.map((def) =>
+    createAutoLessonId(def.type, courseId),
+  );
+}
+
 /** Maximum words in the "Unmastered" auto-lesson (oldest learned-but-not-mastered first). */
 export const UNMASTERED_LIMIT = 10;
 /** Maximum words in the "Lost Mastery" auto-lesson. */
@@ -116,15 +132,24 @@ export function selectBestWorstWordIds(
  * Pick up to UNMASTERED_LIMIT word IDs that are at status "learned" and have
  * never been mastered. Sorted by learned_at ASC (oldest stuck-at-learned
  * first), with a stable word_id tiebreak so reloads return the same set.
+ *
+ * Defensive guard: also exclude rows where `correct_streak >= 3`. status and
+ * correct_streak are written together by `updateWordTestProgress`, so they
+ * should always agree — but if any row is out of sync (legacy data, manual
+ * fix, partial reset), we don't want to surface a word that's effectively
+ * mastered.
  */
 export function selectUnmasteredWordIds(
   learnedRows: Array<{
     word_id: string;
     mastered_at: string | null;
     learned_at: string | null;
+    correct_streak: number | null;
   }>,
 ): string[] {
-  const candidates = learnedRows.filter((r) => r.mastered_at === null);
+  const candidates = learnedRows.filter(
+    (r) => r.mastered_at === null && (r.correct_streak ?? 0) < 3,
+  );
   candidates.sort((a, b) => {
     const aT = a.learned_at ?? "";
     const bT = b.learned_at ?? "";
@@ -138,15 +163,21 @@ export function selectUnmasteredWordIds(
  * Pick up to LOST_MASTERY_LIMIT word IDs the user mastered before but has
  * since dropped to "learned". Sorted by last_studied_at DESC so the most
  * recent slips show first.
+ *
+ * Defensive guard: also exclude rows where `correct_streak >= 3`. See
+ * `selectUnmasteredWordIds` for the rationale.
  */
 export function selectLostMasteryWordIds(
   learnedRows: Array<{
     word_id: string;
     mastered_at: string | null;
     last_studied_at: string | null;
+    correct_streak: number | null;
   }>,
 ): string[] {
-  const candidates = learnedRows.filter((r) => r.mastered_at !== null);
+  const candidates = learnedRows.filter(
+    (r) => r.mastered_at !== null && (r.correct_streak ?? 0) < 3,
+  );
   candidates.sort((a, b) => {
     const aT = a.last_studied_at ?? "";
     const bT = b.last_studied_at ?? "";

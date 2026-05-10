@@ -103,13 +103,14 @@ export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerC
 
           <div className="flex flex-1 flex-col justify-center">
             {/* Lesson number — sits directly above the title. Auto-lessons
-                (e.g. Worst Words) don't have a real lesson number, so we
-                show their emoji-led label instead. */}
-            <p className="mb-3 text-regular-semibold text-muted-foreground">
-              {isAuto
-                ? `${lesson.emoji ?? ""} Auto-lesson`.trim()
-                : `Lesson #${lesson.number}`}
-            </p>
+                (e.g. Worst Words) don't have a real lesson number; the
+                "Weekly review" kicker above already provides context, so
+                we omit this line for them. */}
+            {!isAuto && (
+              <p className="mb-3 text-regular-semibold text-muted-foreground">
+                {`Lesson #${lesson.number}`}
+              </p>
+            )}
 
             {/* Title */}
             <h2 className="mb-4 text-[36px] font-semibold leading-tight text-foreground">

@@ -176,43 +176,73 @@ export async function completeTestSession(
     } catch { /* non-critical */ }
   }
 
+  // Detect auto-lesson early so the validation code below can branch
+  // correctly. Auto-lessons (e.g. `auto-worst-{courseId}`) aren't rows in
+  // the `lessons` table and don't have entries in `lesson_words`, so the
+  // standard checks would otherwise return "Lesson not found" and abort
+  // the save before any score, question, or word-progress row is written.
+  const autoInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
+
   // --- Anti-gaming validations ---
 
-  // Validate lesson exists and get word count
-  const { data: lessonData } = await supabase
-    .from("lessons")
-    .select("word_count")
-    .eq("id", lessonId)
-    .single();
+  // Resolve the upper bound for the question-count sanity check. Real
+  // lessons use their own `word_count`; auto-lessons cap their pool at 20
+  // (see AUTO_LESSON_DEFINITIONS / selectBestWorstWordIds limit).
+  let lessonWordCount: number;
+  if (autoInfo) {
+    lessonWordCount = 20;
+  } else {
+    const { data: lessonData } = await supabase
+      .from("lessons")
+      .select("word_count")
+      .eq("id", lessonId)
+      .single();
 
-  if (!lessonData) {
-    return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Lesson not found" };
+    if (!lessonData) {
+      return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Lesson not found" };
+    }
+    lessonWordCount = lessonData.word_count || 0;
   }
 
   // Verify totalQuestions doesn't exceed lesson word count * 2 (testTwice mode)
-  if (stats.totalQuestions > (lessonData.word_count || 0) * 2) {
+  if (stats.totalQuestions > lessonWordCount * 2) {
     try {
       await supabase.from("activity_flags").insert({
         user_id: user.id,
         flag_type: "question_count_exceeded",
         severity: "medium",
-        details: { lessonId, totalQuestions: stats.totalQuestions, lessonWordCount: lessonData.word_count },
+        details: { lessonId, totalQuestions: stats.totalQuestions, lessonWordCount },
       });
     } catch { /* non-critical */ }
   }
 
-  // Verify word IDs belong to the lesson
+  // Verify word IDs belong to the lesson (or, for auto-lessons, to the
+  // course). Auto-lessons have no `lesson_words` rows of their own, so we
+  // accept any word that's part of any lesson in the course.
   const wordIds = questionResults.map((q) => q.wordId);
   const uniqueWordIds = [...new Set(wordIds)];
 
   if (uniqueWordIds.length > 0) {
-    const { data: lessonWords } = await supabase
-      .from("lesson_words")
-      .select("word_id")
-      .eq("lesson_id", lessonId)
-      .in("word_id", uniqueWordIds);
-
-    const validWordIds = new Set((lessonWords || []).map((lw) => lw.word_id));
+    let validWordIds: Set<string>;
+    if (autoInfo) {
+      const { data: courseWords } = await supabase
+        .from("lesson_words")
+        .select("word_id, lessons!inner(course_id)")
+        .eq("lessons.course_id", autoInfo.courseId)
+        .in("word_id", uniqueWordIds);
+      validWordIds = new Set(
+        (courseWords || [])
+          .map((lw) => lw.word_id)
+          .filter((id): id is string => id !== null)
+      );
+    } else {
+      const { data: lessonWords } = await supabase
+        .from("lesson_words")
+        .select("word_id")
+        .eq("lesson_id", lessonId)
+        .in("word_id", uniqueWordIds);
+      validWordIds = new Set((lessonWords || []).map((lw) => lw.word_id));
+    }
     const invalidWordIds = uniqueWordIds.filter((id) => !validWordIds.has(id));
 
     if (invalidWordIds.length > 0) {
@@ -355,18 +385,25 @@ export async function completeTestSession(
       .maybeSingle();
 
     if (existingScore) {
-      // Still compute the real vocab count so the modal shows the correct value
-      const { data: lessonForCourse } = await supabase
-        .from("lessons")
-        .select("course_id")
-        .eq("id", lessonId)
-        .single();
+      // Still compute the real vocab count so the modal shows the correct value.
+      // Auto-lessons aren't in `lessons`, so derive courseId from autoInfo.
+      let dedupeCourseId: string | null = null;
+      if (autoInfo) {
+        dedupeCourseId = autoInfo.courseId;
+      } else {
+        const { data: lessonForCourse } = await supabase
+          .from("lessons")
+          .select("course_id")
+          .eq("id", lessonId)
+          .single();
+        dedupeCourseId = lessonForCourse?.course_id ?? null;
+      }
       let dedupeVocabCount = 0;
-      if (lessonForCourse?.course_id) {
+      if (dedupeCourseId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
         const { data: vocabCount } = await (supabase.rpc as any)("get_course_vocab_count", {
           p_user_id: user.id,
-          p_course_id: lessonForCourse.course_id,
+          p_course_id: dedupeCourseId,
         });
         dedupeVocabCount = (vocabCount as number) || 0;
       }
@@ -453,8 +490,7 @@ export async function completeTestSession(
   // progress. Auto-lessons (auto-{type}-{courseId}) aren't rows in `lessons`
   // and don't have a `user_lesson_progress` summary — their stats are derived
   // live from per-word progress, and their test_score row is already saved.
-  const autoInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
-
+  // (`autoInfo` is computed earlier alongside the validation branch.)
   if (!autoInfo) {
     const lessonProgressResult = await updateLessonProgress(lessonId, stats.durationSeconds);
     if (!lessonProgressResult.success) {
