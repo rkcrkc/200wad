@@ -65,6 +65,27 @@ function extractLesson(lesson: Lesson & { courses?: unknown }): Lesson {
 
 export type WordStatus = "not-started" | "learning" | "learned" | "mastered";
 
+/**
+ * Read-time defense against status / streak drift.
+ *
+ * `updateWordTestProgress` (src/lib/mutations/test.ts) writes `status` and
+ * `correct_streak` atomically: any row with `status='mastered'` should also
+ * have `correct_streak >= 3`. Two repair migrations
+ * (20260510000001 / 20260510000002) bring the persisted state in line with
+ * this invariant. This helper enforces it at read time so the user-facing
+ * badge / counts stay self-consistent even if a future regression
+ * reintroduces drift before another migration runs.
+ */
+function effectiveWordStatus(
+  progress: Pick<UserWordProgress, "status" | "correct_streak"> | null | undefined,
+): WordStatus {
+  const stored = (progress?.status as WordStatus | undefined) || "not-started";
+  if (stored === "mastered" && (progress?.correct_streak || 0) < 3) {
+    return "learned";
+  }
+  return stored;
+}
+
 export interface TestAttempt {
   pointsEarned: number;
   maxPoints: number;
@@ -367,13 +388,14 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       }
       // Exclude information pages from studied/mastered counts
       if (wordId && infoWordIds.has(wordId)) return;
-      if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
+      const effective = effectiveWordStatus(wp);
+      if (effective === "learning" || effective === "learned" || effective === "mastered") {
         wordsStudied++;
       }
-      if (wp.status === "learned" || wp.status === "mastered") {
+      if (effective === "learned" || effective === "mastered") {
         wordsLearned++;
       }
-      if (wp.status === "mastered") {
+      if (effective === "mastered") {
         wordsMastered++;
       }
     });
@@ -504,7 +526,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       exampleSentences,
       relatedWords,
       progress: progress || null,
-      status: (progress?.status as WordStatus) || "not-started",
+      status: effectiveWordStatus(progress),
       testHistory,
       scoreStats,
       tips,
@@ -989,13 +1011,14 @@ async function getAutoLessonWords(
     }
     // Exclude information pages from studied/mastered counts
     if (wp.word_id && autoInfoWordIds.has(wp.word_id)) return;
-    if (wp.status === "learning" || wp.status === "learned" || wp.status === "mastered") {
+    const effective = effectiveWordStatus(wp);
+    if (effective === "learning" || effective === "learned" || effective === "mastered") {
       wordsStudied++;
     }
-    if (wp.status === "learned" || wp.status === "mastered") {
+    if (effective === "learned" || effective === "mastered") {
       wordsLearned++;
     }
-    if (wp.status === "mastered") {
+    if (effective === "mastered") {
       wordsMastered++;
     }
   });
@@ -1071,7 +1094,7 @@ async function getAutoLessonWords(
       exampleSentences,
       relatedWords,
       progress: progress || null,
-      status: (progress?.status as WordStatus) || "not-started",
+      status: effectiveWordStatus(progress),
       testHistory,
       scoreStats,
       tips: [],
