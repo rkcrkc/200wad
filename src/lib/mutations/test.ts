@@ -187,7 +187,8 @@ export async function completeTestSession(
 
   // Resolve the upper bound for the question-count sanity check. Real
   // lessons use their own `word_count`; auto-lessons cap their pool at 20
-  // (see AUTO_LESSON_DEFINITIONS / selectBestWorstWordIds limit).
+  // (see AUTO_LESSON_DEFINITIONS and the `select_best_worst_words_for_course`
+  // RPC's p_limit).
   let lessonWordCount: number;
   if (autoInfo) {
     lessonWordCount = 20;

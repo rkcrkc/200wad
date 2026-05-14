@@ -6,7 +6,6 @@ import {
   AUTO_LESSON_DEFINITIONS,
   createAutoLessonId,
   getAllAutoLessonIds,
-  selectBestWorstWordIds,
   selectLostMasteryWordIds,
   selectUnmasteredWordIds,
 } from "./auto-lessons";
@@ -23,7 +22,6 @@ export {
   getAllAutoLessonIds,
   isAutoLesson,
   parseAutoLessonId,
-  selectBestWorstWordIds,
   selectLostMasteryWordIds,
   selectUnmasteredWordIds,
 } from "./auto-lessons";
@@ -119,28 +117,17 @@ async function generateAutoLessons(
     return [];
   }
 
-  // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
-  // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
-  // through PostgREST and silently return empty on long URLs). Include the
-  // course's auto-lesson IDs so attempts on Worst/Best/etc. feed back into
-  // the rankings (otherwise the same words stay "worst" forever).
-  const lessonIdsWithAutos = [
-    ...lessonIds,
-    ...getAllAutoLessonIds(courseId),
-  ];
-  const { data: userTestScores } = await supabase
-    .from("user_test_scores")
-    .select("id")
-    .eq("user_id", userId)
-    .in("lesson_id", lessonIdsWithAutos);
-
-  const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
-
-  // Fetch notes word IDs, best/worst test data, and the user's per-word
-  // status all in parallel. We need masteredWordIds before computing the
-  // "worst" pool (mastered words are excluded), so it has to be available
-  // by the time `selectBestWorstWordIds` is called.
-  const [notesResult, bestWorstQuestions, wordProgressData] = await Promise.all([
+  // Fetch notes word IDs, best/worst word IDs, and the user's per-word status
+  // all in parallel. Best/Worst aggregation happens server-side via the
+  // `select_best_worst_words_for_course` RPC so per-word test history isn't
+  // filtered through the current course's lesson_ids (see migration for
+  // rationale).
+  const [
+    notesResult,
+    bestRpcResult,
+    worstRpcResult,
+    wordProgressData,
+  ] = await Promise.all([
     // Fetch word IDs with user notes. No word_id filter — pushing ~1k UUIDs
     // through PostgREST silently returns empty on long URLs. The
     // `user_notes is not null` predicate already bounds this to a small set.
@@ -150,22 +137,16 @@ async function generateAutoLessons(
       .eq("user_id", userId)
       .not("user_notes", "is", null),
 
-    // Get test data for best/worst calculation (via test_score_id).
-    // Paginate via fetchAllRows — PostgREST silently caps at 1,000 rows, and
-    // a power user with hundreds of tests can exceed that. Truncated data
-    // skews per-word averages and breaks the best/worst ordering.
-    testScoreIds.length > 0
-      ? fetchAllRows<{ word_id: string | null; points_earned: number | null }>(
-          (from, to) =>
-            supabase
-              .from("test_questions")
-              .select("word_id, points_earned")
-              .in("test_score_id", testScoreIds)
-              .order("id", { ascending: true })
-              .range(from, to),
-          { label: "generateAutoLessons:test_questions" }
-        )
-      : Promise.resolve([] as { word_id: string | null; points_earned: number | null }[]),
+    supabase.rpc("select_best_worst_words_for_course", {
+      p_course_id: courseId,
+      p_type: "best",
+      p_limit: 20,
+    }),
+    supabase.rpc("select_best_worst_words_for_course", {
+      p_course_id: courseId,
+      p_type: "worst",
+      p_limit: 20,
+    }),
 
     // Per-word status + timestamps for unmastered/lost-mastery selection.
     // Scope by user_id + status only and paginate via .range() — pushing every
@@ -225,19 +206,16 @@ async function generateAutoLessons(
     if (wp.status === "learning") learningWordIds.add(wp.word_id);
   });
 
-  // Best/Worst word IDs come from the shared helper so the All-Lessons
-  // summary and the lesson detail page always agree on which 20 words
-  // each auto-lesson contains.
-  const bestWordIds = selectBestWorstWordIds(
-    bestWorstQuestions,
-    "best",
-    masteredWordIds,
-  );
-  const worstWordIds = selectBestWorstWordIds(
-    bestWorstQuestions,
-    "worst",
-    masteredWordIds,
-  );
+  // Best/Worst word IDs come from the `select_best_worst_words_for_course`
+  // RPC. The function aggregates `test_questions` server-side scoped to this
+  // user and to words in this course, so the All-Lessons summary, the
+  // lesson detail page, and the scheduler always agree.
+  const bestWordIds = (bestRpcResult.data ?? [])
+    .map((r) => r.word_id)
+    .filter((id): id is string => !!id);
+  const worstWordIds = (worstRpcResult.data ?? [])
+    .map((r) => r.word_id)
+    .filter((id): id is string => !!id);
 
   // Unmastered: status=learned AND mastered_at IS NULL — words the user has
   // never reached mastery on. Sort by learned_at ASC so the "stuck the

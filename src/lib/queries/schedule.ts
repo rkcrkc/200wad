@@ -4,8 +4,6 @@ import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
 import {
   LessonStatus,
   createAutoLessonId,
-  getAllAutoLessonIds,
-  selectBestWorstWordIds,
 } from "./lessons";
 import { recordTestDueNotifications } from "@/lib/notifications/test-due";
 
@@ -347,28 +345,22 @@ async function getWorstWordsAutoLesson(
     return null;
   }
 
-  // 2. Fetch test data scoped to this course's lessons (test_score_ids in this
-  //    course → test_questions with points_earned per word). Mirrors the
-  //    scoping in generateAutoLessons() so the All-Lessons "Worst Words"
-  //    pool and the scheduler always agree. Includes the course's
-  //    auto-lesson IDs so attempts on Worst/Best/etc. feed back into the
-  //    ranking — otherwise completing a Worst Words test would never shift
-  //    its own list.
-  const { data: userTestScores } = await supabase
-    .from("user_test_scores")
-    .select("id")
-    .eq("user_id", userId)
-    .in("lesson_id", [...lessonIds, ...getAllAutoLessonIds(courseId)]);
+  // 2. Pick the user's worst words for this course server-side. The
+  //    `select_best_worst_words_for_course` RPC aggregates `test_questions`
+  //    scoped to this user and the course's words and excludes already-
+  //    mastered words. The All-Lessons summary and the lesson detail page
+  //    call the same RPC, so all three views agree on the same 20 words.
+  const { data: worstRpcRows } = await supabase.rpc(
+    "select_best_worst_words_for_course",
+    { p_course_id: courseId, p_type: "worst", p_limit: 20 },
+  );
+  const worstWordIds = (worstRpcRows ?? [])
+    .map((r) => r.word_id)
+    .filter((id): id is string => !!id);
+  if (worstWordIds.length === 0) return null;
 
-  const testScoreIds = userTestScores?.map((ts) => ts.id) ?? [];
-  if (testScoreIds.length === 0) return null;
-
-  const { data: testQuestions } = await supabase
-    .from("test_questions")
-    .select("word_id, points_earned")
-    .in("test_score_id", testScoreIds);
-
-  // 3. Build mastered/learned/learning sets scoped to this course's words
+  // 3. Per-word status for the worst pool, used below to derive the
+  //    auto-lesson's aggregate status (mastered/learned/learning/not-started).
   const masteredWordIds = new Set<string>();
   const learnedWordIds = new Set<string>();
   const learningWordIds = new Set<string>();
@@ -378,13 +370,6 @@ async function getWorstWordsAutoLesson(
     if (wp.status === "learned") learnedWordIds.add(wp.word_id);
     if (wp.status === "learning") learningWordIds.add(wp.word_id);
   }
-
-  const worstWordIds = selectBestWorstWordIds(
-    testQuestions ?? [],
-    "worst",
-    masteredWordIds
-  );
-  if (worstWordIds.length === 0) return null;
 
   // 4. Fetch sample words + first non-information image directly from `words`.
   //    `lesson_words` has no rows for auto-lesson IDs, so the standard

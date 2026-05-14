@@ -954,6 +954,78 @@ export type Database = {
           },
         ]
       }
+      tip_words: {
+        Row: {
+          created_at: string | null
+          sort_order: number | null
+          tip_id: string
+          word_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          sort_order?: number | null
+          tip_id: string
+          word_id: string
+        }
+        Update: {
+          created_at?: string | null
+          sort_order?: number | null
+          tip_id?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_words_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_words_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips: {
+        Row: {
+          body: string
+          created_at: string | null
+          display_context: Database["public"]["Enums"]["display_context"]
+          emoji: string | null
+          id: string
+          is_active: boolean
+          sort_order: number | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          display_context?: Database["public"]["Enums"]["display_context"]
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          display_context?: Database["public"]["Enums"]["display_context"]
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_daily_activity: {
         Row: {
           activity_date: string
@@ -1210,6 +1282,39 @@ export type Database = {
           },
           {
             foreignKeyName: "user_test_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_tip_dismissals: {
+        Row: {
+          dismissed_at: string | null
+          tip_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          tip_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          tip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tip_dismissals_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_tip_dismissals_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1633,111 +1738,6 @@ export type Database = {
           },
         ]
       }
-      tip_words: {
-        Row: {
-          created_at: string | null
-          sort_order: number | null
-          tip_id: string
-          word_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          sort_order?: number | null
-          tip_id: string
-          word_id: string
-        }
-        Update: {
-          created_at?: string | null
-          sort_order?: number | null
-          tip_id?: string
-          word_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tip_words_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: false
-            referencedRelation: "tips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tip_words_word_id_fkey"
-            columns: ["word_id"]
-            isOneToOne: false
-            referencedRelation: "words"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tips: {
-        Row: {
-          body: string
-          created_at: string | null
-          display_context: Database["public"]["Enums"]["display_context"]
-          emoji: string | null
-          id: string
-          is_active: boolean
-          sort_order: number | null
-          title: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          body: string
-          created_at?: string | null
-          display_context?: Database["public"]["Enums"]["display_context"]
-          emoji?: string | null
-          id?: string
-          is_active?: boolean
-          sort_order?: number | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          body?: string
-          created_at?: string | null
-          display_context?: Database["public"]["Enums"]["display_context"]
-          emoji?: string | null
-          id?: string
-          is_active?: boolean
-          sort_order?: number | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      user_tip_dismissals: {
-        Row: {
-          dismissed_at: string | null
-          tip_id: string
-          user_id: string
-        }
-        Insert: {
-          dismissed_at?: string | null
-          tip_id: string
-          user_id: string
-        }
-        Update: {
-          dismissed_at?: string | null
-          tip_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_tip_dismissals_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: false
-            referencedRelation: "tips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_tip_dismissals_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -1745,6 +1745,10 @@ export type Database = {
     Functions: {
       f_unaccent: { Args: { "": string }; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_course_vocab_count: {
+        Args: { p_course_id: string; p_user_id: string }
+        Returns: number
+      }
       get_leaderboard: {
         Args: {
           p_language_id: string
@@ -1796,6 +1800,12 @@ export type Database = {
           english: string
           headword: string
           language_id: string
+          word_id: string
+        }[]
+      }
+      select_best_worst_words_for_course: {
+        Args: { p_course_id: string; p_limit?: number; p_type: string }
+        Returns: {
           word_id: string
         }[]
       }
@@ -1945,97 +1955,3 @@ export const Constants = {
     },
   },
 } as const
-
-// ============================================================================
-// CONVENIENCE TYPE ALIASES
-// These provide backward compatibility with existing code
-// ============================================================================
-
-export type Language = Database["public"]["Tables"]["languages"]["Row"];
-
-// Greetings JSONB shape stored on languages
-export interface GreetingEntry {
-  text: string;
-  translation: string;
-}
-export interface LanguageGreetings {
-  morning: GreetingEntry;
-  afternoon: GreetingEntry;
-  evening: GreetingEntry;
-}
-export type Course = Database["public"]["Tables"]["courses"]["Row"];
-export type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
-export type Word = Database["public"]["Tables"]["words"]["Row"];
-export type LessonWord = Database["public"]["Tables"]["lesson_words"]["Row"];
-export type ExampleSentence = Database["public"]["Tables"]["example_sentences"]["Row"];
-export type User = Database["public"]["Tables"]["users"]["Row"];
-export type UserLanguage = Database["public"]["Tables"]["user_languages"]["Row"];
-export type UserWordProgress = Database["public"]["Tables"]["user_word_progress"]["Row"];
-export type UserLessonProgress = Database["public"]["Tables"]["user_lesson_progress"]["Row"];
-export type StudySession = Database["public"]["Tables"]["study_sessions"]["Row"];
-export type UserTestScore = Database["public"]["Tables"]["user_test_scores"]["Row"];
-export type TestQuestion = Database["public"]["Tables"]["test_questions"]["Row"];
-export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
-export type NotificationInsert = Database["public"]["Tables"]["notifications"]["Insert"];
-export type NotificationUpdate = Database["public"]["Tables"]["notifications"]["Update"];
-export type NotificationBroadcast = Database["public"]["Tables"]["notification_broadcasts"]["Row"];
-export type NotificationBroadcastInsert = Database["public"]["Tables"]["notification_broadcasts"]["Insert"];
-export type NotificationBroadcastUpdate = Database["public"]["Tables"]["notification_broadcasts"]["Update"];
-export type NotificationTypeConfig = Database["public"]["Tables"]["notification_types"]["Row"];
-export type NotificationTypeConfigInsert = Database["public"]["Tables"]["notification_types"]["Insert"];
-export type NotificationTypeConfigUpdate = Database["public"]["Tables"]["notification_types"]["Update"];
-export type NotificationTemplate = Database["public"]["Tables"]["notification_templates"]["Row"];
-export type NotificationTemplateInsert = Database["public"]["Tables"]["notification_templates"]["Insert"];
-export type NotificationTemplateUpdate = Database["public"]["Tables"]["notification_templates"]["Update"];
-export type UserNotificationPreference = Database["public"]["Tables"]["user_notification_preferences"]["Row"];
-export type UserNotificationPreferenceInsert = Database["public"]["Tables"]["user_notification_preferences"]["Insert"];
-export type UserNotificationPreferenceUpdate = Database["public"]["Tables"]["user_notification_preferences"]["Update"];
-export type StudyMusicTrack = Database["public"]["Tables"]["study_music_tracks"]["Row"];
-
-// Insert types
-export type LanguageInsert = Database["public"]["Tables"]["languages"]["Insert"];
-export type CourseInsert = Database["public"]["Tables"]["courses"]["Insert"];
-export type LessonInsert = Database["public"]["Tables"]["lessons"]["Insert"];
-export type WordInsert = Database["public"]["Tables"]["words"]["Insert"];
-export type LessonWordInsert = Database["public"]["Tables"]["lesson_words"]["Insert"];
-export type UserWordProgressInsert = Database["public"]["Tables"]["user_word_progress"]["Insert"];
-export type UserTestScoreInsert = Database["public"]["Tables"]["user_test_scores"]["Insert"];
-export type TestQuestionInsert = Database["public"]["Tables"]["test_questions"]["Insert"];
-export type StudyMusicTrackInsert = Database["public"]["Tables"]["study_music_tracks"]["Insert"];
-export type StudyMusicTrackUpdate = Database["public"]["Tables"]["study_music_tracks"]["Update"];
-
-// Update types
-export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
-export type UserWordProgressUpdate = Database["public"]["Tables"]["user_word_progress"]["Update"];
-export type UserLessonProgressUpdate = Database["public"]["Tables"]["user_lesson_progress"]["Update"];
-
-// Billing types
-export type PlatformConfig = Database["public"]["Tables"]["platform_config"]["Row"];
-export type PricingPlan = Database["public"]["Tables"]["pricing_plans"]["Row"];
-export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
-export type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"];
-export type CreditTransaction = Database["public"]["Tables"]["credit_transactions"]["Row"];
-export type CreditTransactionInsert = Database["public"]["Tables"]["credit_transactions"]["Insert"];
-export type Referral = Database["public"]["Tables"]["referrals"]["Row"];
-export type ReferralInsert = Database["public"]["Tables"]["referrals"]["Insert"];
-
-// Leaderboard types
-export type UserDailyActivity = Database["public"]["Tables"]["user_daily_activity"]["Row"];
-export type UserDailyActivityInsert = Database["public"]["Tables"]["user_daily_activity"]["Insert"];
-export type WeeklyLeaderboardSnapshot = Database["public"]["Tables"]["weekly_leaderboard_snapshots"]["Row"];
-export type LeaderboardRewardRow = Database["public"]["Tables"]["leaderboard_rewards"]["Row"];
-export type ActivityFlag = Database["public"]["Tables"]["activity_flags"]["Row"];
-export type ActivityFlagInsert = Database["public"]["Tables"]["activity_flags"]["Insert"];
-
-// Help types
-export type HelpEntry = Database["public"]["Tables"]["help_entries"]["Row"];
-export type HelpEntryInsert = Database["public"]["Tables"]["help_entries"]["Insert"];
-export type HelpEntryUpdate = Database["public"]["Tables"]["help_entries"]["Update"];
-
-// Tips types
-export type Tip = Database["public"]["Tables"]["tips"]["Row"];
-export type TipInsert = Database["public"]["Tables"]["tips"]["Insert"];
-export type TipUpdate = Database["public"]["Tables"]["tips"]["Update"];
-export type TipWord = Database["public"]["Tables"]["tip_words"]["Row"];
-export type TipWordInsert = Database["public"]["Tables"]["tip_words"]["Insert"];
-export type UserTipDismissal = Database["public"]["Tables"]["user_tip_dismissals"]["Row"];

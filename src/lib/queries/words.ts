@@ -12,8 +12,6 @@ import {
   isAutoLesson,
   parseAutoLessonId,
   AutoLessonType,
-  getAllAutoLessonIds,
-  selectBestWorstWordIds,
   selectUnmasteredWordIds,
   selectLostMasteryWordIds,
   AUTO_LESSON_META,
@@ -829,22 +827,6 @@ async function getAutoLessonWords(
     return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
   }
 
-  // Get user's test score IDs for lessons in THIS course (scoping by lesson_id
-  // keeps the URL short — filtering by courseWordIds later would push ~1k UUIDs
-  // through PostgREST and silently return empty on long URLs). Auto-lesson
-  // tests live under their own synthetic lesson_id (e.g. "auto-worst-…"),
-  // so include those too — otherwise per-word "last 3 attempts" panels and
-  // best/worst rankings on the auto-lesson page would silently miss any
-  // attempts taken from the auto-lesson itself.
-  const lessonIdsWithAutos = [...lessonIds, ...getAllAutoLessonIds(courseId)];
-  const { data: userTestScores } = await supabase
-    .from("user_test_scores")
-    .select("id")
-    .eq("user_id", userId)
-    .in("lesson_id", lessonIdsWithAutos);
-
-  const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
-
   // Fetch word IDs based on auto-lesson type
   let targetWordIds: string[] = [];
 
@@ -899,54 +881,18 @@ async function getAutoLessonWords(
         ? selectUnmasteredWordIds(learnedRows)
         : selectLostMasteryWordIds(learnedRows);
   } else {
-    // Best or Worst words - need to calculate scores
-    if (testScoreIds.length === 0) {
-      return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
-    }
-
-    // Fetch test_questions and (for "worst") mastered word IDs in parallel.
-    // Both must paginate via fetchAllRows — PostgREST silently caps responses
-    // at 1,000 rows. A power user with hundreds of tests can exceed that and
-    // get a truncated test_questions set, which would skew per-word averages
-    // and break the worst-word ordering.
-    const [testQuestions, masteredProgress] = await Promise.all([
-      fetchAllRows<{ word_id: string | null; points_earned: number | null }>(
-        (from, to) =>
-          supabase
-            .from("test_questions")
-            .select("word_id, points_earned")
-            .in("test_score_id", testScoreIds)
-            .order("id", { ascending: true })
-            .range(from, to),
-        { label: "getAutoLessonWords:test_questions" }
-      ),
-      type === "worst"
-        ? fetchAllRows<{ word_id: string | null }>(
-            (from, to) =>
-              supabase
-                .from("user_word_progress")
-                .select("word_id")
-                .eq("user_id", userId)
-                .eq("status", "mastered")
-                .range(from, to),
-            { label: "getAutoLessonWords:worst:user_word_progress" }
-          )
-        : Promise.resolve([] as { word_id: string | null }[]),
-    ]);
-
-    const masteredWordIds = new Set(
-      masteredProgress
-        .map((wp) => wp.word_id)
-        .filter((id): id is string => !!id)
+    // Best or Worst words — aggregated in Postgres via the
+    // `select_best_worst_words_for_course` RPC so the All-Lessons summary,
+    // the scheduler, and this page always agree, and so per-word test
+    // history isn't filtered through the current course's lesson_ids
+    // (see the migration for the full rationale).
+    const { data: rpcRows } = await supabase.rpc(
+      "select_best_worst_words_for_course",
+      { p_course_id: courseId, p_type: type, p_limit: 20 },
     );
-
-    // Shared helper guarantees the same 20 words as the All-Lessons summary
-    // for both "best" and "worst" (deterministic tiebreaker by word_id).
-    targetWordIds = selectBestWorstWordIds(
-      testQuestions,
-      type,
-      masteredWordIds,
-    );
+    targetWordIds = (rpcRows ?? [])
+      .map((r) => r.word_id)
+      .filter((id): id is string => !!id);
   }
 
   if (targetWordIds.length === 0) {
@@ -1023,12 +969,19 @@ async function getAutoLessonWords(
     }
   });
 
-  // Get test history (using testScoreIds fetched earlier)
-  const { data: testQuestions } = testScoreIds.length > 0
+  // Get test history for these words. Per-word `test_questions` is the source
+  // of truth for traffic lights and average scores — aggregate by word_id only
+  // and scope to this user via the inner join on user_test_scores. Filtering
+  // by lesson_id (via testScoreIds) would hide attempts whose original lesson
+  // was unpublished, renumbered, or moved, even though the word-level score
+  // history is still valid.
+  const { data: testQuestions } = targetWordIds.length > 0
     ? await supabase
         .from("test_questions")
-        .select("word_id, points_earned, max_points, answered_at")
-        .in("test_score_id", testScoreIds)
+        .select(
+          "word_id, points_earned, max_points, answered_at, user_test_scores!inner(user_id)"
+        )
+        .eq("user_test_scores.user_id", userId)
         .in("word_id", targetWordIds)
         .order("answered_at", { ascending: false })
     : { data: [] };

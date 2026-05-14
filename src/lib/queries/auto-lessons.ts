@@ -81,54 +81,6 @@ export const AUTO_LESSON_META: Record<
 );
 
 /**
- * Pick the top N word IDs by avg test score (descending for "best",
- * ascending for "worst"). Ties are broken deterministically by word_id
- * (UUID string, ascending).
- *
- * For "worst", words that are already mastered are excluded before the slice.
- *
- * Available points are always 3 per attempt — clues reduce points earned,
- * not the max.
- */
-export function selectBestWorstWordIds(
-  testQuestions: Array<{ word_id: string | null; points_earned: number | null }>,
-  type: "best" | "worst",
-  masteredWordIds: Set<string>,
-  limit = 20,
-): string[] {
-  const wordScores: Record<string, { totalEarned: number; totalMax: number }> = {};
-  testQuestions.forEach((tq) => {
-    if (!tq.word_id) return;
-    if (!wordScores[tq.word_id]) {
-      wordScores[tq.word_id] = { totalEarned: 0, totalMax: 0 };
-    }
-    wordScores[tq.word_id].totalEarned += tq.points_earned ?? 0;
-    wordScores[tq.word_id].totalMax += 3;
-  });
-
-  const scored = Object.entries(wordScores).map(([wordId, scores]) => ({
-    wordId,
-    avgPercent: scores.totalMax > 0 ? (scores.totalEarned / scores.totalMax) * 100 : 0,
-  }));
-
-  scored.sort((a, b) => {
-    const primary =
-      type === "best"
-        ? b.avgPercent - a.avgPercent
-        : a.avgPercent - b.avgPercent;
-    if (primary !== 0) return primary;
-    return a.wordId.localeCompare(b.wordId);
-  });
-
-  const filtered =
-    type === "worst"
-      ? scored.filter((w) => !masteredWordIds.has(w.wordId))
-      : scored;
-
-  return filtered.slice(0, limit).map((w) => w.wordId);
-}
-
-/**
  * Pick up to UNMASTERED_LIMIT word IDs that are at status "learned" and have
  * never been mastered. Sorted by learned_at ASC (oldest stuck-at-learned
  * first), with a stable word_id tiebreak so reloads return the same set.
