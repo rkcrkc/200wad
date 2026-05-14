@@ -336,22 +336,42 @@ Logged for a future badge system. Existing data plus a future session/streak tab
 
 # Open questions / decisions still needed
 
-1. **Stats selection for course-mastered & language-mastered modals** — defer until admin preview is built; pick visually.
-2. **Annual reviews past 5y** — silent forever, or surface as a yearly check-in toast?
-3. **Share copy ownership** — should share text be admin-templated, or generated client-side from template metadata?
-4. **Course/language recommendations** — manual curation in admin, or algorithmic (e.g., next by display order)?
+### Strategic / unresolved
+1. **Annual reviews past 5y** — silent forever, or surface as a yearly check-in toast?
+2. **Share copy ownership** — should share text be admin-templated, or generated client-side from template metadata?
+3. **Course/language recommendations** — manual curation in admin, or algorithmic (e.g., next by display order)?
+
+### Visual review (use `/admin/celebrations/preview`)
+4. **Course-mastered stats** — 7 candidates currently shown (words mastered, lessons mastered, total time, days start-to-finish, longest streak, perfect tests, fastest lesson). Probably too many. Which 4–6 to keep?
+5. **Language-mastered stats** — currently 6, same question.
+6. **Hero treatment** — current: emoji-in-circle + colored ring. Alternatives: illustration, badge image, flag-only for languages. 5-year and language-mastered probably want bespoke art.
+7. **Free-tier celebration layout** — hero → 3 stats → 3 plan cards. Right balance, or should plan cards be smaller / closer to existing `UpgradeModal`?
+8. **CTA copy** — all placeholders; iterate per variant.
+9. **Share button placement** — currently ghost button bottom-right of footer. More prominent for major moments (course / language mastered)?
+10. **Confetti intensity** — currently 28 CSS pieces. Adjust count / replace with `canvas-confetti` when wiring real triggers?
+11. **Milestone timeline UI** — confirmed dropped. (Logged here so the decision is captured.)
 
 ---
 
 # Implementation sequencing
 
 1. Update this doc with agreed decisions ✅
-2. **Build admin celebrations preview page** at `/admin/celebrations/preview` with all variants rendered against mock data, for visual review.
-3. Iterate on copy/layout/stats with stakeholder review.
+2. **Build admin celebrations preview page** at `/admin/celebrations/preview` with all variants rendered against mock data, for visual review ✅
+3. Iterate on copy/layout/stats with stakeholder review ← *we are here*
 4. Build the underlying `display_type=modal` extension to notifications admin.
 5. Wire actual triggers (per-word toast, lesson learned/mastered, free-tier celebration, course, language).
 6. Add OG image generation + admin overrides.
 7. Future: badges, streaks, shareable profile pages.
+
+---
+
+# Files created in step 2 (preview)
+
+- `src/components/celebrations/CelebrationModal.tsx` — reusable shell, `medium` / `major` tiers, configurable hero + stats grid + up to 3 CTAs + optional share + confetti.
+- `src/components/celebrations/FreeTierUpgradeCelebration.tsx` — bespoke layout combining celebration hero, stats, and plan cards.
+- `src/app/admin/celebrations/preview/page.tsx` + `CelebrationsPreviewClient.tsx` — preview page with all variants.
+- `src/app/admin/celebrations/page.tsx` — redirects to `/preview`.
+- `src/components/admin/AdminSidebar.tsx` — added "Celebrations" nav link.
 
 ---
 
