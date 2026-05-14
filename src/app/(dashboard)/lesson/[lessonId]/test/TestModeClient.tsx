@@ -1436,17 +1436,13 @@ export function TestModeClient({
                         foreignWord={currentWord?.headword || ""}
                         gender={currentWord?.gender}
                         isVisible={hasSubmittedAnswer}
-                        showImage={isFactPage ? true : undefined}
-                        showTriggerText={isFactPage ? true : undefined}
                         playingAudioType={currentAudioType}
                         onPlayTriggerAudio={() => {
                           if (currentWord?.audio_url_trigger) {
                             playAudio(currentWord.audio_url_trigger, "trigger");
                           }
                         }}
-                        clueLevel={
-                          isFactPage ? undefined : hasSubmittedAnswer ? 2 : clueLevel
-                        }
+                        clueLevel={hasSubmittedAnswer ? 2 : clueLevel}
                         pictureOnlyMode={testTypeConfig.pictureOnlyMode}
                         imageOnly={isFactPage}
                         wordId={currentWord?.id}
@@ -1468,7 +1464,7 @@ export function TestModeClient({
                       <FactBodyCard
                         bodyText={currentWord?.memory_trigger_text || null}
                         gender={currentWord?.gender}
-                        isVisible={true}
+                        isVisible={hasSubmittedAnswer}
                         wordId={currentWord?.id}
                         isEditMode={isEditMode}
                         onFieldSave={handleFieldSave}
