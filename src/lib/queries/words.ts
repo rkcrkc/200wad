@@ -85,9 +85,16 @@ function effectiveWordStatus(
 }
 
 export interface TestAttempt {
+  /** The aggregated test_score row this attempt belongs to (null if unknown). */
+  testScoreId?: string | null;
+  /** Sum of points earned across all directions in this single test. */
   pointsEarned: number;
+  /** Sum of max points across all directions in this single test. */
   maxPoints: number;
+  /** Most recent answered_at across the directions in this test. */
   answeredAt: string;
+  /** True iff every direction in this test was full marks (mistakeCount=0, clueLevel=0). */
+  isFullMarks?: boolean;
   /** Lesson the test was taken in (null for ad-hoc tests without a linked lesson) */
   lessonId?: string | null;
   lessonTitle?: string | null;
@@ -446,55 +453,100 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     const { data: testQuestions } = await supabase
       .from("test_questions")
       .select(
-        "word_id, points_earned, max_points, answered_at, user_test_scores(lesson_id, lessons(id, title, emoji, number))"
+        "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores(lesson_id, lessons(id, title, emoji, number))"
       )
       .in("word_id", words.map((w) => w.id))
       .order("answered_at", { ascending: false });
 
-    // Process all test questions
+    // Aggregate by (wordId, testScoreId) — one TestAttempt per test, not per
+    // direction. See `TestAttempt` doc for the unit semantics.
+    type Agg = {
+      pointsEarned: number;
+      maxPoints: number;
+      mistakeCount: number;
+      maxClueLevel: number;
+      answeredAt: string;
+      lessonId: string | null;
+      lessonTitle: string | null;
+      lessonNumber: number | null;
+      lessonEmoji: string | null;
+    };
+    const byWordTest = new Map<string, Map<string, Agg>>();
+
     testQuestions?.forEach((tq) => {
       const wordId = tq.word_id;
       if (!wordId) return;
+      const tsId = tq.test_score_id ?? "_unknown_";
 
       const pointsEarned = tq.points_earned ?? 0;
-      // Available is always 3 per attempt; clues reduce points earned, not the max.
-      const maxPoints = 3;
+      // Available is always 3 per attempt-direction; clues reduce points
+      // earned, not the max.
+      const maxPoints = tq.max_points ?? 3;
+      const mistakeCount = tq.mistake_count ?? 0;
+      const clueLevel = tq.clue_level ?? 0;
+      const answeredAt = tq.answered_at ?? new Date().toISOString();
 
-      // Initialize structures if needed
-      if (!testHistoryByWord[wordId]) {
-        testHistoryByWord[wordId] = [];
-      }
-      if (!scoreStatsByWord[wordId]) {
-        scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
-      }
-
-      // Accumulate total points for historical score
-      scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
-      scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
-      scoreStatsByWord[wordId].timesTested += 1;
-
-      // Extract lesson info if present
       const lesson = (tq as { user_test_scores?: { lessons?: { id: string; title: string; emoji: string | null; number: number } | null } | null })
         .user_test_scores?.lessons ?? null;
 
-      // All attempts (ordered most-recent-first from query)
-      testHistoryByWord[wordId].push({
-        pointsEarned,
-        maxPoints,
-        answeredAt: tq.answered_at ?? new Date().toISOString(),
-        lessonId: lesson?.id ?? null,
-        lessonTitle: lesson?.title ?? null,
-        lessonNumber: lesson?.number ?? null,
-        lessonEmoji: lesson?.emoji ?? null,
-      });
+      let wordMap = byWordTest.get(wordId);
+      if (!wordMap) {
+        wordMap = new Map();
+        byWordTest.set(wordId, wordMap);
+      }
+      const existing = wordMap.get(tsId);
+      if (existing) {
+        existing.pointsEarned += pointsEarned;
+        existing.maxPoints += maxPoints;
+        existing.mistakeCount += mistakeCount;
+        if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
+        if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
+      } else {
+        wordMap.set(tsId, {
+          pointsEarned,
+          maxPoints,
+          mistakeCount,
+          maxClueLevel: clueLevel,
+          answeredAt,
+          lessonId: lesson?.id ?? null,
+          lessonTitle: lesson?.title ?? null,
+          lessonNumber: lesson?.number ?? null,
+          lessonEmoji: lesson?.emoji ?? null,
+        });
+      }
     });
 
-    // Calculate score percentages
-    Object.keys(scoreStatsByWord).forEach((wordId) => {
-      const stats = scoreStatsByWord[wordId];
-      stats.scorePercent = stats.totalMaxPoints > 0
-        ? Math.round((stats.totalPointsEarned / stats.totalMaxPoints) * 100)
-        : 0;
+    // Flatten per-test aggregates into TestAttempt[] (most-recent-first) and
+    // recompute scoreStats from the aggregated per-test rows.
+    byWordTest.forEach((wordMap, wordId) => {
+      const attempts: TestAttempt[] = Array.from(wordMap.entries())
+        .map(([tsId, a]) => ({
+          testScoreId: tsId === "_unknown_" ? null : tsId,
+          pointsEarned: a.pointsEarned,
+          maxPoints: a.maxPoints,
+          answeredAt: a.answeredAt,
+          isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
+          lessonId: a.lessonId,
+          lessonTitle: a.lessonTitle,
+          lessonNumber: a.lessonNumber,
+          lessonEmoji: a.lessonEmoji,
+        }))
+        .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
+
+      testHistoryByWord[wordId] = attempts;
+
+      const totalPointsEarned = attempts.reduce((s, a) => s + a.pointsEarned, 0);
+      const totalMaxPoints = attempts.reduce((s, a) => s + a.maxPoints, 0);
+      scoreStatsByWord[wordId] = {
+        totalPointsEarned,
+        totalMaxPoints,
+        scorePercent: totalMaxPoints > 0
+          ? Math.round((totalPointsEarned / totalMaxPoints) * 100)
+          : 0,
+        // timesTested counts distinct tests (aligns with user_word_progress
+        // after the backfill migration).
+        timesTested: attempts.length,
+      };
     });
   }
 
@@ -607,37 +659,65 @@ export async function getWord(wordId: string): Promise<{
 
     progress = wordProgress || null;
 
-    // Get ALL test attempts for this word to calculate historical score
+    // Get ALL test attempts for this word, aggregated per `test_score_id`
+    // (one TestAttempt per test, not per direction).
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("points_earned, max_points, answered_at")
+      .select("points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id")
       .eq("word_id", wordId)
       .order("answered_at", { ascending: false });
 
-    // Calculate totals and build traffic lights (last 3 attempts)
-    let totalPointsEarned = 0;
-    let totalMaxPoints = 0;
-
-    (testQuestions || []).forEach((tq, index) => {
+    type Agg = {
+      pointsEarned: number;
+      maxPoints: number;
+      mistakeCount: number;
+      maxClueLevel: number;
+      answeredAt: string;
+    };
+    const byTest = new Map<string, Agg>();
+    (testQuestions || []).forEach((tq) => {
+      const tsId = tq.test_score_id ?? "_unknown_";
       const pointsEarned = tq.points_earned ?? 0;
-      // Available is always 3 per attempt; clues reduce points earned, not the max.
-      const maxPoints = 3;
-
-      totalPointsEarned += pointsEarned;
-      totalMaxPoints += maxPoints;
-
-      testHistory.push({
-        pointsEarned,
-        maxPoints,
-        answeredAt: tq.answered_at ?? new Date().toISOString(),
-      });
+      const maxPoints = tq.max_points ?? 3;
+      const mistakeCount = tq.mistake_count ?? 0;
+      const clueLevel = tq.clue_level ?? 0;
+      const answeredAt = tq.answered_at ?? new Date().toISOString();
+      const existing = byTest.get(tsId);
+      if (existing) {
+        existing.pointsEarned += pointsEarned;
+        existing.maxPoints += maxPoints;
+        existing.mistakeCount += mistakeCount;
+        if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
+        if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
+      } else {
+        byTest.set(tsId, {
+          pointsEarned,
+          maxPoints,
+          mistakeCount,
+          maxClueLevel: clueLevel,
+          answeredAt,
+        });
+      }
     });
+
+    testHistory = Array.from(byTest.entries())
+      .map(([tsId, a]) => ({
+        testScoreId: tsId === "_unknown_" ? null : tsId,
+        pointsEarned: a.pointsEarned,
+        maxPoints: a.maxPoints,
+        answeredAt: a.answeredAt,
+        isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
+      }))
+      .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
+
+    const totalPointsEarned = testHistory.reduce((s, a) => s + a.pointsEarned, 0);
+    const totalMaxPoints = testHistory.reduce((s, a) => s + a.maxPoints, 0);
 
     scoreStats = {
       totalPointsEarned,
       totalMaxPoints,
       scorePercent: totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0,
-      timesTested: (testQuestions || []).length,
+      timesTested: testHistory.length,
     };
   }
 
@@ -979,7 +1059,7 @@ async function getAutoLessonWords(
     ? await supabase
         .from("test_questions")
         .select(
-          "word_id, points_earned, max_points, answered_at, user_test_scores!inner(user_id)"
+          "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores!inner(user_id)"
         )
         .eq("user_test_scores.user_id", userId)
         .in("word_id", targetWordIds)
@@ -989,38 +1069,74 @@ async function getAutoLessonWords(
   const testHistoryByWord: Record<string, TestAttempt[]> = {};
   const scoreStatsByWord: Record<string, WordScoreStats> = {};
 
+  // Aggregate per (wordId, testScoreId) so each TestAttempt represents one
+  // test (not one direction).
+  type Agg = {
+    pointsEarned: number;
+    maxPoints: number;
+    mistakeCount: number;
+    maxClueLevel: number;
+    answeredAt: string;
+  };
+  const byWordTest = new Map<string, Map<string, Agg>>();
+
   testQuestions?.forEach((tq) => {
     const wordId = tq.word_id;
     if (!wordId) return;
+    const tsId = tq.test_score_id ?? "_unknown_";
 
     const pointsEarned = tq.points_earned ?? 0;
-    // Available is always 3 per attempt; clues reduce points earned, not the max.
-    const maxPoints = 3;
+    const maxPoints = tq.max_points ?? 3;
+    const mistakeCount = tq.mistake_count ?? 0;
+    const clueLevel = tq.clue_level ?? 0;
+    const answeredAt = tq.answered_at ?? new Date().toISOString();
 
-    if (!testHistoryByWord[wordId]) {
-      testHistoryByWord[wordId] = [];
+    let wordMap = byWordTest.get(wordId);
+    if (!wordMap) {
+      wordMap = new Map();
+      byWordTest.set(wordId, wordMap);
     }
-    if (!scoreStatsByWord[wordId]) {
-      scoreStatsByWord[wordId] = { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 };
+    const existing = wordMap.get(tsId);
+    if (existing) {
+      existing.pointsEarned += pointsEarned;
+      existing.maxPoints += maxPoints;
+      existing.mistakeCount += mistakeCount;
+      if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
+      if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
+    } else {
+      wordMap.set(tsId, {
+        pointsEarned,
+        maxPoints,
+        mistakeCount,
+        maxClueLevel: clueLevel,
+        answeredAt,
+      });
     }
-
-    scoreStatsByWord[wordId].totalPointsEarned += pointsEarned;
-    scoreStatsByWord[wordId].totalMaxPoints += maxPoints;
-    scoreStatsByWord[wordId].timesTested += 1;
-
-    testHistoryByWord[wordId].push({
-      pointsEarned,
-      maxPoints,
-      answeredAt: tq.answered_at ?? new Date().toISOString(),
-    });
   });
 
-  // Calculate score percentages
-  Object.keys(scoreStatsByWord).forEach((wordId) => {
-    const stats = scoreStatsByWord[wordId];
-    stats.scorePercent = stats.totalMaxPoints > 0
-      ? Math.round((stats.totalPointsEarned / stats.totalMaxPoints) * 100)
-      : 0;
+  byWordTest.forEach((wordMap, wordId) => {
+    const attempts: TestAttempt[] = Array.from(wordMap.entries())
+      .map(([tsId, a]) => ({
+        testScoreId: tsId === "_unknown_" ? null : tsId,
+        pointsEarned: a.pointsEarned,
+        maxPoints: a.maxPoints,
+        answeredAt: a.answeredAt,
+        isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
+      }))
+      .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
+
+    testHistoryByWord[wordId] = attempts;
+
+    const totalPointsEarned = attempts.reduce((s, a) => s + a.pointsEarned, 0);
+    const totalMaxPoints = attempts.reduce((s, a) => s + a.maxPoints, 0);
+    scoreStatsByWord[wordId] = {
+      totalPointsEarned,
+      totalMaxPoints,
+      scorePercent: totalMaxPoints > 0
+        ? Math.round((totalPointsEarned / totalMaxPoints) * 100)
+        : 0,
+      timesTested: attempts.length,
+    };
   });
 
   const defaultScoreStats: WordScoreStats = {

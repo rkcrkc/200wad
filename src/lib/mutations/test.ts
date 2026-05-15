@@ -464,27 +464,57 @@ export async function completeTestSession(
     }
   }
 
-  // 5. Update word progress for each tested word
+  // 5. Update word progress — aggregated per word per test, not per direction.
+  // A single test attempt may include multiple `test_questions` rows for the
+  // same word (one per direction, EN→IT / IT→EN). For streak / status
+  // purposes the unit is the TEST, not the direction: a word counts as
+  // "correct in this test" iff every direction in that test was full marks.
+  // Group by wordId and call `updateWordTestProgress` once per word.
+  type WordAgg = {
+    wordId: string;
+    mistakeCount: number;        // sum across directions
+    clueLevel: 0 | 1 | 2;        // worst (max) across directions
+    pointsEarned: number;        // sum across directions
+  };
+  const aggByWord = new Map<string, WordAgg>();
+  for (const q of questionResults) {
+    const existing = aggByWord.get(q.wordId);
+    if (existing) {
+      existing.mistakeCount += q.mistakeCount;
+      existing.pointsEarned += q.pointsEarned;
+      if (q.clueLevel > existing.clueLevel) {
+        existing.clueLevel = q.clueLevel;
+      }
+    } else {
+      aggByWord.set(q.wordId, {
+        wordId: q.wordId,
+        mistakeCount: q.mistakeCount,
+        clueLevel: q.clueLevel,
+        pointsEarned: q.pointsEarned,
+      });
+    }
+  }
+
   let wordProgressFailures = 0;
-  for (const question of questionResults) {
+  for (const agg of aggByWord.values()) {
     try {
       const result = await updateWordTestProgress(
         user.id,
-        question.wordId,
-        question.clueLevel,
-        question.mistakeCount,
-        question.pointsEarned
+        agg.wordId,
+        agg.clueLevel,
+        agg.mistakeCount,
+        agg.pointsEarned
       );
       if (!result.success) {
         wordProgressFailures++;
       }
     } catch (err) {
       wordProgressFailures++;
-      console.error(`Unexpected error updating word progress for ${question.wordId}:`, err);
+      console.error(`Unexpected error updating word progress for ${agg.wordId}:`, err);
     }
   }
   if (wordProgressFailures > 0) {
-    console.warn(`[Test Session] ${wordProgressFailures}/${questionResults.length} word progress updates failed`);
+    console.warn(`[Test Session] ${wordProgressFailures}/${aggByWord.size} word progress updates failed`);
   }
 
   // 5b. Recalculate lesson progress (words_mastered count) from updated word

@@ -16,7 +16,9 @@ npx tsx scripts/import-lessons.ts --course-id <UUID> --file <path-to-csv>
 
 Regenerate Supabase types:
 ```bash
-npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database.ts
+# Writes ONLY the auto-generated schema. Do NOT target src/types/database.ts —
+# that is a barrel file. Hand-written convenience aliases live in src/types/aliases.ts.
+npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database-generated.ts
 ```
 
 ## Architecture
@@ -51,9 +53,10 @@ Types auto-generated in `src/types/database.ts` with convenience aliases (User, 
 - `not-started` → word has no progress record
 - `learning` → word has been studied (seen in a study session)
 - `learned` → word answered with full marks in a test (3/3 points: no mistakes, no clues)
-- `mastered` → 3 full-mark answers in a row (`correct_streak >= 3`)
-- "Correct" for streak/status purposes = `mistakeCount === 0 && clueLevel === 0`
+- `mastered` → 3 full-mark tests in a row (`correct_streak >= 3`)
+- "Correct" for streak/status purposes = `mistakeCount === 0 && clueLevel === 0` across all directions of a single test (aggregated per `test_score_id`). A test contributes to the streak only if every direction (EN→IT and IT→EN) is full marks; one wrong direction resets the streak.
 - Floors: learned/mastered never drops below `learned`; learning never drops below `learning`
+- `times_tested` counts distinct tests, not per-direction questions
 - Session storage for pending updates, batch writes on session completion
 
 ## Design System

@@ -19,7 +19,9 @@ interface WordScoreStats {
 }
 
 interface ScoreIndicatorProps {
-  /** Last 3 test attempts for traffic lights (most recent first) */
+  /** Test attempts aggregated per `test_score_id` (most recent first). The
+   *  first 3 drive the traffic lights; a leading run of full-mark attempts
+   *  unlocks the stacked-streak / star display. */
   testHistory: TestAttempt[];
   /** Historical score stats */
   scoreStats: WordScoreStats;
