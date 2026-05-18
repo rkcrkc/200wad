@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { HelpCircle } from "lucide-react";
 import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { SetCourseContext } from "@/components/SetCourseContext";
@@ -6,7 +7,16 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { LessonPageContent } from "@/components/LessonPageContent";
+import { Tooltip } from "@/components/ui/tooltip";
 import { getFlagFromCode } from "@/lib/utils/flags";
+
+const AUTO_LESSON_EXPLANATIONS: Record<string, string> = {
+  notes: "Every word in this course you've added a personal note to.",
+  best: "Your top-scoring words across all tests in this course — the ones you get right most consistently.",
+  worst: "Your lowest-scoring words across all tests in this course — the ones that need the most practice.",
+  unmastered: "Words you've reached 'learned' on but haven't yet mastered (3 full-mark tests in a row), oldest first.",
+  lost_mastery: "Words you previously mastered but have since dropped a mistake on — most recent slips first.",
+};
 
 interface LessonPageProps {
   params: Promise<{ lessonId: string }>;
@@ -78,9 +88,26 @@ export default async function LessonPage({ params }: LessonPageProps) {
           <div>
             {/* Header */}
             <div className="mb-6">
-              <p className="mb-2 text-regular-semibold text-black-80">
-                Lesson #{lesson.number}
-              </p>
+              <div className="mb-2 flex items-center gap-2.5">
+                <p className="text-regular-semibold text-black-80">
+                  Lesson #{lesson.number}
+                </p>
+                {autoLessonInfo && (
+                  <Tooltip
+                    label={AUTO_LESSON_EXPLANATIONS[autoLessonInfo.type]}
+                    position="below"
+                    align="left"
+                  >
+                    <span
+                      role="img"
+                      aria-label="How this lesson is built"
+                      className="relative top-[3px] inline-flex text-black-50 hover:text-black-80 transition-colors"
+                    >
+                      <HelpCircle className="h-[15px] w-[15px]" strokeWidth={2} />
+                    </span>
+                  </Tooltip>
+                )}
+              </div>
               <h1 className="flex items-center gap-4 text-xxl-semibold">
                 {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
                 {lesson.title}

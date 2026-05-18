@@ -455,77 +455,95 @@ export function AdminWordEditModal({
         wordId = result.id;
       }
 
-      // Handle file uploads
+      // Handle file uploads. Collect failures so we can surface them instead
+      // of closing the modal as if everything succeeded.
+      const uploadFailures: string[] = [];
       if (wordId) {
-        const uploadPromises: Promise<unknown>[] = [];
+        const uploads: Array<{
+          label: string;
+          bucket: "word-images" | "audio";
+          file: File;
+          fileType: string;
+          column: keyof Pick<
+            WordWithDetails,
+            | "memory_trigger_image_url"
+            | "audio_url_english"
+            | "audio_url_foreign"
+            | "audio_url_trigger"
+          >;
+        }> = [];
 
         if (fileUploads.triggerImage) {
-          uploadPromises.push(
-            uploadFileClient(
-              "word-images",
-              fileUploads.triggerImage,
-              "words",
-              wordId,
-              "trigger"
-            ).then((res) => {
-              if (res.url) {
-                return updateWord(wordId!, {
-                  memory_trigger_image_url: res.url,
-                });
-              }
-            })
-          );
+          uploads.push({
+            label: "trigger image",
+            bucket: "word-images",
+            file: fileUploads.triggerImage,
+            fileType: "trigger",
+            column: "memory_trigger_image_url",
+          });
         }
-
         if (fileUploads.audioEnglish) {
-          uploadPromises.push(
-            uploadFileClient(
-              "audio",
-              fileUploads.audioEnglish,
-              "words",
-              wordId,
-              "english"
-            ).then((res) => {
-              if (res.url) {
-                return updateWord(wordId!, { audio_url_english: res.url });
-              }
-            })
-          );
+          uploads.push({
+            label: "English audio",
+            bucket: "audio",
+            file: fileUploads.audioEnglish,
+            fileType: "english",
+            column: "audio_url_english",
+          });
         }
-
         if (fileUploads.audioForeign) {
-          uploadPromises.push(
-            uploadFileClient(
-              "audio",
-              fileUploads.audioForeign,
-              "words",
-              wordId,
-              "foreign"
-            ).then((res) => {
-              if (res.url) {
-                return updateWord(wordId!, { audio_url_foreign: res.url });
-              }
-            })
-          );
+          uploads.push({
+            label: "foreign audio",
+            bucket: "audio",
+            file: fileUploads.audioForeign,
+            fileType: "foreign",
+            column: "audio_url_foreign",
+          });
         }
-
         if (fileUploads.audioTrigger) {
-          uploadPromises.push(
-            uploadFileClient(
-              "audio",
-              fileUploads.audioTrigger,
-              "words",
-              wordId,
-              "trigger"
-            ).then((res) => {
-              if (res.url) {
-                return updateWord(wordId!, { audio_url_trigger: res.url });
-              }
-            })
-          );
+          uploads.push({
+            label: "trigger audio",
+            bucket: "audio",
+            file: fileUploads.audioTrigger,
+            fileType: "trigger",
+            column: "audio_url_trigger",
+          });
         }
 
-        await Promise.all(uploadPromises);
+        await Promise.all(
+          uploads.map(async ({ label, bucket, file, fileType, column }) => {
+            const res = await uploadFileClient(
+              bucket,
+              file,
+              "words",
+              wordId!,
+              fileType
+            );
+            if (!res.url) {
+              uploadFailures.push(
+                `${label}${res.error ? `: ${res.error}` : ""}`
+              );
+              return;
+            }
+            const updateResult = await updateWord(wordId!, {
+              [column]: res.url,
+            });
+            if (!updateResult.success) {
+              uploadFailures.push(
+                `${label} URL save failed${
+                  updateResult.error ? `: ${updateResult.error}` : ""
+                }`
+              );
+            }
+          })
+        );
+      }
+
+      if (uploadFailures.length > 0) {
+        setErrors({
+          general: `Upload failed for: ${uploadFailures.join("; ")}`,
+        });
+        return;
       }
 
       onSuccess();

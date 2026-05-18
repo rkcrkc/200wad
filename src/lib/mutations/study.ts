@@ -3,7 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Milestone } from "@/lib/utils/milestones";
-import { isAutoLesson, parseAutoLessonId } from "@/lib/queries/lessons";
+import {
+  isAutoLesson,
+  parseAutoLessonId,
+  resolveLessonIdRef,
+} from "@/lib/queries/lessons";
 
 // ============================================================================
 // STUDY SESSION ACTIONS
@@ -43,23 +47,49 @@ export async function createStudySession(
 
   // Delete orphaned sessions for this lesson (incomplete sessions that were never finished)
   // These are sessions where the user clicked "Study" but left before completing
-  await supabase
+  const lessonRef = resolveLessonIdRef(lessonId);
+  let deleteQuery = supabase
     .from("study_sessions")
     .delete()
     .eq("user_id", user.id)
-    .eq("lesson_id", lessonId)
     .is("ended_at", null);
+  if (lessonRef.kind === "real") {
+    deleteQuery = deleteQuery.eq("lesson_id", lessonRef.lessonId);
+  } else if (lessonRef.kind === "auto") {
+    deleteQuery = deleteQuery
+      .eq("auto_lesson_type", lessonRef.autoLessonType)
+      .eq("course_id", lessonRef.courseId);
+  }
+  await deleteQuery;
+
+  // Exactly one of `lesson_id` or `(auto_lesson_type, course_id)` is set —
+  // the table's mutual-exclusion CHECK constraint rejects rows with both.
+  const sessionInsert: {
+    user_id: string;
+    lesson_id?: string;
+    auto_lesson_type?: "notes" | "best" | "worst" | "unmastered" | "lost_mastery";
+    course_id?: string;
+    session_type: "study";
+    started_at: string;
+    words_studied: number;
+    words_mastered: number;
+  } = {
+    user_id: user.id,
+    session_type: "study",
+    started_at: new Date().toISOString(),
+    words_studied: 0,
+    words_mastered: 0,
+  };
+  if (lessonRef.kind === "real") {
+    sessionInsert.lesson_id = lessonRef.lessonId;
+  } else if (lessonRef.kind === "auto") {
+    sessionInsert.auto_lesson_type = lessonRef.autoLessonType;
+    sessionInsert.course_id = lessonRef.courseId;
+  }
 
   const { data, error } = await supabase
     .from("study_sessions")
-    .insert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      session_type: "study",
-      started_at: new Date().toISOString(),
-      words_studied: 0,
-      words_mastered: 0,
-    })
+    .insert(sessionInsert)
     .select("id")
     .single();
 

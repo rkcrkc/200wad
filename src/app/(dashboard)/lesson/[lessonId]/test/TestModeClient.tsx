@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { showAchievementToast } from "@/lib/toast/achievement";
 import { Course, Language, Lesson } from "@/types/database";
 import type { ToastTemplate } from "@/lib/queries/notification-config";
-import { WordWithDetails } from "@/lib/queries/words";
+import { WordWithDetails, type WordStatus } from "@/lib/queries/words";
+import type { UserWordProgress } from "@/types/database";
 import { useAudio } from "@/hooks/useAudio";
 import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
@@ -779,69 +780,87 @@ export function TestModeClient({
       isRetest,
     });
 
-    if (!isGuest && sessionId) {
-      // Prepare question results
-      const questionResults = Array.from(testProgressMap.entries())
-        .filter(([_, progress]) => progress.hasAnswered)
-        .map(([progressKey, progress]) => {
-          // In testTwice mode, progressKey is "wordId_attemptNum", otherwise just "wordId"
-          const actualWordId = testTwice ? progressKey.split("_")[0] : progressKey;
-          const word = words.find((w) => w.id === actualWordId);
-          return {
-            wordId: actualWordId,
-            userAnswer: progress.userAnswer,
-            correctAnswer: word?.headword || "",
-            clueLevel: progress.clueLevel,
-            mistakeCount: progress.mistakeCount,
-            pointsEarned: progress.pointsEarned,
-            maxPoints: progress.maxPoints,
-          };
-        });
+    // Wrap the server interaction in try/catch/finally so an unhandled
+    // rejection from `completeTestSession` (or anything inside it) can't
+    // leave the user stuck on the test page with the "Finish test" button
+    // silently doing nothing. On any error we still freeze a stats snapshot,
+    // open the completion modal, and release the finishing guard so the
+    // user can retry if they want to.
+    try {
+      if (!isGuest && sessionId) {
+        // Prepare question results
+        const questionResults = Array.from(testProgressMap.entries())
+          .filter(([_, progress]) => progress.hasAnswered)
+          .map(([progressKey, progress]) => {
+            // In testTwice mode, progressKey is "wordId_attemptNum", otherwise just "wordId"
+            const actualWordId = testTwice ? progressKey.split("_")[0] : progressKey;
+            const word = words.find((w) => w.id === actualWordId);
+            return {
+              wordId: actualWordId,
+              userAnswer: progress.userAnswer,
+              correctAnswer: word?.headword || "",
+              clueLevel: progress.clueLevel,
+              mistakeCount: progress.mistakeCount,
+              pointsEarned: progress.pointsEarned,
+              maxPoints: progress.maxPoints,
+            };
+          });
 
-      const serverStats = {
-        totalQuestions: stats.totalQuestions,
-        correctAnswers: stats.correctAnswers,
-        pointsEarned: stats.totalPoints,
-        maxPoints: stats.maxPoints,
-        scorePercent: stats.scorePercent,
-        durationSeconds: stats.durationSeconds,
-        newWordsCount: stats.newWordsCount,
-        newlyLearnedCount: stats.newlyLearnedCount,
-        masteredWordsCount: stats.masteredWordsCount,
-        isRetest: stats.isRetest,
-      };
-
-      // Log if duration is zero (shouldn't happen if timer is working correctly)
-      if (elapsedSeconds === 0) {
-        console.warn("[Test Client] Completing test with 0 duration", {
-          sessionId,
-          lessonId: lesson.id,
-          totalQuestions,
+        const serverStats = {
+          totalQuestions: stats.totalQuestions,
+          correctAnswers: stats.correctAnswers,
+          pointsEarned: stats.totalPoints,
+          maxPoints: stats.maxPoints,
           scorePercent: stats.scorePercent,
-        });
-      }
+          durationSeconds: stats.durationSeconds,
+          newWordsCount: stats.newWordsCount,
+          newlyLearnedCount: stats.newlyLearnedCount,
+          masteredWordsCount: stats.masteredWordsCount,
+          isRetest: stats.isRetest,
+        };
 
-      const result = await completeTestSession(sessionId, lesson.id, serverStats, questionResults, milestone);
+        // Log if duration is zero (shouldn't happen if timer is working correctly)
+        if (elapsedSeconds === 0) {
+          console.warn("[Test Client] Completing test with 0 duration", {
+            sessionId,
+            lessonId: lesson.id,
+            totalQuestions,
+            scorePercent: stats.scorePercent,
+          });
+        }
 
-      if (result.success) {
-        clearSessionProgress("test", sessionId, lesson.id);
-        setServerCourseWordsMastered(result.courseWordsMastered);
-        // Merge server-authoritative total into the frozen snapshot.
-        setFinishedTestStats({
-          ...stats,
-          courseWordsMastered: result.courseWordsMastered ?? stats.courseWordsMastered,
-        });
+        const result = await completeTestSession(sessionId, lesson.id, serverStats, questionResults, milestone);
+
+        if (result.success) {
+          clearSessionProgress("test", sessionId, lesson.id);
+          setServerCourseWordsMastered(result.courseWordsMastered);
+          // Merge server-authoritative total into the frozen snapshot.
+          setFinishedTestStats({
+            ...stats,
+            courseWordsMastered: result.courseWordsMastered ?? stats.courseWordsMastered,
+          });
+        } else {
+          console.error("Failed to complete test session:", result.error);
+          setFinishedTestStats(stats);
+        }
       } else {
-        console.error("Failed to complete test session:", result.error);
+        // Guest / no session — still freeze the stats so the modal renders
+        // consistent numbers regardless of any future prop changes.
         setFinishedTestStats(stats);
       }
-    } else {
-      // Guest / no session — still freeze the stats so the modal renders
-      // consistent numbers regardless of any future prop changes.
+    } catch (err) {
+      // Unhandled rejection from the server action (network blip, thrown
+      // exception inside completeTestSession, missing RPC, etc.). Surface
+      // it, freeze the client-side stats, and let the finally block open
+      // the modal so the user is never trapped.
+      console.error("[Test Client] Unhandled error completing test session:", err);
       setFinishedTestStats(stats);
+      // Release the finishing guard so retry actions (Test Again / Retest
+      // Incorrect) and any future Finish-test attempt can run.
+      isFinishingRef.current = false;
+    } finally {
+      setShowCompletionModal(true);
     }
-
-    setShowCompletionModal(true);
   }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest, initialCourseVocabCount]);
 
   // Track viewed words when navigating
@@ -924,17 +943,41 @@ export function TestModeClient({
     }
   }, [router, lesson.id, course?.id]);
 
-  /** Build updated word objects that fold current test results into testHistory/scoreStats */
+  /**
+   * Build updated word objects that fold current test results into
+   * testHistory/scoreStats AND into the per-word `progress` snapshot
+   * (correct_streak, status, times_tested, last_studied_at, etc.) and the
+   * top-level `status` field.
+   *
+   * This mirrors the server-side rules in `updateWordTestProgress`
+   * (src/lib/mutations/test.ts) so the "Test Again" loop carries the correct
+   * `priorStreak` forward and the completion modal reports an accurate
+   * masteredWordsCount on every round.
+   */
   const buildUpdatedWords = useCallback(
     (sourceWords: WordWithDetails[]): WordWithDetails[] => {
+      const nowIso = new Date().toISOString();
       return sourceWords.map((w) => {
-        // Gather all attempts for this word from the current session
-        const attempts: { pointsEarned: number; maxPoints: number }[] = [];
+        // Gather all attempts for this word from the current session, in
+        // the order they were answered (attempt 1 before attempt 2 in
+        // testTwice mode). Each attempt carries the fields needed to replay
+        // the server's isCorrect / streak logic.
+        const attempts: {
+          pointsEarned: number;
+          maxPoints: number;
+          mistakeCount: number;
+          clueLevel: 0 | 1 | 2;
+        }[] = [];
         const keys = testTwice ? [`${w.id}_1`, `${w.id}_2`] : [w.id];
         for (const key of keys) {
           const p = testProgressMap.get(key);
           if (p?.hasAnswered) {
-            attempts.push({ pointsEarned: p.pointsEarned, maxPoints: p.maxPoints });
+            attempts.push({
+              pointsEarned: p.pointsEarned,
+              maxPoints: p.maxPoints,
+              mistakeCount: p.mistakeCount,
+              clueLevel: p.clueLevel,
+            });
           }
         }
         if (attempts.length === 0) return w;
@@ -944,7 +987,7 @@ export function TestModeClient({
           ...attempts.map((a) => ({
             pointsEarned: a.pointsEarned,
             maxPoints: a.maxPoints,
-            answeredAt: new Date().toISOString(),
+            answeredAt: nowIso,
           })),
           ...w.testHistory,
         ].slice(0, 3);
@@ -962,7 +1005,95 @@ export function TestModeClient({
           timesTested: prev.timesTested + attempts.length,
         };
 
-        return { ...w, testHistory: updatedHistory, scoreStats: updatedStats };
+        // Replay per-attempt streak / status updates exactly the way
+        // `updateWordTestProgress` does on the server. Each attempt is
+        // applied in sequence so testTwice rounds compound correctly.
+        const priorProgress = w.progress;
+        let streak = priorProgress?.correct_streak ?? 0;
+        let status: WordStatus = w.status;
+        let bestClueLevel = priorProgress?.best_clue_level ?? 2;
+        let lastMistakeCount = priorProgress?.last_mistake_count ?? 0;
+
+        for (const a of attempts) {
+          const isCorrect = a.mistakeCount === 0 && a.clueLevel === 0;
+          streak = isCorrect ? streak + 1 : 0;
+          lastMistakeCount = a.mistakeCount;
+          if (isCorrect && a.clueLevel < bestClueLevel) {
+            bestClueLevel = a.clueLevel;
+          }
+          if (streak >= 3) {
+            status = "mastered";
+          } else if (isCorrect) {
+            status = "learned";
+          } else if (status === "learned" || status === "mastered") {
+            status = "learned"; // floor — never drops below learned
+          } else if (status === "learning") {
+            status = "learning"; // floor — never drops below learning
+          } else {
+            status = "not-started";
+          }
+        }
+
+        // Preserve first-time mastery / learned / learning timestamps the
+        // same way the server does — never overwrite once set.
+        const masteredAt =
+          status === "mastered"
+            ? priorProgress?.mastered_at || nowIso
+            : priorProgress?.mastered_at || null;
+        const learnedAt =
+          status === "learned" || status === "mastered"
+            ? priorProgress?.learned_at || nowIso
+            : priorProgress?.learned_at || null;
+        const learningAt =
+          status !== "not-started"
+            ? priorProgress?.learning_at || nowIso
+            : priorProgress?.learning_at || null;
+
+        const updatedProgress: UserWordProgress = priorProgress
+          ? {
+              ...priorProgress,
+              status,
+              correct_streak: streak,
+              times_tested: (priorProgress.times_tested ?? 0) + attempts.length,
+              total_points_earned: newTotalPoints,
+              best_clue_level: bestClueLevel,
+              last_mistake_count: lastMistakeCount,
+              last_studied_at: nowIso,
+              mastered_at: masteredAt,
+              learned_at: learnedAt,
+              learning_at: learningAt,
+            }
+          : {
+              // Synthesize a minimal in-memory progress row for words with
+              // no prior progress. id/user_id/word_id aren't used by the
+              // client renderers and aren't worth round-tripping for. The
+              // server will write the real row in completeTestSession.
+              id: "",
+              user_id: null,
+              word_id: w.id,
+              status,
+              correct_streak: streak,
+              times_tested: attempts.length,
+              total_points_earned: newTotalPoints,
+              best_clue_level: bestClueLevel,
+              last_mistake_count: lastMistakeCount,
+              last_studied_at: nowIso,
+              mastered_at: masteredAt,
+              learned_at: learnedAt,
+              learning_at: learningAt,
+              next_review_at: null,
+              user_notes: null,
+              created_at: nowIso,
+              updated_at: nowIso,
+            };
+
+        return {
+          ...w,
+          status,
+          progress: updatedProgress,
+          testHistory: updatedHistory,
+          scoreStats: updatedStats,
+        };
       });
     },
     [testProgressMap, testTwice]

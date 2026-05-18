@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Lesson, UserTestScore } from "@/types/database";
 import { LessonStatus } from "./lessons";
+import { resolveLessonIdRef } from "./auto-lessons";
 
 // ============================================================================
 // Types
@@ -100,12 +101,23 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       .select("*")
       .eq("user_id", user.id)
       .in("lesson_id", lessonIds),
-    supabase
-      .from("user_test_scores")
-      .select("*")
-      .eq("user_id", user.id)
-      .in("lesson_id", lessonIds)
-      .order("taken_at", { ascending: false }),
+    // Course-scoped read: include auto-lesson rows (lesson_id IS NULL,
+    // course_id set) alongside real-lesson rows. `getTests` summarises
+    // tests per *real* lesson for the Tests page, so the auto-lesson rows
+    // surface only in the `testsTaken`/`totalTestTimeSeconds` aggregates
+    // below — `lessonMap.get(ts.lesson_id)` returns undefined for them.
+    (lessonIds.length > 0
+      ? supabase
+          .from("user_test_scores")
+          .select("*")
+          .eq("user_id", user.id)
+          .or(`lesson_id.in.(${lessonIds.join(",")}),course_id.eq.${courseId}`)
+      : supabase
+          .from("user_test_scores")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("course_id", courseId)
+    ).order("taken_at", { ascending: false }),
     fetchAllRows<{
       lesson_id: string | null;
       word_id: string | null;
@@ -478,21 +490,44 @@ export async function getLessonActivityHistory(
     };
   }
 
+  // After migration 20260516000002, `lesson_id` is a UUID FK and auto-lesson
+  // rows live under `(auto_lesson_type, course_id)`. Discriminate the filter
+  // up-front so a single auto-lesson page also returns its activity.
+  const lessonRef = resolveLessonIdRef(lessonId);
+  if (lessonRef.kind === "none") {
+    return {
+      activities: [],
+      counts: { all: 0, study: 0, test: 0 },
+    };
+  }
+
+  const studyBase = supabase
+    .from("study_sessions")
+    .select("id, started_at, duration_seconds, words_studied, words_mastered")
+    .eq("user_id", user.id)
+    .eq("session_type", "study");
+  const testBase = supabase
+    .from("user_test_scores")
+    .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count, total_questions, is_retest")
+    .eq("user_id", user.id);
+
+  const studyFiltered =
+    lessonRef.kind === "real"
+      ? studyBase.eq("lesson_id", lessonRef.lessonId)
+      : studyBase
+          .eq("auto_lesson_type", lessonRef.autoLessonType)
+          .eq("course_id", lessonRef.courseId);
+  const testFiltered =
+    lessonRef.kind === "real"
+      ? testBase.eq("lesson_id", lessonRef.lessonId)
+      : testBase
+          .eq("auto_lesson_type", lessonRef.autoLessonType)
+          .eq("course_id", lessonRef.courseId);
+
   // Fetch study sessions and test scores in parallel
   const [studyResult, testResult] = await Promise.all([
-    supabase
-      .from("study_sessions")
-      .select("id, started_at, duration_seconds, words_studied, words_mastered")
-      .eq("user_id", user.id)
-      .eq("lesson_id", lessonId)
-      .eq("session_type", "study")
-      .order("started_at", { ascending: false }),
-    supabase
-      .from("user_test_scores")
-      .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count, total_questions, is_retest")
-      .eq("user_id", user.id)
-      .eq("lesson_id", lessonId)
-      .order("taken_at", { ascending: false }),
+    studyFiltered.order("started_at", { ascending: false }),
+    testFiltered.order("taken_at", { ascending: false }),
   ]);
 
   const activities: LessonActivity[] = [];

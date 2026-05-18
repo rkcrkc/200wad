@@ -84,8 +84,18 @@ export interface UserLearningStats {
  * answered with full marks 3/3 in a test at least once — `user_word_progress`
  * rows with a non-null `learned_at` timestamp). Total time includes both study
  * and test time.
+ *
+ * When `courseId` is provided, BOTH the numerator and denominator are scoped to
+ * that course:
+ *   - Words: limited to the course's word IDs (excluding information pages)
+ *   - Time: study_sessions and user_test_scores are joined to `lessons` and
+ *     filtered by `lessons.course_id = courseId`
+ * Sessions/tests with null timestamps are excluded from the time totals so the
+ * rate stays consistent with the per-period rates on the Progress page.
  */
-export async function getUserLearningStats(): Promise<UserLearningStats> {
+export async function getUserLearningStats(
+  courseId?: string
+): Promise<UserLearningStats> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -101,24 +111,139 @@ export async function getUserLearningStats(): Promise<UserLearningStats> {
     };
   }
 
-  // Query word progress, study_sessions, and test_scores in parallel
-  const [wordsResult, sessionsResult, testsResult] = await Promise.all([
-    supabase
-      .from("user_word_progress")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .not("learned_at", "is", null),
-    supabase
-      .from("study_sessions")
-      .select("duration_seconds")
-      .eq("user_id", user.id),
-    supabase
-      .from("user_test_scores")
-      .select("duration_seconds")
-      .eq("user_id", user.id),
+  // Course-scoped path: paginate lesson_words to gather the set of word IDs
+  // that belong to this course (excluding information pages), then count
+  // user_word_progress rows whose word_id is in that set and that have a
+  // non-null learned_at. Mirrors the Progress page's scoping logic.
+  const fetchCourseWordIdsForStats = async (
+    cId: string
+  ): Promise<Set<string>> => {
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id")
+      .eq("course_id", cId);
+    const lessonIds = (lessons || []).map((l) => l.id);
+    if (lessonIds.length === 0) return new Set();
+
+    const pageSize = 1000;
+    const ids = new Set<string>();
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("lesson_words")
+        .select("word_id, words(category)")
+        .in("lesson_id", lessonIds)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      for (const row of data) {
+        const category = (row.words as unknown as { category: string | null } | null)?.category;
+        if (row.word_id && category !== "information") {
+          ids.add(row.word_id);
+        }
+      }
+      if (data.length < pageSize) break;
+    }
+    return ids;
+  };
+
+  // Paginate user_word_progress rows with non-null learned_at so we can
+  // intersect client-side (avoids URL-length limits on .in(word_id, [...])).
+  const fetchUserLearnedWordIds = async (): Promise<string[]> => {
+    const pageSize = 1000;
+    const ids: string[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("user_word_progress")
+        .select("word_id")
+        .eq("user_id", user.id)
+        .not("learned_at", "is", null)
+        .range(offset, offset + pageSize - 1);
+      if (error || !data) break;
+      for (const row of data) {
+        if (row.word_id) ids.push(row.word_id);
+      }
+      if (data.length < pageSize) break;
+    }
+    return ids;
+  };
+
+  // Word count: course-scoped via intersection when courseId is given,
+  // otherwise filter info pages out via a foreign-key join on `words`.
+  // The non-course branch wraps Supabase's PromiseLike result in
+  // Promise.resolve so the union type satisfies `Promise<number>`.
+  const wordsCountPromise: Promise<number> = courseId
+    ? Promise.all([
+        fetchCourseWordIdsForStats(courseId),
+        fetchUserLearnedWordIds(),
+      ]).then(([courseWordIds, learnedIds]) =>
+        learnedIds.filter((id) => courseWordIds.has(id)).length
+      )
+    : Promise.resolve(
+        supabase
+          .from("user_word_progress")
+          .select("id, words!inner(category)", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .not("learned_at", "is", null)
+          .neq("words.category", "information")
+          .then((r) => r.count || 0)
+      );
+
+  // When scoping by course, resolve the course's real lesson UUIDs and
+  // combine with a `course_id` predicate so auto-lesson rows (lesson_id
+  // NULL, course_id set) are also included. The restored FK on
+  // `lesson_id → lessons.id` is no longer used as an embedded join here
+  // because we still need auto-lesson rows in the same query — `.or()`
+  // achieves both in one round-trip.
+  //
+  // Guard: PostgREST rejects empty `in.()` predicates, so we omit the
+  // `lesson_id.in.(...)` clause when the course has no lessons.
+  const courseLessonUuids: string[] | null = courseId
+    ? await (async () => {
+        const { data: courseLessons } = await supabase
+          .from("lessons")
+          .select("id")
+          .eq("course_id", courseId);
+        return ((courseLessons || []).map((l) => l.id) as string[]);
+      })()
+    : null;
+
+  const courseScopeOr = courseId
+    ? (courseLessonUuids && courseLessonUuids.length > 0
+        ? `lesson_id.in.(${courseLessonUuids.join(",")}),course_id.eq.${courseId}`
+        : `course_id.eq.${courseId}`)
+    : null;
+
+  const sessionsQuery = courseScopeOr
+    ? supabase
+        .from("study_sessions")
+        .select("duration_seconds, started_at")
+        .eq("user_id", user.id)
+        .or(courseScopeOr)
+        .not("started_at", "is", null)
+    : supabase
+        .from("study_sessions")
+        .select("duration_seconds, started_at")
+        .eq("user_id", user.id)
+        .not("started_at", "is", null);
+
+  const testsQuery = courseScopeOr
+    ? supabase
+        .from("user_test_scores")
+        .select("duration_seconds, taken_at")
+        .eq("user_id", user.id)
+        .or(courseScopeOr)
+        .not("taken_at", "is", null)
+    : supabase
+        .from("user_test_scores")
+        .select("duration_seconds, taken_at")
+        .eq("user_id", user.id)
+        .not("taken_at", "is", null);
+
+  const [totalWordsLearned, sessionsResult, testsResult] = await Promise.all([
+    wordsCountPromise,
+    sessionsQuery,
+    testsQuery,
   ]);
 
-  const totalWordsLearned = wordsResult.count || 0;
   const sessions = sessionsResult.data || [];
   const tests = testsResult.data || [];
 
@@ -393,6 +518,20 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     return rows;
   };
 
+  // Course-scoping for time totals: combine the resolved real-lesson UUIDs
+  // with a `course_id` predicate so auto-lesson rows are included too. The
+  // FK on `lesson_id → lessons.id` was restored by migration
+  // 20260516000002, but auto-lesson rows have `lesson_id IS NULL` and live
+  // under `(auto_lesson_type, course_id)`, so the `.or()` predicate is the
+  // canonical course-scoped filter.
+  //
+  // Guard: PostgREST rejects empty `in.()` predicates, so omit the
+  // `lesson_id.in.(...)` clause when the course has no lessons.
+  const courseScopeOr =
+    courseLessonIds.length > 0
+      ? `lesson_id.in.(${courseLessonIds.join(",")}),course_id.eq.${courseId}`
+      : `course_id.eq.${courseId}`;
+
   // Step 4: Fetch the rest in parallel
   const [activityResult, userResult, courseProgress, scopedWordProgress, sessionsResult, testsResult] =
     await Promise.all([
@@ -414,16 +553,18 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       // Word progress with timestamps for chart + per-period rate
       // (scoped to this course's words to avoid the 1000-row cap)
       fetchAllScopedWordProgress(),
-      // Study sessions for time totals
+      // Study sessions for time totals — scoped to this course
       supabase
         .from("study_sessions")
         .select("duration_seconds, started_at")
-        .eq("user_id", user.id),
-      // Test scores for time totals
+        .eq("user_id", user.id)
+        .or(courseScopeOr),
+      // Test scores for time totals — scoped to this course
       supabase
         .from("user_test_scores")
         .select("duration_seconds, taken_at")
-        .eq("user_id", user.id),
+        .eq("user_id", user.id)
+        .or(courseScopeOr),
     ]);
 
   const activityRows = activityResult.data || [];
@@ -456,6 +597,9 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
   // Year start = Jan 1
   const yearStart = new Date(today.getFullYear(), 0, 1);
 
+  // Sessions/tests with null timestamps are always excluded (same rule for
+  // every window, including lifetime) so this stays consistent with the
+  // Header's lifetime rate, which also excludes null-timestamp rows.
   const computeRate = (startDate: Date | null): number => {
     const startMs = startDate ? startDate.getTime() : 0;
 
@@ -466,15 +610,15 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
 
     const studyTime = sessions
       .filter((s) => {
-        if (!s.started_at) return !startDate;
-        return new Date(s.started_at).getTime() >= startMs;
+        if (!s.started_at) return false;
+        return !startDate || new Date(s.started_at).getTime() >= startMs;
       })
       .reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
 
     const testTime = tests
       .filter((t) => {
-        if (!t.taken_at) return !startDate;
-        return new Date(t.taken_at).getTime() >= startMs;
+        if (!t.taken_at) return false;
+        return !startDate || new Date(t.taken_at).getTime() >= startMs;
       })
       .reduce((sum, t) => sum + (t.duration_seconds || 0), 0);
 

@@ -786,6 +786,8 @@ export type Database = {
       }
       study_sessions: {
         Row: {
+          auto_lesson_type: string | null
+          course_id: string | null
           duration_seconds: number | null
           ended_at: string | null
           id: string
@@ -797,6 +799,8 @@ export type Database = {
           words_studied: number | null
         }
         Insert: {
+          auto_lesson_type?: string | null
+          course_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
@@ -808,6 +812,8 @@ export type Database = {
           words_studied?: number | null
         }
         Update: {
+          auto_lesson_type?: string | null
+          course_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
@@ -819,6 +825,20 @@ export type Database = {
           words_studied?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "study_sessions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_sessions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "study_sessions_user_id_fkey"
             columns: ["user_id"]
@@ -1215,7 +1235,9 @@ export type Database = {
       }
       user_test_scores: {
         Row: {
+          auto_lesson_type: string | null
           correct_answers: number
+          course_id: string | null
           duration_seconds: number | null
           id: string
           is_retest: boolean
@@ -1232,7 +1254,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          auto_lesson_type?: string | null
           correct_answers: number
+          course_id?: string | null
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
@@ -1249,7 +1273,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          auto_lesson_type?: string | null
           correct_answers?: number
+          course_id?: string | null
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
@@ -1266,6 +1292,20 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_test_scores_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_test_scores_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_test_scores_user_id_fkey"
             columns: ["user_id"]

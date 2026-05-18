@@ -8,7 +8,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
-import type { LessonForScheduler } from "@/lib/queries";
+import type { LessonForScheduler } from "@/lib/queries/schedule";
 import { useText } from "@/context/TextContext";
 import { mapStatus } from "@/lib/utils/helpers";
 

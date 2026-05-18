@@ -5,7 +5,6 @@ import { getLessonAccessMap } from "@/lib/utils/accessControl";
 import {
   AUTO_LESSON_DEFINITIONS,
   createAutoLessonId,
-  getAllAutoLessonIds,
   selectLostMasteryWordIds,
   selectUnmasteredWordIds,
 } from "./auto-lessons";
@@ -22,10 +21,11 @@ export {
   getAllAutoLessonIds,
   isAutoLesson,
   parseAutoLessonId,
+  resolveLessonIdRef,
   selectLostMasteryWordIds,
   selectUnmasteredWordIds,
 } from "./auto-lessons";
-export type { AutoLessonType } from "./auto-lessons";
+export type { AutoLessonType, LessonIdRef } from "./auto-lessons";
 
 export type LessonStatus = "not-started" | "learning" | "learned" | "mastered";
 
@@ -354,15 +354,14 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
     const lessonIds = lessons.map((l) => l.id);
 
     // Auto-lessons (Notes/Best/Worst/Unmastered/Lost Mastery) can be studied
-    // and tested standalone. Their sessions are written with a literal
-    // "auto-{type}-{courseId}" string in `lesson_id`, so include those IDs
-    // when summing course-level time — otherwise time spent on auto-lessons
-    // is silently dropped from the course total even though it counts
-    // toward the user's global total.
-    const lessonIdsForTime = [
-      ...lessonIds,
-      ...getAllAutoLessonIds(courseId),
-    ];
+    // and tested standalone. After migration 20260516000002 their rows have
+    // `lesson_id IS NULL` and live under `(auto_lesson_type, course_id)`, so
+    // we use a `.or()` predicate to capture both real-lesson and auto-lesson
+    // sessions in a single round-trip.
+    const courseScopeOr =
+      lessonIds.length > 0
+        ? `lesson_id.in.(${lessonIds.join(",")}),course_id.eq.${courseId}`
+        : `course_id.eq.${courseId}`;
 
     // Fetch lesson progress, study sessions, and test scores in parallel
     const [lessonProgressResult, studySessionsResult, testScoresResult] = await Promise.all([
@@ -375,12 +374,12 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .from("study_sessions")
         .select("duration_seconds")
         .eq("user_id", user.id)
-        .in("lesson_id", lessonIdsForTime),
+        .or(courseScopeOr),
       supabase
         .from("user_test_scores")
         .select("duration_seconds")
         .eq("user_id", user.id)
-        .in("lesson_id", lessonIdsForTime),
+        .or(courseScopeOr),
     ]);
 
     const lessonProgress = lessonProgressResult.data;

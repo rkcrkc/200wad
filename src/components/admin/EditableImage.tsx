@@ -31,17 +31,28 @@ export function EditableImage({
 }: EditableImageProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      setUploadError("Please select an image file");
       return;
     }
 
+    setUploadError(null);
     setIsUploading(true);
-    await onUpload(field, file);
+    let ok = false;
+    try {
+      ok = await onUpload(field, file);
+    } catch (err) {
+      console.error("EditableImage upload threw:", err);
+      ok = false;
+    }
     setIsUploading(false);
+    if (!ok) {
+      setUploadError("Upload failed. Check console for details and try again.");
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,11 +152,13 @@ export function EditableImage({
         </div>
       )}
 
-      {/* Upload overlay - visible on hover or when dragging */}
+      {/* Upload overlay - visible on hover, when dragging, or when an error is shown */}
       <div
         className={cn(
           "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 transition-opacity",
-          isDragging || isUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          isDragging || isUploading || uploadError
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100"
         )}
       >
         {isUploading ? (
@@ -163,6 +176,11 @@ export function EditableImage({
               {src ? "Replace image" : "Upload image"}
             </button>
             <span className="text-xs text-white/80">or drag and drop</span>
+            {uploadError && (
+              <span className="max-w-[80%] rounded bg-destructive px-2 py-1 text-center text-xs font-medium text-white">
+                {uploadError}
+              </span>
+            )}
           </>
         )}
       </div>

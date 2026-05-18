@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight, ClipboardCheck } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, ClipboardCheck, HelpCircle } from "lucide-react";
 import { WordsList } from "@/components/WordsList";
 import { LessonActivityHistory } from "@/components/LessonActivityHistory";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -11,7 +11,8 @@ import { StartTestModal } from "@/components/study";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordWithDetails } from "@/lib/queries/words";
-import { LessonActivityHistoryResult } from "@/lib/queries";
+import { parseAutoLessonId, type AutoLessonType } from "@/lib/queries/auto-lessons";
+import type { LessonActivityHistoryResult } from "@/lib/queries/tests";
 import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,30 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { status as statusTokens } from "@/lib/design-tokens";
 import { useText } from "@/context/TextContext";
+
+const AUTO_LESSON_EXPLANATIONS: Record<AutoLessonType, string> = {
+  notes: "Every word in this course you've added a personal note to.",
+  best: "Your top-scoring words across all tests in this course — the ones you get right most consistently.",
+  worst: "Your lowest-scoring words across all tests in this course — the ones that need the most practice.",
+  unmastered: "Words you've reached 'learned' on but haven't yet mastered (3 full-mark tests in a row), oldest first.",
+  lost_mastery: "Words you previously mastered but have since dropped a mistake on — most recent slips first.",
+};
+
+function AutoLessonHelpIcon({ lessonId }: { lessonId: string }) {
+  const info = parseAutoLessonId(lessonId);
+  if (!info) return null;
+  return (
+    <Tooltip label={AUTO_LESSON_EXPLANATIONS[info.type]} position="below" align="left">
+      <button
+        type="button"
+        aria-label="How this lesson is built"
+        className="relative top-[3px] inline-flex text-black-50 hover:text-black-80 transition-colors"
+      >
+        <HelpCircle className="h-[15px] w-[15px]" strokeWidth={2} />
+      </button>
+    </Tooltip>
+  );
+}
 
 interface AdjacentLesson {
   id: string;
@@ -88,9 +113,12 @@ export function LessonPageContent({
       <div className="mb-8 flex flex-col gap-4">
         {/* Row 1: Lesson # + Status pill */}
         <div className="flex items-center justify-between gap-3">
-          <p className="text-regular-semibold text-black-80">
-            Lesson #{lesson.number}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <p className="text-regular-semibold text-black-80">
+              Lesson #{lesson.number}
+            </p>
+            <AutoLessonHelpIcon lessonId={lesson.id} />
+          </div>
           {(() => {
             const lessonStatus = masteredPercentage === 100
               ? "mastered" as const

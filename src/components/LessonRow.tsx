@@ -7,7 +7,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonStartTestModal } from "@/components/study";
-import { LessonWithProgress, LessonMilestoneScores } from "@/lib/queries";
+import type { LessonWithProgress } from "@/lib/queries/lessons";
+import type { LessonMilestoneScores } from "@/lib/queries/tests";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 

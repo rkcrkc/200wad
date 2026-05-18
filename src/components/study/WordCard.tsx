@@ -52,10 +52,14 @@ export function WordCard({
   const isPlayingForeign = playingAudioType === "foreign";
 
   const darkColor = gender && gender in genderColorDark ? genderColorDark[gender] : defaultHighlightColorDark;
+  // In test mode before submission, avoid leaking gender via the English-audio
+  // highlight color (gender would give away the answer for english→foreign tests).
+  const hideGenderForEnglish = mode === "test" && !hasSubmitted;
+  const englishDarkColor = hideGenderForEnglish ? defaultHighlightColorDark : darkColor;
 
   // Get color for English word
   const getEnglishWordColor = () => {
-    if (isPlayingEnglish) return darkColor;
+    if (isPlayingEnglish) return englishDarkColor;
     return "#141515"; // Default black
   };
 
@@ -76,7 +80,7 @@ export function WordCard({
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
             className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingEnglish} playingColor={darkColor} />
+            <AudioButton isPlaying={isPlayingEnglish} playingColor={englishDarkColor} />
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={englishWord}

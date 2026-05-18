@@ -33,7 +33,7 @@ export default async function DashboardLayout({
   // Fetch stats and pricing in parallel
   const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardData, textOverridesResult, subsResult, displayInfo] = await Promise.all([
     course ? getDueTestsCount(course.id) : Promise.resolve(0),
-    getUserLearningStats(),
+    getUserLearningStats(course?.id),
     course ? getCourseProgress(course.id) : Promise.resolve(null),
     getActivePricingPlans(),
     getEnabledTiers(),

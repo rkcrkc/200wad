@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LessonPreviewCard } from "./LessonPreviewCard";
-import type { LessonForScheduler } from "@/lib/queries";
+import type { LessonForScheduler } from "@/lib/queries/schedule";
 
 interface LessonGridSectionProps {
   newLessons: LessonForScheduler[];

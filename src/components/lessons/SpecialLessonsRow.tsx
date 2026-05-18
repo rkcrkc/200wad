@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LessonWithProgress } from "@/lib/queries";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { LessonWithProgress } from "@/lib/queries/lessons";
 import { parseAutoLessonId } from "@/lib/queries/auto-lessons";
 import { LessonStartTestModal } from "@/components/study";
 import { SpecialLessonCard } from "./SpecialLessonCard";
 import { cn } from "@/lib/utils";
+
+// One card (260px) + gap (12px) — scroll roughly one card per click.
+const SCROLL_STEP = 272;
 
 interface SpecialLessonsRowProps {
   /** All lessons (real + auto). Auto-lessons are filtered out internally. */
@@ -60,12 +64,14 @@ export function SpecialLessonsRow({ lessons, mode = "lesson" }: SpecialLessonsRo
   });
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     const update = () => {
+      setCanScrollLeft(el.scrollLeft > 4);
       setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
     };
     update();
@@ -76,6 +82,10 @@ export function SpecialLessonsRow({ lessons, mode = "lesson" }: SpecialLessonsRo
       window.removeEventListener("resize", update);
     };
   }, [cards.length]);
+
+  const scrollBy = (delta: number) => {
+    scrollerRef.current?.scrollBy({ left: delta, behavior: "smooth" });
+  };
 
   if (cards.length === 0) return null;
 
@@ -92,10 +102,37 @@ export function SpecialLessonsRow({ lessons, mode = "lesson" }: SpecialLessonsRo
         <div
           aria-hidden
           className={cn(
-            "pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent transition-opacity",
+            "pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background from-20% to-transparent transition-opacity",
+            canScrollLeft ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background from-20% to-transparent transition-opacity",
             canScrollRight ? "opacity-100" : "opacity-0",
           )}
         />
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scrollBy(-SCROLL_STEP)}
+            aria-label="Scroll left"
+            className="absolute left-2 top-[calc(50%-6px)] z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.22)] transition-all hover:text-primary hover:shadow-[0_6px_20px_rgba(0,0,0,0.28)] sm:left-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scrollBy(SCROLL_STEP)}
+            aria-label="Scroll right"
+            className="absolute right-2 top-[calc(50%-6px)] z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-foreground shadow-[0_4px_16px_rgba(0,0,0,0.22)] transition-all hover:text-primary hover:shadow-[0_6px_20px_rgba(0,0,0,0.28)] sm:right-1"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
       {testLesson && (
         <LessonStartTestModal

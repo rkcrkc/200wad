@@ -5,10 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SchedulerCard } from "./SchedulerCard";
-import type { LessonForScheduler } from "@/lib/queries";
-
-/** Above this count, tabs switch to compact (numbers only) + scroll. */
-const COMPACT_TABS_THRESHOLD = 4;
+import type { LessonForScheduler } from "@/lib/queries/schedule";
 
 interface SchedulerSectionProps {
   dueTests: LessonForScheduler[];
@@ -121,7 +118,6 @@ export function SchedulerSection({
 
   // Show dot pagination only when displaying tests and there are multiple.
   const showTestDots = showTest && hasMultipleTests;
-  const isCompactTabs = dueTests.length > COMPACT_TABS_THRESHOLD;
 
   // Horizontal scroll state for the tab strip (used in compact mode).
   const tabsScrollRef = useRef<HTMLDivElement>(null);
@@ -146,9 +142,10 @@ export function SchedulerSection({
   }, [updateScrollState, showTestDots, dueTests.length]);
 
   // Auto-scroll the active tab into view when it changes (e.g. after the
-  // dueTests array shrinks and useEffect clamps the index back to 0).
+  // dueTests array shrinks and useEffect clamps the index back to 0). Only
+  // relevant when the strip is actually overflowing (many tabs at min-width).
   useEffect(() => {
-    if (!isCompactTabs) return;
+    if (!showTestDots) return;
     const container = tabsScrollRef.current;
     if (!container) return;
     const btn = container.querySelector<HTMLButtonElement>(
@@ -164,14 +161,14 @@ export function SchedulerSection({
         behavior: "smooth",
       });
     }
-  }, [activeTestIndex, isCompactTabs]);
+  }, [activeTestIndex, showTestDots]);
 
   const scrollByAmount = (delta: number) => {
     tabsScrollRef.current?.scrollBy({ left: delta, behavior: "smooth" });
   };
 
   return (
-    <section className="mb-16">
+    <section className="mt-12 mb-16">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-xxl2-semibold text-foreground">{heading}</h2>
@@ -183,13 +180,17 @@ export function SchedulerSection({
         </Button>
       </div>
 
-      {/* Test folder tabs — beige wrapper with a white "notch" for the active tab.
-          Above COMPACT_TABS_THRESHOLD, tabs collapse to numeric labels with
-          horizontal scrolling, edge gradients, and chevron controls.
-          relative z-10 keeps tabs above the SchedulerCard's drop shadow. */}
+      {/* Test folder tabs — beige wrapper with a white "notch" for the active
+          tab. Tabs distribute equally across the full card width via flex-1,
+          capped at max-w-[120px] so they don't get absurdly wide when there
+          are few tabs. When many tabs are due, min-w-[44px] forces overflow
+          and the strip scrolls (chevrons + edge fades appear on demand).
+          Inactive tabs show just the number; the active tab shows the number
+          plus the lesson title (truncated to fit). relative z-10 keeps tabs
+          above the SchedulerCard's drop shadow. */}
       {showTestDots && (
-        <div className="relative z-10 -mb-px w-fit max-w-full">
-          <div className="relative w-fit max-w-full overflow-hidden rounded-t-xl bg-beige">
+        <div className="relative z-10 -mb-px w-full">
+          <div className="relative w-full overflow-hidden rounded-t-xl bg-beige">
             <div
               ref={tabsScrollRef}
               role="tablist"
@@ -205,27 +206,25 @@ export function SchedulerSection({
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    aria-label={`Test ${i + 1} of ${dueTests.length}`}
+                    aria-label={`Test ${i + 1} of ${dueTests.length}: ${test.title}`}
                     data-tab-index={i}
                     onClick={() => setActiveTestIndex(i)}
-                    className={`text-small-semibold flex-shrink-0 rounded-t-xl py-3 transition-colors ${
-                      isCompactTabs
-                        ? "min-w-[44px] px-4"
-                        : "px-10"
+                    className={`text-small-semibold min-w-[44px] max-w-[120px] flex-1 truncate rounded-t-xl px-3 py-3 transition-colors ${
+                      isActive ? "text-left" : "text-center"
                     } ${
                       isActive
                         ? "bg-white text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {isCompactTabs ? i + 1 : `Test #${i + 1}`}
+                    {isActive ? `#${i + 1} ${test.title}` : i + 1}
                   </button>
                 );
               })}
             </div>
 
             {/* Left fade + chevron — only when scrolled away from the start */}
-            {isCompactTabs && canScrollLeft && (
+            {canScrollLeft && (
               <>
                 <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 rounded-tl-xl bg-gradient-to-r from-beige via-beige/85 to-transparent" />
                 <button
@@ -240,7 +239,7 @@ export function SchedulerSection({
             )}
 
             {/* Right fade + chevron — only when more tabs lie offscreen */}
-            {isCompactTabs && canScrollRight && (
+            {canScrollRight && (
               <>
                 <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 rounded-tr-xl bg-gradient-to-l from-beige via-beige/85 to-transparent" />
                 <button

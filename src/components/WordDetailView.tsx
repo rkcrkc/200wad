@@ -692,27 +692,31 @@ export function WordDetailView({
               // blurred behind the upgrade CTA.
               <div className="w-full rounded-2xl bg-white shadow-card">
                 <div className="flex flex-col gap-5 p-6">
-                  {/* Trigger text — rendered identically to the unlocked card */}
+                  {/* Trigger text — reuses the unlocked shell so geometry
+                      (audio-button alignment, line-height, sidebar vs page
+                      sizing) matches exactly; only the characters are masked
+                      with a skeleton overlay that follows natural text wrap. */}
                   {triggerText && (
                     word.category === "fact" ? (
-                      <div className={isSidebar ? "space-y-4 text-base leading-relaxed text-foreground" : "space-y-4 text-lg leading-relaxed text-foreground"}>
-                        {parseFormattedText(triggerText, { gender: word.gender })}
+                      <div
+                        className={isSidebar ? "space-y-4 text-base leading-relaxed text-foreground" : "space-y-4 text-lg leading-relaxed text-foreground"}
+                        aria-hidden="true"
+                      >
+                        <p>
+                          <span className="box-decoration-clone animate-pulse rounded bg-foreground/10 text-transparent">
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
+                          </span>
+                        </p>
                       </div>
                     ) : (
-                      <button
-                        onClick={handlePlayTrigger}
-                        className="flex cursor-pointer items-center gap-4 text-left"
-                      >
-                        <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+                      <div className="flex items-center gap-4" aria-hidden="true">
+                        <AudioButton isPlaying={false} playingColor={audioDarkColor} />
                         <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
-                          {parseFormattedText(triggerText, {
-                            gender: word.gender,
-                            headword: word.headword,
-                            isPlaying: isPlayingTrigger,
-                            paragraphs: false,
-                          })}
+                          <span className="box-decoration-clone animate-pulse rounded bg-foreground/10 text-transparent">
+                            Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.
+                          </span>
                         </p>
-                      </button>
+                      </div>
                     )
                   )}
 

@@ -210,7 +210,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                         </span>
                         <div className="flex flex-col gap-0.5">
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
-                            {formatNumber(words)} words learned ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} total time = <span className="font-semibold">{perHourDisplay} words/hour</span>
+                            {formatNumber(words)} words learned ÷ {formatDuration(effectiveStats.totalTimeSeconds ?? 0, { style: "hours" })} = <span className="font-semibold">{perHourDisplay} words/hour</span>
                           </span>
                           <span className="text-foreground text-[13px] leading-[1.4] whitespace-nowrap">
                             {perHourDisplay} words/hour × 8-hour day = <span className="font-semibold">{formatNumber(effectiveStats.wordsPerDay ?? 0)} words/day</span>

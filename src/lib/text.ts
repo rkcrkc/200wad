@@ -236,7 +236,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Words per day rate popover title",
     category: "tooltips_popovers",
     group: "Stats Popovers",
-    defaultValue: "Words per day rate",
+    defaultValue: "Words per day rate (this course)",
   },
 
   // Lesson Page

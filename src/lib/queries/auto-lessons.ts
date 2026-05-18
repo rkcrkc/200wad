@@ -34,6 +34,42 @@ export function isAutoLesson(lessonId: string): boolean {
 }
 
 /**
+ * Discriminated union describing how a lesson-id string maps onto the
+ * split-column schema introduced in
+ * `20260516000002_restore_lesson_fk_split_columns.sql`. Callers writing
+ * `user_test_scores` / `study_sessions` rows must populate exactly one of:
+ *   - `lesson_id` (real lesson UUID), OR
+ *   - `(auto_lesson_type, course_id)` (virtual auto-lesson).
+ *
+ * `"none"` is reserved for callers that have no id at all (rare; typically
+ * indicates a bug upstream — handle defensively).
+ */
+export type LessonIdRef =
+  | { kind: "real"; lessonId: string }
+  | { kind: "auto"; autoLessonType: AutoLessonType; courseId: string }
+  | { kind: "none" };
+
+/**
+ * Resolve an opaque lesson-id string into the split-column representation.
+ * Returns `{ kind: "auto", ... }` for `auto-{type}-{courseId}` strings,
+ * `{ kind: "real", lessonId }` for anything else non-empty (assumed to be a
+ * UUID — caller is responsible for not passing garbage), and
+ * `{ kind: "none" }` for null/empty input.
+ */
+export function resolveLessonIdRef(id: string | null | undefined): LessonIdRef {
+  if (!id) return { kind: "none" };
+  const auto = parseAutoLessonId(id);
+  if (auto) {
+    return {
+      kind: "auto",
+      autoLessonType: auto.type,
+      courseId: auto.courseId,
+    };
+  }
+  return { kind: "real", lessonId: id };
+}
+
+/**
  * All auto-lesson IDs for a given course.
  *
  * Auto-lesson tests (e.g. Worst Words) write `lesson_id =

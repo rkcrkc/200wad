@@ -326,12 +326,15 @@ async function getWorstWordsAutoLesson(
 
   const autoWorstId = createAutoLessonId("worst", courseId);
 
-  // 1. Find last completed Worst Words test in this course
+  // 1. Find last completed Worst Words test in this course. After migration
+  //    20260516000002 auto-lesson rows have `lesson_id IS NULL` and are
+  //    keyed by `(auto_lesson_type, course_id)` instead.
   const { data: lastSession } = await supabase
     .from("study_sessions")
     .select("ended_at")
     .eq("user_id", userId)
-    .eq("lesson_id", autoWorstId)
+    .eq("auto_lesson_type", "worst")
+    .eq("course_id", courseId)
     .eq("session_type", "test")
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false })

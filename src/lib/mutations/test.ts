@@ -12,7 +12,11 @@ import {
 } from "@/lib/utils/milestones";
 import { updateLessonProgress } from "./study";
 import { recordProgressAchievements } from "@/lib/notifications/achievements";
-import { isAutoLesson, parseAutoLessonId } from "@/lib/queries/lessons";
+import {
+  isAutoLesson,
+  parseAutoLessonId,
+  resolveLessonIdRef,
+} from "@/lib/queries/lessons";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -52,24 +56,52 @@ export async function createTestSession(
 
   // Delete orphaned test sessions for this lesson (incomplete sessions that were never finished)
   // These are sessions where the user clicked "Take Test" but left before completing
-  await supabase
+  const lessonRef = resolveLessonIdRef(lessonId);
+
+  let deleteQuery = supabase
     .from("study_sessions")
     .delete()
     .eq("user_id", user.id)
-    .eq("lesson_id", lessonId)
     .eq("session_type", "test")
     .is("ended_at", null);
+  if (lessonRef.kind === "real") {
+    deleteQuery = deleteQuery.eq("lesson_id", lessonRef.lessonId);
+  } else if (lessonRef.kind === "auto") {
+    deleteQuery = deleteQuery
+      .eq("auto_lesson_type", lessonRef.autoLessonType)
+      .eq("course_id", lessonRef.courseId);
+  }
+  await deleteQuery;
+
+  // Build the insert payload so exactly one of `lesson_id` or
+  // `(auto_lesson_type, course_id)` is populated — the table's mutual-
+  // exclusion CHECK constraint rejects rows with both set.
+  const sessionInsert: {
+    user_id: string;
+    lesson_id?: string;
+    auto_lesson_type?: "notes" | "best" | "worst" | "unmastered" | "lost_mastery";
+    course_id?: string;
+    session_type: "test";
+    started_at: string;
+    words_studied: number;
+    words_mastered: number;
+  } = {
+    user_id: user.id,
+    session_type: "test",
+    started_at: new Date().toISOString(),
+    words_studied: 0,
+    words_mastered: 0,
+  };
+  if (lessonRef.kind === "real") {
+    sessionInsert.lesson_id = lessonRef.lessonId;
+  } else if (lessonRef.kind === "auto") {
+    sessionInsert.auto_lesson_type = lessonRef.autoLessonType;
+    sessionInsert.course_id = lessonRef.courseId;
+  }
 
   const { data, error } = await supabase
     .from("study_sessions")
-    .insert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      session_type: "test",
-      started_at: new Date().toISOString(),
-      words_studied: 0,
-      words_mastered: 0,
-    })
+    .insert(sessionInsert)
     .select("id")
     .single();
 
@@ -376,12 +408,20 @@ export async function completeTestSession(
 
   // 3. Idempotency guard: check if a test score was already saved for this session
   if (isRealDbSession) {
-    const { data: existingScore } = await supabase
+    const idempotencyRef = resolveLessonIdRef(lessonId);
+    let existingScoreQuery = supabase
       .from("user_test_scores")
       .select("id")
       .eq("user_id", user.id)
-      .eq("lesson_id", lessonId)
-      .gte("taken_at", new Date(Date.now() - 30_000).toISOString()) // within last 30s
+      .gte("taken_at", new Date(Date.now() - 30_000).toISOString()); // within last 30s
+    if (idempotencyRef.kind === "real") {
+      existingScoreQuery = existingScoreQuery.eq("lesson_id", idempotencyRef.lessonId);
+    } else if (idempotencyRef.kind === "auto") {
+      existingScoreQuery = existingScoreQuery
+        .eq("auto_lesson_type", idempotencyRef.autoLessonType)
+        .eq("course_id", idempotencyRef.courseId);
+    }
+    const { data: existingScore } = await existingScoreQuery
       .limit(1)
       .maybeSingle();
 
@@ -412,25 +452,51 @@ export async function completeTestSession(
     }
   }
 
-  // 4. Create test score record
+  // 4. Create test score record. Like the study_sessions write above, exactly
+  // one of `lesson_id` or `(auto_lesson_type, course_id)` must be populated.
+  const scoreRef = resolveLessonIdRef(lessonId);
+  const testScoreInsert: {
+    user_id: string;
+    lesson_id?: string;
+    auto_lesson_type?: "notes" | "best" | "worst" | "unmastered" | "lost_mastery";
+    course_id?: string;
+    milestone: string;
+    total_questions: number;
+    correct_answers: number;
+    points_earned: number;
+    max_points: number;
+    score_percent: number;
+    duration_seconds: number;
+    new_words_count: number;
+    learned_words_count: number;
+    mastered_words_count: number;
+    is_retest: boolean;
+    taken_at: string;
+  } = {
+    user_id: user.id,
+    milestone: milestoneResult.recordedMilestone,
+    total_questions: stats.totalQuestions,
+    correct_answers: stats.correctAnswers,
+    points_earned: stats.pointsEarned,
+    max_points: stats.maxPoints,
+    score_percent: stats.scorePercent,
+    duration_seconds: stats.durationSeconds,
+    new_words_count: stats.newWordsCount,
+    learned_words_count: stats.newlyLearnedCount,
+    mastered_words_count: stats.masteredWordsCount,
+    is_retest: stats.isRetest,
+    taken_at: new Date().toISOString(),
+  };
+  if (scoreRef.kind === "real") {
+    testScoreInsert.lesson_id = scoreRef.lessonId;
+  } else if (scoreRef.kind === "auto") {
+    testScoreInsert.auto_lesson_type = scoreRef.autoLessonType;
+    testScoreInsert.course_id = scoreRef.courseId;
+  }
+
   const { data: testScore, error: testScoreError } = await supabase
     .from("user_test_scores")
-    .insert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      milestone: milestoneResult.recordedMilestone,
-      total_questions: stats.totalQuestions,
-      correct_answers: stats.correctAnswers,
-      points_earned: stats.pointsEarned,
-      max_points: stats.maxPoints,
-      score_percent: stats.scorePercent,
-      duration_seconds: stats.durationSeconds,
-      new_words_count: stats.newWordsCount,
-      learned_words_count: stats.newlyLearnedCount,
-      mastered_words_count: stats.masteredWordsCount,
-      is_retest: stats.isRetest,
-      taken_at: new Date().toISOString(),
-    })
+    .insert(testScoreInsert)
     .select("id")
     .single();
 

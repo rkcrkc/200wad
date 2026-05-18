@@ -245,12 +245,18 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
 
     const courseWordIds = allLessonWords.map((lw) => lw.word_id).filter((id): id is string => id !== null);
 
-    // Get test scores scoped to this course
+    // Get test scores scoped to this course. Auto-lesson rows have
+    // `lesson_id IS NULL` and live under `course_id`, so combine the real-
+    // lesson UUID set with a `course_id` predicate via `.or()`.
+    const courseScopeOr =
+      allLessonIds.length > 0
+        ? `lesson_id.in.(${allLessonIds.join(",")}),course_id.eq.${lesson.course_id}`
+        : `course_id.eq.${lesson.course_id}`;
     const { data: userTestScores } = await supabase
       .from("user_test_scores")
       .select("id")
       .eq("user_id", user.id)
-      .in("lesson_id", allLessonIds);
+      .or(courseScopeOr);
 
     const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
 
@@ -450,13 +456,30 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   let scoreStatsByWord: Record<string, WordScoreStats> = {};
 
   if (user && words && words.length > 0) {
+    // Nested embed: the FK on `user_test_scores.lesson_id → lessons.id` was
+    // restored by migration 20260516000002, so PostgREST resolves the
+    // `lessons(...)` embed again. Auto-lesson rows (lesson_id NULL,
+    // auto_lesson_type + course_id set) return a null embedded `lessons`,
+    // and we synthesize a display label from `AUTO_LESSON_META[auto_lesson_type]`.
     const { data: testQuestions } = await supabase
       .from("test_questions")
       .select(
-        "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores(lesson_id, lessons(id, title, emoji, number))"
+        "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores(lesson_id, auto_lesson_type, course_id, lessons(id, title, emoji, number))"
       )
       .in("word_id", words.map((w) => w.id))
       .order("answered_at", { ascending: false });
+
+    type EmbeddedTestScore = {
+      lesson_id: string | null;
+      auto_lesson_type: AutoLessonType | null;
+      course_id: string | null;
+      lessons: {
+        id: string;
+        title: string;
+        emoji: string | null;
+        number: number;
+      } | null;
+    } | null;
 
     // Aggregate by (wordId, testScoreId) — one TestAttempt per test, not per
     // direction. See `TestAttempt` doc for the unit semantics.
@@ -486,8 +509,22 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       const clueLevel = tq.clue_level ?? 0;
       const answeredAt = tq.answered_at ?? new Date().toISOString();
 
-      const lesson = (tq as { user_test_scores?: { lessons?: { id: string; title: string; emoji: string | null; number: number } | null } | null })
-        .user_test_scores?.lessons ?? null;
+      const score = (tq as { user_test_scores?: EmbeddedTestScore }).user_test_scores ?? null;
+      let lessonId: string | null = null;
+      let lessonTitle: string | null = null;
+      let lessonNumber: number | null = null;
+      let lessonEmoji: string | null = null;
+      if (score?.lessons) {
+        lessonId = score.lessons.id;
+        lessonTitle = score.lessons.title;
+        lessonNumber = score.lessons.number;
+        lessonEmoji = score.lessons.emoji;
+      } else if (score?.auto_lesson_type) {
+        const meta = AUTO_LESSON_META[score.auto_lesson_type];
+        lessonTitle = meta.title;
+        lessonNumber = meta.number;
+        lessonEmoji = meta.emoji;
+      }
 
       let wordMap = byWordTest.get(wordId);
       if (!wordMap) {
@@ -508,10 +545,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           mistakeCount,
           maxClueLevel: clueLevel,
           answeredAt,
-          lessonId: lesson?.id ?? null,
-          lessonTitle: lesson?.title ?? null,
-          lessonNumber: lesson?.number ?? null,
-          lessonEmoji: lesson?.emoji ?? null,
+          lessonId,
+          lessonTitle,
+          lessonNumber,
+          lessonEmoji,
         });
       }
     });
@@ -843,21 +880,23 @@ async function getAutoLessonWords(
 
   const orderedLessons = courseLessons ?? [];
 
-  // Time spent and average score for THIS auto-lesson only — auto-lesson IDs
-  // (e.g. "auto-worst-{courseId}") are stored verbatim in study_sessions.lesson_id
-  // and user_test_scores.lesson_id when the user studies/tests the auto-lesson
-  // standalone, so the same query pattern as real lessons works here.
+  // Time spent and average score for THIS auto-lesson only. After migration
+  // 20260516000002, auto-lesson rows in `study_sessions` / `user_test_scores`
+  // have `lesson_id IS NULL` and live under `(auto_lesson_type, course_id)`,
+  // so we filter by the discriminator pair instead of the legacy text id.
   const [autoStudySessionsResult, autoTestScoresResult] = await Promise.all([
     supabase
       .from("study_sessions")
       .select("duration_seconds")
       .eq("user_id", userId)
-      .eq("lesson_id", lessonId),
+      .eq("auto_lesson_type", type)
+      .eq("course_id", courseId),
     supabase
       .from("user_test_scores")
       .select("duration_seconds, score_percent")
       .eq("user_id", userId)
-      .eq("lesson_id", lessonId),
+      .eq("auto_lesson_type", type)
+      .eq("course_id", courseId),
   ]);
 
   const autoStudyTimeSeconds = (autoStudySessionsResult.data || []).reduce(
@@ -989,11 +1028,16 @@ async function getAutoLessonWords(
     return buildAutoLessonResult(type, courseId, course, language, orderedLessons, [], userId, autoTimeStats);
   }
 
-  // Maintain the order from targetWordIds (important for best/worst)
+  // Maintain the order from targetWordIds (important for best/worst).
+  // Also filter out info-category pages as defense-in-depth: the best/worst
+  // RPC excludes them at the source (migration 20260514000004), but doing it
+  // here as well means a future RPC regression — or any other code path that
+  // produces targetWordIds — can't leak info pages into the study/test UI.
   const wordMap = new Map(words.map((w) => [w.id, w]));
   const orderedWords = targetWordIds
     .map((id) => wordMap.get(id))
-    .filter((w): w is NonNullable<typeof w> => w !== undefined);
+    .filter((w): w is NonNullable<typeof w> => w !== undefined)
+    .filter((w) => w.category !== "information");
 
   // Collect related word IDs
   const allRelatedWordIds = new Set<string>();

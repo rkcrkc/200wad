@@ -3,7 +3,7 @@
 import { useState, useMemo, ReactNode } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
-import { LessonActivity } from "@/lib/queries";
+import type { LessonActivity } from "@/lib/queries/tests";
 import { formatDuration, formatPercent } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
 import { SubBadge } from "@/components/ui/sub-badge";

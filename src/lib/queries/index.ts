@@ -69,8 +69,10 @@ export type { LeaderboardEntry, LeaderboardMetric, LeaderboardPeriod, Leaderboar
 
 export { getHelpEntries, getHelpEntriesAdmin } from "./help";
 
-export { getTextOverrides } from "./text";
-export type { GetTextOverridesResult } from "./text";
+// `getTextOverrides` is intentionally NOT re-exported here — pulling it through
+// the barrel drags `@/lib/supabase/server` (which imports `next/headers`) into
+// any Client Component that imports anything else from `@/lib/queries`.
+// Import it directly from `@/lib/queries/text` instead.
 
 export { getTipsForWords, getAllTips, getTipsByWordId } from "./tips";
 export type { TipForWord, TipWithWordCount } from "./tips";

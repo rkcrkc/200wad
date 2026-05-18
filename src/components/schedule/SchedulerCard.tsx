@@ -10,7 +10,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonStartTestModal } from "@/components/study";
-import type { LessonForScheduler } from "@/lib/queries";
+import type { LessonForScheduler } from "@/lib/queries/schedule";
 import { isAutoLesson } from "@/lib/queries/auto-lessons";
 import { useText } from "@/context/TextContext";
 import { mapStatus } from "@/lib/utils/helpers";
@@ -113,7 +113,7 @@ export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerC
             )}
 
             {/* Title */}
-            <h2 className="mb-4 text-[36px] font-semibold leading-tight text-foreground">
+            <h2 className="mb-4 truncate text-[36px] font-semibold leading-tight text-foreground">
               {lesson.title}
             </h2>
 
