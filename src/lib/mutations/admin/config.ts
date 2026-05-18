@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/utils/adminGuard";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type { Json } from "@/types/database";
 
 export interface MutationResult {
@@ -35,6 +35,9 @@ export async function updatePlatformConfig(
 
     revalidatePath("/admin/settings");
     revalidatePath("/admin/text-labels");
+    // Invalidate cached queries that read from platform_config
+    updateTag("platform-config");
+    updateTag("text-overrides");
     return { success: true, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

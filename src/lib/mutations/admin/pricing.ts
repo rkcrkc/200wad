@@ -8,7 +8,7 @@ import {
   type CreatePricingPlanInput,
   type UpdatePricingPlanInput,
 } from "@/lib/validations/admin";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 // ============================================================================
 // Types
@@ -52,6 +52,7 @@ export async function createPricingPlan(
     }
 
     revalidatePath("/admin/settings");
+    updateTag("pricing-plans");
     return { success: true, id: data.id, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -82,6 +83,7 @@ export async function updatePricingPlan(
     }
 
     revalidatePath("/admin/settings");
+    updateTag("pricing-plans");
     return { success: true, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -108,6 +110,7 @@ export async function deletePricingPlan(id: string): Promise<MutationResult> {
     }
 
     revalidatePath("/admin/settings");
+    updateTag("pricing-plans");
     return { success: true, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

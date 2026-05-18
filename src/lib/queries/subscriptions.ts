@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 import type { Subscription, PricingPlan, Language } from "@/types/database";
 import { getCreditBalance, type CreditBalance } from "./credits";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
@@ -99,30 +101,37 @@ export async function hasActiveSubscription(
 
 /**
  * Get all active pricing plans, optionally filtered by tier.
+ *
+ * Cached for 1 hour because pricing plans only change via admin actions.
+ * Admin mutations call `updateTag("pricing-plans")` to force refresh.
  */
-export async function getActivePricingPlans(
-  tier?: "course" | "language" | "all-languages"
-): Promise<GetPricingPlansResult> {
-  const supabase = await createClient();
+export const getActivePricingPlans = unstable_cache(
+  async (
+    tier?: "course" | "language" | "all-languages"
+  ): Promise<GetPricingPlansResult> => {
+    const supabase = createStaticClient();
 
-  let query = supabase
-    .from("pricing_plans")
-    .select("*")
-    .eq("is_active", true)
-    .order("amount_cents");
+    let query = supabase
+      .from("pricing_plans")
+      .select("*")
+      .eq("is_active", true)
+      .order("amount_cents");
 
-  if (tier) {
-    query = query.eq("tier", tier);
-  }
+    if (tier) {
+      query = query.eq("tier", tier);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    return { plans: [], error: error.message };
-  }
+    if (error) {
+      return { plans: [], error: error.message };
+    }
 
-  return { plans: data || [], error: null };
-}
+    return { plans: data || [], error: null };
+  },
+  ["active-pricing-plans"],
+  { revalidate: 3600, tags: ["pricing-plans"] }
+);
 
 /**
  * Get all pricing plans (for admin).

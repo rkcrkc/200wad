@@ -4,7 +4,9 @@
  * free lesson thresholds and active subscriptions.
  */
 
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createStaticClient } from "@/lib/supabase/static";
 
 // ============================================================================
 // Types
@@ -57,11 +59,24 @@ export async function getDefaultFreeLessons(): Promise<number> {
 
 /**
  * Get the enabled subscription tiers.
+ *
+ * Cached for 1 hour. Admin config mutations call
+ * `updateTag("platform-config")` to force refresh.
  */
-export async function getEnabledTiers(): Promise<string[]> {
-  const value = await getPlatformConfig<string[]>("enabled_tiers");
-  return value ?? ["language", "all-languages"];
-}
+export const getEnabledTiers = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = createStaticClient();
+    const { data } = await supabase
+      .from("platform_config")
+      .select("value")
+      .eq("key", "enabled_tiers")
+      .single();
+    const value = data?.value as string[] | null;
+    return value ?? ["language", "all-languages"];
+  },
+  ["enabled-tiers"],
+  { revalidate: 3600, tags: ["platform-config"] }
+);
 
 // ============================================================================
 // Access Control
