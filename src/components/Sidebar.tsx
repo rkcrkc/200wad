@@ -56,6 +56,7 @@ function SidebarNavItem({
   return (
     <Link
       href={href}
+      prefetch
       className={`flex h-12 w-full items-center justify-between rounded-[10px] transition-all ${
         isActive ? "bg-secondary" : "hover:bg-bone-hover"
       }`}

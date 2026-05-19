@@ -46,6 +46,7 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
       <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
         <Link
           href={`/lesson/${test.lessonId}`}
+          prefetch
           className="flex items-center gap-3 transition-colors hover:text-primary"
         >
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
@@ -132,6 +133,7 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
           <Tooltip label="Preview lesson">
             <Link
               href={`/lesson/${test.lessonId}`}
+              prefetch
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
             >
               <Eye className="h-4 w-4" />

@@ -18,6 +18,7 @@ export function LanguageCard({ language, isActive = false, hasAccess, freeLesson
   return (
     <Link
       href={`/courses/${language.id}`}
+      prefetch
       className={cn(
         "block rounded-2xl border-2 bg-white p-6 transition-all hover:shadow-lg",
         isActive

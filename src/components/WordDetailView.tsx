@@ -666,6 +666,7 @@ export function WordDetailView({
                 <Link
                   key={lesson.id}
                   href={`/lesson/${lesson.id}`}
+                  prefetch
                   className="grid grid-cols-[64px_1fr_24px] items-center gap-3 px-6 py-4 transition-colors hover:bg-[#FAF8F3]"
                 >
                   <span className="text-sm tabular-nums text-muted-foreground">

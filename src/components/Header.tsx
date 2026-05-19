@@ -170,7 +170,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           {showAsLoggedIn && effectiveStats && hasContext && (
             <div className="ml-4 hidden shrink-0 cursor-default items-center gap-5 md:flex">
               {/* Course Progress Indicator */}
-              <Link href={`/course/${courseId}/progress`}>
+              <Link href={`/course/${courseId}/progress`} prefetch>
                 <Popover
                   className="flex flex-col"
                   content={
@@ -195,7 +195,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               </Link>
 
               {/* Words Per Day Indicator */}
-              <Link href={`/course/${courseId}/progress`}>
+              <Link href={`/course/${courseId}/progress`} prefetch>
                 <Popover
                   className="flex flex-col items-center"
                   content={(() => {
@@ -234,7 +234,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
 
               {/* Leaderboard Rank Indicator */}
               {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (
-                <Link href="/community" className="flex flex-col items-center">
+                <Link href="/community" prefetch className="flex flex-col items-center">
                   <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
                     #{formatNumber(effectiveStats.leaderboardRank)}
                   </span>

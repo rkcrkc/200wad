@@ -283,6 +283,7 @@ export function LessonPageContent({
             {previousLesson ? (
               <Link
                 href={`/lesson/${previousLesson.id}`}
+                prefetch
                 className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
               >
                 <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -314,6 +315,7 @@ export function LessonPageContent({
             {nextLesson ? (
               <Link
                 href={`/lesson/${nextLesson.id}`}
+                prefetch
                 className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
               >
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

@@ -145,7 +145,7 @@ export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerC
 
             <Tooltip label={t("tip_preview_lesson")}>
               <Button asChild variant="ghost" size="icon-lg">
-                <Link href={`/lesson/${lesson.id}`}>
+                <Link href={`/lesson/${lesson.id}`} prefetch>
                   <Eye className="size-5" />
                 </Link>
               </Button>
