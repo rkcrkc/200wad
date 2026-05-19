@@ -44,7 +44,7 @@ npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/datab
 **Database Schema (14 tables):**
 - Content: `languages`, `courses`, `lessons`, `words`, `lesson_words` (junction), `example_sentences`
 - User: `users`, `user_languages`
-- Progress: `user_word_progress`, `user_lesson_progress`, `study_sessions`, `user_test_scores`, `test_questions`
+- Progress: `user_word_progress`, `user_lesson_progress`, `study_sessions`, `test_sessions`, `test_questions`
 - System: `notifications`
 
 Types auto-generated in `src/types/database.ts` with convenience aliases (User, Course, Word, etc.)
@@ -54,7 +54,7 @@ Types auto-generated in `src/types/database.ts` with convenience aliases (User, 
 - `learning` → word has been studied (seen in a study session)
 - `learned` → word answered with full marks in a test (3/3 points: no mistakes, no clues)
 - `mastered` → 3 full-mark tests in a row (`correct_streak >= 3`)
-- "Correct" for streak/status purposes = `mistakeCount === 0 && clueLevel === 0` across all directions of a single test (aggregated per `test_score_id`). A test contributes to the streak only if every direction (EN→IT and IT→EN) is full marks; one wrong direction resets the streak.
+- "Correct" for streak/status purposes = `mistakeCount === 0 && clueLevel === 0` on a single `test_questions` row. Each row is one streak attempt — Test Twice contributes 2 attempts per word (one per `attempt_number`). Any non-perfect row resets the streak to 0.
 - Floors: learned/mastered never drops below `learned`; learning never drops below `learning`
 - `times_tested` counts distinct tests, not per-direction questions
 - Session storage for pending updates, batch writes on session completion

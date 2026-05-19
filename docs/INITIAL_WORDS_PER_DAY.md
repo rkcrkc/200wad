@@ -26,10 +26,10 @@ completionTs(L)  = max(learned_at[w]) over testableWords(L)  -- only when allLea
 initialTime(L) =
   if allLearned(L):
       Σ study_sessions on L  where started_at ≤ completionTs(L)  duration_seconds
-    + Σ user_test_scores on L where taken_at  ≤ completionTs(L)  duration_seconds
+    + Σ test_sessions on L where taken_at  ≤ completionTs(L)  duration_seconds
   else:
       Σ study_sessions on L  (started_at not null)  duration_seconds
-    + Σ user_test_scores on L (taken_at not null)   duration_seconds
+    + Σ test_sessions on L (taken_at not null)   duration_seconds
 ```
 
 Course aggregate (single scalar):
@@ -60,7 +60,7 @@ initialWordsPerDay = Math.round((totalLearnedWords / (totalInitialTime / 3600)) 
 ### Auto-lessons (important)
 
 Migration `20260515000001` dropped the FK from
-`study_sessions.lesson_id` / `user_test_scores.lesson_id` → `lessons.id` so
+`study_sessions.lesson_id` / `test_sessions.lesson_id` → `lessons.id` so
 synthetic auto-lesson IDs (e.g. `auto-best-{courseId}`) can be stored.
 `getProgressStats` now resolves course-scoped time via
 `.in("lesson_id", [...realLessonIds, ...getAllAutoLessonIds(courseId)])`.

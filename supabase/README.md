@@ -45,7 +45,7 @@ Run them in order.
 - `user_word_progress` - Per-word mastery tracking
 - `user_lesson_progress` - Per-lesson completion tracking
 - `study_sessions` - Study/test session records
-- `user_test_scores` - Test results
+- `test_sessions` - Test results
 - `test_questions` - Individual test answers
 
 ### System Tables (1)

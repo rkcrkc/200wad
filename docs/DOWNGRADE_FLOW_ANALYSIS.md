@@ -88,7 +88,7 @@ Lifetime plans use Stripe's `payment` mode (one-time). They have no `stripe_subs
 ### Data Preservation
 
 **No user data is deleted.** The system follows a "gate, don't delete" approach:
-- All `user_word_progress`, `user_lesson_progress`, `study_sessions`, `user_test_scores`, and `test_questions` records remain intact
+- All `user_word_progress`, `user_lesson_progress`, `study_sessions`, `test_sessions`, and `test_questions` records remain intact
 - The user's enrollment (`user_languages`) remains
 - Their `current_language_id` and course preferences remain
 
