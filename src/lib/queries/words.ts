@@ -16,6 +16,7 @@ import {
   selectLostMasteryWordIds,
   AUTO_LESSON_META,
 } from "./lessons";
+import { getAutoLessonWordLimit } from "./platformConfig";
 import { getTipsForWords, type TipForWord } from "./tips";
 
 // Helper function to extract course without nested relations
@@ -95,11 +96,6 @@ export interface TestAttempt {
   answeredAt: string;
   /** True iff every direction in this test was full marks (mistakeCount=0, clueLevel=0). */
   isFullMarks?: boolean;
-  /** Lesson the test was taken in (null for ad-hoc tests without a linked lesson) */
-  lessonId?: string | null;
-  lessonTitle?: string | null;
-  lessonNumber?: number | null;
-  lessonEmoji?: string | null;
 }
 
 export interface WordScoreStats {
@@ -160,21 +156,40 @@ export interface GetWordsResult {
 
 export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // Check if this is an auto-lesson
+  // Auto-lesson path doesn't use the standard `lessons` / `lesson_words`
+  // fetches below, so resolve `user` on its own and bail early.
   if (isAutoLesson(lessonId)) {
-    return getAutoLessonWords(supabase, lessonId, user?.id || null);
+    const {
+      data: { user: autoUser },
+    } = await supabase.auth.getUser();
+    return getAutoLessonWords(supabase, lessonId, autoUser?.id || null);
   }
 
-  // Fetch lesson with course and language
-  const { data: lesson } = await supabase
-    .from("lessons")
-    .select("*, courses(*, languages(*))")
-    .eq("id", lessonId)
-    .single();
+  // Phase 1: three independent reads in parallel — the previous serial
+  // chain (`auth.getUser` → `lessons` → `lesson_words`) cost ~3 round-trips
+  // even though none of these depend on each other (lesson_words only needs
+  // the raw lessonId, not the resolved lesson row). The admin-test branch
+  // below ignores `lessonWordsRaw` and rebuilds the word list dynamically,
+  // so this is a cheap speculative fetch that pays off for every non-
+  // admin-test lesson (i.e. >99% of traffic).
+  const [
+    { data: { user } },
+    { data: lesson },
+    { data: lessonWordsRaw, error: lessonWordsError },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("lessons")
+      .select("*, courses(*, languages(*))")
+      .eq("id", lessonId)
+      .single(),
+    supabase
+      .from("lesson_words")
+      .select("sort_order, words(*, example_sentences(*))")
+      .eq("lesson_id", lessonId)
+      .order("sort_order"),
+  ]);
 
   if (!lesson) {
     return {
@@ -196,40 +211,25 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const language = course?.languages as Language | null;
   const extractedLesson = extractLesson(lesson);
 
-  // Fetch adjacent lessons (previous/next) in course order
-  const { data: courseLessons } = lesson.course_id
-    ? await supabase
-        .from("lessons")
-        .select("id, number, title")
-        .eq("course_id", lesson.course_id)
-        .eq("is_published", true)
-        .order("sort_order")
-        .order("number")
-    : { data: null };
-  const orderedLessons = courseLessons ?? [];
-  const currentIndex = orderedLessons.findIndex((l) => l.id === lesson.id);
-  const hasMultiple = orderedLessons.length > 1;
-  // Loop: first lesson → previous = last; last lesson → next = first
-  const previousLesson: AdjacentLesson | null =
-    currentIndex > 0
-      ? orderedLessons[currentIndex - 1]
-      : hasMultiple
-        ? orderedLessons[orderedLessons.length - 1]
-        : null;
-  const nextLesson: AdjacentLesson | null =
-    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
-      ? orderedLessons[currentIndex + 1]
-      : hasMultiple
-        ? orderedLessons[0]
-        : null;
-
   // Admin test lesson (lesson #0): dynamically pick the 4 lowest-scoring
   // studied words from the course instead of using static lesson_words.
   const isAdminTestLesson = lesson.number === 0 && user;
 
-  let words: (Word & { example_sentences: ExampleSentence[]; sort_order: number })[];
+  let words: (Word & { example_sentences: ExampleSentence[]; sort_order: number })[] = [];
+  let orderedLessons: AdjacentLesson[] = [];
 
   if (isAdminTestLesson && lesson.course_id) {
+    // Admin-test path: courseLessons is needed *before* the word selection
+    // chain (its lesson IDs scope `test_questions`), so keep its fetch here.
+    // This branch is rare (lesson #0 only) and inherently serial.
+    const { data: courseLessonsAdmin } = await supabase
+      .from("lessons")
+      .select("id, number, title")
+      .eq("course_id", lesson.course_id)
+      .eq("is_published", true)
+      .order("sort_order")
+      .order("number");
+    orderedLessons = courseLessonsAdmin ?? [];
     // Get all word IDs in this course. Paginate via .range() — PostgREST's
     // 1,000-row max-rows cap silently truncates single-request responses.
     const allLessonIds = orderedLessons.map((l) => l.id);
@@ -318,23 +318,18 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       words = [];
     }
   } else {
-    // Standard path: fetch words from lesson_words join table
-    const { data: lessonWords, error: wordsError } = await supabase
-      .from("lesson_words")
-      .select("sort_order, words(*, example_sentences(*))")
-      .eq("lesson_id", lessonId)
-      .order("sort_order");
-
-    if (wordsError) {
-      console.error("Error fetching words:", wordsError);
+    // Standard path: reuse the `lesson_words` payload already fetched in
+    // Phase 1. The previous serial refetch here was redundant.
+    if (lessonWordsError) {
+      console.error("Error fetching words:", lessonWordsError);
       return {
         language,
         course: course ? extractCourse(course) : null,
         lesson: extractedLesson,
         words: [],
-        previousLesson,
-        nextLesson,
-        courseLessons: orderedLessons,
+        previousLesson: null,
+        nextLesson: null,
+        courseLessons: [],
         stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
         isGuest: !user,
         userId: user?.id ?? null,
@@ -342,62 +337,134 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       };
     }
 
-    words = lessonWords?.map((lw) => ({
+    words = lessonWordsRaw?.map((lw) => ({
       ...(lw.words as Word & { example_sentences: ExampleSentence[] }),
       sort_order: lw.sort_order ?? 0,
     })) || [];
   }
 
-  // Collect all related word IDs
+  // Collect related word IDs up-front so the related-words fetch can join
+  // the parallel batch below.
   const allRelatedWordIds = new Set<string>();
-  words?.forEach((word) => {
+  words.forEach((word) => {
     word.related_word_ids?.forEach((id: string) => allRelatedWordIds.add(id));
   });
+  const wordIds = words.map((w) => w.id);
 
-  // Fetch related words if any
-  let relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
-  if (allRelatedWordIds.size > 0) {
-    const { data: relatedWords } = await supabase
-      .from("words")
-      .select("id, english, headword, memory_trigger_image_url")
-      .in("id", Array.from(allRelatedWordIds));
+  // Phase 2: every remaining read happens concurrently. The previous code
+  // ran six sequential awaits (courseLessons → relatedWords → tips →
+  // userWordProgress → study/test time → testQuestions); each one round-
+  // tripped to Postgres before the next could start. None of them actually
+  // depend on each other once `words` is in hand, so a single Promise.all
+  // collapses the waterfall.
+  //
+  // `null` from a conditional branch means "skip" — destructure with the
+  // optional-chaining pattern below.
+  const [
+    courseLessonsResp,
+    relatedWordsResp,
+    tipsResult,
+    wordProgressResp,
+    studySessionsResp,
+    testScoresResp,
+    testQuestionsResp,
+  ] = await Promise.all([
+    isAdminTestLesson || !lesson.course_id
+      ? Promise.resolve(null)
+      : supabase
+          .from("lessons")
+          .select("id, number, title")
+          .eq("course_id", lesson.course_id)
+          .eq("is_published", true)
+          .order("sort_order")
+          .order("number"),
+    allRelatedWordIds.size > 0
+      ? supabase
+          .from("words")
+          .select("id, english, headword, memory_trigger_image_url")
+          .in("id", Array.from(allRelatedWordIds))
+      : Promise.resolve(null),
+    getTipsForWords(wordIds, user?.id ?? null),
+    user && words.length > 0
+      ? supabase
+          .from("user_word_progress")
+          .select("*")
+          .eq("user_id", user.id)
+          .in("word_id", wordIds)
+      : Promise.resolve(null),
+    user
+      ? supabase
+          .from("study_sessions")
+          .select("duration_seconds")
+          .eq("user_id", user.id)
+          .eq("lesson_id", lessonId)
+      : Promise.resolve(null),
+    user
+      ? supabase
+          .from("user_test_scores")
+          .select("duration_seconds, score_percent")
+          .eq("user_id", user.id)
+          .eq("lesson_id", lessonId)
+      : Promise.resolve(null),
+    user && words.length > 0
+      ? supabase
+          .from("test_questions")
+          .select(
+            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id"
+          )
+          .in("word_id", wordIds)
+          .order("answered_at", { ascending: false })
+      : Promise.resolve(null),
+  ]);
 
-    relatedWords?.forEach((rw) => {
-      relatedWordsMap[rw.id] = rw;
-    });
+  // Standard branch picks up courseLessons from the parallel batch; admin
+  // branch populated it above.
+  if (!isAdminTestLesson) {
+    orderedLessons = (courseLessonsResp?.data ?? []) as AdjacentLesson[];
   }
 
-  // Fetch tips for all words in this lesson
-  const wordIds = (words || []).map((w) => w.id);
-  const { tipsByWordId, dismissedTipIds } = await getTipsForWords(wordIds, user?.id ?? null);
+  // Compute previous/next lesson navigation.
+  const currentIndex = orderedLessons.findIndex((l) => l.id === lesson.id);
+  const hasMultiple = orderedLessons.length > 1;
+  // Loop: first lesson → previous = last; last lesson → next = first.
+  const previousLesson: AdjacentLesson | null =
+    currentIndex > 0
+      ? orderedLessons[currentIndex - 1]
+      : hasMultiple
+        ? orderedLessons[orderedLessons.length - 1]
+        : null;
+  const nextLesson: AdjacentLesson | null =
+    currentIndex >= 0 && currentIndex < orderedLessons.length - 1
+      ? orderedLessons[currentIndex + 1]
+      : hasMultiple
+        ? orderedLessons[0]
+        : null;
 
-  // Get user's word progress if authenticated
-  let progressByWord: Record<string, UserWordProgress> = {};
+  // Build the related-words map.
+  const relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
+  (relatedWordsResp?.data ?? []).forEach((rw) => {
+    relatedWordsMap[rw.id] = rw;
+  });
+
+  const { tipsByWordId, dismissedTipIds } = tipsResult;
+
+  // Build progress map + studied/learned/mastered counts.
+  const progressByWord: Record<string, UserWordProgress> = {};
   let wordsStudied = 0;
   let wordsLearned = 0;
   let wordsMastered = 0;
 
-  if (user && words && words.length > 0) {
-    const { data: wordProgress } = await supabase
-      .from("user_word_progress")
-      .select("*")
-      .eq("user_id", user.id)
-      .in(
-        "word_id",
-        words.map((w) => w.id)
-      );
-
-    // Build set of info page word IDs to exclude from stats
+  if (user && words.length > 0) {
     const infoWordIds = new Set(
-      (words || []).filter((w) => w.category === "information").map((w) => w.id)
+      words.filter((w) => w.category === "information").map((w) => w.id)
     );
 
-    wordProgress?.forEach((wp) => {
+    (wordProgressResp?.data ?? []).forEach((wp) => {
       const wordId = wp.word_id;
       if (wordId) {
         progressByWord[wordId] = wp;
       }
-      // Exclude information pages from studied/mastered counts
+      // Exclude information pages from studied/mastered counts.
       if (wordId && infoWordIds.has(wordId)) return;
       const effective = effectiveWordStatus(wp);
       if (effective === "learning" || effective === "learned" || effective === "mastered") {
@@ -412,75 +479,36 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     });
   }
 
-  // Get study time from study_sessions and test time from test_scores
-  let totalTimeSeconds = 0;
-  let studyTimeSeconds = 0;
-  let testTimeSeconds = 0;
-  let averageTestScore: number | null = null;
-  if (user) {
-    const [studySessionsResult, testScoresResult] = await Promise.all([
-      supabase
-        .from("study_sessions")
-        .select("duration_seconds")
-        .eq("user_id", user.id)
-        .eq("lesson_id", lessonId),
-      supabase
-        .from("user_test_scores")
-        .select("duration_seconds, score_percent")
-        .eq("user_id", user.id)
-        .eq("lesson_id", lessonId),
-    ]);
-
-    studyTimeSeconds = (studySessionsResult.data || []).reduce(
-      (sum, ss) => sum + (ss.duration_seconds || 0),
-      0
-    );
-    const testScores = testScoresResult.data || [];
-    testTimeSeconds = testScores.reduce(
-      (sum, ts) => sum + (ts.duration_seconds || 0),
-      0
-    );
-    totalTimeSeconds = studyTimeSeconds + testTimeSeconds;
-
-    // Calculate average test score
-    if (testScores.length > 0) {
-      const totalScore = testScores.reduce((sum, ts) => sum + (ts.score_percent || 0), 0);
-      averageTestScore = Math.round(totalScore / testScores.length);
-    }
-  }
-
-  // Get test history for all words in this lesson
-  // - Last 3 attempts for "traffic lights" display
-  // - Total points for historical score percentage
-  let testHistoryByWord: Record<string, TestAttempt[]> = {};
-  let scoreStatsByWord: Record<string, WordScoreStats> = {};
-
-  if (user && words && words.length > 0) {
-    // Nested embed: the FK on `user_test_scores.lesson_id → lessons.id` was
-    // restored by migration 20260516000002, so PostgREST resolves the
-    // `lessons(...)` embed again. Auto-lesson rows (lesson_id NULL,
-    // auto_lesson_type + course_id set) return a null embedded `lessons`,
-    // and we synthesize a display label from `AUTO_LESSON_META[auto_lesson_type]`.
-    const { data: testQuestions } = await supabase
-      .from("test_questions")
-      .select(
-        "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores(lesson_id, auto_lesson_type, course_id, lessons(id, title, emoji, number))"
+  // Aggregate study/test time and average test score.
+  const studySessions = studySessionsResp?.data ?? [];
+  const testScores = testScoresResp?.data ?? [];
+  const studyTimeSeconds = studySessions.reduce(
+    (sum, ss) => sum + (ss.duration_seconds || 0),
+    0
+  );
+  const testTimeSeconds = testScores.reduce(
+    (sum, ts) => sum + (ts.duration_seconds || 0),
+    0
+  );
+  const totalTimeSeconds = studyTimeSeconds + testTimeSeconds;
+  const averageTestScore = testScores.length > 0
+    ? Math.round(
+        testScores.reduce((sum, ts) => sum + (ts.score_percent || 0), 0) /
+          testScores.length
       )
-      .in("word_id", words.map((w) => w.id))
-      .order("answered_at", { ascending: false });
+    : null;
 
-    type EmbeddedTestScore = {
-      lesson_id: string | null;
-      auto_lesson_type: AutoLessonType | null;
-      course_id: string | null;
-      lessons: {
-        id: string;
-        title: string;
-        emoji: string | null;
-        number: number;
-      } | null;
-    } | null;
+  // Aggregate test history. We used to embed
+  // `user_test_scores(lesson_id, auto_lesson_type, course_id, lessons(...))`
+  // here to populate per-attempt lesson metadata on `TestAttempt`, but no UI
+  // consumer reads those fields — the traffic-light dots and aggregate stats
+  // only need `pointsEarned`/`maxPoints`/`answeredAt`. Dropping the embed
+  // removes a PostgREST FK resolution + nested join from the per-lesson page
+  // load.
+  const testHistoryByWord: Record<string, TestAttempt[]> = {};
+  const scoreStatsByWord: Record<string, WordScoreStats> = {};
 
+  if (user && words.length > 0) {
     // Aggregate by (wordId, testScoreId) — one TestAttempt per test, not per
     // direction. See `TestAttempt` doc for the unit semantics.
     type Agg = {
@@ -489,14 +517,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       mistakeCount: number;
       maxClueLevel: number;
       answeredAt: string;
-      lessonId: string | null;
-      lessonTitle: string | null;
-      lessonNumber: number | null;
-      lessonEmoji: string | null;
     };
     const byWordTest = new Map<string, Map<string, Agg>>();
 
-    testQuestions?.forEach((tq) => {
+    (testQuestionsResp?.data ?? []).forEach((tq) => {
       const wordId = tq.word_id;
       if (!wordId) return;
       const tsId = tq.test_score_id ?? "_unknown_";
@@ -508,23 +532,6 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       const mistakeCount = tq.mistake_count ?? 0;
       const clueLevel = tq.clue_level ?? 0;
       const answeredAt = tq.answered_at ?? new Date().toISOString();
-
-      const score = (tq as { user_test_scores?: EmbeddedTestScore }).user_test_scores ?? null;
-      let lessonId: string | null = null;
-      let lessonTitle: string | null = null;
-      let lessonNumber: number | null = null;
-      let lessonEmoji: string | null = null;
-      if (score?.lessons) {
-        lessonId = score.lessons.id;
-        lessonTitle = score.lessons.title;
-        lessonNumber = score.lessons.number;
-        lessonEmoji = score.lessons.emoji;
-      } else if (score?.auto_lesson_type) {
-        const meta = AUTO_LESSON_META[score.auto_lesson_type];
-        lessonTitle = meta.title;
-        lessonNumber = meta.number;
-        lessonEmoji = meta.emoji;
-      }
 
       let wordMap = byWordTest.get(wordId);
       if (!wordMap) {
@@ -545,10 +552,6 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           mistakeCount,
           maxClueLevel: clueLevel,
           answeredAt,
-          lessonId,
-          lessonTitle,
-          lessonNumber,
-          lessonEmoji,
         });
       }
     });
@@ -563,10 +566,6 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           maxPoints: a.maxPoints,
           answeredAt: a.answeredAt,
           isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
-          lessonId: a.lessonId,
-          lessonTitle: a.lessonTitle,
-          lessonNumber: a.lessonNumber,
-          lessonEmoji: a.lessonEmoji,
         }))
         .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
 
@@ -587,7 +586,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     });
   }
 
-  // Default score stats for words with no test history
+  // Default score stats for words with no test history.
   const defaultScoreStats: WordScoreStats = {
     totalPointsEarned: 0,
     totalMaxPoints: 0,
@@ -596,7 +595,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   };
 
   // Combine data
-  const wordsWithDetails: WordWithDetails[] = (words || []).map((word) => {
+  const wordsWithDetails: WordWithDetails[] = words.map((word) => {
     const progress = progressByWord[word.id];
     const exampleSentences = (word.example_sentences || []) as ExampleSentence[];
     const relatedWords = (word.related_word_ids || [])
@@ -844,12 +843,47 @@ async function getAutoLessonWords(
 
   const { type, courseId } = parsed;
 
-  // Fetch course with language
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*, languages(*)")
-    .eq("id", courseId)
-    .single();
+  // Phase 1: every read that depends only on (courseId, userId) fans out at
+  // once — course metadata, all course lessons for nav, and the
+  // auto-lesson-scoped time/score stats. Previously this was a 3-step
+  // waterfall (course → courseLessons → parallel(study/test)). After
+  // migration 20260516000002, auto-lesson rows in `study_sessions` /
+  // `user_test_scores` have `lesson_id IS NULL` and live under
+  // `(auto_lesson_type, course_id)`, so we filter by the discriminator
+  // pair instead of the legacy text id.
+  const [
+    courseResp,
+    courseLessonsResp,
+    autoStudySessionsResult,
+    autoTestScoresResult,
+  ] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("*, languages(*)")
+      .eq("id", courseId)
+      .single(),
+    supabase
+      .from("lessons")
+      .select("id, number, title")
+      .eq("course_id", courseId)
+      .eq("is_published", true)
+      .order("sort_order")
+      .order("number"),
+    supabase
+      .from("study_sessions")
+      .select("duration_seconds")
+      .eq("user_id", userId)
+      .eq("auto_lesson_type", type)
+      .eq("course_id", courseId),
+    supabase
+      .from("user_test_scores")
+      .select("duration_seconds, score_percent")
+      .eq("user_id", userId)
+      .eq("auto_lesson_type", type)
+      .eq("course_id", courseId),
+  ]);
+
+  const course = courseResp.data;
 
   if (!course) {
     return {
@@ -868,36 +902,7 @@ async function getAutoLessonWords(
   }
 
   const language = course.languages as Language | null;
-
-  // Get all lessons for this course (for navigation)
-  const { data: courseLessons } = await supabase
-    .from("lessons")
-    .select("id, number, title")
-    .eq("course_id", courseId)
-    .eq("is_published", true)
-    .order("sort_order")
-    .order("number");
-
-  const orderedLessons = courseLessons ?? [];
-
-  // Time spent and average score for THIS auto-lesson only. After migration
-  // 20260516000002, auto-lesson rows in `study_sessions` / `user_test_scores`
-  // have `lesson_id IS NULL` and live under `(auto_lesson_type, course_id)`,
-  // so we filter by the discriminator pair instead of the legacy text id.
-  const [autoStudySessionsResult, autoTestScoresResult] = await Promise.all([
-    supabase
-      .from("study_sessions")
-      .select("duration_seconds")
-      .eq("user_id", userId)
-      .eq("auto_lesson_type", type)
-      .eq("course_id", courseId),
-    supabase
-      .from("user_test_scores")
-      .select("duration_seconds, score_percent")
-      .eq("user_id", userId)
-      .eq("auto_lesson_type", type)
-      .eq("course_id", courseId),
-  ]);
+  const orderedLessons = courseLessonsResp.data ?? [];
 
   const autoStudyTimeSeconds = (autoStudySessionsResult.data || []).reduce(
     (sum, ss) => sum + (ss.duration_seconds || 0),
@@ -995,19 +1000,21 @@ async function getAutoLessonWords(
         correct_streak: r.correct_streak,
       }));
 
+    const autoLessonWordLimit = await getAutoLessonWordLimit();
     targetWordIds =
       type === "unmastered"
-        ? selectUnmasteredWordIds(learnedRows)
-        : selectLostMasteryWordIds(learnedRows);
+        ? selectUnmasteredWordIds(learnedRows, autoLessonWordLimit)
+        : selectLostMasteryWordIds(learnedRows, autoLessonWordLimit);
   } else {
     // Best or Worst words — aggregated in Postgres via the
     // `select_best_worst_words_for_course` RPC so the All-Lessons summary,
     // the scheduler, and this page always agree, and so per-word test
     // history isn't filtered through the current course's lesson_ids
     // (see the migration for the full rationale).
+    const autoLessonWordLimit = await getAutoLessonWordLimit();
     const { data: rpcRows } = await supabase.rpc(
       "select_best_worst_words_for_course",
-      { p_course_id: courseId, p_type: type, p_limit: 20 },
+      { p_course_id: courseId, p_type: type, p_limit: autoLessonWordLimit },
     );
     targetWordIds = (rpcRows ?? [])
       .map((r) => r.word_id)
@@ -1045,32 +1052,54 @@ async function getAutoLessonWords(
     word.related_word_ids?.forEach((id: string) => allRelatedWordIds.add(id));
   });
 
-  // Fetch related words
-  let relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
-  if (allRelatedWordIds.size > 0) {
-    const { data: relatedWords } = await supabase
-      .from("words")
-      .select("id, english, headword, memory_trigger_image_url")
-      .in("id", Array.from(allRelatedWordIds));
+  // Final fan-out: related words, user progress, and per-word test history
+  // all only depend on the resolved word/target sets, so a single Promise.all
+  // replaces the previous three sequential awaits.
+  //
+  // Test-history note: `test_questions` is the source of truth for traffic
+  // lights and average scores — aggregate by word_id only and scope to this
+  // user via the inner join on `user_test_scores`. Filtering by lesson_id
+  // (via testScoreIds) would hide attempts whose original lesson was
+  // unpublished, renumbered, or moved, even though the word-level score
+  // history is still valid.
+  const [relatedWordsResp, wordProgressResp, testQuestionsResp] = await Promise.all([
+    allRelatedWordIds.size > 0
+      ? supabase
+          .from("words")
+          .select("id, english, headword, memory_trigger_image_url")
+          .in("id", Array.from(allRelatedWordIds))
+      : Promise.resolve(null),
+    supabase
+      .from("user_word_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .in("word_id", targetWordIds),
+    targetWordIds.length > 0
+      ? supabase
+          .from("test_questions")
+          .select(
+            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores!inner(user_id)"
+          )
+          .eq("user_test_scores.user_id", userId)
+          .in("word_id", targetWordIds)
+          .order("answered_at", { ascending: false })
+      : Promise.resolve(null),
+  ]);
 
-    relatedWords?.forEach((rw) => {
-      relatedWordsMap[rw.id] = rw;
-    });
-  }
+  const relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
+  (relatedWordsResp?.data ?? []).forEach((rw) => {
+    relatedWordsMap[rw.id] = rw;
+  });
 
-  // Get user progress for these words
-  const { data: wordProgress } = await supabase
-    .from("user_word_progress")
-    .select("*")
-    .eq("user_id", userId)
-    .in("word_id", targetWordIds);
+  const wordProgress = wordProgressResp.data;
+  const testQuestions = testQuestionsResp?.data ?? [];
 
   const progressByWord: Record<string, UserWordProgress> = {};
   let wordsStudied = 0;
   let wordsLearned = 0;
   let wordsMastered = 0;
 
-  // Build set of info page word IDs to exclude from stats
+  // Build set of info page word IDs to exclude from stats.
   const autoInfoWordIds = new Set(
     (words || []).filter((w) => w.category === "information").map((w) => w.id)
   );
@@ -1079,7 +1108,7 @@ async function getAutoLessonWords(
     if (wp.word_id) {
       progressByWord[wp.word_id] = wp;
     }
-    // Exclude information pages from studied/mastered counts
+    // Exclude information pages from studied/mastered counts.
     if (wp.word_id && autoInfoWordIds.has(wp.word_id)) return;
     const effective = effectiveWordStatus(wp);
     if (effective === "learning" || effective === "learned" || effective === "mastered") {
@@ -1092,23 +1121,6 @@ async function getAutoLessonWords(
       wordsMastered++;
     }
   });
-
-  // Get test history for these words. Per-word `test_questions` is the source
-  // of truth for traffic lights and average scores — aggregate by word_id only
-  // and scope to this user via the inner join on user_test_scores. Filtering
-  // by lesson_id (via testScoreIds) would hide attempts whose original lesson
-  // was unpublished, renumbered, or moved, even though the word-level score
-  // history is still valid.
-  const { data: testQuestions } = targetWordIds.length > 0
-    ? await supabase
-        .from("test_questions")
-        .select(
-          "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores!inner(user_id)"
-        )
-        .eq("user_test_scores.user_id", userId)
-        .in("word_id", targetWordIds)
-        .order("answered_at", { ascending: false })
-    : { data: [] };
 
   const testHistoryByWord: Record<string, TestAttempt[]> = {};
   const scoreStatsByWord: Record<string, WordScoreStats> = {};
