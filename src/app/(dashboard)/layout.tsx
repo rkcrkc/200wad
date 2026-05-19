@@ -7,7 +7,7 @@ import {
   getUserLearningStats,
   getCourseProgress,
   getActivePricingPlans,
-  getLeaderboard,
+  getUserLeaderboardPosition,
   getUserSubscriptions,
 } from "@/lib/queries";
 import { getTextOverrides } from "@/lib/queries/text";
@@ -31,13 +31,15 @@ export default async function DashboardLayout({
   const { course, language } = await getCurrentCourse();
 
   // Fetch stats and pricing in parallel
-  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardData, textOverridesResult, subsResult, displayInfo] = await Promise.all([
+  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardPosition, textOverridesResult, subsResult, displayInfo] = await Promise.all([
     course ? getDueTestsCount(course.id) : Promise.resolve(0),
     getUserLearningStats(course?.id),
     course ? getCourseProgress(course.id) : Promise.resolve(null),
     getActivePricingPlans(),
     getEnabledTiers(),
-    language ? getLeaderboard(language.id, "avg_words_per_day", "week") : Promise.resolve(null),
+    // Header only displays the user's own rank — skip the top-N entries
+    // fetch by calling the lightweight position variant.
+    language ? getUserLeaderboardPosition(language.id, "avg_words_per_day", "week") : Promise.resolve(null),
     getTextOverrides(),
     isGuest ? Promise.resolve({ subscriptions: [], error: null }) : getUserSubscriptions(),
     getSubscriptionDisplayInfo(),
@@ -73,7 +75,7 @@ export default async function DashboardLayout({
     totalTimeSeconds: learningStats.totalTimeSeconds,
     studyTimeSeconds: learningStats.studyTimeSeconds,
     testTimeSeconds: learningStats.testTimeSeconds,
-    leaderboardRank: leaderboardData?.userPosition?.rank ?? null,
+    leaderboardRank: leaderboardPosition?.rank ?? null,
   };
 
   return (

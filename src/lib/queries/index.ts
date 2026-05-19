@@ -64,7 +64,7 @@ export type { UserSubscription, GetUserSubscriptionsResult, GetPricingPlansResul
 export { getCreditBalance, getReferralStats } from "./credits";
 export type { CreditBalance, GetCreditBalanceResult, GetReferralStatsResult } from "./credits";
 
-export { getLeaderboard, getLeaderboardRewards, getLeagueConfig, getPersonalBests } from "./leaderboard";
+export { getLeaderboard, getUserLeaderboardPosition, getLeaderboardRewards, getLeagueConfig, getPersonalBests } from "./leaderboard";
 export type { LeaderboardEntry, LeaderboardMetric, LeaderboardPeriod, LeaderboardData, LeaderboardReward } from "./leaderboard";
 
 export { getHelpEntries, getHelpEntriesAdmin } from "./help";

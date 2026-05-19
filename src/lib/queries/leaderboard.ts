@@ -107,6 +107,40 @@ export async function getLeaderboard(
 }
 
 /**
+ * Lightweight variant that returns only the signed-in user's leaderboard
+ * position — no top-N entries fetch. Use this when the caller only needs the
+ * rank badge (e.g. the dashboard header). Skips the `get_leaderboard` RPC
+ * entirely, cutting the layout's leaderboard cost in half.
+ */
+export async function getUserLeaderboardPosition(
+  languageId: string,
+  metric: LeaderboardMetric = "avg_words_per_day",
+  period: LeaderboardPeriod = "week"
+): Promise<LeaderboardData["userPosition"]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data, error } = await supabase.rpc("get_user_leaderboard_position", {
+    p_user_id: user.id,
+    p_language_id: languageId,
+    p_metric: metric,
+    p_period: period,
+  });
+
+  if (error || !data || data.length === 0) return null;
+
+  return {
+    rank: data[0].rank,
+    metric_value: data[0].metric_value,
+    total_users: data[0].total_users,
+  };
+}
+
+/**
  * Get the leaderboard reward tiers
  */
 export async function getLeaderboardRewards(): Promise<LeaderboardReward[]> {
