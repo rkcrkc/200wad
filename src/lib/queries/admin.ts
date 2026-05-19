@@ -9,6 +9,7 @@ export interface PlatformConfigMap {
   default_free_lessons: number;
   enabled_tiers: string[];
   referral_credit_cents: number;
+  auto_lesson_word_limit: number;
 }
 
 export interface AdminSettingsData {
@@ -59,6 +60,7 @@ export async function getAdminSettingsData(): Promise<GetAdminSettingsResult> {
     default_free_lessons: 10,
     enabled_tiers: ["language", "all-languages"],
     referral_credit_cents: 400,
+    auto_lesson_word_limit: 10,
   };
 
   if (configResult.data) {
@@ -69,6 +71,11 @@ export async function getAdminSettingsData(): Promise<GetAdminSettingsResult> {
         configMap.enabled_tiers = row.value as string[];
       } else if (row.key === "referral_credit_cents" && typeof row.value === "number") {
         configMap.referral_credit_cents = row.value;
+      } else if (
+        row.key === "auto_lesson_word_limit" &&
+        typeof row.value === "number"
+      ) {
+        configMap.auto_lesson_word_limit = row.value;
       }
     }
   }

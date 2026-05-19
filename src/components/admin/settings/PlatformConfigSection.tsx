@@ -18,6 +18,9 @@ export function PlatformConfigSection({ config }: PlatformConfigSectionProps) {
   const [referralCredit, setReferralCredit] = useState(
     (config.referral_credit_cents / 100).toFixed(2)
   );
+  const [autoLessonWordLimit, setAutoLessonWordLimit] = useState(
+    config.auto_lesson_word_limit.toString()
+  );
   const [enabledTiers, setEnabledTiers] = useState(config.enabled_tiers);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export function PlatformConfigSection({ config }: PlatformConfigSectionProps) {
     setSaving(true);
     setMessage(null);
 
+    const parsedAutoLimit = parseInt(autoLessonWordLimit, 10);
     const results = await Promise.all([
       updatePlatformConfig(
         "default_free_lessons",
@@ -43,6 +47,12 @@ export function PlatformConfigSection({ config }: PlatformConfigSectionProps) {
       updatePlatformConfig(
         "referral_credit_cents",
         Math.round(parseFloat(referralCredit) * 100) || 400
+      ),
+      updatePlatformConfig(
+        "auto_lesson_word_limit",
+        Number.isFinite(parsedAutoLimit) && parsedAutoLimit > 0
+          ? parsedAutoLimit
+          : 10
       ),
     ]);
 
@@ -96,6 +106,25 @@ export function PlatformConfigSection({ config }: PlatformConfigSectionProps) {
             min="0"
             value={freeLessons}
             onChange={(e) => setFreeLessons(e.target.value)}
+            className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right"
+          />
+        </div>
+
+        {/* Auto-Lesson Word Limit */}
+        <div className="flex items-center justify-between px-6 py-4">
+          <div>
+            <div className="text-sm font-medium text-gray-900">
+              Auto-Lesson Word Limit
+            </div>
+            <div className="text-xs text-gray-500">
+              Max words per auto-lesson (Best, Worst, Unmastered, Lost Mastery)
+            </div>
+          </div>
+          <input
+            type="number"
+            min="1"
+            value={autoLessonWordLimit}
+            onChange={(e) => setAutoLessonWordLimit(e.target.value)}
             className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-right"
           />
         </div>
