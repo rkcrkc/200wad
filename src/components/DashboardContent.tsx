@@ -11,6 +11,11 @@ import { SubscriptionProvider, type SimpleSubscription } from "@/context/Subscri
 import { TextProvider } from "@/context/TextContext";
 import { WordPreviewProvider } from "@/context/WordPreviewContext";
 import { UpgradeModalProvider } from "@/context/UpgradeModalContext";
+import {
+  HeaderStatsProvider,
+  useHeaderStats,
+  type HeaderStatsBundle,
+} from "@/context/HeaderStatsContext";
 import type { PricingPlan } from "@/types/database";
 import type { SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 
@@ -36,9 +41,13 @@ export interface HeaderStats {
 
 interface DashboardContentProps {
   children: React.ReactNode;
-  dueTestsCount?: number;
   defaultCourseContext?: DefaultCourseContext;
-  headerStats?: HeaderStats;
+  /**
+   * Streamed bundle of slow header stats + due-tests count. Resolved
+   * asynchronously inside a Suspense boundary so the shell renders before
+   * these aggregation queries finish.
+   */
+  headerStatsPromise?: Promise<HeaderStatsBundle> | null;
   /** Show logged-in UI preview for guests during onboarding */
   showPreviewMode?: boolean;
   plans?: PricingPlan[];
@@ -106,9 +115,8 @@ function UpgradeModalWithContext({
  */
 export function DashboardContent({
   children,
-  dueTestsCount,
   defaultCourseContext,
-  headerStats,
+  headerStatsPromise,
   showPreviewMode,
   plans = [],
   enabledTiers = [],
@@ -116,7 +124,47 @@ export function DashboardContent({
   subscriptions = [],
   displayInfo,
 }: DashboardContentProps) {
+  return (
+    <HeaderStatsProvider promise={headerStatsPromise ?? null}>
+      <DashboardShell
+        defaultCourseContext={defaultCourseContext}
+        showPreviewMode={showPreviewMode}
+        plans={plans}
+        enabledTiers={enabledTiers}
+        textOverrides={textOverrides}
+        subscriptions={subscriptions}
+        displayInfo={displayInfo}
+      >
+        {children}
+      </DashboardShell>
+    </HeaderStatsProvider>
+  );
+}
+
+interface DashboardShellProps {
+  children: React.ReactNode;
+  defaultCourseContext?: DefaultCourseContext;
+  showPreviewMode?: boolean;
+  plans: PricingPlan[];
+  enabledTiers: string[];
+  textOverrides: Record<string, string>;
+  subscriptions: SimpleSubscription[];
+  displayInfo?: SubscriptionDisplayInfo;
+}
+
+function DashboardShell({
+  children,
+  defaultCourseContext,
+  showPreviewMode,
+  plans,
+  enabledTiers,
+  textOverrides,
+  subscriptions,
+  displayInfo,
+}: DashboardShellProps) {
   const pathname = usePathname();
+  const { stats: streamedStats, dueTestsCount: streamedDueTestsCount } =
+    useHeaderStats();
 
   // Auto-open the upgrade modal once for users who just signed up and don't yet
   // have any active subscription. The "just_signed_up" flag is set by OnboardingModal
@@ -168,7 +216,7 @@ export function DashboardContent({
           <TextProvider overrides={textOverrides}>
             <WordPreviewProvider>
               <DefaultContextSetter context={defaultCourseContext} />
-              <Header showSidebar={false} stats={headerStats} showPreviewMode={showPreviewMode} />
+              <Header showSidebar={false} stats={streamedStats} showPreviewMode={showPreviewMode} />
               <div className="h-screen overflow-visible pt-[72px]">
                 <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
                   {children}
@@ -190,8 +238,8 @@ export function DashboardContent({
           <UpgradeModalProvider openUpgradeModal={handleViewPlans}>
             <WordPreviewProvider>
               <DefaultContextSetter context={defaultCourseContext} />
-              <Header showSidebar={true} stats={headerStats} showPreviewMode={showPreviewMode} dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
-              <Sidebar dueTestsCount={dueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+              <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
+              <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
               <div className="h-screen overflow-visible pt-[72px]">
                 <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
                   {children}

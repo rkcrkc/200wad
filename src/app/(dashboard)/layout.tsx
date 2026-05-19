@@ -11,11 +11,12 @@ import {
   getUserSubscriptions,
 } from "@/lib/queries";
 import { getTextOverrides } from "@/lib/queries/text";
-import { getSubscriptionDisplayInfo, type SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
+import { getSubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
 import type { SimpleSubscription } from "@/context/SubscriptionContext";
+import type { HeaderStatsBundle } from "@/context/HeaderStatsContext";
 
 export default async function DashboardLayout({
   children,
@@ -30,20 +31,51 @@ export default async function DashboardLayout({
   // Fetch current language and course for header display
   const { course, language } = await getCurrentCourse();
 
-  // Fetch stats and pricing in parallel
-  const [dueTestsCount, learningStats, courseProgress, plansResult, enabledTiers, leaderboardPosition, textOverridesResult, subsResult, displayInfo] = await Promise.all([
-    course ? getDueTestsCount(course.id) : Promise.resolve(0),
-    getUserLearningStats(course?.id),
-    course ? getCourseProgress(course.id) : Promise.resolve(null),
-    getActivePricingPlans(),
-    getEnabledTiers(),
-    // Header only displays the user's own rank — skip the top-N entries
-    // fetch by calling the lightweight position variant.
-    language ? getUserLeaderboardPosition(language.id, "avg_words_per_day", "week") : Promise.resolve(null),
-    getTextOverrides(),
-    isGuest ? Promise.resolve({ subscriptions: [], error: null }) : getUserSubscriptions(),
-    getSubscriptionDisplayInfo(),
-  ]);
+  // FAST critical-path queries — children consume these via providers
+  // (SubscriptionProvider, TextProvider, CourseProvider) so the layout
+  // must await them before rendering.
+  const [plansResult, enabledTiers, textOverridesResult, subsResult, displayInfo] =
+    await Promise.all([
+      getActivePricingPlans(),
+      getEnabledTiers(),
+      getTextOverrides(),
+      isGuest
+        ? Promise.resolve({ subscriptions: [], error: null })
+        : getUserSubscriptions(),
+      getSubscriptionDisplayInfo(),
+    ]);
+
+  // SLOW header-only stats — bundled into a single Promise that streams via
+  // <Suspense> in DashboardContent → HeaderStatsProvider. The layout shell
+  // (and children!) render before this resolves; Header/Sidebar pop their
+  // stats in once the promise settles. Cuts the longest aggregation queries
+  // (course progress + per-user learning stats) out of the critical path.
+  const headerStatsPromise: Promise<HeaderStatsBundle> | null =
+    course && language
+      ? (async () => {
+          const [dueTestsCount, learningStats, courseProgress, leaderboardPosition] =
+            await Promise.all([
+              getDueTestsCount(course.id),
+              getUserLearningStats(course.id),
+              getCourseProgress(course.id),
+              getUserLeaderboardPosition(language.id, "avg_words_per_day", "week"),
+            ]);
+          return {
+            stats: {
+              wordsPerDay: learningStats.wordsPerDay,
+              courseProgressPercent: courseProgress?.progressPercent ?? 0,
+              wordsMastered: courseProgress?.wordsMastered ?? 0,
+              totalWords: courseProgress?.totalWords ?? 0,
+              totalWordsLearned: learningStats.totalWordsLearned,
+              totalTimeSeconds: learningStats.totalTimeSeconds,
+              studyTimeSeconds: learningStats.studyTimeSeconds,
+              testTimeSeconds: learningStats.testTimeSeconds,
+              leaderboardRank: leaderboardPosition?.rank ?? null,
+            },
+            dueTestsCount,
+          };
+        })()
+      : null;
 
   // Simplify subscriptions for client context
   const subscriptions: SimpleSubscription[] = subsResult.subscriptions.map((s) => ({
@@ -65,27 +97,13 @@ export default async function DashboardLayout({
       }
     : undefined;
 
-  // Prepare header stats
-  const headerStats = {
-    wordsPerDay: learningStats.wordsPerDay,
-    courseProgressPercent: courseProgress?.progressPercent ?? 0,
-    wordsMastered: courseProgress?.wordsMastered ?? 0,
-    totalWords: courseProgress?.totalWords ?? 0,
-    totalWordsLearned: learningStats.totalWordsLearned,
-    totalTimeSeconds: learningStats.totalTimeSeconds,
-    studyTimeSeconds: learningStats.studyTimeSeconds,
-    testTimeSeconds: learningStats.testTimeSeconds,
-    leaderboardRank: leaderboardPosition?.rank ?? null,
-  };
-
   return (
     <div className="h-screen overflow-visible bg-white">
       <TooltipInit />
       <Toaster />
       <DashboardContent
-        dueTestsCount={dueTestsCount}
         defaultCourseContext={defaultCourseContext}
-        headerStats={headerStats}
+        headerStatsPromise={headerStatsPromise}
         showPreviewMode={isGuest}
         plans={plansResult.plans}
         enabledTiers={enabledTiers}
