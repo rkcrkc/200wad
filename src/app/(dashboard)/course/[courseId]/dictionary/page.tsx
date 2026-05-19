@@ -6,9 +6,6 @@ import { PageShell } from "@/components/PageShell";
 import { DictionaryList } from "@/components/DictionaryList";
 import { notFound } from "next/navigation";
 
-// Disable caching for this page to always show fresh data
-export const dynamic = "force-dynamic";
-
 interface DictionaryPageProps {
   params: Promise<{ courseId: string }>;
 }

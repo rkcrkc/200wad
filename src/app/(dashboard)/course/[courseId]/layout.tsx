@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { getCourseById } from "@/lib/queries/courses";
 import { getCourseProgress, getDueTestsCount } from "@/lib/queries";
 import { setCurrentCourse } from "@/lib/mutations";
@@ -14,8 +15,9 @@ interface CourseLayoutProps {
 /**
  * Course-scoped layout. Owns three responsibilities for any /course/[courseId]/* route:
  *  1. Persist users.current_course_id so getCurrentCourse() returns the right
- *     course on the next request. Awaited (not fire-and-forget) so the write
- *     actually commits.
+ *     course on the next request. Skipped if already current; otherwise runs
+ *     via `after()` so the write happens after the response is sent and never
+ *     blocks rendering.
  *  2. Fetch course-scoped header stats (mastered/total/percent + due tests)
  *     against the URL courseId, not against the persisted current_course_id.
  *     The parent (dashboard) layout's headerStats are based on the persisted
@@ -33,23 +35,40 @@ export default async function CourseLayout({ children, params }: CourseLayoutPro
   } = await supabase.auth.getUser();
   const isGuest = !user;
 
-  // Fetch identity + stats in parallel. Stats calls already short-circuit for
-  // guests internally.
-  const [{ course, language }, courseProgress, dueTestsCount] = await Promise.all([
+  // Fetch identity + stats + persisted current_course_id in parallel. The
+  // persisted-id lookup lets us skip a redundant write below when the user is
+  // already on this course. Stats calls already short-circuit for guests
+  // internally.
+  const [{ course, language }, courseProgress, dueTestsCount, persistedCourseRow] = await Promise.all([
     getCourseById(courseId),
     isGuest ? Promise.resolve(null) : getCourseProgress(courseId),
     isGuest ? Promise.resolve(0) : getDueTestsCount(courseId),
+    isGuest || !user
+      ? Promise.resolve(null)
+      : supabase
+          .from("users")
+          .select("current_course_id")
+          .eq("id", user.id)
+          .single()
+          .then((r) => r.data),
   ]);
 
   if (!course) {
     notFound();
   }
 
-  // Persist this as the user's current course. Awaited so subsequent layout
-  // renders see fresh data; failures just log and continue (the stats above
-  // were fetched against the URL courseId regardless).
-  if (!isGuest) {
-    await setCurrentCourse(courseId);
+  // Persist this as the user's current course only if it actually changed.
+  // Runs after the response so the write never blocks rendering. The persisted
+  // id is only consumed by the parent dashboard layout's getCurrentCourse()
+  // for routes that don't have a courseId in the URL, so a tiny delay before
+  // it propagates is harmless.
+  if (!isGuest && persistedCourseRow?.current_course_id !== courseId) {
+    after(async () => {
+      const result = await setCurrentCourse(courseId);
+      if (!result.success) {
+        console.error("Failed to persist current course:", result.error);
+      }
+    });
   }
 
   const languageFlag = getFlagFromCode(language?.code);

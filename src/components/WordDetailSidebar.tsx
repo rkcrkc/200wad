@@ -77,6 +77,7 @@ export function WordDetailSidebar({
 }: WordDetailSidebarProps) {
   const { t, tt } = useText();
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const replayRef = useRef<(() => void) | null>(null);
 
   const [sizeKey, setSizeKey] = useState<SidebarSizeKey>(() => {
     if (typeof window === "undefined") return DEFAULT_SIZE;
@@ -240,6 +241,7 @@ export function WordDetailSidebar({
             layout="sidebar"
             autoPlayAudio={false}
             isLocked={isLocked}
+            replayRef={replayRef}
           />
         </div>
 
@@ -258,7 +260,7 @@ export function WordDetailSidebar({
           onJumpToWord={onJumpToWord ?? (() => {})}
           onPreviousWord={onPrevious ?? (() => {})}
           onNextWord={onNext ?? (() => {})}
-          onReplay={() => {}}
+          onReplay={() => replayRef.current?.()}
           hasPrevious={hasPrevious}
           hasNext={hasNext}
           wordStatus={word.status}

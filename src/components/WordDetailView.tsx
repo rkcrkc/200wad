@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState, useRef } from "react";
+import { useEffect, useCallback, useState, useRef, type MutableRefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,10 @@ interface WordDetailViewProps {
   showTabs?: boolean;
   /** When true, hides the memory trigger and shows an upgrade overlay instead. */
   isLocked?: boolean;
+  /** When provided, the component assigns its replay handler to this ref so a
+   *  parent (e.g. WordDetailSidebar) that renders its own action bar can
+   *  trigger the full audio sequence. */
+  replayRef?: MutableRefObject<(() => void) | null>;
 }
 
 /** Determine the highlight color based on word's gender. */
@@ -91,6 +95,7 @@ export function WordDetailView({
   autoPlayAudio = true,
   showTabs = true,
   isLocked = false,
+  replayRef,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -436,6 +441,15 @@ export function WordDetailView({
 
     setIsPlayingSequence(false);
   }, [word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio]);
+
+  // Expose replay to parent (used by WordDetailSidebar's own action bar).
+  useEffect(() => {
+    if (!replayRef) return;
+    replayRef.current = handleReplay;
+    return () => {
+      if (replayRef.current === handleReplay) replayRef.current = null;
+    };
+  }, [replayRef, handleReplay]);
 
   // Handler for navigation that stops audio first
   const handlePrevious = useCallback(() => {
