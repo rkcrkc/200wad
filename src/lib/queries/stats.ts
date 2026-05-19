@@ -88,7 +88,7 @@ export interface UserLearningStats {
  * When `courseId` is provided, BOTH the numerator and denominator are scoped to
  * that course:
  *   - Words: limited to the course's word IDs (excluding information pages)
- *   - Time: study_sessions and user_test_scores are joined to `lessons` and
+ *   - Time: study_sessions and test_sessions are joined to `lessons` and
  *     filtered by `lessons.course_id = courseId`
  * Sessions/tests with null timestamps are excluded from the time totals so the
  * rate stays consistent with the per-period rates on the Progress page.
@@ -227,13 +227,13 @@ export async function getUserLearningStats(
 
   const testsQuery = courseScopeOr
     ? supabase
-        .from("user_test_scores")
+        .from("test_sessions")
         .select("duration_seconds, taken_at")
         .eq("user_id", user.id)
         .or(courseScopeOr)
         .not("taken_at", "is", null)
     : supabase
-        .from("user_test_scores")
+        .from("test_sessions")
         .select("duration_seconds, taken_at")
         .eq("user_id", user.id)
         .not("taken_at", "is", null);
@@ -561,7 +561,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .or(courseScopeOr),
       // Test scores for time totals — scoped to this course
       supabase
-        .from("user_test_scores")
+        .from("test_sessions")
         .select("duration_seconds, taken_at")
         .eq("user_id", user.id)
         .or(courseScopeOr),

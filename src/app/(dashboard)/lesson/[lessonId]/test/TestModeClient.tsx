@@ -829,7 +829,7 @@ export function TestModeClient({
           });
         }
 
-        const result = await completeTestSession(sessionId, lesson.id, serverStats, questionResults, milestone);
+        const result = await completeTestSession(sessionId, lesson.id, serverStats, questionResults, milestone, testType);
 
         if (result.success) {
           clearSessionProgress("test", sessionId, lesson.id);

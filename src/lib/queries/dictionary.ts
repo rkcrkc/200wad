@@ -1,6 +1,72 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Word, Language } from "@/types/database";
+
+// ============================================================================
+// Per-request memoized sub-queries
+//
+// `getDictionaryWords` is called three times per page render (once for each
+// of the my-words / course / all filters). Several of its internal queries
+// are identical across filters — pulling them through React's `cache()` so
+// each unique query runs at most once per request.
+// ============================================================================
+
+const getDictionaryAuthUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});
+
+const getDictionaryCourseLanguage = cache(async (courseId: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("courses")
+    .select("id, language_id, languages(*)")
+    .eq("id", courseId)
+    .single();
+  return data;
+});
+
+/** Full `(word_id, status)` projection of user_word_progress for one user. */
+const getUserProgressMap = cache(async (userId: string) => {
+  const supabase = await createClient();
+  const rows = await fetchAllRows<{ word_id: string | null; status: string | null }>(
+    (from, to) =>
+      supabase
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", userId)
+        .range(from, to),
+    { label: "dictionary:user_word_progress" }
+  );
+  return new Map(rows.map((p) => [p.word_id, p.status as WordStatus]));
+});
+
+/** Full `lesson_words` table with embedded lesson metadata. */
+const getAllLessonWordsMap = cache(async () => {
+  const supabase = await createClient();
+  const rows = await fetchAllRows<{
+    word_id: string | null;
+    lesson_id: string | null;
+    lessons: { id: string; title: string; number: number } | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("lesson_words")
+        .select("word_id, lesson_id, lessons(id, title, number)")
+        .range(from, to),
+    { label: "dictionary:lesson_words" }
+  );
+  return new Map(
+    rows.map((lw) => [
+      lw.word_id,
+      lw.lessons as { id: string; title: string; number: number } | null,
+    ])
+  );
+});
 
 // ============================================================================
 // Types
@@ -46,9 +112,7 @@ export async function getDictionaryWords(
   filter: "my-words" | "course" | "all" = "all"
 ): Promise<GetDictionaryResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getDictionaryAuthUser();
 
   if (!user) {
     return {
@@ -60,11 +124,7 @@ export async function getDictionaryWords(
   }
 
   // Get course info to determine language
-  const { data: course } = await supabase
-    .from("courses")
-    .select("id, language_id, languages(*)")
-    .eq("id", courseId)
-    .single();
+  const course = await getDictionaryCourseLanguage(courseId);
 
   if (!course) {
     return {
@@ -119,30 +179,16 @@ export async function getDictionaryWords(
       // power users may have 1000+ progress rows — passing that many UUIDs
       // through `.in("word_id", …)` creates a ~55KB URL that PostgREST
       // silently returns empty for. Instead fetch the full lesson_words
-      // table (paginated) and intersect client-side via the wordId Set.
+      // table (cached and shared with the "all" filter) and intersect
+      // client-side via the wordId Set.
       const wordIdSet = new Set<string>(
         progressWords.map((p) => (p.words as any).id).filter((id: unknown): id is string => !!id)
       );
-      const lessonWords = await fetchAllRows<{
-        word_id: string | null;
-        lesson_id: string | null;
-        lessons: { id: string; title: string; number: number } | null;
-      }>(
-        (from, to) =>
-          supabase
-            .from("lesson_words")
-            .select("word_id, lesson_id, lessons(id, title, number)")
-            .range(from, to),
-        { label: "getDictionaryWords:my-words:lesson_words" }
-      );
-
+      const fullLessonMap = await getAllLessonWordsMap();
       const lessonMap = new Map(
-        lessonWords
-          .filter((lw) => lw.word_id && wordIdSet.has(lw.word_id))
-          .map((lw) => [
-            lw.word_id,
-            lw.lessons as { id: string; title: string; number: number } | null,
-          ])
+        Array.from(fullLessonMap.entries()).filter(
+          ([wordId]) => wordId && wordIdSet.has(wordId)
+        )
       );
 
       words = progressWords
@@ -200,21 +246,9 @@ export async function getDictionaryWords(
       );
 
       if (lessonWords.length > 0) {
-        // Scope by user_id only. Filtering by word_id pushes 1k+ UUIDs through
-        // PostgREST and silently returns empty on long URLs for big courses.
-        // fetchAllRows paginates so the 1000-row cap is handled.
-        const allProgress = await fetchAllRows<{ word_id: string | null; status: string | null }>(
-          (from, to) =>
-            supabase
-              .from("user_word_progress")
-              .select("word_id, status")
-              .eq("user_id", user.id)
-              .range(from, to)
-        );
-
-        const progressMap = new Map(
-          allProgress.map((p) => [p.word_id, p.status as WordStatus])
-        );
+        // Cached per-request — shared with the "all" filter, which also needs
+        // the user's full progress map. See comment on getUserProgressMap.
+        const progressMap = await getUserProgressMap(user.id);
 
         // De-duplicate words (a word may appear in multiple lessons)
         const seenWordIds = new Set<string>();
@@ -258,39 +292,10 @@ export async function getDictionaryWords(
     );
 
     if (allWords.length > 0) {
-      // Scope by user_id only. Filtering by word_id pushes ~1500 UUIDs through
-      // PostgREST (all language words), which creates a ~55KB URL and silently
-      // returns empty — this was the original 66dfae0 regression. Paginate via
-      // .range() so the 1,000-row max-rows cap doesn't drop rows for power
-      // users; we intersect with language words client-side via the progressMap.
-      const allProgress = await fetchAllRows<{ word_id: string | null; status: string | null }>(
-        (from, to) =>
-          supabase
-            .from("user_word_progress")
-            .select("word_id, status")
-            .eq("user_id", user.id)
-            .range(from, to),
-        { label: "getDictionaryWords:all:user_word_progress" }
-      );
-
-      const progressMap = new Map(
-        allProgress.map((p) => [p.word_id, p.status as WordStatus])
-      );
-
-      // Get ALL lesson_words for this language's words (paginate)
-      const allLessonWords = await fetchAllRows((from, to) =>
-        supabase
-          .from("lesson_words")
-          .select("word_id, lesson_id, lessons(id, title, number)")
-          .range(from, to)
-      );
-
-      const lessonMap = new Map(
-        allLessonWords.map((lw) => [
-          lw.word_id,
-          lw.lessons as { id: string; title: string; number: number } | null,
-        ])
-      );
+      // Cached per-request — shared with the "course" filter.
+      const progressMap = await getUserProgressMap(user.id);
+      // Cached per-request — shared with the "my-words" filter.
+      const lessonMap = await getAllLessonWordsMap();
 
       words = allWords.map((word) => {
         const lesson = lessonMap.get(word.id);

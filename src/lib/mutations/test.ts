@@ -17,6 +17,8 @@ import {
   parseAutoLessonId,
   resolveLessonIdRef,
 } from "@/lib/queries/lessons";
+import { getAutoLessonWordLimit } from "@/lib/queries/platformConfig";
+import type { TestType } from "@/types/test";
 
 // ============================================================================
 // TEST SESSION ACTIONS
@@ -143,22 +145,26 @@ export interface TestStats {
 
 export interface CompleteTestSessionResult {
   success: boolean;
-  testScoreId: string | null;
+  testSessionId: string | null;
   /** Mastered word count scoped to the current course. */
   courseWordsMastered: number;
+  /** True when this call returned an existing row instead of inserting. */
+  deduplicated?: boolean;
   error: string | null;
 }
 
 /**
  * Complete a test session - saves test scores and updates word progress
  * @param intendedMilestone - The milestone this test was started for (from URL param), or null for self-initiated
+ * @param direction - Direction this test ran in. Defaults to english-to-foreign (the historical default).
  */
 export async function completeTestSession(
   sessionId: string,
   lessonId: string,
   inputStats: TestStats,
   inputQuestionResults: TestQuestionResult[],
-  intendedMilestone?: string | null
+  intendedMilestone?: string | null,
+  direction: TestType = "english-to-foreign"
 ): Promise<CompleteTestSessionResult> {
   const supabase = await createClient();
   const {
@@ -166,12 +172,12 @@ export async function completeTestSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, testScoreId: null, courseWordsMastered: 0, error: "User not authenticated" };
+    return { success: false, testSessionId: null, courseWordsMastered: 0, error: "User not authenticated" };
   }
 
   // Mutable copies so server-side re-scoring can override client values
   let stats = { ...inputStats };
-  let questionResults = inputQuestionResults.map((q) => ({ ...q }));
+  const questionResults = inputQuestionResults.map((q) => ({ ...q }));
 
   // Check if this is a real DB session (not a local/guest fallback)
   const isRealDbSession = !sessionId.startsWith("local_") && !sessionId.startsWith("guest_");
@@ -218,12 +224,13 @@ export async function completeTestSession(
   // --- Anti-gaming validations ---
 
   // Resolve the upper bound for the question-count sanity check. Real
-  // lessons use their own `word_count`; auto-lessons cap their pool at 20
-  // (see AUTO_LESSON_DEFINITIONS and the `select_best_worst_words_for_course`
+  // lessons use their own `word_count`; auto-lessons cap their pool at the
+  // admin-configurable `auto_lesson_word_limit` (shared with
+  // AUTO_LESSON_DEFINITIONS and the `select_best_worst_words_for_course`
   // RPC's p_limit).
   let lessonWordCount: number;
   if (autoInfo) {
-    lessonWordCount = 20;
+    lessonWordCount = await getAutoLessonWordLimit();
   } else {
     const { data: lessonData } = await supabase
       .from("lessons")
@@ -232,7 +239,7 @@ export async function completeTestSession(
       .single();
 
     if (!lessonData) {
-      return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Lesson not found" };
+      return { success: false, testSessionId: null, courseWordsMastered: 0, error: "Lesson not found" };
     }
     lessonWordCount = lessonData.word_count || 0;
   }
@@ -288,7 +295,7 @@ export async function completeTestSession(
           session_id: isRealDbSession ? sessionId : null,
         });
       } catch { /* non-critical */ }
-      return { success: false, testScoreId: null, courseWordsMastered: 0, error: "Invalid word IDs detected" };
+      return { success: false, testSessionId: null, courseWordsMastered: 0, error: "Invalid word IDs detected" };
     }
   }
 
@@ -406,56 +413,57 @@ export async function completeTestSession(
     intendedMilestone
   );
 
-  // 3. Idempotency guard: check if a test score was already saved for this session
-  if (isRealDbSession) {
-    const idempotencyRef = resolveLessonIdRef(lessonId);
-    let existingScoreQuery = supabase
-      .from("user_test_scores")
-      .select("id")
-      .eq("user_id", user.id)
-      .gte("taken_at", new Date(Date.now() - 30_000).toISOString()); // within last 30s
-    if (idempotencyRef.kind === "real") {
-      existingScoreQuery = existingScoreQuery.eq("lesson_id", idempotencyRef.lessonId);
-    } else if (idempotencyRef.kind === "auto") {
-      existingScoreQuery = existingScoreQuery
-        .eq("auto_lesson_type", idempotencyRef.autoLessonType)
-        .eq("course_id", idempotencyRef.courseId);
+  // Helper: compute the modal-facing vocab count when returning a dedup'd
+  // row. Auto-lessons aren't in `lessons`, so derive courseId from autoInfo.
+  const computeDedupeVocabCount = async (): Promise<number> => {
+    let dedupeCourseId: string | null = null;
+    if (autoInfo) {
+      dedupeCourseId = autoInfo.courseId;
+    } else {
+      const { data: lessonForCourse } = await supabase
+        .from("lessons")
+        .select("course_id")
+        .eq("id", lessonId)
+        .single();
+      dedupeCourseId = lessonForCourse?.course_id ?? null;
     }
-    const { data: existingScore } = await existingScoreQuery
-      .limit(1)
+    if (!dedupeCourseId) return 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
+    const { data: vocabCount } = await (supabase.rpc as any)("get_course_vocab_count", {
+      p_user_id: user.id,
+      p_course_id: dedupeCourseId,
+    });
+    return (vocabCount as number) || 0;
+  };
+
+  // 3. Idempotency guard: a test_sessions row already linked to this
+  // study_sessions.id means a previous completeTestSession call already
+  // saved this submission. Replaces the old 30-second time window, which
+  // silently swallowed legitimate fast retests.
+  if (isRealDbSession) {
+    const { data: existingScore } = await supabase
+      .from("test_sessions")
+      .select("id")
+      .eq("study_session_id", sessionId)
       .maybeSingle();
 
     if (existingScore) {
-      // Still compute the real vocab count so the modal shows the correct value.
-      // Auto-lessons aren't in `lessons`, so derive courseId from autoInfo.
-      let dedupeCourseId: string | null = null;
-      if (autoInfo) {
-        dedupeCourseId = autoInfo.courseId;
-      } else {
-        const { data: lessonForCourse } = await supabase
-          .from("lessons")
-          .select("course_id")
-          .eq("id", lessonId)
-          .single();
-        dedupeCourseId = lessonForCourse?.course_id ?? null;
-      }
-      let dedupeVocabCount = 0;
-      if (dedupeCourseId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- function not yet in generated types
-        const { data: vocabCount } = await (supabase.rpc as any)("get_course_vocab_count", {
-          p_user_id: user.id,
-          p_course_id: dedupeCourseId,
-        });
-        dedupeVocabCount = (vocabCount as number) || 0;
-      }
-      return { success: true, testScoreId: existingScore.id, courseWordsMastered: dedupeVocabCount, error: null };
+      const dedupeVocabCount = await computeDedupeVocabCount();
+      return {
+        success: true,
+        testSessionId: existingScore.id,
+        courseWordsMastered: dedupeVocabCount,
+        deduplicated: true,
+        error: null,
+      };
     }
   }
 
-  // 4. Create test score record. Like the study_sessions write above, exactly
-  // one of `lesson_id` or `(auto_lesson_type, course_id)` must be populated.
+  // 4. Create test session record. Like the study_sessions write above,
+  // exactly one of `lesson_id` or `(auto_lesson_type, course_id)` must be
+  // populated. `study_session_id` is the canonical idempotency key.
   const scoreRef = resolveLessonIdRef(lessonId);
-  const testScoreInsert: {
+  const testSessionInsert: {
     user_id: string;
     lesson_id?: string;
     auto_lesson_type?: "notes" | "best" | "worst" | "unmastered" | "lost_mastery";
@@ -472,6 +480,8 @@ export async function completeTestSession(
     mastered_words_count: number;
     is_retest: boolean;
     taken_at: string;
+    direction: TestType;
+    study_session_id?: string;
   } = {
     user_id: user.id,
     milestone: milestoneResult.recordedMilestone,
@@ -486,39 +496,72 @@ export async function completeTestSession(
     mastered_words_count: stats.masteredWordsCount,
     is_retest: stats.isRetest,
     taken_at: new Date().toISOString(),
+    direction,
   };
   if (scoreRef.kind === "real") {
-    testScoreInsert.lesson_id = scoreRef.lessonId;
+    testSessionInsert.lesson_id = scoreRef.lessonId;
   } else if (scoreRef.kind === "auto") {
-    testScoreInsert.auto_lesson_type = scoreRef.autoLessonType;
-    testScoreInsert.course_id = scoreRef.courseId;
+    testSessionInsert.auto_lesson_type = scoreRef.autoLessonType;
+    testSessionInsert.course_id = scoreRef.courseId;
+  }
+  if (isRealDbSession) {
+    testSessionInsert.study_session_id = sessionId;
   }
 
   const { data: testScore, error: testScoreError } = await supabase
-    .from("user_test_scores")
-    .insert(testScoreInsert)
+    .from("test_sessions")
+    .insert(testSessionInsert)
     .select("id")
     .single();
 
   if (testScoreError) {
+    // 23505 = unique_violation on study_session_id: another concurrent call
+    // beat us to the insert. Re-fetch by the idempotency key so the contract
+    // stays idempotent (same shape as the pre-check hit).
+    if (testScoreError.code === "23505" && isRealDbSession) {
+      const { data: existing } = await supabase
+        .from("test_sessions")
+        .select("id")
+        .eq("study_session_id", sessionId)
+        .maybeSingle();
+      if (existing) {
+        const dedupeVocabCount = await computeDedupeVocabCount();
+        return {
+          success: true,
+          testSessionId: existing.id,
+          courseWordsMastered: dedupeVocabCount,
+          deduplicated: true,
+          error: null,
+        };
+      }
+    }
     console.error("Error creating test score:", testScoreError);
-    return { success: false, testScoreId: null, courseWordsMastered: 0, error: testScoreError.message };
+    return { success: false, testSessionId: null, courseWordsMastered: 0, error: testScoreError.message };
   }
 
-  // 4. Save individual test question results
+  // 4. Save individual test question results. attempt_number disambiguates
+  // multiple rows for the same (test_session_id, word_id) — a Test Twice
+  // session writes one row per attempt. We count per-word as we go so a
+  // single client-side word with two attempts gets 1 then 2.
   if (questionResults.length > 0) {
-    const questionsToInsert = questionResults.map((q) => ({
-      test_score_id: testScore.id,
-      word_id: q.wordId,
-      user_answer: q.userAnswer,
-      correct_answer: q.correctAnswer,
-      clue_level: q.clueLevel,
-      mistake_count: q.mistakeCount,
-      points_earned: q.pointsEarned,
-      max_points: q.maxPoints,
-      time_to_answer_ms: q.timeToAnswerMs || null,
-      answered_at: new Date().toISOString(),
-    }));
+    const attemptCounts = new Map<string, number>();
+    const questionsToInsert = questionResults.map((q) => {
+      const next = (attemptCounts.get(q.wordId) ?? 0) + 1;
+      attemptCounts.set(q.wordId, next);
+      return {
+        test_session_id: testScore.id,
+        word_id: q.wordId,
+        user_answer: q.userAnswer,
+        correct_answer: q.correctAnswer,
+        clue_level: q.clueLevel,
+        mistake_count: q.mistakeCount,
+        points_earned: q.pointsEarned,
+        max_points: q.maxPoints,
+        time_to_answer_ms: q.timeToAnswerMs || null,
+        answered_at: new Date().toISOString(),
+        attempt_number: next,
+      };
+    });
 
     const { error: questionsError } = await supabase
       .from("test_questions")
@@ -530,57 +573,30 @@ export async function completeTestSession(
     }
   }
 
-  // 5. Update word progress — aggregated per word per test, not per direction.
-  // A single test attempt may include multiple `test_questions` rows for the
-  // same word (one per direction, EN→IT / IT→EN). For streak / status
-  // purposes the unit is the TEST, not the direction: a word counts as
-  // "correct in this test" iff every direction in that test was full marks.
-  // Group by wordId and call `updateWordTestProgress` once per word.
-  type WordAgg = {
-    wordId: string;
-    mistakeCount: number;        // sum across directions
-    clueLevel: 0 | 1 | 2;        // worst (max) across directions
-    pointsEarned: number;        // sum across directions
-  };
-  const aggByWord = new Map<string, WordAgg>();
-  for (const q of questionResults) {
-    const existing = aggByWord.get(q.wordId);
-    if (existing) {
-      existing.mistakeCount += q.mistakeCount;
-      existing.pointsEarned += q.pointsEarned;
-      if (q.clueLevel > existing.clueLevel) {
-        existing.clueLevel = q.clueLevel;
-      }
-    } else {
-      aggByWord.set(q.wordId, {
-        wordId: q.wordId,
-        mistakeCount: q.mistakeCount,
-        clueLevel: q.clueLevel,
-        pointsEarned: q.pointsEarned,
-      });
-    }
-  }
-
+  // 5. Update word progress — one streak attempt per `test_questions` row.
+  // A Test Twice session writes two rows for the same word and therefore
+  // contributes two streak ticks (one per attempt). Traffic-light strips
+  // and streak/status share this per-row unit so they cannot drift.
   let wordProgressFailures = 0;
-  for (const agg of aggByWord.values()) {
+  for (const q of questionResults) {
     try {
       const result = await updateWordTestProgress(
         user.id,
-        agg.wordId,
-        agg.clueLevel,
-        agg.mistakeCount,
-        agg.pointsEarned
+        q.wordId,
+        q.clueLevel,
+        q.mistakeCount,
+        q.pointsEarned
       );
       if (!result.success) {
         wordProgressFailures++;
       }
     } catch (err) {
       wordProgressFailures++;
-      console.error(`Unexpected error updating word progress for ${agg.wordId}:`, err);
+      console.error(`Unexpected error updating word progress for ${q.wordId}:`, err);
     }
   }
   if (wordProgressFailures > 0) {
-    console.warn(`[Test Session] ${wordProgressFailures}/${aggByWord.size} word progress updates failed`);
+    console.warn(`[Test Session] ${wordProgressFailures}/${questionResults.length} word progress updates failed`);
   }
 
   // 5b. Recalculate lesson progress (words_mastered count) from updated word
@@ -683,7 +699,7 @@ export async function completeTestSession(
     revalidatePath(`/course/${courseId}/progress`);
   }
 
-  return { success: true, testScoreId: testScore.id, courseWordsMastered, error: null };
+  return { success: true, testSessionId: testScore.id, courseWordsMastered, error: null };
 }
 
 /**

@@ -48,7 +48,8 @@ interface WordDetailActionBarProps {
   /** Word category (fact, phrase, sentence, word, information) */
   category?: string | null;
   wordList: WordListItem[];
-  /** Last 3 test attempts for current word - "traffic lights" (most recent first) */
+  /** Last 3 `test_questions` rows for current word - "traffic lights"
+   *  (most recent first). Test Twice sessions contribute two rows. */
   testHistory?: TestAttempt[];
   /** Historical score stats for current word */
   scoreStats?: WordScoreStats;

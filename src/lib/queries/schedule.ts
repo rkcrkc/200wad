@@ -5,6 +5,7 @@ import {
   LessonStatus,
   createAutoLessonId,
 } from "./lessons";
+import { getAutoLessonWordLimit } from "./platformConfig";
 import { recordTestDueNotifications } from "@/lib/notifications/test-due";
 
 /** Cadence for re-surfacing the Worst Words auto-lesson in the scheduler. */
@@ -352,10 +353,12 @@ async function getWorstWordsAutoLesson(
   //    `select_best_worst_words_for_course` RPC aggregates `test_questions`
   //    scoped to this user and the course's words and excludes already-
   //    mastered words. The All-Lessons summary and the lesson detail page
-  //    call the same RPC, so all three views agree on the same 20 words.
+  //    call the same RPC with the same admin-configurable cap, so all three
+  //    views agree on the same set of words.
+  const autoLessonWordLimit = await getAutoLessonWordLimit();
   const { data: worstRpcRows } = await supabase.rpc(
     "select_best_worst_words_for_course",
-    { p_course_id: courseId, p_type: "worst", p_limit: 20 },
+    { p_course_id: courseId, p_type: "worst", p_limit: autoLessonWordLimit },
   );
   const worstWordIds = (worstRpcRows ?? [])
     .map((r) => r.word_id)

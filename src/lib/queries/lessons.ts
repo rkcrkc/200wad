@@ -9,14 +9,14 @@ import {
   selectUnmasteredWordIds,
 } from "./auto-lessons";
 import type { AutoLessonType } from "./auto-lessons";
+import { getAutoLessonWordLimit } from "./platformConfig";
 
 // Re-export the client-safe helpers so existing imports from this module
 // keep working. New client code should import from "./auto-lessons" directly
 // to avoid dragging server-only modules into the client bundle.
 export {
   AUTO_LESSON_META,
-  LOST_MASTERY_LIMIT,
-  UNMASTERED_LIMIT,
+  DEFAULT_AUTO_LESSON_WORD_LIMIT,
   createAutoLessonId,
   getAllAutoLessonIds,
   isAutoLesson,
@@ -117,6 +117,11 @@ async function generateAutoLessons(
     return [];
   }
 
+  // Admin-configurable cap shared by every auto-lesson (Best, Worst,
+  // Unmastered, Lost Mastery). Cached + invalidated via the `platform-config`
+  // tag, so this read is cheap on hot paths.
+  const autoLessonWordLimit = await getAutoLessonWordLimit();
+
   // Fetch notes word IDs, best/worst word IDs, and the user's per-word status
   // all in parallel. Best/Worst aggregation happens server-side via the
   // `select_best_worst_words_for_course` RPC so per-word test history isn't
@@ -140,12 +145,12 @@ async function generateAutoLessons(
     supabase.rpc("select_best_worst_words_for_course", {
       p_course_id: courseId,
       p_type: "best",
-      p_limit: 20,
+      p_limit: autoLessonWordLimit,
     }),
     supabase.rpc("select_best_worst_words_for_course", {
       p_course_id: courseId,
       p_type: "worst",
-      p_limit: 20,
+      p_limit: autoLessonWordLimit,
     }),
 
     // Per-word status + timestamps for unmastered/lost-mastery selection.
@@ -221,12 +226,12 @@ async function generateAutoLessons(
   // never reached mastery on. Sort by learned_at ASC so the "stuck the
   // longest" words come up first; deterministic word_id tiebreak keeps the
   // selection stable across reloads.
-  const unmasteredWordIds = selectUnmasteredWordIds(learnedRows);
+  const unmasteredWordIds = selectUnmasteredWordIds(learnedRows, autoLessonWordLimit);
 
   // Lost Mastery: status=learned AND mastered_at IS NOT NULL — words the
   // user has previously mastered but has since slipped on. Sort by
   // last_studied_at DESC so the freshest losses surface first.
-  const lostMasteryWordIds = selectLostMasteryWordIds(learnedRows);
+  const lostMasteryWordIds = selectLostMasteryWordIds(learnedRows, autoLessonWordLimit);
 
   const wordIdsByType: Record<AutoLessonType, string[]> = {
     notes: notesWordIds,
@@ -376,7 +381,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
         .eq("user_id", user.id)
         .or(courseScopeOr),
       supabase
-        .from("user_test_scores")
+        .from("test_sessions")
         .select("duration_seconds")
         .eq("user_id", user.id)
         .or(courseScopeOr),

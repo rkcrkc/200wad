@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
-import { Lesson, UserTestScore } from "@/types/database";
+import { Lesson } from "@/types/database";
+import { TestType } from "@/types/test";
 import { LessonStatus } from "./lessons";
 import { resolveLessonIdRef } from "./auto-lessons";
 
@@ -30,6 +31,8 @@ export interface TestForList {
   newlyLearned?: number;
   newlyMastered?: number;
   isRetest?: boolean;
+  /** Direction this test session ran in. Persisted on test_sessions.direction. */
+  direction?: TestType;
   // For due tests
   isDue: boolean;
   dueAt?: string;
@@ -108,12 +111,12 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     // below — `lessonMap.get(ts.lesson_id)` returns undefined for them.
     (lessonIds.length > 0
       ? supabase
-          .from("user_test_scores")
+          .from("test_sessions")
           .select("*")
           .eq("user_id", user.id)
           .or(`lesson_id.in.(${lessonIds.join(",")}),course_id.eq.${courseId}`)
       : supabase
-          .from("user_test_scores")
+          .from("test_sessions")
           .select("*")
           .eq("user_id", user.id)
           .eq("course_id", courseId)
@@ -310,6 +313,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       newlyLearned: ts.learned_words_count || 0,
       newlyMastered: ts.mastered_words_count || 0,
       isRetest: ts.is_retest || false,
+      direction: (ts.direction || "english-to-foreign") as TestType,
       isDue: false,
     });
   });
@@ -375,7 +379,7 @@ export async function getLessonMilestoneScores(
 
   // Get all test scores for these lessons
   const { data: testScores } = await supabase
-    .from("user_test_scores")
+    .from("test_sessions")
     .select("lesson_id, milestone, score_percent")
     .eq("user_id", user.id)
     .in("lesson_id", lessonIds);
@@ -507,7 +511,7 @@ export async function getLessonActivityHistory(
     .eq("user_id", user.id)
     .eq("session_type", "study");
   const testBase = supabase
-    .from("user_test_scores")
+    .from("test_sessions")
     .select("id, taken_at, duration_seconds, milestone, score_percent, points_earned, max_points, mastered_words_count, total_questions, is_retest")
     .eq("user_id", user.id);
 

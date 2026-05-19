@@ -228,8 +228,8 @@ CREATE TABLE study_sessions (
   CHECK (ended_at IS NULL OR ended_at >= started_at) -- End time must be after start
 );
 
--- User Test Scores
-CREATE TABLE user_test_scores (
+-- Test Sessions (was user_test_scores)
+CREATE TABLE test_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
@@ -242,14 +242,17 @@ CREATE TABLE user_test_scores (
   duration_seconds INTEGER CHECK (duration_seconds >= 0),
   new_words_count INTEGER DEFAULT 0 CHECK (new_words_count >= 0),
   mastered_words_count INTEGER DEFAULT 0 CHECK (mastered_words_count >= 0),
+  direction TEXT NOT NULL DEFAULT 'english-to-foreign' CHECK (direction IN ('english-to-foreign','foreign-to-english','picture-only')),
+  study_session_id UUID NULL UNIQUE REFERENCES study_sessions(id) ON DELETE SET NULL,
   taken_at TIMESTAMPTZ DEFAULT now(),
   CHECK (correct_answers <= total_questions) -- Can't have more correct than total
 );
 
--- Test Questions (individual answers)
+-- Test Questions (individual answers; one row per attempt — Test Twice = 2 rows per word)
 CREATE TABLE test_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  test_score_id UUID REFERENCES user_test_scores(id) ON DELETE CASCADE,
+  test_session_id UUID REFERENCES test_sessions(id) ON DELETE CASCADE,
+  attempt_number SMALLINT NOT NULL DEFAULT 1,
   word_id UUID REFERENCES words(id) ON DELETE CASCADE,
   user_answer TEXT,
   correct_answer TEXT NOT NULL,
@@ -400,24 +403,24 @@ CREATE POLICY "Users read own" ON study_sessions FOR SELECT USING (auth.uid() = 
 CREATE POLICY "Users insert own" ON study_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users update own" ON study_sessions FOR UPDATE USING (auth.uid() = user_id);
 
--- User Test Scores
-ALTER TABLE user_test_scores ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users read own" ON user_test_scores FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users insert own" ON user_test_scores FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Test Sessions
+ALTER TABLE test_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own" ON test_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own" ON test_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Test Questions
 ALTER TABLE test_questions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users read own" ON test_questions FOR SELECT 
+CREATE POLICY "Users read own" ON test_questions FOR SELECT
   USING (EXISTS (
-    SELECT 1 FROM user_test_scores 
-    WHERE user_test_scores.id = test_questions.test_score_id 
-    AND user_test_scores.user_id = auth.uid()
+    SELECT 1 FROM test_sessions
+    WHERE test_sessions.id = test_questions.test_session_id
+    AND test_sessions.user_id = auth.uid()
   ));
-CREATE POLICY "Users insert own" ON test_questions FOR INSERT 
+CREATE POLICY "Users insert own" ON test_questions FOR INSERT
   WITH CHECK (EXISTS (
-    SELECT 1 FROM user_test_scores 
-    WHERE user_test_scores.id = test_questions.test_score_id 
-    AND user_test_scores.user_id = auth.uid()
+    SELECT 1 FROM test_sessions
+    WHERE test_sessions.id = test_questions.test_session_id
+    AND test_sessions.user_id = auth.uid()
   ));
 
 -- Notifications
@@ -447,9 +450,11 @@ CREATE INDEX idx_user_word_progress_next_review ON user_word_progress(user_id, n
 CREATE INDEX idx_user_lesson_progress_user ON user_lesson_progress(user_id);
 
 -- Test queries
-CREATE INDEX idx_user_test_scores_user ON user_test_scores(user_id);
-CREATE INDEX idx_user_test_scores_lesson ON user_test_scores(lesson_id);
-CREATE INDEX idx_test_questions_test ON test_questions(test_score_id);
+CREATE INDEX idx_test_sessions_user ON test_sessions(user_id);
+CREATE INDEX idx_test_sessions_lesson ON test_sessions(lesson_id);
+CREATE INDEX idx_test_sessions_study_session_id ON test_sessions(study_session_id);
+CREATE INDEX idx_test_questions_session ON test_questions(test_session_id);
+CREATE INDEX idx_test_questions_session_word_attempt ON test_questions(test_session_id, word_id, attempt_number);
 CREATE INDEX idx_test_questions_word ON test_questions(word_id);
 
 -- Notifications

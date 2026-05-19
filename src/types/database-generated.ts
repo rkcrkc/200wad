@@ -913,49 +913,52 @@ export type Database = {
       test_questions: {
         Row: {
           answered_at: string | null
+          attempt_number: number
           clue_level: number | null
           correct_answer: string
           id: string
           max_points: number | null
           mistake_count: number | null
           points_earned: number | null
-          test_score_id: string | null
+          test_session_id: string | null
           time_to_answer_ms: number | null
           user_answer: string | null
           word_id: string | null
         }
         Insert: {
           answered_at?: string | null
+          attempt_number?: number
           clue_level?: number | null
           correct_answer: string
           id?: string
           max_points?: number | null
           mistake_count?: number | null
           points_earned?: number | null
-          test_score_id?: string | null
+          test_session_id?: string | null
           time_to_answer_ms?: number | null
           user_answer?: string | null
           word_id?: string | null
         }
         Update: {
           answered_at?: string | null
+          attempt_number?: number
           clue_level?: number | null
           correct_answer?: string
           id?: string
           max_points?: number | null
           mistake_count?: number | null
           points_earned?: number | null
-          test_score_id?: string | null
+          test_session_id?: string | null
           time_to_answer_ms?: number | null
           user_answer?: string | null
           word_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "test_questions_test_score_id_fkey"
-            columns: ["test_score_id"]
+            foreignKeyName: "test_questions_test_session_id_fkey"
+            columns: ["test_session_id"]
             isOneToOne: false
-            referencedRelation: "user_test_scores"
+            referencedRelation: "test_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -1233,11 +1236,12 @@ export type Database = {
           },
         ]
       }
-      user_test_scores: {
+      test_sessions: {
         Row: {
           auto_lesson_type: string | null
           correct_answers: number
           course_id: string | null
+          direction: string
           duration_seconds: number | null
           id: string
           is_retest: boolean
@@ -1249,6 +1253,7 @@ export type Database = {
           new_words_count: number | null
           points_earned: number
           score_percent: number
+          study_session_id: string | null
           taken_at: string | null
           total_questions: number
           user_id: string | null
@@ -1257,6 +1262,7 @@ export type Database = {
           auto_lesson_type?: string | null
           correct_answers: number
           course_id?: string | null
+          direction?: string
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
@@ -1268,6 +1274,7 @@ export type Database = {
           new_words_count?: number | null
           points_earned?: number
           score_percent?: number
+          study_session_id?: string | null
           taken_at?: string | null
           total_questions: number
           user_id?: string | null
@@ -1276,6 +1283,7 @@ export type Database = {
           auto_lesson_type?: string | null
           correct_answers?: number
           course_id?: string | null
+          direction?: string
           duration_seconds?: number | null
           id?: string
           is_retest?: boolean
@@ -1287,27 +1295,35 @@ export type Database = {
           new_words_count?: number | null
           points_earned?: number
           score_percent?: number
+          study_session_id?: string | null
           taken_at?: string | null
           total_questions?: number
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_test_scores_course_id_fkey"
+            foreignKeyName: "test_sessions_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_test_scores_lesson_id_fkey"
+            foreignKeyName: "test_sessions_lesson_id_fkey"
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_test_scores_user_id_fkey"
+            foreignKeyName: "test_sessions_study_session_id_fkey"
+            columns: ["study_session_id"]
+            isOneToOne: true
+            referencedRelation: "study_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

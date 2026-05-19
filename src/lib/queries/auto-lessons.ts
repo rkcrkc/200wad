@@ -37,7 +37,7 @@ export function isAutoLesson(lessonId: string): boolean {
  * Discriminated union describing how a lesson-id string maps onto the
  * split-column schema introduced in
  * `20260516000002_restore_lesson_fk_split_columns.sql`. Callers writing
- * `user_test_scores` / `study_sessions` rows must populate exactly one of:
+ * `test_sessions` / `study_sessions` rows must populate exactly one of:
  *   - `lesson_id` (real lesson UUID), OR
  *   - `(auto_lesson_type, course_id)` (virtual auto-lesson).
  *
@@ -73,8 +73,8 @@ export function resolveLessonIdRef(id: string | null | undefined): LessonIdRef {
  * All auto-lesson IDs for a given course.
  *
  * Auto-lesson tests (e.g. Worst Words) write `lesson_id =
- * "auto-{type}-{courseId}"` to `user_test_scores`, `study_sessions`, and
- * `test_questions` (via test_score_id). Course-scoped queries that filter
+ * "auto-{type}-{courseId}"` to `test_sessions`, `study_sessions`, and
+ * `test_questions` (via test_session_id). Course-scoped queries that filter
  * `.in("lesson_id", lessonIdsFromLessonsTable)` would otherwise silently
  * drop those rows. Spread this into the filter so auto-lesson activity is
  * counted alongside real-lesson activity.
@@ -85,10 +85,14 @@ export function getAllAutoLessonIds(courseId: string): string[] {
   );
 }
 
-/** Maximum words in the "Unmastered" auto-lesson (oldest learned-but-not-mastered first). */
-export const UNMASTERED_LIMIT = 10;
-/** Maximum words in the "Lost Mastery" auto-lesson. */
-export const LOST_MASTERY_LIMIT = 20;
+/**
+ * Fallback cap shared by every auto-lesson (Best / Worst / Unmastered /
+ * Lost Mastery). The runtime value comes from `platform_config` via
+ * `getAutoLessonWordLimit()` and is passed into the selectors below; this
+ * constant is only used when no value is supplied by the caller (tests,
+ * legacy paths). Kept in sync with the migration default.
+ */
+export const DEFAULT_AUTO_LESSON_WORD_LIMIT = 10;
 
 // Auto-lesson definitions. Order here defines the order returned from
 // generateAutoLessons; the SpecialLessonsRow component re-orders for display.
@@ -117,9 +121,13 @@ export const AUTO_LESSON_META: Record<
 );
 
 /**
- * Pick up to UNMASTERED_LIMIT word IDs that are at status "learned" and have
- * never been mastered. Sorted by learned_at ASC (oldest stuck-at-learned
- * first), with a stable word_id tiebreak so reloads return the same set.
+ * Pick up to `limit` word IDs that are at status "learned" and have never
+ * been mastered. Sorted by learned_at ASC (oldest stuck-at-learned first),
+ * with a stable word_id tiebreak so reloads return the same set.
+ *
+ * `limit` is the admin-configurable auto-lesson cap from `platform_config`
+ * (see `getAutoLessonWordLimit`). Callers should pass the same value to
+ * every selector so all auto-lessons stay in sync.
  *
  * Defensive guard: also exclude rows where `correct_streak >= 3`. status and
  * correct_streak are written together by `updateWordTestProgress`, so they
@@ -134,6 +142,7 @@ export function selectUnmasteredWordIds(
     learned_at: string | null;
     correct_streak: number | null;
   }>,
+  limit: number = DEFAULT_AUTO_LESSON_WORD_LIMIT,
 ): string[] {
   const candidates = learnedRows.filter(
     (r) => r.mastered_at === null && (r.correct_streak ?? 0) < 3,
@@ -144,13 +153,13 @@ export function selectUnmasteredWordIds(
     if (aT !== bT) return aT.localeCompare(bT); // ASC — oldest first
     return a.word_id.localeCompare(b.word_id);
   });
-  return candidates.slice(0, UNMASTERED_LIMIT).map((r) => r.word_id);
+  return candidates.slice(0, Math.max(limit, 0)).map((r) => r.word_id);
 }
 
 /**
- * Pick up to LOST_MASTERY_LIMIT word IDs the user mastered before but has
- * since dropped to "learned". Sorted by last_studied_at DESC so the most
- * recent slips show first.
+ * Pick up to `limit` word IDs the user mastered before but has since dropped
+ * to "learned". Sorted by last_studied_at DESC so the most recent slips
+ * show first.
  *
  * Defensive guard: also exclude rows where `correct_streak >= 3`. See
  * `selectUnmasteredWordIds` for the rationale.
@@ -162,6 +171,7 @@ export function selectLostMasteryWordIds(
     last_studied_at: string | null;
     correct_streak: number | null;
   }>,
+  limit: number = DEFAULT_AUTO_LESSON_WORD_LIMIT,
 ): string[] {
   const candidates = learnedRows.filter(
     (r) => r.mastered_at !== null && (r.correct_streak ?? 0) < 3,
@@ -172,5 +182,5 @@ export function selectLostMasteryWordIds(
     if (aT !== bT) return bT.localeCompare(aT); // DESC — most recent first
     return a.word_id.localeCompare(b.word_id);
   });
-  return candidates.slice(0, LOST_MASTERY_LIMIT).map((r) => r.word_id);
+  return candidates.slice(0, Math.max(limit, 0)).map((r) => r.word_id);
 }

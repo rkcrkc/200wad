@@ -39,7 +39,7 @@ export async function POST() {
       "user_word_progress",
       "user_lesson_progress",
       "study_sessions",
-      "user_test_scores", // cascades to test_questions via test_score_id
+      "test_sessions", // cascades to test_questions via test_session_id
       "user_daily_activity",
       "activity_flags",
       "user_tip_dismissals",

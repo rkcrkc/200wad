@@ -86,15 +86,17 @@ function effectiveWordStatus(
 }
 
 export interface TestAttempt {
-  /** The aggregated test_score row this attempt belongs to (null if unknown). */
-  testScoreId?: string | null;
-  /** Sum of points earned across all directions in this single test. */
+  /** The test_sessions row this attempt belongs to (null if unknown). */
+  testSessionId?: string | null;
+  /** Position within the session for this word (1 = first attempt, 2 = second). */
+  attemptNumber?: number;
+  /** Points earned on this single attempt. */
   pointsEarned: number;
-  /** Sum of max points across all directions in this single test. */
+  /** Max points available on this single attempt. */
   maxPoints: number;
-  /** Most recent answered_at across the directions in this test. */
+  /** answered_at for this single attempt. */
   answeredAt: string;
-  /** True iff every direction in this test was full marks (mistakeCount=0, clueLevel=0). */
+  /** True iff this attempt was full marks (mistakeCount=0, clueLevel=0). */
   isFullMarks?: boolean;
 }
 
@@ -253,16 +255,16 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         ? `lesson_id.in.(${allLessonIds.join(",")}),course_id.eq.${lesson.course_id}`
         : `course_id.eq.${lesson.course_id}`;
     const { data: userTestScores } = await supabase
-      .from("user_test_scores")
+      .from("test_sessions")
       .select("id")
       .eq("user_id", user.id)
       .or(courseScopeOr);
 
-    const testScoreIds = userTestScores?.map((ts) => ts.id) || [];
+    const testSessionIds = userTestScores?.map((ts) => ts.id) || [];
 
     let targetWordIds: string[] = [];
 
-    if (testScoreIds.length > 0) {
+    if (testSessionIds.length > 0) {
       // Paginate via fetchAllRows — PostgREST silently caps at 1,000 rows,
       // and a power user can easily exceed that across all course tests.
       // Truncating here would skew the worst-word pick.
@@ -271,7 +273,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           supabase
             .from("test_questions")
             .select("word_id, points_earned")
-            .in("test_score_id", testScoreIds)
+            .in("test_session_id", testSessionIds)
             .order("id", { ascending: true })
             .range(from, to),
         { label: "getWords:adminTest:test_questions" }
@@ -401,7 +403,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       : Promise.resolve(null),
     user
       ? supabase
-          .from("user_test_scores")
+          .from("test_sessions")
           .select("duration_seconds, score_percent")
           .eq("user_id", user.id)
           .eq("lesson_id", lessonId)
@@ -410,7 +412,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       ? supabase
           .from("test_questions")
           .select(
-            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id"
+            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_session_id, attempt_number"
           )
           .in("word_id", wordIds)
           .order("answered_at", { ascending: false })
@@ -499,7 +501,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     : null;
 
   // Aggregate test history. We used to embed
-  // `user_test_scores(lesson_id, auto_lesson_type, course_id, lessons(...))`
+  // `test_sessions(lesson_id, auto_lesson_type, course_id, lessons(...))`
   // here to populate per-attempt lesson metadata on `TestAttempt`, but no UI
   // consumer reads those fields — the traffic-light dots and aggregate stats
   // only need `pointsEarned`/`maxPoints`/`answeredAt`. Dropping the embed
@@ -509,68 +511,40 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const scoreStatsByWord: Record<string, WordScoreStats> = {};
 
   if (user && words.length > 0) {
-    // Aggregate by (wordId, testScoreId) — one TestAttempt per test, not per
-    // direction. See `TestAttempt` doc for the unit semantics.
-    type Agg = {
-      pointsEarned: number;
-      maxPoints: number;
-      mistakeCount: number;
-      maxClueLevel: number;
-      answeredAt: string;
-    };
-    const byWordTest = new Map<string, Map<string, Agg>>();
-
+    // Emit one TestAttempt per `test_questions` row. Test Twice contributes
+    // two rows per word (attempt 1 + attempt 2). Traffic-light strips and
+    // streak math share this per-row unit so they cannot drift.
+    const byWord = new Map<string, TestAttempt[]>();
     (testQuestionsResp?.data ?? []).forEach((tq) => {
       const wordId = tq.word_id;
       if (!wordId) return;
-      const tsId = tq.test_score_id ?? "_unknown_";
-
       const pointsEarned = tq.points_earned ?? 0;
-      // Available is always 3 per attempt-direction; clues reduce points
-      // earned, not the max.
       const maxPoints = tq.max_points ?? 3;
       const mistakeCount = tq.mistake_count ?? 0;
       const clueLevel = tq.clue_level ?? 0;
       const answeredAt = tq.answered_at ?? new Date().toISOString();
-
-      let wordMap = byWordTest.get(wordId);
-      if (!wordMap) {
-        wordMap = new Map();
-        byWordTest.set(wordId, wordMap);
-      }
-      const existing = wordMap.get(tsId);
-      if (existing) {
-        existing.pointsEarned += pointsEarned;
-        existing.maxPoints += maxPoints;
-        existing.mistakeCount += mistakeCount;
-        if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
-        if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
-      } else {
-        wordMap.set(tsId, {
-          pointsEarned,
-          maxPoints,
-          mistakeCount,
-          maxClueLevel: clueLevel,
-          answeredAt,
-        });
-      }
+      const attempt: TestAttempt = {
+        testSessionId: tq.test_session_id ?? null,
+        attemptNumber: tq.attempt_number,
+        pointsEarned,
+        maxPoints,
+        answeredAt,
+        isFullMarks: mistakeCount === 0 && clueLevel === 0,
+      };
+      const list = byWord.get(wordId);
+      if (list) list.push(attempt);
+      else byWord.set(wordId, [attempt]);
     });
 
-    // Flatten per-test aggregates into TestAttempt[] (most-recent-first) and
-    // recompute scoreStats from the aggregated per-test rows.
-    byWordTest.forEach((wordMap, wordId) => {
-      const attempts: TestAttempt[] = Array.from(wordMap.entries())
-        .map(([tsId, a]) => ({
-          testScoreId: tsId === "_unknown_" ? null : tsId,
-          pointsEarned: a.pointsEarned,
-          maxPoints: a.maxPoints,
-          answeredAt: a.answeredAt,
-          isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
-        }))
-        .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
-
+    byWord.forEach((attempts, wordId) => {
+      // Most recent first; tiebreak by attempt_number DESC so a Test Twice
+      // session's 2nd attempt sorts ahead of its 1st when answered_at is
+      // identical down to the millisecond.
+      attempts.sort((x, y) => {
+        if (x.answeredAt !== y.answeredAt) return x.answeredAt > y.answeredAt ? -1 : 1;
+        return (y.attemptNumber ?? 0) - (x.attemptNumber ?? 0);
+      });
       testHistoryByWord[wordId] = attempts;
-
       const totalPointsEarned = attempts.reduce((s, a) => s + a.pointsEarned, 0);
       const totalMaxPoints = attempts.reduce((s, a) => s + a.maxPoints, 0);
       scoreStatsByWord[wordId] = {
@@ -579,8 +553,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         scorePercent: totalMaxPoints > 0
           ? Math.round((totalPointsEarned / totalMaxPoints) * 100)
           : 0,
-        // timesTested counts distinct tests (aligns with user_word_progress
-        // after the backfill migration).
+        // timesTested = number of attempts (one per row).
         timesTested: attempts.length,
       };
     });
@@ -695,56 +668,34 @@ export async function getWord(wordId: string): Promise<{
 
     progress = wordProgress || null;
 
-    // Get ALL test attempts for this word, aggregated per `test_score_id`
-    // (one TestAttempt per test, not per direction).
+    // Get ALL test attempts for this word. One TestAttempt per
+    // `test_questions` row — Test Twice contributes two rows.
     const { data: testQuestions } = await supabase
       .from("test_questions")
-      .select("points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id")
+      .select("points_earned, max_points, mistake_count, clue_level, answered_at, test_session_id, attempt_number")
       .eq("word_id", wordId)
       .order("answered_at", { ascending: false });
 
-    type Agg = {
-      pointsEarned: number;
-      maxPoints: number;
-      mistakeCount: number;
-      maxClueLevel: number;
-      answeredAt: string;
-    };
-    const byTest = new Map<string, Agg>();
-    (testQuestions || []).forEach((tq) => {
-      const tsId = tq.test_score_id ?? "_unknown_";
-      const pointsEarned = tq.points_earned ?? 0;
-      const maxPoints = tq.max_points ?? 3;
-      const mistakeCount = tq.mistake_count ?? 0;
-      const clueLevel = tq.clue_level ?? 0;
-      const answeredAt = tq.answered_at ?? new Date().toISOString();
-      const existing = byTest.get(tsId);
-      if (existing) {
-        existing.pointsEarned += pointsEarned;
-        existing.maxPoints += maxPoints;
-        existing.mistakeCount += mistakeCount;
-        if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
-        if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
-      } else {
-        byTest.set(tsId, {
+    testHistory = (testQuestions ?? [])
+      .map((tq) => {
+        const pointsEarned = tq.points_earned ?? 0;
+        const maxPoints = tq.max_points ?? 3;
+        const mistakeCount = tq.mistake_count ?? 0;
+        const clueLevel = tq.clue_level ?? 0;
+        const answeredAt = tq.answered_at ?? new Date().toISOString();
+        return {
+          testSessionId: tq.test_session_id ?? null,
+          attemptNumber: tq.attempt_number,
           pointsEarned,
           maxPoints,
-          mistakeCount,
-          maxClueLevel: clueLevel,
           answeredAt,
-        });
-      }
-    });
-
-    testHistory = Array.from(byTest.entries())
-      .map(([tsId, a]) => ({
-        testScoreId: tsId === "_unknown_" ? null : tsId,
-        pointsEarned: a.pointsEarned,
-        maxPoints: a.maxPoints,
-        answeredAt: a.answeredAt,
-        isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
-      }))
-      .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
+          isFullMarks: mistakeCount === 0 && clueLevel === 0,
+        } satisfies TestAttempt;
+      })
+      .sort((x, y) => {
+        if (x.answeredAt !== y.answeredAt) return x.answeredAt > y.answeredAt ? -1 : 1;
+        return (y.attemptNumber ?? 0) - (x.attemptNumber ?? 0);
+      });
 
     const totalPointsEarned = testHistory.reduce((s, a) => s + a.pointsEarned, 0);
     const totalMaxPoints = testHistory.reduce((s, a) => s + a.maxPoints, 0);
@@ -848,7 +799,7 @@ async function getAutoLessonWords(
   // auto-lesson-scoped time/score stats. Previously this was a 3-step
   // waterfall (course → courseLessons → parallel(study/test)). After
   // migration 20260516000002, auto-lesson rows in `study_sessions` /
-  // `user_test_scores` have `lesson_id IS NULL` and live under
+  // `test_sessions` have `lesson_id IS NULL` and live under
   // `(auto_lesson_type, course_id)`, so we filter by the discriminator
   // pair instead of the legacy text id.
   const [
@@ -876,7 +827,7 @@ async function getAutoLessonWords(
       .eq("auto_lesson_type", type)
       .eq("course_id", courseId),
     supabase
-      .from("user_test_scores")
+      .from("test_sessions")
       .select("duration_seconds, score_percent")
       .eq("user_id", userId)
       .eq("auto_lesson_type", type)
@@ -1057,9 +1008,9 @@ async function getAutoLessonWords(
   // replaces the previous three sequential awaits.
   //
   // Test-history note: `test_questions` is the source of truth for traffic
-  // lights and average scores — aggregate by word_id only and scope to this
-  // user via the inner join on `user_test_scores`. Filtering by lesson_id
-  // (via testScoreIds) would hide attempts whose original lesson was
+  // lights and average scores — one row per attempt (Test Twice writes two
+  // rows). Scope to this user via the inner join on `test_sessions`.
+  // Filtering by lesson_id would hide attempts whose original lesson was
   // unpublished, renumbered, or moved, even though the word-level score
   // history is still valid.
   const [relatedWordsResp, wordProgressResp, testQuestionsResp] = await Promise.all([
@@ -1078,9 +1029,9 @@ async function getAutoLessonWords(
       ? supabase
           .from("test_questions")
           .select(
-            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_score_id, user_test_scores!inner(user_id)"
+            "word_id, points_earned, max_points, mistake_count, clue_level, answered_at, test_session_id, attempt_number, test_sessions!inner(user_id)"
           )
-          .eq("user_test_scores.user_id", userId)
+          .eq("test_sessions.user_id", userId)
           .in("word_id", targetWordIds)
           .order("answered_at", { ascending: false })
       : Promise.resolve(null),
@@ -1125,64 +1076,36 @@ async function getAutoLessonWords(
   const testHistoryByWord: Record<string, TestAttempt[]> = {};
   const scoreStatsByWord: Record<string, WordScoreStats> = {};
 
-  // Aggregate per (wordId, testScoreId) so each TestAttempt represents one
-  // test (not one direction).
-  type Agg = {
-    pointsEarned: number;
-    maxPoints: number;
-    mistakeCount: number;
-    maxClueLevel: number;
-    answeredAt: string;
-  };
-  const byWordTest = new Map<string, Map<string, Agg>>();
-
+  // One TestAttempt per `test_questions` row — Test Twice contributes two
+  // attempts per word.
+  const byWord = new Map<string, TestAttempt[]>();
   testQuestions?.forEach((tq) => {
     const wordId = tq.word_id;
     if (!wordId) return;
-    const tsId = tq.test_score_id ?? "_unknown_";
-
     const pointsEarned = tq.points_earned ?? 0;
     const maxPoints = tq.max_points ?? 3;
     const mistakeCount = tq.mistake_count ?? 0;
     const clueLevel = tq.clue_level ?? 0;
     const answeredAt = tq.answered_at ?? new Date().toISOString();
-
-    let wordMap = byWordTest.get(wordId);
-    if (!wordMap) {
-      wordMap = new Map();
-      byWordTest.set(wordId, wordMap);
-    }
-    const existing = wordMap.get(tsId);
-    if (existing) {
-      existing.pointsEarned += pointsEarned;
-      existing.maxPoints += maxPoints;
-      existing.mistakeCount += mistakeCount;
-      if (clueLevel > existing.maxClueLevel) existing.maxClueLevel = clueLevel;
-      if (answeredAt > existing.answeredAt) existing.answeredAt = answeredAt;
-    } else {
-      wordMap.set(tsId, {
-        pointsEarned,
-        maxPoints,
-        mistakeCount,
-        maxClueLevel: clueLevel,
-        answeredAt,
-      });
-    }
+    const attempt: TestAttempt = {
+      testSessionId: tq.test_session_id ?? null,
+      attemptNumber: tq.attempt_number,
+      pointsEarned,
+      maxPoints,
+      answeredAt,
+      isFullMarks: mistakeCount === 0 && clueLevel === 0,
+    };
+    const list = byWord.get(wordId);
+    if (list) list.push(attempt);
+    else byWord.set(wordId, [attempt]);
   });
 
-  byWordTest.forEach((wordMap, wordId) => {
-    const attempts: TestAttempt[] = Array.from(wordMap.entries())
-      .map(([tsId, a]) => ({
-        testScoreId: tsId === "_unknown_" ? null : tsId,
-        pointsEarned: a.pointsEarned,
-        maxPoints: a.maxPoints,
-        answeredAt: a.answeredAt,
-        isFullMarks: a.mistakeCount === 0 && a.maxClueLevel === 0,
-      }))
-      .sort((x, y) => (y.answeredAt > x.answeredAt ? 1 : y.answeredAt < x.answeredAt ? -1 : 0));
-
+  byWord.forEach((attempts, wordId) => {
+    attempts.sort((x, y) => {
+      if (x.answeredAt !== y.answeredAt) return x.answeredAt > y.answeredAt ? -1 : 1;
+      return (y.attemptNumber ?? 0) - (x.attemptNumber ?? 0);
+    });
     testHistoryByWord[wordId] = attempts;
-
     const totalPointsEarned = attempts.reduce((s, a) => s + a.pointsEarned, 0);
     const totalMaxPoints = attempts.reduce((s, a) => s + a.maxPoints, 0);
     scoreStatsByWord[wordId] = {

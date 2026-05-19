@@ -19,9 +19,10 @@ interface WordScoreStats {
 }
 
 interface ScoreIndicatorProps {
-  /** Test attempts aggregated per `test_score_id` (most recent first). The
-   *  first 3 drive the traffic lights; a leading run of full-mark attempts
-   *  unlocks the stacked-streak / star display. */
+  /** One attempt per `test_questions` row (most recent first). The first 3
+   *  drive the traffic lights; a leading run of full-mark attempts unlocks
+   *  the stacked-streak / star display. A Test Twice session contributes
+   *  two attempts (one per row), not one. */
   testHistory: TestAttempt[];
   /** Historical score stats */
   scoreStats: WordScoreStats;
