@@ -7,10 +7,10 @@
     "npm": ">=10 <12"
   },
   "scripts": {
-    "dev": "next dev",
-    "dev:turbo": "next dev --turbopack",
+    "dev": "NODE_OPTIONS=--max-http-header-size=65536 next dev",
+    "dev:turbo": "NODE_OPTIONS=--max-http-header-size=65536 next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_OPTIONS=--max-http-header-size=65536 next start",
     "lint": "eslint"
   },
   "dependencies": {

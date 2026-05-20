@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
@@ -588,11 +589,14 @@ export async function getScheduleData(
   // Lazy "test due" notifications: any milestone test whose
   // next_test_due_at <= now() that hasn't already been notified for this
   // (lesson, milestone) cycle gets a bell entry. Idempotent + non-critical
-  // (errors swallowed by the helper). Runs in parallel with the lesson queries
-  // so it doesn't add to the response time.
-  const testDuePromise = user
-    ? recordTestDueNotifications(user.id)
-    : Promise.resolve();
+  // (errors swallowed by the helper). Deferred via `after()` so it runs
+  // after the response has been streamed — was previously awaited at the
+  // tail of this function, which put a sequential admin-client query +
+  // per-lesson insert loop on the critical render path.
+  if (user) {
+    const userId = user.id;
+    after(() => recordTestDueNotifications(userId));
+  }
 
   // Get lesson progress and lesson_words in parallel; user_word_progress is fetched
   // after so it can be scoped to this course's words. lesson_words and
@@ -956,11 +960,6 @@ export async function getScheduleData(
   } catch (err) {
     console.error("Error computing worst-words auto-lesson:", err);
   }
-
-  // Settle the test-due notifications side-effect before returning so it
-  // completes reliably under serverless runtimes. The helper swallows its own
-  // errors, so this never throws.
-  await testDuePromise;
 
   return {
     dueTests,

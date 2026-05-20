@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { getCourseById } from "@/lib/queries/courses";
 import { getCourseProgress, getDueTestsCount } from "@/lib/queries";
-import { setCurrentCourse } from "@/lib/mutations";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface CourseLayoutProps {
   children: React.ReactNode;
@@ -62,11 +62,25 @@ export default async function CourseLayout({ children, params }: CourseLayoutPro
   // id is only consumed by the parent dashboard layout's getCurrentCourse()
   // for routes that don't have a courseId in the URL, so a tiny delay before
   // it propagates is harmless.
-  if (!isGuest && persistedCourseRow?.current_course_id !== courseId) {
+  //
+  // Use the admin client + captured userId here: `cookies()` (and therefore
+  // the cookie-backed server client) cannot be called inside `after()` in
+  // Next.js 16.
+  if (!isGuest && user && persistedCourseRow?.current_course_id !== courseId) {
+    const userId = user.id;
     after(async () => {
-      const result = await setCurrentCourse(courseId);
-      if (!result.success) {
-        console.error("Failed to persist current course:", result.error);
+      try {
+        const admin = createAdminClient();
+        const { error } = await admin
+          .from("users")
+          .update({ current_course_id: courseId })
+          .eq("id", userId);
+        if (error) {
+          console.error("Failed to persist current course:", error.message);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("Failed to persist current course:", message);
       }
     });
   }

@@ -3,6 +3,7 @@
 import {
   createContext,
   use,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -54,9 +55,20 @@ export function HeaderStatsProvider({
     dueTestsCount: undefined,
   });
 
-  const setter = (b: HeaderStatsBundle) => {
-    setBundle({ stats: b.stats, dueTestsCount: b.dueTestsCount });
-  };
+  // Stable setter reference: without useCallback this closure was a new
+  // function on every render, which flipped the context value, which made
+  // HeaderStatsBridge's useEffect [data, setBundle] dep array re-fire and
+  // re-call setBundle — an infinite render loop ("Maximum update depth
+  // exceeded") that starved every dashboard page on the main thread.
+  // Also short-circuit when the incoming bundle matches current state so a
+  // settled promise can't churn state by reference.
+  const setter = useCallback((b: HeaderStatsBundle) => {
+    setBundle((prev) =>
+      prev.stats === b.stats && prev.dueTestsCount === b.dueTestsCount
+        ? prev
+        : { stats: b.stats, dueTestsCount: b.dueTestsCount }
+    );
+  }, []);
 
   return (
     <HeaderStatsContext.Provider value={bundle}>
