@@ -24,7 +24,7 @@ export function PageTopBar({
 }: PageTopBarProps) {
   const { t } = useText();
   return (
-    <div className="mb-8 flex items-center justify-between">
+    <div className="mb-6 flex items-center justify-between">
       {/* Left: greeting or back link */}
       {greeting ? (
         greetingTranslation ? (
