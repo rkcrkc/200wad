@@ -34,12 +34,12 @@ export function InformationNextButton({
   }, [onNext]);
 
   return (
-    <div className="px-6 pt-3 pb-0">
-      <div className="flex items-center gap-4 py-3">
+    <div className="px-6 pt-2 pb-0">
+      <div className="flex items-center gap-4 rounded-2xl border-2 border-transparent pr-2 py-2">
         <span className="flex-1 text-xl font-medium text-black/50">
-          Information page — read and continue
+          Read and continue
         </span>
-        <Button ref={buttonRef} onClick={onNext} className="gap-1">
+        <Button ref={buttonRef} onClick={onNext} className="gap-1.5">
           {isLastWord ? "Finish lesson" : "Next"}
           <ChevronRight className="h-4 w-4" />
         </Button>

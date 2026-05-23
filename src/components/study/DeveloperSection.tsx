@@ -15,6 +15,8 @@ interface DeveloperSectionProps {
   notesInMemoryTrigger?: boolean | null;
   /** Optional: dim/disable when parent context is disabled */
   isEnabled?: boolean;
+  /** Notify parent of successful saves so it can update its cached word data */
+  onSaved?: (data: DeveloperData) => void;
 }
 
 export function DeveloperSection({
@@ -26,6 +28,7 @@ export function DeveloperSection({
   pictureBadSvg: initialPictureBadSvg,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
   isEnabled = true,
+  onSaved,
 }: DeveloperSectionProps) {
   const [isEditingDeveloperNotes, setIsEditingDeveloperNotes] = useState(false);
   const [developerNotesInput, setDeveloperNotesInput] = useState(initialDeveloperNotes || "");
@@ -77,8 +80,11 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
-    await saveDeveloperData(wordId, data);
+    const result = await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
+    if (result.success) {
+      onSaved?.(data);
+    }
   };
 
   const handleCancelDeveloperNotes = () => {
@@ -111,8 +117,11 @@ export function DeveloperSection({
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
-    await saveDeveloperData(wordId, data);
+    const result = await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
+    if (result.success) {
+      onSaved?.(data);
+    }
   };
 
   const handleSavePictureWrongNotes = async () => {
@@ -127,8 +136,11 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
-    await saveDeveloperData(wordId, data);
+    const result = await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
+    if (result.success) {
+      onSaved?.(data);
+    }
   };
 
   const handleTextCheckboxChange = async (
@@ -145,8 +157,11 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       notes_in_memory_trigger: checked,
     };
-    await saveDeveloperData(wordId, data);
+    const result = await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
+    if (result.success) {
+      onSaved?.(data);
+    }
   };
 
   const cardClasses = cn(

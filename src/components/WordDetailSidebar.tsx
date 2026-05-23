@@ -78,6 +78,7 @@ export function WordDetailSidebar({
   const { t, tt } = useText();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<(() => void) | null>(null);
+  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
 
   const [sizeKey, setSizeKey] = useState<SidebarSizeKey>(() => {
     if (typeof window === "undefined") return DEFAULT_SIZE;
@@ -242,6 +243,8 @@ export function WordDetailSidebar({
             autoPlayAudio={false}
             isLocked={isLocked}
             replayRef={replayRef}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
           />
         </div>
 
@@ -266,6 +269,8 @@ export function WordDetailSidebar({
           wordStatus={word.status}
           variant="sidebar"
           compact={sizeKey === "sm"}
+          imageMode={imageMode}
+          onImageModeChange={setImageMode}
         />
       </div>
     </>

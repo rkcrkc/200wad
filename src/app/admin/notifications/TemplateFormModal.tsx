@@ -54,6 +54,18 @@ interface FormState {
   ctaLabel: string;
   ctaHref: string;
   isCritical: boolean;
+  /**
+   * Celebration modal copy. Only relevant for templates that render a
+   * CelebrationModal (lesson/course/language mastered etc.). Persisted in
+   * `default_data.celebration` so the existing JSON column does double-duty
+   * without a schema migration. The UI for these fields only appears for
+   * templates whose key signals they're celebration-bearing.
+   */
+  celebrationEmoji: string;
+  celebrationSubtitle: string;
+  celebrationShareMessage: string;
+  celebrationSecondaryCtaLabel: string;
+  celebrationSecondaryCtaHref: string;
 }
 
 // Stored under data.severity in the DB as the literal string "critical" when
@@ -85,6 +97,11 @@ function emptyForm(defaultType: NotificationType = "system"): FormState {
     ctaLabel: "",
     ctaHref: "",
     isCritical: false,
+    celebrationEmoji: "",
+    celebrationSubtitle: "",
+    celebrationShareMessage: "",
+    celebrationSecondaryCtaLabel: "",
+    celebrationSecondaryCtaHref: "",
   };
 }
 
@@ -92,6 +109,11 @@ interface NormalizedData {
   ctaLabel: string;
   ctaHref: string;
   isCritical: boolean;
+  celebrationEmoji: string;
+  celebrationSubtitle: string;
+  celebrationShareMessage: string;
+  celebrationSecondaryCtaLabel: string;
+  celebrationSecondaryCtaHref: string;
 }
 
 function dataFromJson(raw: unknown): NormalizedData {
@@ -103,13 +125,53 @@ function dataFromJson(raw: unknown): NormalizedData {
     d.cta && typeof d.cta === "object"
       ? (d.cta as Record<string, unknown>)
       : null;
+  const celebration =
+    d.celebration && typeof d.celebration === "object"
+      ? (d.celebration as Record<string, unknown>)
+      : null;
+  const secondaryCta =
+    celebration &&
+    celebration.secondary_cta &&
+    typeof celebration.secondary_cta === "object"
+      ? (celebration.secondary_cta as Record<string, unknown>)
+      : null;
   // Only the literal "critical" trips the toggle. Legacy "info" / "warning"
   // values normalise to false here — saving will then drop them from the DB.
   return {
     ctaLabel: cta && typeof cta.label === "string" ? cta.label : "",
     ctaHref: cta && typeof cta.href === "string" ? cta.href : "",
     isCritical: d.severity === "critical",
+    celebrationEmoji:
+      celebration && typeof celebration.emoji === "string"
+        ? celebration.emoji
+        : "",
+    celebrationSubtitle:
+      celebration && typeof celebration.subtitle === "string"
+        ? celebration.subtitle
+        : "",
+    celebrationShareMessage:
+      celebration && typeof celebration.share_message === "string"
+        ? celebration.share_message
+        : "",
+    celebrationSecondaryCtaLabel:
+      secondaryCta && typeof secondaryCta.label === "string"
+        ? secondaryCta.label
+        : "",
+    celebrationSecondaryCtaHref:
+      secondaryCta && typeof secondaryCta.href === "string"
+        ? secondaryCta.href
+        : "",
   };
+}
+
+/**
+ * True when the template key indicates a celebration-bearing notification.
+ * Drives whether the "Celebration content" sub-section renders. Keeping the
+ * heuristic simple (key endsWith `_mastered`) makes adding new celebration
+ * templates a one-line addition to the seed migration — no admin code changes.
+ */
+function isCelebrationKey(key: string): boolean {
+  return /_mastered$/.test(key);
 }
 
 export function TemplateFormModal({
@@ -157,6 +219,11 @@ export function TemplateFormModal({
       ctaLabel: d.ctaLabel,
       ctaHref: d.ctaHref,
       isCritical: d.isCritical,
+      celebrationEmoji: d.celebrationEmoji,
+      celebrationSubtitle: d.celebrationSubtitle,
+      celebrationShareMessage: d.celebrationShareMessage,
+      celebrationSecondaryCtaLabel: d.celebrationSecondaryCtaLabel,
+      celebrationSecondaryCtaHref: d.celebrationSecondaryCtaHref,
     });
     setError(null);
   }, [isOpen, editing]);
@@ -218,6 +285,37 @@ export function TemplateFormModal({
         label: form.ctaLabel.trim(),
         href: form.ctaHref.trim(),
       };
+    }
+    // Persist celebration content under `default_data.celebration` so the
+    // server-side recorder can render the modal without a schema migration.
+    // We only write the celebration block for templates where the UI is
+    // visible — otherwise admin edits in unrelated templates would smuggle
+    // stale celebration fields back in.
+    if (isCelebrationKey(form.key)) {
+      const celebration: Record<string, unknown> = {
+        // Tier is hardcoded to "major" today (all three mastered tiers fire
+        // confetti). Exposing it in the UI would just be a footgun.
+        tier: "major",
+      };
+      if (form.celebrationEmoji.trim()) {
+        celebration.emoji = form.celebrationEmoji.trim();
+      }
+      if (form.celebrationSubtitle.trim()) {
+        celebration.subtitle = form.celebrationSubtitle.trim();
+      }
+      if (form.celebrationShareMessage.trim()) {
+        celebration.share_message = form.celebrationShareMessage.trim();
+      }
+      if (
+        form.celebrationSecondaryCtaLabel.trim() ||
+        form.celebrationSecondaryCtaHref.trim()
+      ) {
+        celebration.secondary_cta = {
+          label: form.celebrationSecondaryCtaLabel.trim(),
+          href: form.celebrationSecondaryCtaHref.trim(),
+        };
+      }
+      default_data.celebration = celebration;
     }
     const data = Object.keys(default_data).length > 0 ? default_data : null;
 
@@ -648,6 +746,126 @@ export function TemplateFormModal({
                 />
               </AdminFormField>
             </div>
+
+            {/* ---------------- Celebration content section ---------------- */}
+            {/* Only renders for templates that drive a CelebrationModal
+                (key endsWith `_mastered`). All fields are optional —
+                blanks fall back to sensible defaults in the recorder. */}
+            {isCelebrationKey(form.key) && (
+              <div className="space-y-4 rounded-lg border border-success/30 bg-success/5 p-4">
+                <div>
+                  <h3 className="text-small-semibold text-foreground">
+                    Celebration content
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Shown in the major-tier modal that appears immediately
+                    after the user finishes the test that unlocked this
+                    achievement. Supports the same {"{var}"} placeholders as
+                    Title / Message (e.g. <code>{"{lesson_title}"}</code>,
+                    {" "}<code>{"{course_name}"}</code>,
+                    {" "}<code>{"{language_name}"}</code>).
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[120px_1fr] gap-3">
+                  <AdminFormField
+                    label="Emoji"
+                    name="celebration_emoji"
+                    hint="Icon badge."
+                  >
+                    <AdminInput
+                      id="celebration_emoji"
+                      value={form.celebrationEmoji}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          celebrationEmoji: e.target.value,
+                        }))
+                      }
+                      maxLength={8}
+                      placeholder="🏆"
+                    />
+                  </AdminFormField>
+                  <AdminFormField
+                    label="Subtitle"
+                    name="celebration_subtitle"
+                    hint="Supporting line under the modal headline. Leave blank to fall back to Message above."
+                  >
+                    <AdminInput
+                      id="celebration_subtitle"
+                      value={form.celebrationSubtitle}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          celebrationSubtitle: e.target.value,
+                        }))
+                      }
+                      maxLength={500}
+                      placeholder="You mastered every word in {lesson_title}."
+                    />
+                  </AdminFormField>
+                </div>
+
+                <AdminFormField
+                  label="Share message"
+                  name="celebration_share_message"
+                  hint="Pre-filled when the user taps Share. Keep it short and proud."
+                >
+                  <AdminTextarea
+                    id="celebration_share_message"
+                    value={form.celebrationShareMessage}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        celebrationShareMessage: e.target.value,
+                      }))
+                    }
+                    maxLength={500}
+                    rows={2}
+                    placeholder="I just mastered every word in {course_name} on 200 Words a Day!"
+                  />
+                </AdminFormField>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <AdminFormField
+                    label="Secondary CTA label"
+                    name="celebration_secondary_cta_label"
+                    hint="Optional second button below the primary 'Keep going'."
+                  >
+                    <AdminInput
+                      id="celebration_secondary_cta_label"
+                      value={form.celebrationSecondaryCtaLabel}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          celebrationSecondaryCtaLabel: e.target.value,
+                        }))
+                      }
+                      maxLength={120}
+                      placeholder="Pick a new course"
+                    />
+                  </AdminFormField>
+                  <AdminFormField
+                    label="Secondary CTA link"
+                    name="celebration_secondary_cta_href"
+                    hint="Any in-app path. Supports {var} placeholders."
+                  >
+                    <AdminInput
+                      id="celebration_secondary_cta_href"
+                      value={form.celebrationSecondaryCtaHref}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          celebrationSecondaryCtaHref: e.target.value,
+                        }))
+                      }
+                      maxLength={300}
+                      placeholder="/courses"
+                    />
+                  </AdminFormField>
+                </div>
+              </div>
+            )}
 
             {/* ---------------- Toast section ---------------- */}
             {/* Only renders when the toast channel is enabled — keeps the

@@ -18,7 +18,23 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
   const randomOrder = random === "true";
   const { language, course, lesson, words, isGuest, userId } = await getWords(lessonId);
 
-  if (!lesson || words.length === 0) {
+  // Auto-lessons (Unmastered, Worst Words, Lost Mastery, etc.) can legitimately
+  // become empty as the user makes progress — e.g. regaining mastery on the
+  // last Lost Mastery word. They can also briefly come back with `lesson: null`
+  // when the server-side auth probe races a cookie refresh right after
+  // `completeTestSession` calls `revalidatePath()`. In both cases the safe
+  // landing target is the lesson page, which already renders a per-type empty
+  // state. Reserve `notFound()` for authored lessons, whose word list is fixed
+  // and where an empty/missing payload genuinely is a 404.
+  if (isAutoLesson(lessonId) && (!lesson || words.length === 0)) {
+    redirect(`/lesson/${lessonId}`);
+  }
+
+  if (!lesson) {
+    notFound();
+  }
+
+  if (words.length === 0) {
     notFound();
   }
 
@@ -40,16 +56,12 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
     ? (type as TestType)
     : DEFAULT_TEST_TYPE;
 
-  // Filter out info pages (they only appear in lessons, not tests)
-  // For picture-only mode, also filter to only words with images
-  const testWords = testType === "picture-only"
-    ? words.filter((w) => w.memory_trigger_image_url && w.category !== "information")
-    : words.filter((w) => w.category !== "information");
-
-  // If picture-only mode but no words with images, redirect or show error
-  if (testType === "picture-only" && testWords.length === 0) {
-    notFound();
-  }
+  // Filter out info pages (they only appear in lessons, not tests). We used to
+  // additionally drop words without a memory_trigger_image in picture-only
+  // mode, but that meant a lesson where no word had an image returned a 404.
+  // Instead let image-less words flow through — the image area just renders
+  // empty, and the user can use clue level 1 (reveals English) to proceed.
+  const testWords = words.filter((w) => w.category !== "information");
 
   // Fetch initial course vocab count for the completed modal,
   // plus lifetime learned/mastered counts for first-time toast detection.

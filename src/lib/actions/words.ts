@@ -5,6 +5,23 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
 
+/**
+ * Lightweight lookup of just the image URLs for a batch of words. Used to
+ * warm the browser image cache for adjacent words in the preview sidebar so
+ * arrow navigation reveals the memory trigger / flashcard instantly.
+ */
+export async function fetchWordImageUrls(
+  wordIds: string[]
+): Promise<Array<{ id: string; memory_trigger_image_url: string | null; flashcard_image_url: string | null }>> {
+  if (wordIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("words")
+    .select("id, memory_trigger_image_url, flashcard_image_url")
+    .in("id", wordIds);
+  return data ?? [];
+}
+
 export async function fetchWordDetails(
   wordId: string
 ): Promise<{ word: WordWithDetails | null }> {

@@ -140,6 +140,18 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     group: "Study Action Bar",
     defaultValue: "{count} correct in a row",
   },
+  pop_score_untested_title: {
+    label: "Untested score popover title",
+    category: "tooltips_popovers",
+    group: "Study Action Bar",
+    defaultValue: "No test history yet",
+  },
+  pop_score_untested_body: {
+    label: "Untested score popover body",
+    category: "tooltips_popovers",
+    group: "Study Action Bar",
+    defaultValue: "You haven't tested this word yet. Your 3 most recent test attempts will show here.",
+  },
 
   // Word Detail
   tip_show_flashcard: {
@@ -701,6 +713,46 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     category: "greetings_messages",
     group: "Start Test Modal",
     defaultValue: "No words with images in this lesson",
+  },
+
+  // Auto-Lesson Empty States
+  // Shown on the lesson page when the user opens an auto-lesson (Unmastered,
+  // Lost Mastery, etc.) whose computed word list is currently empty.
+  empty_auto_notes: {
+    label: "Notes empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words yet — words you add notes to will appear here.",
+  },
+  empty_auto_best: {
+    label: "Best Words empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words yet — take some tests to see your best words here.",
+  },
+  empty_auto_worst: {
+    label: "Worst Words empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words yet — take some tests to see words needing practice.",
+  },
+  empty_auto_unmastered: {
+    label: "Unmastered empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words yet — words you've learned but haven't mastered will appear here.",
+  },
+  empty_auto_lost_mastery: {
+    label: "Lost Mastery empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words here — words you've previously mastered will appear if you slip.",
+  },
+  empty_lesson_default: {
+    label: "Generic lesson empty state",
+    category: "greetings_messages",
+    group: "Auto-Lesson Empty States",
+    defaultValue: "No words available yet for this lesson.",
   },
 
   // Study Action Bar

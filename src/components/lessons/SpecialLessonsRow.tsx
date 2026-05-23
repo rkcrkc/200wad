@@ -36,12 +36,16 @@ export function SpecialLessonsRow({ lessons, mode = "lesson" }: SpecialLessonsRo
 
   const [testLesson, setTestLesson] = useState<LessonWithProgress | null>(null);
 
-  // Build cards in DISPLAY_ORDER, dropping Lost Mastery when its count is 0.
+  // Build cards in DISPLAY_ORDER, dropping Lost Mastery and Unmastered when
+  // their count is 0. Lost Mastery at 0 means the user hasn't slipped on
+  // anything — nothing to surface. Unmastered at 0 means the user has fully
+  // mastered the course (or everything tested so far), so the tile would be
+  // an empty trophy — hide it rather than tempt a click.
   const cards = DISPLAY_ORDER.flatMap((type) => {
     const lesson = byType.get(type);
     if (!lesson) return [];
     const count = lesson.word_count ?? 0;
-    if (type === "lost_mastery" && count === 0) return [];
+    if ((type === "lost_mastery" || type === "unmastered") && count === 0) return [];
 
     const cardProps =
       mode === "test"

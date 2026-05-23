@@ -15,8 +15,8 @@ interface StudyWordListSidebarProps {
   completedWordIndices: number[];
   onJumpToWord: (index: number) => void;
   mode?: "study" | "test";
-  /** For test mode: map of word index -> grade */
-  testResults?: Map<number, "correct" | "half-correct" | "incorrect">;
+  /** For test mode: map of word index -> per-word score (presence indicates answered) */
+  testResults?: Map<number, { pointsEarned: number; maxPoints: number }>;
   /**
    * For test mode: indices whose secondary text (foreign answer) must be
    * hidden even when the word has a testResult. Used in testTwice mode so

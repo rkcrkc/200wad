@@ -17,6 +17,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { useUpgradeModal } from "@/context/UpgradeModalContext";
+import { preloadImages } from "@/lib/utils/preloadImages";
 
 export interface WordListItem {
   id: string;
@@ -57,6 +58,12 @@ interface WordDetailViewProps {
    *  parent (e.g. WordDetailSidebar) that renders its own action bar can
    *  trigger the full audio sequence. */
   replayRef?: MutableRefObject<(() => void) | null>;
+  /** Controlled image mode (memory-trigger vs flashcard). When provided, the
+   *  parent owns the state — used by sidebar/modal layouts that render their
+   *  own action bar and need to drive the flashcard toggle. */
+  imageMode?: "memory-trigger" | "flashcard";
+  /** Setter for controlled image mode. */
+  onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
 }
 
 /** Determine the highlight color based on word's gender. */
@@ -96,6 +103,8 @@ export function WordDetailView({
   showTabs = true,
   isLocked = false,
   replayRef,
+  imageMode: imageModeProp,
+  onImageModeChange,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -137,8 +146,11 @@ export function WordDetailView({
   const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(word.notes_in_memory_trigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
 
-  // Image display mode state
-  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  // Image display mode state — controlled by parent when imageModeProp/onImageModeChange
+  // are provided (sidebar/modal layouts), otherwise managed internally (page layout).
+  const [internalImageMode, setInternalImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  const imageMode = imageModeProp ?? internalImageMode;
+  const setImageMode = onImageModeChange ?? setInternalImageMode;
 
   // Sidebar tab state
   const [sidebarTab, setSidebarTab] = useState<"word" | "test-history" | "lessons">("word");
@@ -294,6 +306,15 @@ export function WordDetailView({
       word.audio_url_trigger,
     ]);
   }, [word, preloadAudio]);
+
+  // Preload both image variants for the current word so toggling between
+  // memory-trigger and flashcard is instant.
+  useEffect(() => {
+    preloadImages([
+      word.memory_trigger_image_url,
+      word.flashcard_image_url,
+    ]);
+  }, [word.memory_trigger_image_url, word.flashcard_image_url]);
 
   // Auto-play audio sequence when word changes: English → Foreign → Trigger → Foreign
   useEffect(() => {
@@ -597,8 +618,10 @@ export function WordDetailView({
         </div>
       )}
 
-      {/* Two columns layout (page) or single column (sidebar) */}
-      <div className={isSidebar ? "flex flex-col gap-4" : "flex gap-6"}>
+      {/* Two columns layout (page) or single column (sidebar — collapses to one
+          column below `lg`, expands to two columns at `lg+` so the notes/right
+          column sits beside the memory trigger when the modal is wide enough). */}
+      <div className={isSidebar ? "flex flex-col gap-4 lg:flex-row lg:gap-6" : "flex gap-6"}>
         {/* Sidebar: Show content based on active tab */}
         {isSidebar && sidebarTab === "test-history" ? (
           // Test History Tab Content
@@ -700,7 +723,7 @@ export function WordDetailView({
         {(!isSidebar || sidebarTab === "word") && (
           <>
         {/* Left column - Memory Trigger or Flashcard */}
-        <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
+        <div className={isSidebar ? "flex w-full flex-col gap-4 lg:w-[55%] lg:gap-6" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
             isLocked && hasMemoryTrigger ? (
               // Locked state — trigger text is fully visible; only the image is

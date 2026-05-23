@@ -1,6 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { HelpCircle } from "lucide-react";
 import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
+import { AUTO_LESSON_META } from "@/lib/queries/auto-lessons";
+import { getTextOverrides } from "@/lib/queries/text";
+import { getText } from "@/lib/text";
+import type { AutoLessonType } from "@/lib/queries";
+import type { Lesson } from "@/types/aliases";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,6 +23,16 @@ const AUTO_LESSON_EXPLANATIONS: Record<string, string> = {
   lost_mastery: "Words you previously mastered but have since dropped a mistake on — most recent slips first.",
 };
 
+// Maps the auto-lesson type to its `TEXT_KEYS` entry. Admins can edit these
+// strings in the "Greetings & Messages" tab of the Text & Labels admin page.
+const AUTO_LESSON_EMPTY_TEXT_KEY: Record<AutoLessonType, string> = {
+  notes: "empty_auto_notes",
+  best: "empty_auto_best",
+  worst: "empty_auto_worst",
+  unmastered: "empty_auto_unmastered",
+  lost_mastery: "empty_auto_lost_mastery",
+};
+
 interface LessonPageProps {
   params: Promise<{ lessonId: string }>;
 }
@@ -25,27 +40,57 @@ interface LessonPageProps {
 export default async function LessonPage({ params }: LessonPageProps) {
   const { lessonId } = await params;
 
-  // Fetch words and activity history in parallel
-  const [wordsResult, activityHistory] = await Promise.all([
+  // Fetch words, activity history, and admin text overrides in parallel.
+  // getTextOverrides is cached (revalidate: 3600), so this call is free when
+  // the dashboard layout has already warmed the cache.
+  const [wordsResult, activityHistory, textOverridesResult] = await Promise.all([
     getWords(lessonId),
     getLessonActivityHistory(lessonId),
+    getTextOverrides(),
   ]);
 
   const { language, course, lesson, words, stats, isGuest, previousLesson, nextLesson, userId } = wordsResult;
 
-  if (!lesson) {
-    notFound();
+  // For auto-lessons, `getAutoLessonWords` can return `lesson: null` in edge
+  // cases (e.g. transient `userId === null` from a race between the server-
+  // side auth probe and a cookie refresh after `revalidatePath`). Rather than
+  // 404 here, synthesize the same virtual lesson `buildAutoLessonResult`
+  // would have produced so the empty-state path below renders gracefully.
+  // For real (authored) lessons a missing row is still a genuine 404.
+  let resolvedLesson: Lesson | null = lesson;
+  if (!resolvedLesson) {
+    const autoInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
+    if (!autoInfo) {
+      notFound();
+    }
+    const def = AUTO_LESSON_META[autoInfo.type];
+    const now = new Date().toISOString();
+    resolvedLesson = {
+      id: lessonId,
+      course_id: autoInfo.courseId,
+      number: def.number,
+      title: def.title,
+      emoji: def.emoji,
+      word_count: 0,
+      is_published: true,
+      sort_order: def.number,
+      legacy_lesson_id: null,
+      created_at: now,
+      updated_at: now,
+      created_by: null,
+      updated_by: null,
+    };
   }
 
   // Access gate: redirect to course page if lesson is locked
   if (course && !isAutoLesson(lessonId)) {
     const access = await canAccessLesson(
       userId,
-      { lessonNumber: lesson.number },
+      { lessonNumber: resolvedLesson.number },
       { id: course.id, language_id: course.language_id, free_lessons: course.free_lessons }
     );
     if (!access.hasAccess) {
-      redirect(`/course/${course.id}?upgrade-lesson=${encodeURIComponent(lesson.id)}`);
+      redirect(`/course/${course.id}?upgrade-lesson=${encodeURIComponent(resolvedLesson.id)}`);
     }
   }
 
@@ -62,19 +107,16 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   const languageFlag = getFlagFromCode(language?.code);
 
-  // Check if this is an auto-lesson and get type-specific empty message
+  // Check if this is an auto-lesson and resolve its empty-state message via
+  // the admin-editable text registry (falls back to the default in lib/text.ts
+  // when no override is set).
   const autoLessonInfo = isAutoLesson(lessonId) ? parseAutoLessonId(lessonId) : null;
-  const autoLessonEmptyMessages: Record<string, string> = {
-    notes: "No words yet — words you add notes to will appear here.",
-    best: "No words yet — take some tests to see your best words here.",
-    worst: "No words yet — take some tests to see words needing practice.",
-    unmastered: "No words yet — words you've learned but haven't mastered will appear here.",
-    lost_mastery: "No words here — words you've previously mastered will appear if you slip.",
-  };
-
-  const emptyMessage = autoLessonInfo
-    ? autoLessonEmptyMessages[autoLessonInfo.type]
-    : "No words available yet for this lesson.";
+  const emptyMessage = getText(
+    autoLessonInfo
+      ? AUTO_LESSON_EMPTY_TEXT_KEY[autoLessonInfo.type]
+      : "empty_lesson_default",
+    textOverridesResult.overrides,
+  );
 
   return (
     <SetCourseContext languageId={language?.id} languageFlag={languageFlag} courseId={course?.id} courseName={course?.name}>
@@ -90,7 +132,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
             <div className="mb-6">
               <div className="mb-2 flex items-center gap-2.5">
                 <p className="text-regular-semibold text-black-80">
-                  Lesson #{lesson.number}
+                  Lesson #{resolvedLesson.number}
                 </p>
                 {autoLessonInfo && (
                   <Tooltip
@@ -109,8 +151,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
                 )}
               </div>
               <h1 className="flex items-center gap-4 text-xxl-semibold">
-                {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
-                {lesson.title}
+                {resolvedLesson.emoji && <span className="text-2xl">{resolvedLesson.emoji}</span>}
+                {resolvedLesson.title}
               </h1>
             </div>
 
@@ -119,7 +161,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           </div>
         ) : (
           <LessonPageContent
-            lesson={lesson}
+            lesson={resolvedLesson}
             words={testableWords}
             languageName={language?.name ?? undefined}
             courseId={course?.id}

@@ -104,6 +104,12 @@ export function useAudio(): UseAudioReturn {
 
       const audio = new Audio();
       audio.preload = "auto";
+      // Evict broken preloads so playAudio falls back to a fresh element.
+      audio.onerror = () => {
+        if (preloadCacheRef.current.get(url) === audio) {
+          preloadCacheRef.current.delete(url);
+        }
+      };
       audio.src = url;
       preloadCacheRef.current.set(url, audio);
     });
@@ -128,15 +134,25 @@ export function useAudio(): UseAudioReturn {
         setError(null);
         setCurrentAudioType(type);
 
-        // Check if audio is preloaded
-        const cachedAudio = preloadCacheRef.current.get(url);
+        // Check if audio is preloaded. Discard cached entries that errored
+        // out during preload — they will never reach `canplaythrough`, so
+        // reusing them would leave `currentAudioType` stuck forever.
+        let cachedAudio = preloadCacheRef.current.get(url);
+        if (cachedAudio && (cachedAudio.error || cachedAudio.networkState === 3)) {
+          preloadCacheRef.current.delete(url);
+          cachedAudio = undefined;
+        }
         const audio = cachedAudio || new Audio(url);
         audioRef.current = audio;
         resolveRef.current = resolve;
 
         // Reset to start if reusing cached audio
         if (cachedAudio) {
-          audio.currentTime = 0;
+          try {
+            audio.currentTime = 0;
+          } catch {
+            // Ignore — currentTime may throw if media is not yet seekable.
+          }
         }
 
         const setupAndPlay = () => {
@@ -194,9 +210,10 @@ export function useAudio(): UseAudioReturn {
             if (requestIdRef.current !== currentRequestId) return;
             setupAndPlay();
           };
-          if (!cachedAudio) {
-            audio.load();
-          }
+          // Always call load() — for a freshly-cached element this is a
+          // no-op, but if a cached element is in a partial/stalled state
+          // it kicks off a retry so the handlers above can fire.
+          audio.load();
         }
       });
     },

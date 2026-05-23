@@ -31,7 +31,7 @@ export function Tooltip({
     <div className="group/tip relative">
       {children}
       <div
-        className={`tooltip-hover pointer-events-none absolute z-50 w-max max-w-[calc(100vw-24px)] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal text-white opacity-0 transition-opacity group-hover/tip:opacity-100 ${positionClass} ${alignClass}`}
+        className={`tooltip-hover pointer-events-none absolute z-50 w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white opacity-0 transition-opacity group-hover/tip:opacity-100 ${positionClass} ${alignClass}`}
       >
         {label}
       </div>

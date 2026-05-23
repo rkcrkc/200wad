@@ -121,19 +121,20 @@ export const AUTO_LESSON_META: Record<
 );
 
 /**
- * Pick up to `limit` word IDs that are at status "learned" and have never
- * been mastered. Sorted by learned_at ASC (oldest stuck-at-learned first),
- * with a stable word_id tiebreak so reloads return the same set.
+ * Pick up to `limit` word IDs that are at status "learned" and not currently
+ * mastered (correct_streak < 3). Sorted by learned_at ASC (oldest
+ * stuck-at-learned first), with a stable word_id tiebreak so reloads return
+ * the same set.
+ *
+ * We intentionally do NOT filter on `mastered_at IS NULL`: once a word has
+ * been mastered, `mastered_at` is preserved as a historical first-mastery
+ * timestamp (see `updateWordTestProgress` in mutations/test.ts). A word that
+ * was mastered and later regressed has status="learned" and correct_streak<3
+ * but a non-null mastered_at — it should appear here as unmastered.
  *
  * `limit` is the admin-configurable auto-lesson cap from `platform_config`
  * (see `getAutoLessonWordLimit`). Callers should pass the same value to
  * every selector so all auto-lessons stay in sync.
- *
- * Defensive guard: also exclude rows where `correct_streak >= 3`. status and
- * correct_streak are written together by `updateWordTestProgress`, so they
- * should always agree — but if any row is out of sync (legacy data, manual
- * fix, partial reset), we don't want to surface a word that's effectively
- * mastered.
  */
 export function selectUnmasteredWordIds(
   learnedRows: Array<{
@@ -145,7 +146,7 @@ export function selectUnmasteredWordIds(
   limit: number = DEFAULT_AUTO_LESSON_WORD_LIMIT,
 ): string[] {
   const candidates = learnedRows.filter(
-    (r) => r.mastered_at === null && (r.correct_streak ?? 0) < 3,
+    (r) => (r.correct_streak ?? 0) < 3,
   );
   candidates.sort((a, b) => {
     const aT = a.learned_at ?? "";

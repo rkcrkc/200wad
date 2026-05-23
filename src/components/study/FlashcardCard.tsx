@@ -50,6 +50,7 @@ export function FlashcardCard({
               src={imageUrl}
               alt={englishWord}
               fill
+              priority
               className="object-contain"
               sizes="(max-width: 768px) 100vw, 730px"
             />

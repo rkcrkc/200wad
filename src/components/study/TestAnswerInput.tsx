@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getBestMatch,
+  getMaxPossibleMistakes,
   calculatePoints,
   getMaxPoints,
   getAnswerGrade,
@@ -131,10 +132,11 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     if (!input.trim()) return;
 
     const { answer: bestMatchAnswer, mistakeCount } = getBestMatch(input, validAnswers, normalizeOptions);
-    const pointsEarned = calculatePoints(clueLevel, mistakeCount);
+    const maxPossibleMistakes = getMaxPossibleMistakes(bestMatchAnswer, normalizeOptions);
+    const pointsEarned = calculatePoints(clueLevel, mistakeCount, maxPossibleMistakes);
     const maxPoints = getMaxPoints(clueLevel);
-    const grade = getAnswerGrade(mistakeCount);
-    const scoreLetter = getScoreLetter(clueLevel, mistakeCount);
+    const grade = getAnswerGrade(mistakeCount, maxPossibleMistakes);
+    const scoreLetter = getScoreLetter(clueLevel, mistakeCount, maxPossibleMistakes);
     const scorePercent = calculateScorePercent(pointsEarned, maxPoints);
     const isCorrect = mistakeCount === 0;
 
@@ -186,21 +188,48 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     return null;
   }
 
-  // Get feedback styling and text based on grade
+  // Get feedback styling and text. Wording follows grade ("Correct!" /
+  // "Half correct!" / "Incorrect!"), but colours follow points so a
+  // clue-aided correct answer at 2/3 reads as amber, matching the rest
+  // of the score indicators in the app.
   const getFeedback = () => {
     if (!result) return null;
 
-    const { grade, pointsEarned } = result;
+    const { grade, pointsEarned, maxPoints } = result;
     const pointsText = `${pointsEarned} point${pointsEarned !== 1 ? "s" : ""}`;
+
+    // Points-based tone
+    const tone: "success" | "warning" | "destructive" =
+      pointsEarned >= maxPoints
+        ? "success"
+        : pointsEarned > 0
+          ? "warning"
+          : "destructive";
+
+    const toneClasses = {
+      success: {
+        borderColor: "border-green-200",
+        textColor: "text-green-600",
+        inputTextColor: "text-foreground",
+      },
+      warning: {
+        borderColor: "border-amber-200",
+        textColor: "text-amber-600",
+        inputTextColor: "text-amber-600",
+      },
+      destructive: {
+        borderColor: "border-red-200",
+        textColor: "text-red-500",
+        inputTextColor: "text-red-500",
+      },
+    }[tone];
 
     if (grade === "correct") {
       return {
         icon: "✅",
         text: `Correct! ${pointsText}`,
         emoji: pointsEarned > 0 ? "🙌" : "",
-        borderColor: "border-green-200",
-        textColor: "text-green-600",
-        inputTextColor: "text-foreground",
+        ...toneClasses,
       };
     } else if (grade === "half-correct") {
       // Check if gender was missing
@@ -215,18 +244,14 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
         icon: "✅",
         text,
         emoji: pointsEarned > 0 ? "🙌" : "",
-        borderColor: "border-amber-200",
-        textColor: "text-amber-600",
-        inputTextColor: "text-amber-600",
+        ...toneClasses,
       };
     } else {
       return {
         icon: "❌",
         text: `Incorrect! 0 points`,
         emoji: "",
-        borderColor: "border-red-200",
-        textColor: "text-red-500",
-        inputTextColor: "text-red-500",
+        ...toneClasses,
       };
     }
   };

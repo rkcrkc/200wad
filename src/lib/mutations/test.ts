@@ -11,7 +11,18 @@ import {
   calculateNextTestDueAt,
 } from "@/lib/utils/milestones";
 import { updateLessonProgress } from "./study";
+import { fanOutLessonProgress } from "./wordProgress";
 import { recordProgressAchievements } from "@/lib/notifications/achievements";
+import {
+  recordLessonMastered,
+  recordCourseMastered,
+  recordLanguageMastered,
+  isLessonFullyMastered,
+  isCourseFullyMastered,
+  isLanguageFullyMastered,
+  getLessonTotalTimeSeconds,
+  type CelebrationPayload,
+} from "@/lib/notifications/celebrations";
 import {
   isAutoLesson,
   parseAutoLessonId,
@@ -150,6 +161,13 @@ export interface CompleteTestSessionResult {
   courseWordsMastered: number;
   /** True when this call returned an existing row instead of inserting. */
   deduplicated?: boolean;
+  /**
+   * Highest-tier mastery celebration just unlocked by this test, or null
+   * when nothing new fired. The cascade is lesson → course → language —
+   * if all three unlock in the same test, only the highest is surfaced
+   * here. The lower-tier notification rows still persist in the bell.
+   */
+  celebration?: CelebrationPayload | null;
   error: string | null;
 }
 
@@ -612,6 +630,22 @@ export async function completeTestSession(
     }
   }
 
+  // 5c. Fan out lesson_progress updates to every OTHER real lesson that
+  // contains any of the just-tested words. For a real-lesson test the
+  // tested words usually belong only to the primary lesson, so this is
+  // a no-op in the common case. For an auto-lesson test (lost-mastery,
+  // unmastered, etc.) this is the only place underlying real lessons
+  // get their status refreshed — without it, mastering a holdout word
+  // via an auto-lesson would never update the real lesson it belongs to.
+  // Chokepoint: every status-affecting writer to `user_word_progress`
+  // must call this; see src/lib/mutations/wordProgress.ts.
+  const affectedTestWordIds = questionResults.map((q) => q.wordId);
+  const fanOut = await fanOutLessonProgress({
+    userId: user.id,
+    affectedWordIds: affectedTestWordIds,
+    excludeLessonId: autoInfo ? null : lessonId,
+  });
+
   // 5c. Fire any achievement notifications the user just unlocked. Internally
   // idempotent — safe to call on every test completion. Errors are swallowed
   // so they never block the test flow.
@@ -690,6 +724,151 @@ export async function completeTestSession(
     console.warn("[Test Session] No courseId found for lesson", lessonId);
   }
 
+  // 8. Mastery celebration cascade — check lesson → course → language and
+  // fire the appropriate first-time templates. Each recorder is idempotent
+  // per (user, entity) and self-swallows errors, so the test flow is never
+  // blocked by celebration logic. The highest tier that fires becomes the
+  // modal we surface to the client; lower tiers still persist in the bell.
+  let celebration: CelebrationPayload | null = null;
+  try {
+    // Lesson celebrations for any real lessons that just hit mastered
+    // via the fan-out (auto-lesson tests are the primary trigger here:
+    // the holdout word from "Lesson 17 — Verbs" is finally answered
+    // correctly inside an auto-lost-mastery test, fan-out flips Lesson
+    // 17 to mastered, and we celebrate it here even though the test
+    // itself ran on the virtual auto-lesson id).
+    for (const masteredLessonId of fanOut.newlyMasteredLessonIds) {
+      const { data: lessonRow } = await supabase
+        .from("lessons")
+        .select("title, word_count, course_id")
+        .eq("id", masteredLessonId)
+        .single();
+      if (!lessonRow) continue;
+      const totalTimeSeconds = await getLessonTotalTimeSeconds(
+        user.id,
+        masteredLessonId
+      );
+      const payload = await recordLessonMastered({
+        userId: user.id,
+        lessonId: masteredLessonId,
+        lessonTitle: lessonRow.title ?? "",
+        courseId: lessonRow.course_id ?? null,
+        stats: {
+          totalWords: lessonRow.word_count ?? 0,
+          totalTimeSeconds,
+          averageTestScore: null,
+        },
+      });
+      // First fan-out celebration becomes a modal candidate; later ones
+      // still fire bell+toast (recordLessonMastered handles that
+      // unconditionally) but don't get the modal. Course/language
+      // celebrations below still take precedence over this if they fire.
+      if (payload && !celebration) celebration = payload;
+    }
+
+    // Primary lesson check: only fires for real-lesson tests. Auto-lesson
+    // tests ship a virtual lessonId (e.g. `auto-lost_mastery-<courseId>`),
+    // which has no row in `lessons` / `lesson_words` and so can't be
+    // attributed to a single real lesson — the underlying lessons that
+    // contain the tested words are covered by the fan-out loop above.
+    if (!autoInfo && (await isLessonFullyMastered(user.id, lessonId))) {
+      const { data: lessonRow } = await supabase
+        .from("lessons")
+        .select("title, word_count")
+        .eq("id", lessonId)
+        .single();
+      if (lessonRow) {
+        // Lifetime time spent on this lesson (study + test), matches the
+        // figure shown on the lesson page header bar.
+        const totalTimeSeconds = await getLessonTotalTimeSeconds(
+          user.id,
+          lessonId
+        );
+        const lessonPayload = await recordLessonMastered({
+          userId: user.id,
+          lessonId,
+          lessonTitle: lessonRow.title ?? "",
+          courseId,
+          stats: {
+            totalWords: lessonRow.word_count ?? 0,
+            totalTimeSeconds,
+            averageTestScore: null,
+          },
+        });
+        if (lessonPayload) celebration = lessonPayload;
+      }
+    }
+
+    // Course check: word-level detection, so it correctly handles
+    // auto-lesson tests that mastered the holdout words from multiple
+    // real lessons (e.g. lost-mastery / unmastered cascades).
+    if (courseId && (await isCourseFullyMastered(user.id, courseId))) {
+      const { data: courseRow } = await supabase
+        .from("courses")
+        .select("name, language_id, languages(name, code)")
+        .eq("id", courseId)
+        .single();
+      if (courseRow) {
+        const { count: lessonsCount } = await supabase
+          .from("lessons")
+          .select("id", { count: "exact", head: true })
+          .eq("course_id", courseId)
+          .eq("is_published", true);
+        const langRow = courseRow.languages as
+          | { name: string | null; code: string | null }
+          | null;
+        const coursePayload = await recordCourseMastered({
+          userId: user.id,
+          courseId,
+          courseName: courseRow.name ?? "",
+          languageId: courseRow.language_id ?? null,
+          languageCode: langRow?.code ?? null,
+          stats: {
+            totalWords: courseWordsMastered,
+            totalLessons: lessonsCount ?? 0,
+          },
+        });
+        if (coursePayload) celebration = coursePayload;
+
+        // Language cascade (only worth checking when the course just
+        // unlocked — otherwise the language can't have changed state).
+        if (
+          coursePayload &&
+          courseRow.language_id &&
+          (await isLanguageFullyMastered(user.id, courseRow.language_id))
+        ) {
+          const { count: coursesCount } = await supabase
+            .from("courses")
+            .select("id", { count: "exact", head: true })
+            .eq("language_id", courseRow.language_id)
+            .eq("is_published", true);
+          // Total mastered words across the language. Cheap count via
+          // user_word_progress + lesson_words join — bounded by user scope.
+          const { count: langMasteredWords } = await supabase
+            .from("user_word_progress")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("status", "mastered");
+          const languagePayload = await recordLanguageMastered({
+            userId: user.id,
+            languageId: courseRow.language_id,
+            languageName: langRow?.name ?? "",
+            languageCode: langRow?.code ?? null,
+            stats: {
+              totalCourses: coursesCount ?? 0,
+              totalWords: langMasteredWords ?? 0,
+            },
+          });
+          if (languagePayload) celebration = languagePayload;
+        }
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[Test Session] celebration cascade failed:", message);
+    // Non-critical; never block test completion on celebration errors.
+  }
+
   // Revalidate all pages that display lesson/word stats
   revalidatePath(`/lesson/${lessonId}`);
   if (courseId) {
@@ -699,7 +878,13 @@ export async function completeTestSession(
     revalidatePath(`/course/${courseId}/progress`);
   }
 
-  return { success: true, testSessionId: testScore.id, courseWordsMastered, error: null };
+  return {
+    success: true,
+    testSessionId: testScore.id,
+    courseWordsMastered,
+    celebration,
+    error: null,
+  };
 }
 
 /**

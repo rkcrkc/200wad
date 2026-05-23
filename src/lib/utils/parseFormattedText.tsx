@@ -604,27 +604,25 @@ function renderBlocks(
   blocks: BlockNode[],
   ctx: Ctx,
 ): React.ReactNode {
-  // Pre-compute shared column widths for runs of consecutive tables that
-  // share the same column count. Tables in the same run align with each
-  // other; the widths are derived from the longest cell content per column
-  // across the entire run.
+  // Pre-compute shared column widths for tables that share the same column
+  // count anywhere in the same block list. Intervening paragraphs, headings
+  // or lists do not break the group, so e.g. a "Masculine forms:" label
+  // between two 3-column tables still lets both tables align with each
+  // other. The widths are derived from the longest cell content per column
+  // across the entire group.
   const widthsByIndex = new Map<number, string[]>();
   const minWidthByIndex = new Map<number, number>();
-  for (let i = 0; i < blocks.length; ) {
+  for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    if (b.kind !== "table") {
-      i++;
-      continue;
-    }
+    if (b.kind !== "table") continue;
+    if (widthsByIndex.has(i)) continue;
     const colCount = b.rows[0]?.length ?? 0;
     const group: { idx: number; table: { rows: string[][] } }[] = [];
-    let j = i;
-    while (j < blocks.length) {
+    for (let j = i; j < blocks.length; j++) {
       const bj = blocks[j];
-      if (bj.kind !== "table") break;
-      if ((bj.rows[0]?.length ?? 0) !== colCount) break;
+      if (bj.kind !== "table") continue;
+      if ((bj.rows[0]?.length ?? 0) !== colCount) continue;
       group.push({ idx: j, table: { rows: bj.rows } });
-      j++;
     }
     const widths = computeColumnWidths(group.map((g) => g.table));
     const minWidth = computeMinWidthRem(group.map((g) => g.table));
@@ -632,7 +630,6 @@ function renderBlocks(
       widthsByIndex.set(g.idx, widths);
       minWidthByIndex.set(g.idx, minWidth);
     }
-    i = j === i ? i + 1 : j;
   }
 
   return blocks.map((block, idx) => {

@@ -1,4 +1,9 @@
-import { getBestMatch, calculatePoints, type NormalizeOptions } from "./scoring";
+import {
+  getBestMatch,
+  getMaxPossibleMistakes,
+  calculatePoints,
+  type NormalizeOptions,
+} from "./scoring";
 
 export interface ServerScoringResult {
   wordId: string;
@@ -18,8 +23,9 @@ export function serverScoreQuestion(
   clientPointsEarned: number,
   options: NormalizeOptions = {}
 ): { pointsEarned: number; mistakeCount: number; matches: boolean } {
-  const { mistakeCount } = getBestMatch(userAnswer, validAnswers, options);
-  const pointsEarned = calculatePoints(clueLevel, mistakeCount);
+  const { answer: bestMatchAnswer, mistakeCount } = getBestMatch(userAnswer, validAnswers, options);
+  const maxPossibleMistakes = getMaxPossibleMistakes(bestMatchAnswer, options);
+  const pointsEarned = calculatePoints(clueLevel, mistakeCount, maxPossibleMistakes);
   return {
     pointsEarned,
     mistakeCount,

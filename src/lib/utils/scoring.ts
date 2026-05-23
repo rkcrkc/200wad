@@ -306,15 +306,51 @@ export function getBestMatch(
 export type AnswerGrade = "correct" | "half-correct" | "incorrect";
 
 /**
- * Get the grade for an answer based on mistake count
- * - 0 mistakes = correct
- * - 1-2 mistakes = half-correct
- * - 3+ mistakes = incorrect
+ * Maximum possible mistakes for a correct answer.
+ *
+ * Used to clamp short answers so a "completely wrong" 1- or 2-letter word
+ * scores 0 instead of getting partial credit. Without this, typing "un" for
+ * "il" (Levenshtein distance 2, the maximum possible for 2 chars) would land
+ * in the "2 mistakes = 1 point" bucket of the scoring matrix.
+ *
+ * - Non-gendered: normalized word length (e.g. "il" → 2, "e" → 1)
+ * - Gendered: word length + 1 for the gender marker (e.g. "il (m)" → 3)
  */
-export function getAnswerGrade(mistakeCount: number): AnswerGrade {
+export function getMaxPossibleMistakes(
+  correctAnswer: string,
+  options: NormalizeOptions | boolean = {}
+): number {
+  if (typeof options === "boolean") {
+    options = { strictPunctuation: options, preserveCase: options };
+  }
+  const { strictPunctuation = false } = options;
+  const correctTrimmed = correctAnswer.trim();
+  const isGendered = !strictPunctuation && GENDER_MARKER.test(correctTrimmed);
+  const normalized = normalizeAnswer(correctAnswer, options);
+  return normalized.length + (isGendered ? 1 : 0);
+}
+
+/**
+ * Get the grade for an answer based on mistake count.
+ *
+ * - 0 mistakes = correct
+ * - 1..(threshold-1) mistakes = half-correct
+ * - >= threshold mistakes = incorrect
+ *
+ * `maxPossibleMistakes` clamps the "incorrect" threshold so short words can't
+ * sit forever in the half-correct bucket. The threshold is `min(3, maxPossibleMistakes)`,
+ * matching the original "3+ mistakes = wrong" rule for longer words.
+ */
+export function getAnswerGrade(
+  mistakeCount: number,
+  maxPossibleMistakes?: number
+): AnswerGrade {
   if (mistakeCount === 0) return "correct";
-  if (mistakeCount <= 2) return "half-correct";
-  return "incorrect";
+  const threshold = maxPossibleMistakes !== undefined
+    ? Math.min(3, Math.max(1, maxPossibleMistakes))
+    : 3;
+  if (mistakeCount >= threshold) return "incorrect";
+  return "half-correct";
 }
 
 // ============================================================================
@@ -323,17 +359,34 @@ export function getAnswerGrade(mistakeCount: number): AnswerGrade {
 
 /**
  * Calculate points earned based on clue level and mistake count
- * 
- * Scoring Matrix:
+ *
+ * Scoring Matrix (for answers of length >= 3):
  * | Clues | Correct | 1 mistake | 2 mistakes | 3+ (incorrect) |
  * |-------|---------|-----------|------------|----------------|
  * | 0     | 3       | 2         | 1          | 0              |
  * | 1     | 2       | 1         | 0          | 0              |
  * | 2     | 1       | 0         | 0          | 0              |
+ *
+ * `maxPossibleMistakes` clamps the "incorrect" threshold for short answers.
+ * For a 2-letter word, 2 mistakes already means "completely different word",
+ * so it scores 0 (not 1). For a 1-letter word, 1 mistake means fully wrong.
+ * See `getMaxPossibleMistakes` for how this is computed.
  */
-export function calculatePoints(clueLevel: 0 | 1 | 2, mistakeCount: number): number {
+export function calculatePoints(
+  clueLevel: 0 | 1 | 2,
+  mistakeCount: number,
+  maxPossibleMistakes?: number
+): number {
   // Max points based on clue level
   const maxPoints = 3 - clueLevel;
+
+  // Length-aware "fully wrong" threshold: capped at 3 (existing matrix),
+  // floored at 1 (a 0-length answer would otherwise zero everything out).
+  const threshold = maxPossibleMistakes !== undefined
+    ? Math.min(3, Math.max(1, maxPossibleMistakes))
+    : 3;
+
+  if (mistakeCount >= threshold) return 0;
 
   // Points lost based on mistakes
   const pointsLost = Math.min(mistakeCount, maxPoints);
@@ -369,36 +422,32 @@ export type ScoreLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | 
  * | 2 errors | G       | H      | I       |
  * | Wrong    | J       | K      | L       |
  */
-export function getScoreLetter(clueLevel: 0 | 1 | 2, mistakeCount: number): ScoreLetter {
-  // Clamp mistake count to 0-3+ range
-  const mistakeRow = Math.min(mistakeCount, 3);
-  
-  // Calculate letter index (0-11)
-  // Row: 0=correct, 1=1 mistake, 2=2 mistakes, 3=3+ mistakes (wrong)
-  // Col: 0=0 clues, 1=1 clue, 2=2 clues
-  const letterIndex = (mistakeRow === 0 ? 0 : mistakeRow) * 3 + clueLevel;
-  
+export function getScoreLetter(
+  clueLevel: 0 | 1 | 2,
+  mistakeCount: number,
+  maxPossibleMistakes?: number
+): ScoreLetter {
+  // Length-aware "fully wrong" threshold (same as calculatePoints / getAnswerGrade)
+  const threshold = maxPossibleMistakes !== undefined
+    ? Math.min(3, Math.max(1, maxPossibleMistakes))
+    : 3;
+
   // Map to letter A-L
   // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8, J=9, K=10, L=11
   const letters: ScoreLetter[] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-  
-  // Correct calculation:
-  // Correct (0 mistakes): row 0 -> indices 0,1,2 -> A,B,C
-  // 1 mistake: row 1 -> indices 3,4,5 -> D,E,F
-  // 2 mistakes: row 2 -> indices 6,7,8 -> G,H,I
-  // 3+ mistakes (wrong): row 3 -> indices 9,10,11 -> J,K,L
-  
+
+  // Row: 0=correct, 1=1 mistake, 2=2 mistakes, 3=fully wrong (>= threshold)
   let row: number;
   if (mistakeCount === 0) {
     row = 0;
+  } else if (mistakeCount >= threshold) {
+    row = 3; // J/K/L - fully wrong (clamped for short words)
   } else if (mistakeCount === 1) {
     row = 1;
-  } else if (mistakeCount === 2) {
-    row = 2;
   } else {
-    row = 3;
+    row = 2;
   }
-  
+
   const index = row * 3 + clueLevel;
   return letters[index];
 }
@@ -544,10 +593,11 @@ export function calculateWordTestResult(
   clueLevel: 0 | 1 | 2
 ): WordTestResult {
   const mistakeCount = getMistakeCount(userAnswer, correctAnswer);
-  const pointsEarned = calculatePoints(clueLevel, mistakeCount);
+  const maxPossibleMistakes = getMaxPossibleMistakes(correctAnswer);
+  const pointsEarned = calculatePoints(clueLevel, mistakeCount, maxPossibleMistakes);
   const maxPoints = getMaxPoints(clueLevel);
-  const scoreLetter = getScoreLetter(clueLevel, mistakeCount);
-  const grade = getAnswerGrade(mistakeCount);
+  const scoreLetter = getScoreLetter(clueLevel, mistakeCount, maxPossibleMistakes);
+  const grade = getAnswerGrade(mistakeCount, maxPossibleMistakes);
 
   return {
     wordId,

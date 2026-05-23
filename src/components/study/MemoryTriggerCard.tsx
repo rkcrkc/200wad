@@ -218,6 +218,7 @@ export function MemoryTriggerCard({
           src={imageUrl}
           alt="Memory trigger"
           fill
+          priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
         />
@@ -368,6 +369,7 @@ export function MemoryTriggerCard({
           src={imageUrl}
           alt="Memory trigger"
           fill
+          priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
         />
@@ -381,6 +383,7 @@ export function MemoryTriggerCard({
           src={imageUrl}
           alt="Memory trigger"
           fill
+          priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
         />

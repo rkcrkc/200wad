@@ -32,6 +32,7 @@ import {
   completeStudySession,
   saveUserNotes,
   saveSystemNotes,
+  type DeveloperData,
 } from "@/lib/mutations/study";
 import { dismissTip } from "@/lib/mutations/tips";
 import { updateWord } from "@/lib/mutations/admin/words";
@@ -45,6 +46,7 @@ import {
   getIncompleteSessionId,
   type WordProgressEntry,
 } from "@/lib/utils/sessionStorage";
+import { preloadImages } from "@/lib/utils/preloadImages";
 
 type StudyPhase =
   | "reveal-first"
@@ -251,6 +253,25 @@ export function StudyModeClient({
 
     preloadAudio(urlsToPreload);
   }, [currentWord, currentWordIndex, localWords, preloadAudio]);
+
+  // Preload memory trigger + flashcard images for current and next word so
+  // the reveal is instant when the user clicks (memory trigger card / flashcard).
+  useEffect(() => {
+    const urlsToPreload: (string | null | undefined)[] = [
+      currentWord.memory_trigger_image_url,
+      currentWord.flashcard_image_url,
+    ];
+
+    const nextWord = localWords[currentWordIndex + 1];
+    if (nextWord) {
+      urlsToPreload.push(
+        nextWord.memory_trigger_image_url,
+        nextWord.flashcard_image_url,
+      );
+    }
+
+    preloadImages(urlsToPreload);
+  }, [currentWord, currentWordIndex, localWords]);
 
   // Timer (pauses when idle or lesson complete)
   useEffect(() => {
@@ -757,6 +778,30 @@ export function StudyModeClient({
     [currentWord.id, currentWordIndex, sessionId, wordProgressMap, isGuest]
   );
 
+  // Handle developer data save (admin only) — keep localWords in sync so
+  // navigating away and back shows the latest values instead of stale props.
+  const handleDeveloperDataChange = useCallback(
+    (data: DeveloperData) => {
+      const wordId = currentWord.id;
+      setLocalWords((prev) =>
+        prev.map((w) =>
+          w.id === wordId
+            ? {
+                ...w,
+                developer_notes: data.developer_notes,
+                picture_wrong: data.picture_wrong,
+                picture_wrong_notes: data.picture_wrong ? data.picture_wrong_notes : null,
+                picture_missing: data.picture_missing,
+                picture_bad_svg: data.picture_bad_svg,
+                notes_in_memory_trigger: data.notes_in_memory_trigger,
+              }
+            : w,
+        ),
+      );
+    },
+    [currentWord.id],
+  );
+
   // Handle system notes change (admin only)
   const handleSystemNotesChange = useCallback(
     async (notes: string | null) => {
@@ -1060,6 +1105,7 @@ export function StudyModeClient({
                 pictureMissing={currentWord.picture_missing}
                 pictureBadSvg={currentWord.picture_bad_svg}
                 notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
+                onDeveloperDataChange={handleDeveloperDataChange}
               />
             ) : (
               <>
@@ -1151,6 +1197,7 @@ export function StudyModeClient({
                       pictureMissing={currentWord.picture_missing}
                       pictureBadSvg={currentWord.picture_bad_svg}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
+                      onDeveloperDataChange={handleDeveloperDataChange}
                       tips={currentWord.tips}
                       dismissedTipIds={Array.from(dismissedTipIds)}
                       onDismissTip={handleDismissTip}

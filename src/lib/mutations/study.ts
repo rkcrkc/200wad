@@ -468,9 +468,15 @@ export async function markWordsAsLearning(
 // LESSON PROGRESS ACTIONS
 // ============================================================================
 
+export type LessonStatus = "not-started" | "learning" | "learned" | "mastered";
+
 export interface UpdateLessonProgressResult {
   success: boolean;
   error: string | null;
+  /** Lesson status after this update. Undefined on failure / missing lesson. */
+  status?: LessonStatus;
+  /** Lesson status before this update (null if no row existed). */
+  previousStatus?: LessonStatus | null;
 }
 
 /**
@@ -531,7 +537,7 @@ export async function updateLessonProgress(
   const completionPercent = totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0;
 
   // Determine lesson status
-  let lessonStatus: "not-started" | "learning" | "learned" | "mastered" = "not-started";
+  let lessonStatus: LessonStatus = "not-started";
   if (completionPercent >= 100) {
     lessonStatus = "mastered";
   } else if (wordsLearnedOrMastered >= totalWords && totalWords > 0) {
@@ -548,6 +554,7 @@ export async function updateLessonProgress(
     .eq("lesson_id", lessonId)
     .maybeSingle();
 
+  const previousStatus = (existingProgress?.status as LessonStatus | undefined) ?? null;
   const currentTotalTime = existingProgress?.total_study_time_seconds || 0;
 
   const progressData = {
@@ -589,7 +596,12 @@ export async function updateLessonProgress(
     revalidatePath(`/course/${lesson.course_id}/progress`);
   }
 
-  return { success: true, error: null };
+  return {
+    success: true,
+    error: null,
+    status: lessonStatus,
+    previousStatus,
+  };
 }
 
 /**
@@ -746,6 +758,25 @@ export async function completeStudySession(
 
     // Set initial test milestone if this is the first time completing this lesson
     await setInitialMilestoneIfNeeded(user.id, lessonId);
+  }
+
+  // Fan out lesson_progress updates to every OTHER real lesson that
+  // contains any of the words promoted to "learning". In the common
+  // study-mode case all answered words belong to `lessonId`, so this
+  // is a no-op. Symmetric with `completeTestSession`; chokepoint
+  // contract documented in src/lib/mutations/wordProgress.ts.
+  if (answeredWordIds.length > 0) {
+    try {
+      const { fanOutLessonProgress } = await import("./wordProgress");
+      await fanOutLessonProgress({
+        userId: user.id,
+        affectedWordIds: answeredWordIds,
+        excludeLessonId: autoInfo ? null : lessonId,
+      });
+    } catch (err) {
+      // Non-critical — study session is already recorded.
+      console.error("[Study Session] fan-out lesson progress failed:", err);
+    }
   }
 
   // Complete any pending referral (triggers credit on first lesson completion)

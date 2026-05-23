@@ -3,7 +3,7 @@
 import { Clock, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/utils/helpers";
-import { WordTrackerDots, type TestResultGrade } from "./WordTrackerDots";
+import { WordTrackerDots, type WordTrackerResult } from "./WordTrackerDots";
 
 interface StudyNavbarProps {
   courseName?: string;
@@ -24,8 +24,8 @@ interface StudyNavbarProps {
   onJumpToWord?: (index: number) => void;
   /** Whether the timer is paused due to inactivity */
   isTimerPaused?: boolean;
-  /** Test mode results: map of word index to grade */
-  testResults?: Map<number, TestResultGrade>;
+  /** Test mode results: map of word index to points earned / max */
+  testResults?: Map<number, WordTrackerResult>;
   /** Test mode: running score - points earned so far */
   testPointsEarned?: number;
   /** Test mode: running score - max possible points so far */
@@ -130,7 +130,7 @@ export function StudyNavbar({
         {/* Timer */}
         <div className={`flex cursor-default items-center gap-1.5 ${isTimerPaused ? "text-muted-foreground" : "text-foreground"}`}>
           {isTimerPaused ? (
-            <Pause className="h-4 w-4" />
+            <Pause className="h-4 w-4" fill="currentColor" strokeWidth={0} />
           ) : (
             <Clock className="h-4 w-4" />
           )}

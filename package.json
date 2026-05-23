@@ -11,7 +11,8 @@
     "dev:turbo": "NODE_OPTIONS=--max-http-header-size=65536 next dev --turbopack",
     "build": "next build",
     "start": "NODE_OPTIONS=--max-http-header-size=65536 next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:guards": "node scripts/check-user-word-progress-writes.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

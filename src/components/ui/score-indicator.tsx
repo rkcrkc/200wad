@@ -70,7 +70,7 @@ export function ScoreIndicator({
 
   // If never tested, show 3 grey traffic lights
   if (scoreStats.timesTested === 0) {
-    return (
+    const untestedDots = (
       <div className="flex items-center gap-1">
         {[0, 1, 2].map((i) => (
           <div
@@ -82,6 +82,26 @@ export function ScoreIndicator({
           />
         ))}
       </div>
+    );
+
+    if (!showPopover) {
+      return untestedDots;
+    }
+
+    return (
+      <Popover
+        position="above"
+        align="left"
+        className="flex items-center cursor-default"
+        content={
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-foreground">{t("pop_score_untested_title")}</span>
+            <span className="text-sm text-muted-foreground">{t("pop_score_untested_body")}</span>
+          </div>
+        }
+      >
+        {untestedDots}
+      </Popover>
     );
   }
 

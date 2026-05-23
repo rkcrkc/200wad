@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getBestMatch,
+  getMaxPossibleMistakes,
   getAnswerGrade,
   getCharacterDiff,
   canonicalizeUserGender,
@@ -130,7 +131,8 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     if (!input.trim()) return;
 
     const { answer: bestMatchAnswer, mistakeCount } = getBestMatch(input, validAnswers, normalizeOptions);
-    const grade = getAnswerGrade(mistakeCount);
+    const maxPossibleMistakes = getMaxPossibleMistakes(bestMatchAnswer, normalizeOptions);
+    const grade = getAnswerGrade(mistakeCount, maxPossibleMistakes);
     const isCorrect = grade === "correct";
 
     const newFeedback: FeedbackState = {

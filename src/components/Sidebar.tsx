@@ -73,7 +73,7 @@ function SidebarNavItem({
         </span>
       </div>
       {badge !== undefined && badge > 0 && (
-        <span className="mr-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-bone-hover px-1.5 text-xs font-semibold text-foreground">
+        <span className="mr-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-beige px-1.5 text-xs font-semibold text-foreground">
           {badge}
         </span>
       )}

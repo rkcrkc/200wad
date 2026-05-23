@@ -29,6 +29,8 @@ import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
+import { CelebrationModal } from "@/components/celebrations/CelebrationModal";
+import type { CelebrationPayload } from "@/lib/notifications/celebrations";
 import { saveSystemNotes, saveUserNotes } from "@/lib/mutations/study";
 import { updateWord } from "@/lib/mutations/admin/words";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
@@ -39,7 +41,8 @@ import {
   clearAllLessonSessions,
   type WordProgressEntry,
 } from "@/lib/utils/sessionStorage";
-import { calculateScorePercent, getScoreLetter } from "@/lib/utils/scoring";
+import { calculateScorePercent, getScoreLetter, getMaxPossibleMistakes } from "@/lib/utils/scoring";
+import { preloadImages } from "@/lib/utils/preloadImages";
 
 interface TestProgress {
   clueLevel: 0 | 1 | 2;
@@ -309,6 +312,12 @@ export function TestModeClient({
   const [serverCourseWordsMastered, setServerCourseWordsMastered] = useState<number | null>(null);
   const [isRetest, setIsRetest] = useState(false);
 
+  // Mastery celebration. Returned by `completeTestSession` when this test
+  // unlocked lesson/course/language full mastery for the first time. The
+  // modal renders ON TOP of the regular TestCompletedModal so the user sees
+  // the celebration first, then dismisses through to the standard summary.
+  const [celebration, setCelebration] = useState<CelebrationPayload | null>(null);
+
   // Frozen snapshot of stats captured the moment `handleFinishTest` runs, BEFORE
   // any server mutation. Rendering the modal from this snapshot prevents the
   // post-write `words` prop (re-fetched during `revalidatePath`) from inflating
@@ -369,7 +378,11 @@ export function TestModeClient({
         maxPoints: currentProgress.maxPoints,
         scorePercent: calculateScorePercent(currentProgress.pointsEarned, currentProgress.maxPoints),
         grade: currentProgress.grade,
-        scoreLetter: getScoreLetter(currentProgress.clueLevel, currentProgress.mistakeCount),
+        scoreLetter: getScoreLetter(
+          currentProgress.clueLevel,
+          currentProgress.mistakeCount,
+          getMaxPossibleMistakes(currentProgress.correctAnswer)
+        ),
       }
     : null;
 
@@ -519,6 +532,17 @@ export function TestModeClient({
     preloadAudio(englishUrls);
   }, [words, preloadAudio]);
 
+  // Preload memory trigger + flashcard images for every word on mount so the
+  // clue reveal (and any image swap) is instant rather than waiting on the
+  // network. Same pattern as audio preloading above.
+  useEffect(() => {
+    const imageUrls: (string | null | undefined)[] = [];
+    for (const w of words) {
+      imageUrls.push(w.memory_trigger_image_url, w.flashcard_image_url);
+    }
+    preloadImages(imageUrls);
+  }, [words]);
+
   // Preload audio for current word (and next word for smoother transitions)
   useEffect(() => {
     if (!currentWord) return;
@@ -550,6 +574,15 @@ export function TestModeClient({
     };
   }, [stopAudio, stopMusic]);
 
+  // Bumped on every word change. `handleRestart` plays english → foreign →
+  // trigger in sequence; if the user advances mid-sequence we need it to bail
+  // out, otherwise its next `await playAudio(...)` will clobber the auto-play
+  // of the new word.
+  const wordSequenceRef = useRef(0);
+  useEffect(() => {
+    wordSequenceRef.current++;
+  }, [currentWordIndex]);
+
   // Auto-play audio when word changes (based on test type)
   useEffect(() => {
     if (testType === "english-to-foreign") {
@@ -577,6 +610,9 @@ export function TestModeClient({
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // Bump sequence so any in-flight handleRestart chain bails between
+        // awaits instead of starting the next clip after stopAudio resolves.
+        wordSequenceRef.current++;
         stopAudio();
       }
     };
@@ -839,6 +875,11 @@ export function TestModeClient({
             ...stats,
             courseWordsMastered: result.courseWordsMastered ?? stats.courseWordsMastered,
           });
+          // Surface a mastery celebration if the server detected one. This is
+          // idempotent server-side — replaying the same test won't re-fire.
+          if (result.celebration) {
+            setCelebration(result.celebration);
+          }
         } else {
           console.error("Failed to complete test session:", result.error);
           setFinishedTestStats(stats);
@@ -872,6 +913,9 @@ export function TestModeClient({
 
   // Handle next word
   const handleNextWord = useCallback(() => {
+    // Stop any in-flight audio (e.g. mid-replay from handleRestart) so the
+    // previous word's audio doesn't bleed into the new word.
+    stopAudio();
     if (isLastWord) {
       handleFinishTest();
     } else {
@@ -880,7 +924,7 @@ export function TestModeClient({
       // Scroll to top
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     }
-  }, [isLastWord, handleFinishTest]);
+  }, [isLastWord, handleFinishTest, stopAudio]);
 
   // Handle jump to word
   const handleJumpToWord = useCallback(
@@ -920,16 +964,27 @@ export function TestModeClient({
     router.push(`/lesson/${lesson.id}`);
   }, [sessionId, lesson.id, router]);
 
-  // Handle restart/replay - replay all word audio (english, foreign, trigger)
+  // Handle restart/replay - replay all word audio (english, foreign, trigger).
+  // Captures the word-sequence id at start and bails between awaits if the
+  // user navigates away — otherwise the next playAudio would interrupt the
+  // new word's auto-play with audio from the previous word.
   const handleRestart = useCallback(async () => {
+    const seq = wordSequenceRef.current;
     if (currentWord?.audio_url_english) {
       await playAudio(currentWord.audio_url_english, "english");
+      if (wordSequenceRef.current !== seq) return;
     }
     if (currentWord?.audio_url_foreign) {
       await playAudio(currentWord.audio_url_foreign, "foreign");
+      if (wordSequenceRef.current !== seq) return;
     }
     if (currentWord?.audio_url_trigger) {
       await playAudio(currentWord.audio_url_trigger, "trigger");
+      if (wordSequenceRef.current !== seq) return;
+    }
+    // Replay foreign at the end, matching study mode / WordDetailView.
+    if (currentWord?.audio_url_foreign) {
+      await playAudio(currentWord.audio_url_foreign, "foreign");
     }
   }, [currentWord?.audio_url_english, currentWord?.audio_url_foreign, currentWord?.audio_url_trigger, playAudio]);
 
@@ -942,6 +997,40 @@ export function TestModeClient({
       router.push(`/lesson/${lesson.id}`);
     }
   }, [router, lesson.id, course?.id]);
+
+  // Share handler for the celebration modal. Tries the native Web Share API
+  // first (mobile + most modern browsers) and falls back to copying the
+  // pre-substituted share message to the clipboard. Failures are swallowed
+  // (the user can always tell what they accomplished from the modal title).
+  const handleShareCelebration = useCallback(async () => {
+    if (!celebration) return;
+    const text = celebration.shareMessage;
+    const url = typeof window !== "undefined" ? window.location.origin : undefined;
+    const shareData: ShareData = { text, ...(url ? { url } : {}) };
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      // User cancelled, or browser refused — fall through to clipboard.
+    }
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
+        showAchievementToast({
+          title: "Copied to clipboard",
+          message: "Paste it anywhere to share your win.",
+        });
+      }
+    } catch {
+      // Both pathways failed — there's nothing further we can do silently.
+    }
+  }, [celebration]);
+
+  const handleDismissCelebration = useCallback(() => {
+    setCelebration(null);
+  }, []);
 
   /**
    * Build updated word objects that fold current test results into
@@ -1411,14 +1500,19 @@ export function TestModeClient({
     [currentWord, lesson.id]
   );
 
-  // Build testResults map for word tracker dots (sequence index -> grade)
-  const testResults = new Map<number, "correct" | "half-correct" | "incorrect">();
+  // Build testResults map for word tracker dots (sequence index -> points)
+  // Dots colour by points (not grade) so a clue-aided correct answer at 2/3
+  // reads as partial, matching the rest of the score indicators.
+  const testResults = new Map<number, { pointsEarned: number; maxPoints: number }>();
   testSequence.forEach((word, index) => {
     const attemptNum = testTwice && index >= activeWords.length ? 2 : 1;
     const key = testTwice ? `${word.id}_${attemptNum}` : word.id;
     const progress = testProgressMap.get(key);
     if (progress?.hasAnswered) {
-      testResults.set(index, progress.grade);
+      testResults.set(index, {
+        pointsEarned: progress.pointsEarned,
+        maxPoints: progress.maxPoints,
+      });
     }
   });
 
@@ -1709,6 +1803,39 @@ export function TestModeClient({
           onTestAgain={handleTestAgain}
           onRetestIncorrect={handleRetestIncorrect}
           onStudyIncorrect={handleStudyIncorrect}
+        />
+      )}
+
+      {/* Mastery Celebration Modal — renders ON TOP of the standard
+          TestCompletedModal when this test unlocked lesson/course/language
+          mastery for the first time. Dismissing leaves the TestCompletedModal
+          underneath visible, so the user still sees their normal post-test
+          summary. The server only returns this payload once per (user, entity)
+          so re-completing the same test won't re-trigger the modal. */}
+      {celebration && (
+        <CelebrationModal
+          tier={celebration.tier}
+          title={celebration.title}
+          eyebrow={celebration.eyebrow}
+          emoji={celebration.emoji}
+          flagEmoji={celebration.flagEmoji}
+          subtitle={celebration.subtitle}
+          stats={celebration.stats}
+          primaryCta={{
+            label: "Keep going",
+            onClick: handleDismissCelebration,
+          }}
+          secondaryCta={
+            celebration.secondaryCta && celebration.secondaryCta.label
+              ? {
+                  label: celebration.secondaryCta.label,
+                  href: celebration.secondaryCta.href,
+                }
+              : undefined
+          }
+          shareable
+          onShare={handleShareCelebration}
+          onDismiss={handleDismissCelebration}
         />
       )}
 

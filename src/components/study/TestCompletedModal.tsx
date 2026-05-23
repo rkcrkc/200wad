@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   Clock,
@@ -27,6 +27,7 @@ import { WordGrid } from "./WordGrid";
 import { CompletedModalActionButton } from "./CompletedModalActionButton";
 import { WordDetailView, type WordListItem } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
+import { preloadImages } from "@/lib/utils/preloadImages";
 
 export interface TestWordResult {
   wordId: string;
@@ -80,12 +81,24 @@ export function TestCompletedModal({
     return saved !== null ? saved === "true" : true;
   });
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  const [detailImageMode, setDetailImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
+  const replayRef = useRef<(() => void) | null>(null);
 
   const isPerfectScore = scorePercent === 100;
 
   // Exclude information pages from all word counts/tabs (non-testable)
   const testableWords = words.filter((w) => w.category !== "information");
+
+  // Preload both image variants for every word so clicking into a word's
+  // detail view (or toggling memory-trigger/flashcard) is instant.
+  useEffect(() => {
+    const urls: (string | null | undefined)[] = [];
+    for (const w of words) {
+      urls.push(w.memory_trigger_image_url, w.flashcard_image_url);
+    }
+    preloadImages(urls);
+  }, [words]);
 
   // Filter words by result: anything less than full marks (mistakes and/or
   // clue use) counts as incorrect for the "Incorrect words" tab.
@@ -284,6 +297,9 @@ export function TestCompletedModal({
               layout="sidebar"
               autoPlayAudio={false}
               showTabs={false}
+              replayRef={replayRef}
+              imageMode={detailImageMode}
+              onImageModeChange={setDetailImageMode}
             />
           </>
         ) : (
@@ -321,11 +337,13 @@ export function TestCompletedModal({
             onJumpToWord={(index) => setSelectedWordId(displayWords[index].id)}
             onPreviousWord={() => selectedWordIndex > 0 && setSelectedWordId(displayWords[selectedWordIndex - 1].id)}
             onNextWord={() => selectedWordIndex < displayWords.length - 1 && setSelectedWordId(displayWords[selectedWordIndex + 1].id)}
-            onReplay={() => {}}
+            onReplay={() => replayRef.current?.()}
             hasPrevious={selectedWordIndex > 0}
             hasNext={selectedWordIndex < displayWords.length - 1}
             wordStatus={selectedWord.status}
             variant="sidebar"
+            imageMode={detailImageMode}
+            onImageModeChange={setDetailImageMode}
           />
         </div>
       ) : (

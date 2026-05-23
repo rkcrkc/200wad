@@ -11,9 +11,10 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
-import { fetchWordPreview } from "@/lib/actions/words";
+import { fetchWordPreview, fetchWordImageUrls } from "@/lib/actions/words";
 import { useUser } from "@/context/UserContext";
 import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
+import { preloadImages } from "@/lib/utils/preloadImages";
 
 export interface WordPreviewListItem {
   id: string;
@@ -116,6 +117,25 @@ export function WordPreviewProvider({ children }: { children: ReactNode }) {
         currentIndex: index,
         isLocked,
       });
+
+      // Warm the image cache for adjacent words so arrow navigation reveals
+      // the memory trigger / flashcard instantly. Fire-and-forget; ignore if
+      // a newer fetch has superseded this one.
+      if (list && list.length > 1) {
+        const neighborIds: string[] = [];
+        if (index > 0) neighborIds.push(list[index - 1].id);
+        if (index < list.length - 1) neighborIds.push(list[index + 1].id);
+        if (neighborIds.length > 0) {
+          void fetchWordImageUrls(neighborIds).then((rows) => {
+            if (token !== fetchTokenRef.current) return;
+            const urls: (string | null)[] = [];
+            for (const r of rows) {
+              urls.push(r.memory_trigger_image_url, r.flashcard_image_url);
+            }
+            preloadImages(urls);
+          });
+        }
+      }
     },
     [buildUrl, router]
   );

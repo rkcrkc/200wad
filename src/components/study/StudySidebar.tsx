@@ -10,6 +10,7 @@ import { BodyTextEditor } from "@/components/admin/BodyTextEditor";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { TipCard } from "./TipCard";
 import { DeveloperSection } from "./DeveloperSection";
+import type { DeveloperData } from "@/lib/mutations";
 import type { TipForWord } from "@/lib/queries/tips";
 
 interface StudySidebarProps {
@@ -32,6 +33,8 @@ interface StudySidebarProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
+  /** Callback when developer data is saved (so parent can update its cached word) */
+  onDeveloperDataChange?: (data: DeveloperData) => void;
   /** Contextual tips for this word */
   tips?: TipForWord[];
   /** Tip IDs the user has already dismissed */
@@ -56,6 +59,7 @@ export function StudySidebar({
   pictureMissing,
   pictureBadSvg,
   notesInMemoryTrigger,
+  onDeveloperDataChange,
   tips = [],
   dismissedTipIds = [],
   onDismissTip,
@@ -300,6 +304,7 @@ export function StudySidebar({
           pictureBadSvg={pictureBadSvg}
           notesInMemoryTrigger={notesInMemoryTrigger}
           isEnabled={isEnabled}
+          onSaved={onDeveloperDataChange}
         />
       )}
 

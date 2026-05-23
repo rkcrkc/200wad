@@ -105,20 +105,23 @@ export function WordGrid({
                 </p>
               )}
               {result && (
+                // Colour by points earned (not grade) so a clue-aided correct
+                // answer at 2 points reads as partial, matching other 2-point cards.
+                // Full marks = success (green), partial = warning (amber), zero = destructive (red).
                 <div
                   className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${
-                    result.grade === "correct"
+                    result.pointsEarned >= result.maxPoints
                       ? "text-success"
-                      : result.grade === "half-correct"
+                      : result.pointsEarned > 0
                         ? "text-warning"
                         : "text-destructive"
                   }`}
                 >
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${
-                      result.grade === "correct"
+                      result.pointsEarned >= result.maxPoints
                         ? "bg-success"
-                        : result.grade === "half-correct"
+                        : result.pointsEarned > 0
                           ? "bg-warning"
                           : "bg-destructive"
                     }`}

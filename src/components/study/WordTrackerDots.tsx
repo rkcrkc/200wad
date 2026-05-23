@@ -1,6 +1,11 @@
 "use client";
 
-export type TestResultGrade = "correct" | "half-correct" | "incorrect";
+/**
+ * Per-word score for the test tracker dots. Coloured by points (not grade)
+ * so a clue-aided "correct" answer at 2/3 reads as partial, matching all the
+ * other score-dot indicators in the app.
+ */
+export type WordTrackerResult = { pointsEarned: number; maxPoints: number };
 
 interface WordTrackerDotsProps {
   totalWords: number;
@@ -9,8 +14,8 @@ interface WordTrackerDotsProps {
   onDotClick: (index: number) => void;
   /** Disable clicking on dots (for test mode) */
   disabled?: boolean;
-  /** Test mode results: map of word index to grade */
-  testResults?: Map<number, TestResultGrade>;
+  /** Test mode results: map of word index to points earned / max */
+  testResults?: Map<number, WordTrackerResult>;
   /** Category per word index — "information" dots render black and are grouped separately */
   categories?: (string | null)[];
 }
@@ -69,12 +74,14 @@ export function WordTrackerDots({
     } else if (isCurrent) {
       fillColor = "#0B6CFF";
     } else if (testResults) {
-      if (testResult === "correct") {
-        fillColor = "#00C950";
-      } else if (testResult === "half-correct") {
-        fillColor = "#FF9224";
-      } else if (testResult === "incorrect") {
-        fillColor = "#FB2C36";
+      if (testResult) {
+        if (testResult.pointsEarned >= testResult.maxPoints) {
+          fillColor = "#00C950"; // success — full marks
+        } else if (testResult.pointsEarned > 0) {
+          fillColor = "#FF9224"; // warning — partial (incl. clue-aided correct)
+        } else {
+          fillColor = "#FB2C36"; // destructive — zero points
+        }
       }
     } else {
       if (isViewed) {

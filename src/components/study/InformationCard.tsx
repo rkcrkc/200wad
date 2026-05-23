@@ -5,6 +5,7 @@ import { EditableBodyText } from "@/components/admin/EditableBodyText";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { DeveloperSection } from "./DeveloperSection";
+import type { DeveloperData } from "@/lib/mutations";
 
 interface InformationCardProps {
   title: string;
@@ -24,6 +25,8 @@ interface InformationCardProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
+  /** Callback when developer data is saved (so parent can update its cached word) */
+  onDeveloperDataChange?: (data: DeveloperData) => void;
 }
 
 export function InformationCard({
@@ -41,6 +44,7 @@ export function InformationCard({
   pictureMissing,
   pictureBadSvg,
   notesInMemoryTrigger,
+  onDeveloperDataChange,
 }: InformationCardProps) {
   const canEdit = isEditMode && wordId && onFieldSave;
 
@@ -134,6 +138,7 @@ export function InformationCard({
           pictureMissing={pictureMissing}
           pictureBadSvg={pictureBadSvg}
           notesInMemoryTrigger={notesInMemoryTrigger}
+          onSaved={onDeveloperDataChange}
         />
       )}
     </div>

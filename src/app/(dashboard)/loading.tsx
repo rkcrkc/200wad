@@ -5,6 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
  * that doesn't have its own loading.tsx. The Sidebar/Header from the
  * dashboard layout stay mounted — only this fallback replaces the page
  * content while the server renders.
+ *
+ * Modelled on the My Languages page (the most common consumer when a user
+ * lands without a saved current course), which is a 1/2/3-column card grid
+ * under a page header.
  */
 export default function DashboardLoading() {
   return (
@@ -15,11 +19,11 @@ export default function DashboardLoading() {
         <Skeleton className="h-4 w-96" />
       </div>
 
-      {/* Generic content blocks */}
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+      {/* Card grid (matches My Languages) */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-[280px] w-full rounded-2xl" />
+        ))}
       </div>
     </div>
   );
