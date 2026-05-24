@@ -25,6 +25,7 @@ import {
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { useUser } from "@/context/UserContext";
+import { useWordPreview } from "@/context/WordPreviewContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import {
@@ -87,6 +88,7 @@ export function StudyModeClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
+  const { openWord } = useWordPreview();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
@@ -254,24 +256,17 @@ export function StudyModeClient({
     preloadAudio(urlsToPreload);
   }, [currentWord, currentWordIndex, localWords, preloadAudio]);
 
-  // Preload memory trigger + flashcard images for current and next word so
-  // the reveal is instant when the user clicks (memory trigger card / flashcard).
+  // Preload memory trigger + flashcard images for ALL words in the lesson on
+  // mount so jumping to any word from the sidebar shows the image instantly.
+  // The browser dedupes/caches requests so this is safe to call again when
+  // localWords changes (e.g. admin image upload swaps a URL).
   useEffect(() => {
-    const urlsToPreload: (string | null | undefined)[] = [
-      currentWord.memory_trigger_image_url,
-      currentWord.flashcard_image_url,
-    ];
-
-    const nextWord = localWords[currentWordIndex + 1];
-    if (nextWord) {
-      urlsToPreload.push(
-        nextWord.memory_trigger_image_url,
-        nextWord.flashcard_image_url,
-      );
+    const urlsToPreload: (string | null | undefined)[] = [];
+    for (const word of localWords) {
+      urlsToPreload.push(word.memory_trigger_image_url, word.flashcard_image_url);
     }
-
     preloadImages(urlsToPreload);
-  }, [currentWord, currentWordIndex, localWords]);
+  }, [localWords]);
 
   // Timer (pauses when idle or lesson complete)
   useEffect(() => {
@@ -1087,8 +1082,8 @@ export function StudyModeClient({
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[90px]">
-          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-4">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-[160px] pt-[90px]">
+          <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
             {isInformationPage ? (
               <InformationCard
                 title={currentWord.english}
@@ -1138,8 +1133,8 @@ export function StudyModeClient({
                 </div>
 
                 {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-                <div className="flex gap-4">
-                  <div className="flex w-[700px] flex-col gap-4">
+                <div className="flex w-full min-w-0 gap-4">
+                  <div className="flex w-[700px] shrink-0 flex-col gap-4">
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         key={currentWord.id}
@@ -1170,7 +1165,7 @@ export function StudyModeClient({
                       />
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-4">
                     {isFactPage && (
                       <FactBodyCard
                         bodyText={currentWord.memory_trigger_text}
@@ -1201,6 +1196,7 @@ export function StudyModeClient({
                       tips={currentWord.tips}
                       dismissedTipIds={Array.from(dismissedTipIds)}
                       onDismissTip={handleDismissTip}
+                      onRelatedClick={openWord}
                     />
                   </div>
                 </div>

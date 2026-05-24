@@ -2,13 +2,16 @@
 
 import { cn } from "@/lib/utils";
 import { useRef, useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * White-background hover popover for content expansion
  * (e.g. time breakdowns, mastery stats, rate calculations).
  *
  * Auto-flips alignment and position when the popover would overflow the viewport edge.
- * Uses fixed positioning to avoid clipping by overflow containers.
+ * Uses fixed positioning + a portal to document.body so the panel escapes any
+ * transformed/scrolling ancestors (e.g. the slide-in WordDetailSidebar, which
+ * applies `translate-x-*` and would otherwise capture `position: fixed`).
  * For simple functional explainers (button labels), use <Tooltip> instead.
  */
 export function Popover({
@@ -33,6 +36,12 @@ export function Popover({
   const [resolvedPosition, setResolvedPosition] = useState(position);
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Portal target only exists after mount on the client.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const updatePosition = useCallback(() => {
     const container = containerRef.current;
@@ -112,6 +121,19 @@ export function Popover({
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isHovered, updatePosition]);
 
+  const panel = (
+    <div
+      ref={panelRef}
+      style={panelStyle}
+      className={cn(
+        "pointer-events-none fixed z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 shadow-xl ring-1 ring-black/5 transition-opacity duration-150",
+        isHovered ? "opacity-100" : "opacity-0"
+      )}
+    >
+      {content}
+    </div>
+  );
+
   return (
     <div
       ref={containerRef}
@@ -120,16 +142,7 @@ export function Popover({
       onMouseLeave={handleMouseLeave}
     >
       {children}
-      <div
-        ref={panelRef}
-        style={panelStyle}
-        className={cn(
-          "pointer-events-none fixed z-50 w-max max-w-[min(400px,calc(100vw-32px))] rounded-xl bg-white px-4 py-3 shadow-xl ring-1 ring-black/5 transition-opacity duration-150",
-          isHovered ? "opacity-100" : "opacity-0"
-        )}
-      >
-        {content}
-      </div>
+      {mounted ? createPortal(panel, document.body) : null}
     </div>
   );
 }

@@ -5,11 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Lock, Sparkles } from "lucide-react";
-import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
+import { WordWithDetails, type AdjacentLesson, type RelatedEntry, type RelatedEntryGroups } from "@/lib/queries/words";
 import { fetchWordLessons } from "@/lib/actions/words";
 import { useAudio } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { Badge } from "@/components/ui/badge";
 import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
@@ -64,6 +65,8 @@ interface WordDetailViewProps {
   imageMode?: "memory-trigger" | "flashcard";
   /** Setter for controlled image mode. */
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
+  /** Open another entry in the global word preview sidebar. */
+  onRelatedClick?: (wordId: string) => void;
 }
 
 /** Determine the highlight color based on word's gender. */
@@ -105,6 +108,7 @@ export function WordDetailView({
   replayRef,
   imageMode: imageModeProp,
   onImageModeChange,
+  onRelatedClick,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -153,12 +157,20 @@ export function WordDetailView({
   const setImageMode = onImageModeChange ?? setInternalImageMode;
 
   // Sidebar tab state
-  const [sidebarTab, setSidebarTab] = useState<"word" | "test-history" | "lessons">("word");
+  const [sidebarTab, setSidebarTab] = useState<"word" | "test-history" | "lessons" | "related">("word");
 
   // Lessons containing this word — supplied via prop when available, else fetched lazily
   const [fetchedLessons, setFetchedLessons] = useState<AdjacentLesson[] | null>(null);
   const effectiveLessons: AdjacentLesson[] = lessons ?? fetchedLessons ?? [];
   const showLessonsTab = effectiveLessons.length > 1;
+
+  // Related-words tab is sidebar-only — page layout keeps the card under
+  // example sentences (one card with per-item outline borders).
+  const relatedTotal =
+    word.relatedWords.compound.length +
+    word.relatedWords.sentence.length +
+    word.relatedWords.grammar.length;
+  const showRelatedTab = relatedTotal > 0;
 
   // Audio sequence state
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
@@ -575,10 +587,23 @@ export function WordDetailView({
                   },
                 ]
               : []),
+            ...(showRelatedTab
+              ? [
+                  {
+                    id: "related",
+                    label: (
+                      <span className="inline-flex items-center gap-1.5">
+                        Related
+                        <SubBadge variant="row">{relatedTotal}</SubBadge>
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
           ]}
           activeTab={sidebarTab}
           onChange={(tabId) =>
-            setSidebarTab(tabId as "word" | "test-history" | "lessons")
+            setSidebarTab(tabId as "word" | "test-history" | "lessons" | "related")
           }
         />
       )}
@@ -618,10 +643,9 @@ export function WordDetailView({
         </div>
       )}
 
-      {/* Two columns layout (page) or single column (sidebar — collapses to one
-          column below `lg`, expands to two columns at `lg+` so the notes/right
-          column sits beside the memory trigger when the modal is wide enough). */}
-      <div className={isSidebar ? "flex flex-col gap-4 lg:flex-row lg:gap-6" : "flex gap-6"}>
+      {/* Two columns layout (page) or always-stacked single column (sidebar —
+          notes are kept beneath the memory trigger at every sidebar width). */}
+      <div className={isSidebar ? "flex flex-col gap-4" : "flex gap-6"}>
         {/* Sidebar: Show content based on active tab */}
         {isSidebar && sidebarTab === "test-history" ? (
           // Test History Tab Content
@@ -690,6 +714,17 @@ export function WordDetailView({
           )
         ) : null}
 
+        {/* Related Tab Content (sidebar only) — filled-card variant: each
+            entry renders as a standalone white card with `shadow-card`
+            instead of the outline-border item used elsewhere. */}
+        {isSidebar && sidebarTab === "related" ? (
+          <RelatedEntriesCard
+            groups={word.relatedWords}
+            onRelatedClick={onRelatedClick}
+            variant="filled"
+          />
+        ) : null}
+
         {/* Lessons Tab Content */}
         {isSidebar && sidebarTab === "lessons" ? (
           <div className="w-full rounded-2xl bg-white shadow-card">
@@ -723,7 +758,7 @@ export function WordDetailView({
         {(!isSidebar || sidebarTab === "word") && (
           <>
         {/* Left column - Memory Trigger or Flashcard */}
-        <div className={isSidebar ? "flex w-full flex-col gap-4 lg:w-[55%] lg:gap-6" : "flex w-[55%] flex-col gap-6"}>
+        <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
             isLocked && hasMemoryTrigger ? (
               // Locked state — trigger text is fully visible; only the image is
@@ -1164,43 +1199,14 @@ export function WordDetailView({
             </div>
           )}
 
-          {/* Related Words */}
-          {word.relatedWords && word.relatedWords.length > 0 && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
-              <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
-                RELATED WORDS
-              </span>
-              <div className="flex flex-col gap-4">
-                {word.relatedWords.map((related, index) => (
-                  <div key={related.id}>
-                    <div className="flex items-center gap-4">
-                      {related.memory_trigger_image_url ? (
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
-                          <Image
-                            src={related.memory_trigger_image_url}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xl">
-                          🗣️
-                        </div>
-                      )}
-                      <div className="flex flex-1 flex-col">
-                        <p className="text-sm text-foreground">{related.english}</p>
-                        <p className="text-sm text-foreground/60">{related.headword}</p>
-                      </div>
-                    </div>
-                    {index < word.relatedWords.length - 1 && (
-                      <div className="mt-4 h-px w-full bg-black/10" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Related-entries card from `word_relationships`. Page layout only —
+              in sidebar layout this content lives in its own "Related" tab
+              (filled-card variant), so we skip it under the Word tab here. */}
+          {!isSidebar && (
+            <RelatedEntriesCard
+              groups={word.relatedWords}
+              onRelatedClick={onRelatedClick}
+            />
           )}
         </div>
       </>
@@ -1232,6 +1238,103 @@ export function WordDetailView({
           fromDictionary={fromDictionary}
         />
       )}
+    </div>
+  );
+}
+
+/** Per-item badge labels for the related-entries card. Keep in sync with
+ *  the matching map in `StudySidebar.tsx`. */
+const RELATIONSHIP_BADGE_LABEL: Record<keyof RelatedEntryGroups, string> = {
+  compound: "Word",
+  sentence: "Sentence",
+  grammar: "Grammar",
+};
+
+type FlatRelatedEntry = RelatedEntry & { kind: keyof RelatedEntryGroups };
+
+function flattenRelatedGroups(groups: RelatedEntryGroups): FlatRelatedEntry[] {
+  return [
+    ...groups.compound.map((e) => ({ ...e, kind: "compound" as const })),
+    ...groups.sentence.map((e) => ({ ...e, kind: "sentence" as const })),
+    ...groups.grammar.map((e) => ({ ...e, kind: "grammar" as const })),
+  ];
+}
+
+/** Related-entries renderer.
+ *  - `outline` (default): a single wrapping white card with header label,
+ *    each item is an outline-bordered row. Used in page layout and elsewhere
+ *    (study/test sidebars).
+ *  - `filled`: no wrapping card, each item is its own white `shadow-card`.
+ *    Used by the sidebar's dedicated "Related" tab where the tab itself acts
+ *    as the section heading. */
+function RelatedEntriesCard({
+  groups,
+  onRelatedClick,
+  variant = "outline",
+}: {
+  groups: RelatedEntryGroups;
+  onRelatedClick?: (wordId: string) => void;
+  variant?: "outline" | "filled";
+}) {
+  const entries = flattenRelatedGroups(groups);
+  if (entries.length === 0) return null;
+
+  const itemClass =
+    variant === "filled"
+      ? "group/related flex w-full items-center gap-4 rounded-2xl bg-white p-3 text-left shadow-card"
+      : "group/related flex w-full items-center gap-4 py-4 text-left first:pt-0 last:pb-0";
+
+  const listClass =
+    variant === "filled"
+      ? "flex flex-col gap-3"
+      : "flex flex-col divide-y divide-black/10";
+
+  const items = (
+    <div className={listClass}>
+      {entries.map((entry) => (
+        <button
+          key={`${entry.kind}-${entry.id}`}
+          onClick={() => onRelatedClick?.(entry.id)}
+          className={itemClass}
+        >
+          {entry.memory_trigger_image_url ? (
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
+              <Image
+                src={entry.memory_trigger_image_url}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            </div>
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xl">
+              🗣️
+            </div>
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-0">
+            <p className="truncate text-sm font-medium text-foreground transition-colors duration-150 group-hover/related:text-primary">{entry.english}</p>
+            <p className="truncate text-sm text-foreground/60">{entry.headword}</p>
+            <Badge size="xs" className="mt-1.5 w-fit">
+              {RELATIONSHIP_BADGE_LABEL[entry.kind]}
+            </Badge>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-foreground/50 transition-all duration-150 group-hover/related:translate-x-1 group-hover/related:text-foreground" />
+        </button>
+      ))}
+    </div>
+  );
+
+  if (variant === "filled") {
+    return <div className="w-full">{items}</div>;
+  }
+
+  return (
+    <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+      <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
+        RELATED WORDS
+      </span>
+      {items}
     </div>
   );
 }

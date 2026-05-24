@@ -192,13 +192,17 @@ function DashboardShell({
   const isTestMode = pathname.endsWith("/test");
   if (isStudyMode || isTestMode) {
     // Study/Test mode handles its own header and sidebar via their Client component
-    // Still wrap in CourseProvider for consistency
+    // Still wrap in CourseProvider for consistency.
+    // WordPreviewProvider is required here because the study/test clients use
+    // `useWordPreview()` to open related words from the side panel.
     return (
       <CourseProvider>
         <SubscriptionProvider subscriptions={subscriptions}>
           <TextProvider overrides={textOverrides}>
-            <DefaultContextSetter context={defaultCourseContext} />
-            {children}
+            <WordPreviewProvider>
+              <DefaultContextSetter context={defaultCourseContext} />
+              {children}
+            </WordPreviewProvider>
           </TextProvider>
         </SubscriptionProvider>
       </CourseProvider>

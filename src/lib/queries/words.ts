@@ -111,11 +111,42 @@ export interface WordScoreStats {
   timesTested: number;
 }
 
+export type RelatedEntry = Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">;
+
+/**
+ * Related entries grouped by `word_relationships.relationship_type`.
+ * Each group renders as its own card in the study/test/detail sidebars.
+ */
+export type RelatedEntryGroups = {
+  compound: RelatedEntry[];
+  sentence: RelatedEntry[];
+  grammar: RelatedEntry[];
+};
+
+const EMPTY_RELATED_GROUPS: RelatedEntryGroups = Object.freeze({
+  compound: [],
+  sentence: [],
+  grammar: [],
+}) as RelatedEntryGroups;
+
+/** Allowed `relationship_type` values we render in the UI. */
+const KNOWN_RELATIONSHIP_TYPES = ["compound", "sentence", "grammar"] as const;
+type KnownRelationshipType = (typeof KNOWN_RELATIONSHIP_TYPES)[number];
+
+function isKnownRelationshipType(t: unknown): t is KnownRelationshipType {
+  return typeof t === "string" && (KNOWN_RELATIONSHIP_TYPES as readonly string[]).includes(t);
+}
+
 export interface WordWithDetails extends Word {
   /** Sort order within the current lesson (from lesson_words join table) */
   sort_order: number;
   exampleSentences: ExampleSentence[];
-  relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[];
+  /**
+   * Cross-references from `word_relationships`, bucketed by relationship type.
+   * Unknown types are ignored at read time so adding a new enum value
+   * doesn't crash the UI.
+   */
+  relatedWords: RelatedEntryGroups;
   progress: UserWordProgress | null;
   status: WordStatus;
   /** Last 3 test attempts on this word (most recent first) - "traffic lights" */
@@ -345,12 +376,10 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
     })) || [];
   }
 
-  // Collect related word IDs up-front so the related-words fetch can join
-  // the parallel batch below.
-  const allRelatedWordIds = new Set<string>();
-  words.forEach((word) => {
-    word.related_word_ids?.forEach((id: string) => allRelatedWordIds.add(id));
-  });
+  // Related entries are fetched from `word_relationships` (typed), keyed on
+  // the source word_id. The vestigial `words.related_word_ids` array is no
+  // longer read — it cannot encode `relationship_type` and was never
+  // populated.
   const wordIds = words.map((w) => w.id);
 
   // Phase 2: every remaining read happens concurrently. The previous code
@@ -380,11 +409,13 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
           .eq("is_published", true)
           .order("sort_order")
           .order("number"),
-    allRelatedWordIds.size > 0
+    wordIds.length > 0
       ? supabase
-          .from("words")
-          .select("id, english, headword, memory_trigger_image_url")
-          .in("id", Array.from(allRelatedWordIds))
+          .from("word_relationships")
+          .select(
+            `word_id, relationship_type, related:words!word_relationships_related_word_id_fkey(id, english, headword, memory_trigger_image_url)`
+          )
+          .in("word_id", wordIds)
       : Promise.resolve(null),
     getTipsForWords(wordIds, user?.id ?? null),
     user && words.length > 0
@@ -442,10 +473,21 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
         ? orderedLessons[0]
         : null;
 
-  // Build the related-words map.
-  const relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
-  (relatedWordsResp?.data ?? []).forEach((rw) => {
-    relatedWordsMap[rw.id] = rw;
+  // Build the related-entries map: word_id → grouped entries.
+  // One DB row per (word_id, related_word_id, relationship_type) — bucket
+  // each into its group. Unknown relationship_type values are dropped.
+  const relatedGroupsByWord: Record<string, RelatedEntryGroups> = {};
+  (relatedWordsResp?.data ?? []).forEach((row) => {
+    const sourceId = row.word_id;
+    const related = row.related as RelatedEntry | null;
+    if (!sourceId || !related) return;
+    if (!isKnownRelationshipType(row.relationship_type)) return;
+    let groups = relatedGroupsByWord[sourceId];
+    if (!groups) {
+      groups = { compound: [], sentence: [], grammar: [] };
+      relatedGroupsByWord[sourceId] = groups;
+    }
+    groups[row.relationship_type].push(related);
   });
 
   const { tipsByWordId, dismissedTipIds } = tipsResult;
@@ -571,9 +613,7 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
   const wordsWithDetails: WordWithDetails[] = words.map((word) => {
     const progress = progressByWord[word.id];
     const exampleSentences = (word.example_sentences || []) as ExampleSentence[];
-    const relatedWords = (word.related_word_ids || [])
-      .map((id: string) => relatedWordsMap[id])
-      .filter(Boolean);
+    const relatedWords = relatedGroupsByWord[word.id] ?? EMPTY_RELATED_GROUPS;
     const testHistory = testHistoryByWord[word.id] || [];
     const scoreStats = scoreStatsByWord[word.id] || defaultScoreStats;
     const tips = tipsByWordId[word.id] || [];
@@ -642,15 +682,22 @@ export async function getWord(wordId: string): Promise<{
 
   const language = word.languages as Language | null;
 
-  // Fetch related words
-  let relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[] = [];
-  if (word.related_word_ids && word.related_word_ids.length > 0) {
-    const { data: relatedWordsData } = await supabase
-      .from("words")
-      .select("id, english, headword, memory_trigger_image_url")
-      .in("id", word.related_word_ids);
+  // Fetch related entries from word_relationships, grouped by type.
+  const relatedWords: RelatedEntryGroups = { compound: [], sentence: [], grammar: [] };
+  {
+    const { data: relRows } = await supabase
+      .from("word_relationships")
+      .select(
+        `relationship_type, related:words!word_relationships_related_word_id_fkey(id, english, headword, memory_trigger_image_url)`
+      )
+      .eq("word_id", wordId);
 
-    relatedWords = relatedWordsData || [];
+    (relRows ?? []).forEach((row) => {
+      const related = row.related as RelatedEntry | null;
+      if (!related) return;
+      if (!isKnownRelationshipType(row.relationship_type)) return;
+      relatedWords[row.relationship_type].push(related);
+    });
   }
 
   // Get user's progress for this word
@@ -997,12 +1044,6 @@ async function getAutoLessonWords(
     .filter((w): w is NonNullable<typeof w> => w !== undefined)
     .filter((w) => w.category !== "information");
 
-  // Collect related word IDs
-  const allRelatedWordIds = new Set<string>();
-  orderedWords.forEach((word) => {
-    word.related_word_ids?.forEach((id: string) => allRelatedWordIds.add(id));
-  });
-
   // Final fan-out: related words, user progress, and per-word test history
   // all only depend on the resolved word/target sets, so a single Promise.all
   // replaces the previous three sequential awaits.
@@ -1013,12 +1054,15 @@ async function getAutoLessonWords(
   // Filtering by lesson_id would hide attempts whose original lesson was
   // unpublished, renumbered, or moved, even though the word-level score
   // history is still valid.
+  const orderedWordIds = orderedWords.map((w) => w.id);
   const [relatedWordsResp, wordProgressResp, testQuestionsResp] = await Promise.all([
-    allRelatedWordIds.size > 0
+    orderedWordIds.length > 0
       ? supabase
-          .from("words")
-          .select("id, english, headword, memory_trigger_image_url")
-          .in("id", Array.from(allRelatedWordIds))
+          .from("word_relationships")
+          .select(
+            `word_id, relationship_type, related:words!word_relationships_related_word_id_fkey(id, english, headword, memory_trigger_image_url)`
+          )
+          .in("word_id", orderedWordIds)
       : Promise.resolve(null),
     supabase
       .from("user_word_progress")
@@ -1037,9 +1081,18 @@ async function getAutoLessonWords(
       : Promise.resolve(null),
   ]);
 
-  const relatedWordsMap: Record<string, Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">> = {};
-  (relatedWordsResp?.data ?? []).forEach((rw) => {
-    relatedWordsMap[rw.id] = rw;
+  const relatedGroupsByWord: Record<string, RelatedEntryGroups> = {};
+  (relatedWordsResp?.data ?? []).forEach((row) => {
+    const sourceId = row.word_id;
+    const related = row.related as RelatedEntry | null;
+    if (!sourceId || !related) return;
+    if (!isKnownRelationshipType(row.relationship_type)) return;
+    let groups = relatedGroupsByWord[sourceId];
+    if (!groups) {
+      groups = { compound: [], sentence: [], grammar: [] };
+      relatedGroupsByWord[sourceId] = groups;
+    }
+    groups[row.relationship_type].push(related);
   });
 
   const wordProgress = wordProgressResp.data;
@@ -1129,9 +1182,7 @@ async function getAutoLessonWords(
   const wordsWithDetails: WordWithDetails[] = orderedWords.map((word, index) => {
     const progress = progressByWord[word.id];
     const exampleSentences = (word.example_sentences || []) as ExampleSentence[];
-    const relatedWords = (word.related_word_ids || [])
-      .map((id: string) => relatedWordsMap[id])
-      .filter(Boolean);
+    const relatedWords = relatedGroupsByWord[word.id] ?? EMPTY_RELATED_GROUPS;
     const testHistory = testHistoryByWord[word.id] || [];
     const scoreStats = scoreStatsByWord[word.id] || defaultScoreStats;
 

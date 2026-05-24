@@ -97,7 +97,6 @@ export const createWordSchema = z.object({
   audio_url_english: z.string().url().optional().nullable(),
   audio_url_foreign: z.string().url().optional().nullable(),
   audio_url_trigger: z.string().url().optional().nullable(),
-  related_word_ids: z.array(z.string().uuid()).optional().default([]),
   sort_order: z.number().int().min(0).optional().default(0),
 });
 

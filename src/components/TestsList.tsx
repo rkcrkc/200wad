@@ -53,7 +53,7 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
               <th className="w-[90px] px-2 py-3 text-center font-medium">Test #</th>
               <th className={cn(filter === "previous" ? "w-[110px]" : "w-[100px]", "px-2 py-3 text-left font-medium")}>
                 {filter === "previous" ? (
-                  <Tooltip label="Weighted average test score">
+                  <Tooltip label="Average lesson test score">
                     <span className="inline-flex items-center gap-1.5">
                       Score
                       {averageScore != null && averageScore > 0 && (

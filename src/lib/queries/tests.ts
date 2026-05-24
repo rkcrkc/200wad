@@ -45,6 +45,7 @@ export interface GetTestsResult {
     totalTestTimeSeconds: number;
     testsTaken: number;
     averageScore: number;
+    averageScorePerWord: number;
   };
   isGuest: boolean;
 }
@@ -63,7 +64,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     return {
       dueTests: [],
       previousTests: [],
-      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0 },
+      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0, averageScorePerWord: 0 },
       isGuest: true,
     };
   }
@@ -81,7 +82,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     return {
       dueTests: [],
       previousTests: [],
-      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0 },
+      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0, averageScorePerWord: 0 },
       isGuest: false,
     };
   }
@@ -217,19 +218,20 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
 
   // Calculate stats
   let totalTestTimeSeconds = 0;
-  let weightedScoreSum = 0;
-  let totalWeight = 0;
+  let scoreSum = 0;
+  let totalPointsEarned = 0;
+  let totalMaxPoints = 0;
   const testsTaken = testScores?.length || 0;
 
   testScores?.forEach((ts) => {
     totalTestTimeSeconds += ts.duration_seconds || 0;
-    const wordCount = ts.lesson_id ? (lessonMap.get(ts.lesson_id)?.word_count || 0) : 0;
-    const weight = wordCount || 1; // fallback to 1 to avoid division by zero
-    weightedScoreSum += (ts.score_percent || 0) * weight;
-    totalWeight += weight;
+    scoreSum += ts.score_percent || 0;
+    totalPointsEarned += ts.points_earned || 0;
+    totalMaxPoints += ts.max_points || 0;
   });
 
-  const averageScore = totalWeight > 0 ? Math.round(weightedScoreSum / totalWeight) : 0;
+  const averageScore = testsTaken > 0 ? Math.round(scoreSum / testsTaken) : 0;
+  const averageScorePerWord = totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0;
 
   // Build due tests list
   const now = new Date().toISOString();
@@ -325,6 +327,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       totalTestTimeSeconds,
       testsTaken,
       averageScore,
+      averageScorePerWord,
     },
     isGuest: false,
   };

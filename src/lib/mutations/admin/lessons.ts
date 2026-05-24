@@ -355,7 +355,6 @@ export async function cloneLesson(
             audio_url_english: word.audio_url_english,
             audio_url_foreign: word.audio_url_foreign,
             audio_url_trigger: word.audio_url_trigger,
-            related_word_ids: [], // Don't copy relationships
             created_by: admin.userId,
             updated_by: admin.userId,
           })

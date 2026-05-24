@@ -26,6 +26,7 @@ import {
 } from "@/components/study";
 import { useSetCourseContext } from "@/context/CourseContext";
 import { useUser } from "@/context/UserContext";
+import { useWordPreview } from "@/context/WordPreviewContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
@@ -236,6 +237,7 @@ export function TestModeClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
+  const { openWord } = useWordPreview();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
@@ -1612,8 +1614,8 @@ export function TestModeClient({
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-[160px] pt-[90px]">
-          <div className="mx-auto w-full max-w-content-lg flex flex-col gap-4">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-[160px] pt-[90px]">
+          <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
             {/* Word Card - full width */}
             <div className="w-full">
               <WordCard
@@ -1652,8 +1654,8 @@ export function TestModeClient({
               const isFactPage = currentWord?.category === "fact";
               return (
                 /* Two columns: Memory Trigger (left), Notes/Sentences (right) */
-                <div className="flex gap-4">
-                  <div className="flex w-[700px] flex-col gap-4">
+                <div className="flex w-full min-w-0 gap-4">
+                  <div className="flex w-[700px] shrink-0 flex-col gap-4">
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         imageUrl={currentWord?.memory_trigger_image_url}
@@ -1684,7 +1686,7 @@ export function TestModeClient({
                       />
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col gap-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-4">
                     {isFactPage && (
                       <FactBodyCard
                         bodyText={currentWord?.memory_trigger_text || null}
@@ -1699,8 +1701,10 @@ export function TestModeClient({
                       wordId={currentWord?.id || ""}
                       systemNotes={currentSystemNotes}
                       userNotes={currentUserNotes}
-                      exampleSentences={currentWord?.exampleSentences}
-                      relatedWords={currentWord?.relatedWords}
+                      exampleSentences={currentWord?.exampleSentences ?? []}
+                      relatedWords={
+                        currentWord?.relatedWords ?? { compound: [], sentence: [], grammar: [] }
+                      }
                       isEnabled={hasSubmittedAnswer}
                       onUserNotesChange={handleUserNotesChange}
                       isAdmin={isAdmin}
@@ -1711,6 +1715,7 @@ export function TestModeClient({
                       pictureMissing={currentWord?.picture_missing}
                       pictureBadSvg={currentWord?.picture_bad_svg}
                       notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
+                      onRelatedClick={openWord}
                     />
                   </div>
                 </div>

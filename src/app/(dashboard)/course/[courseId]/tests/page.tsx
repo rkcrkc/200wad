@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { Clock, Target } from "lucide-react";
 import { getLessons, getTests } from "@/lib/queries";
 import { getCourseById } from "@/lib/queries/courses";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -6,7 +6,7 @@ import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { TestsList } from "@/components/TestsList";
 import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
-import { formatDuration } from "@/lib/utils/helpers";
+import { formatDuration, formatPercent } from "@/lib/utils/helpers";
 import { notFound } from "next/navigation";
 
 interface TestsPageProps {
@@ -45,6 +45,14 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-regular-semibold">{formatDuration(stats.totalTestTimeSeconds)}</span>
+              </div>
+            </div>
+            {/* Average score per word */}
+            <div className="flex flex-col items-start gap-1.5">
+              <span className="text-xs text-muted-foreground">Avg. Score per Word</span>
+              <div className="flex items-center gap-1.5">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <span className="text-regular-semibold">{formatPercent(stats.averageScorePerWord)}</span>
               </div>
             </div>
           </div>

@@ -79,7 +79,6 @@ export async function createWord(
         audio_url_english: validated.audio_url_english,
         audio_url_foreign: validated.audio_url_foreign,
         audio_url_trigger: validated.audio_url_trigger,
-        related_word_ids: validated.related_word_ids ?? [],
         created_by: admin.userId,
         updated_by: admin.userId,
       })
@@ -162,7 +161,6 @@ export async function updateWord(
         audio_url_trigger: validated.audio_url_trigger ?? undefined,
         alternate_answers: validated.alternate_answers,
         alternate_english_answers: validated.alternate_english_answers,
-        related_word_ids: validated.related_word_ids,
         updated_by: admin.userId,
       })
       .eq("id", id);

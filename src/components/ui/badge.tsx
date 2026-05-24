@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  size?: "sm" | "default";
+  size?: "xs" | "sm" | "default";
   variant?: "default" | "success" | "warning" | "white" | "outline" | "beige";
 }
 
@@ -14,13 +14,19 @@ const variantStyles = {
   beige: "bg-bone text-gray-600",
 };
 
+const sizeStyles = {
+  xs: "px-1.5 py-0.5 text-[10px]",
+  sm: "px-2 py-0.5 text-xs",
+  default: "px-3 py-1 text-xs",
+};
+
 export function Badge({ size = "default", variant = "default", className, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-block rounded-full text-xs font-medium",
+        "inline-block rounded-full font-medium",
         variantStyles[variant],
-        size === "sm" ? "px-2 py-0.5" : "px-3 py-1",
+        sizeStyles[size],
         className
       )}
       {...props}

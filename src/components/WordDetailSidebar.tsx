@@ -8,6 +8,7 @@ import { WordDetailView } from "@/components/WordDetailView";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
 import { useText } from "@/context/TextContext";
+import { useWordPreview } from "@/context/WordPreviewContext";
 import { cn } from "@/lib/utils";
 
 interface WordListItem {
@@ -76,6 +77,9 @@ export function WordDetailSidebar({
   isLocked = false,
 }: WordDetailSidebarProps) {
   const { t, tt } = useText();
+  // Clicking a related entry from inside the preview sidebar swaps content
+  // in-place via the existing openWord behavior (URL replace, no history bloat).
+  const { openWord } = useWordPreview();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<(() => void) | null>(null);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
@@ -245,6 +249,7 @@ export function WordDetailSidebar({
             replayRef={replayRef}
             imageMode={imageMode}
             onImageModeChange={setImageMode}
+            onRelatedClick={openWord}
           />
         </div>
 

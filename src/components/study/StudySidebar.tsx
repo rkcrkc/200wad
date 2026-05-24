@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
-import { ExampleSentence, Word } from "@/types/database";
+import { ExampleSentence } from "@/types/database";
+import type { RelatedEntry, RelatedEntryGroups } from "@/lib/queries/words";
 import { cn } from "@/lib/utils";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { BodyTextEditor } from "@/components/admin/BodyTextEditor";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
+import { Badge } from "@/components/ui/badge";
 import { TipCard } from "./TipCard";
 import { DeveloperSection } from "./DeveloperSection";
 import type { DeveloperData } from "@/lib/mutations";
@@ -19,9 +21,15 @@ interface StudySidebarProps {
   systemNotes: string | null;
   userNotes: string | null;
   exampleSentences: ExampleSentence[];
-  relatedWords: Pick<Word, "id" | "english" | "headword" | "memory_trigger_image_url">[];
+  /**
+   * Cross-references from `word_relationships`, grouped by relationship type.
+   * Each non-empty group renders as a separate card.
+   */
+  relatedWords: RelatedEntryGroups;
   isEnabled: boolean;
   onUserNotesChange: (notes: string | null) => void;
+  /** Open another entry in the global word preview sidebar. */
+  onRelatedClick?: (wordId: string) => void;
   /** Whether current user is an admin (can edit system notes) */
   isAdmin?: boolean;
   /** Callback when admin edits system notes */
@@ -63,6 +71,7 @@ export function StudySidebar({
   tips = [],
   dismissedTipIds = [],
   onDismissTip,
+  onRelatedClick,
 }: StudySidebarProps) {
   // User notes state
   const [isEditingUserNotes, setIsEditingUserNotes] = useState(false);
@@ -114,14 +123,14 @@ export function StudySidebar({
   const displaySystemNotes = systemNotes;
 
   const cardClasses = cn(
-    "w-full rounded-2xl bg-white shadow-card transition-opacity",
+    "w-full overflow-hidden rounded-2xl bg-white shadow-card transition-opacity",
     !isEnabled && "pointer-events-none opacity-30"
   );
 
   // Skeleton card for disabled state with shimmer animation
   if (!isEnabled) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         {/* Notes skeleton */}
         <div className={cardClasses}>
           <div className="p-6">
@@ -156,7 +165,7 @@ export function StudySidebar({
   const visibleTips = tips.filter((tip) => !dismissedTipIds.includes(tip.id));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full min-w-0 flex-col gap-4">
       {/* Tip Cards - above Notes */}
       {isEnabled && visibleTips.map((tip) => (
         <TipCard
@@ -293,21 +302,6 @@ export function StudySidebar({
         </div>
       </div>
 
-      {/* Developer Card - Admin only */}
-      {isAdmin && (
-        <DeveloperSection
-          wordId={wordId}
-          developerNotes={developerNotes}
-          pictureWrong={pictureWrong}
-          pictureWrongNotes={pictureWrongNotes}
-          pictureMissing={pictureMissing}
-          pictureBadSvg={pictureBadSvg}
-          notesInMemoryTrigger={notesInMemoryTrigger}
-          isEnabled={isEnabled}
-          onSaved={onDeveloperDataChange}
-        />
-      )}
-
       {/* Example Sentences Card */}
       {exampleSentences.length > 0 && (
         <div className={cardClasses}>
@@ -331,11 +325,11 @@ export function StudySidebar({
                         />
                       </div>
                     )}
-                    <div className="flex flex-1 flex-col gap-2">
-                      <p className="text-small-regular text-foreground">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <p className="text-small-regular text-foreground break-words">
                         {sentence.foreign_sentence}
                       </p>
-                      <p className="text-small-regular text-foreground/60">
+                      <p className="text-small-regular text-foreground/60 break-words">
                         {sentence.english_sentence}
                       </p>
                     </div>
@@ -351,53 +345,120 @@ export function StudySidebar({
         </div>
       )}
 
-      {/* Related Words Card */}
-      {relatedWords.length > 0 && (
-        <div className={cardClasses}>
-          <div className="flex flex-col gap-5 p-6">
-          <span className="study-card-label uppercase tracking-wide text-foreground/50">
-            RELATED WORDS
-          </span>
+      {/* Related-entries card. One card, grouped by relationship_type via
+          per-item badges, rendered in `compound → sentence → grammar` order
+          so similar items cluster. */}
+      <RelatedEntriesCard
+        groups={relatedWords}
+        cardClasses={cardClasses}
+        onRelatedClick={onRelatedClick}
+      />
 
-            <div className="flex flex-col gap-5">
-              {relatedWords.map((word, index) => (
-                <div key={word.id}>
-                  <button className="flex w-full items-center gap-5 text-left transition-opacity hover:opacity-70">
-                    {word.memory_trigger_image_url ? (
-                      <div className="relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-lg">
-                        <Image
-                          src={word.memory_trigger_image_url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="62px"
-                        />
-                        <div className="pointer-events-none absolute inset-0 rounded-lg border border-black/10" />
-                      </div>
-                    ) : (
-                      <div className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl">
-                        🗣️
-                      </div>
-                    )}
-                    <div className="flex flex-1 flex-col gap-1">
-                      <p className="text-small-regular text-foreground">
-                        {word.english}
-                      </p>
-                      <p className="text-small-regular text-foreground/60">
-                        {word.headword}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-foreground/50" />
-                  </button>
-                  {index < relatedWords.length - 1 && (
-                    <div className="mt-5 h-px w-full bg-black/10" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Developer Card - Admin only */}
+      {isAdmin && (
+        <DeveloperSection
+          wordId={wordId}
+          developerNotes={developerNotes}
+          pictureWrong={pictureWrong}
+          pictureWrongNotes={pictureWrongNotes}
+          pictureMissing={pictureMissing}
+          pictureBadSvg={pictureBadSvg}
+          notesInMemoryTrigger={notesInMemoryTrigger}
+          isEnabled={isEnabled}
+          onSaved={onDeveloperDataChange}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Map a `relationship_type` to its per-item badge label. */
+const RELATIONSHIP_BADGE_LABEL: Record<keyof RelatedEntryGroups, string> = {
+  compound: "Word",
+  sentence: "Sentence",
+  grammar: "Grammar",
+};
+
+type FlatRelatedEntry = RelatedEntry & { kind: keyof RelatedEntryGroups };
+
+function flattenRelatedGroups(groups: RelatedEntryGroups): FlatRelatedEntry[] {
+  // Order matches the per-item badge groupings so compounds list first.
+  return [
+    ...groups.compound.map((e) => ({ ...e, kind: "compound" as const })),
+    ...groups.sentence.map((e) => ({ ...e, kind: "sentence" as const })),
+    ...groups.grammar.map((e) => ({ ...e, kind: "grammar" as const })),
+  ];
+}
+
+/** Single bordered, standalone related-entry button with a kind badge. */
+function RelatedEntryItem({
+  entry,
+  onRelatedClick,
+}: {
+  entry: FlatRelatedEntry;
+  onRelatedClick?: (wordId: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onRelatedClick?.(entry.id)}
+      className="group/related flex w-full items-center gap-4 py-4 text-left first:pt-0 last:pb-0"
+    >
+      {entry.memory_trigger_image_url ? (
+        <div className="relative h-[62px] w-[62px] shrink-0 overflow-hidden rounded-lg">
+          <Image
+            src={entry.memory_trigger_image_url}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="62px"
+          />
+          <div className="pointer-events-none absolute inset-0 rounded-lg border border-black/10" />
+        </div>
+      ) : (
+        <div className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl">
+          🗣️
         </div>
       )}
+      <div className="flex min-w-0 flex-1 flex-col gap-0">
+        <p className="truncate text-small-medium text-foreground transition-colors duration-150 group-hover/related:text-primary">{entry.english}</p>
+        <p className="truncate text-small-regular text-foreground/60">{entry.headword}</p>
+        <Badge size="xs" className="mt-1.5 w-fit">
+          {RELATIONSHIP_BADGE_LABEL[entry.kind]}
+        </Badge>
+      </div>
+      <ChevronRight className="h-5 w-5 shrink-0 text-foreground/50 transition-all duration-150 group-hover/related:translate-x-1 group-hover/related:text-foreground" />
+    </button>
+  );
+}
+
+/** Single card containing all related entries; renders nothing when all groups are empty. */
+function RelatedEntriesCard({
+  groups,
+  cardClasses,
+  onRelatedClick,
+}: {
+  groups: RelatedEntryGroups;
+  cardClasses: string;
+  onRelatedClick?: (wordId: string) => void;
+}) {
+  const entries = flattenRelatedGroups(groups);
+  if (entries.length === 0) return null;
+  return (
+    <div className={cardClasses}>
+      <div className="flex flex-col gap-5 p-6">
+        <span className="study-card-label uppercase tracking-wide text-foreground/50">
+          RELATED WORDS
+        </span>
+        <div className="flex flex-col divide-y divide-black/10">
+          {entries.map((entry) => (
+            <RelatedEntryItem
+              key={`${entry.kind}-${entry.id}`}
+              entry={entry}
+              onRelatedClick={onRelatedClick}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
