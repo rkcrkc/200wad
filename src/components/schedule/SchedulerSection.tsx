@@ -180,14 +180,14 @@ export function SchedulerSection({
         </Button>
       </div>
 
-      {/* Test folder tabs — beige wrapper with a white "notch" for the active
-          tab. Tabs distribute equally across the full card width via flex-1,
-          capped at max-w-[120px] so they don't get absurdly wide when there
-          are few tabs. When many tabs are due, min-w-[44px] forces overflow
-          and the strip scrolls (chevrons + edge fades appear on demand).
-          Inactive tabs show just the number; the active tab shows the number
-          plus the lesson title (truncated to fit). relative z-10 keeps tabs
-          above the SchedulerCard's drop shadow. */}
+      {/* Test folder tabs — beige wrapper spans the full card width with a
+          white "notch" for the active tab. Tabs distribute equally via
+          flex-1 so they fill the available space. When many tabs are due,
+          min-w-[44px] forces overflow and the strip scrolls (chevrons +
+          edge fades appear on demand). Inactive tabs show just the number;
+          the active tab shows the number plus the lesson title (truncated
+          to fit). relative z-10 keeps tabs above the SchedulerCard's drop
+          shadow. */}
       {showTestDots && (
         <div className="relative z-10 -mb-px w-full">
           <div className="relative w-full overflow-hidden rounded-t-xl bg-beige">
@@ -209,15 +209,13 @@ export function SchedulerSection({
                     aria-label={`Test ${i + 1} of ${dueTests.length}: ${test.title}`}
                     data-tab-index={i}
                     onClick={() => setActiveTestIndex(i)}
-                    className={`text-small-semibold min-w-[44px] max-w-[120px] flex-1 truncate rounded-t-xl px-3 py-3 transition-colors ${
-                      isActive ? "text-left" : "text-center"
-                    } ${
+                    className={`text-small-semibold min-w-[44px] flex-1 truncate rounded-t-xl px-3 py-3 text-center transition-colors ${
                       isActive
                         ? "bg-white text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {isActive ? `#${i + 1} ${test.title}` : i + 1}
+                    {`#${i + 1} ${test.title}`}
                   </button>
                 );
               })}
@@ -260,7 +258,7 @@ export function SchedulerSection({
       <SchedulerCard
         lesson={displayLesson}
         mode={showTest ? "test" : "lesson"}
-        flushTopLeft={showTestDots}
+        flushTop={showTestDots}
       />
     </section>
   );

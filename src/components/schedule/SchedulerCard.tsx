@@ -18,8 +18,8 @@ import { mapStatus } from "@/lib/utils/helpers";
 interface SchedulerCardProps {
   lesson: LessonForScheduler;
   mode: "test" | "lesson";
-  /** When true, the card's top-left corner is squared off so folder tabs can sit flush. */
-  flushTopLeft?: boolean;
+  /** When true, the card's top corners are squared off so folder tabs can sit flush. */
+  flushTop?: boolean;
 }
 
 // Compact milestone label used for both the kicker above the title and the
@@ -39,7 +39,7 @@ function milestoneShortLabel(milestone: string | undefined | null): string | nul
   return MILESTONE_LABEL[milestone] ?? milestone;
 }
 
-export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerCardProps) {
+export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardProps) {
   const { t } = useText();
   const isTest = mode === "test";
   const isAuto = isAutoLesson(lesson.id);
@@ -61,7 +61,7 @@ export function SchedulerCard({ lesson, mode, flushTopLeft = false }: SchedulerC
   return (
     <div
       className={`relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-[0px_12px_32px_-8px_rgba(0,0,0,0.18)] ${
-        flushTopLeft ? "rounded-tl-none" : ""
+        flushTop ? "rounded-t-none" : ""
       }`}
     >
       <div className="flex min-h-[450px] flex-col gap-0 md:flex-row md:items-stretch md:gap-8">
