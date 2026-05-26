@@ -83,7 +83,8 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
     const { data: courses } = await supabase
       .from("courses")
       .select("language_id")
-      .in("language_id", languageIds);
+      .in("language_id", languageIds)
+      .eq("is_published", true);
 
     if (courses) {
       courseCounts = courses.reduce(
