@@ -374,13 +374,13 @@ export function StudyActionBar({
     <div className="px-4 py-4 sm:px-6">
       <div className="flex items-center justify-between gap-4">
         {/* Left section - word info, score */}
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           {/* Word text + part of speech */}
           {/* In picture-only mode, hide word/pos (and the divider before score) until submit */}
           {!(isTestMode && pictureOnlyMode && !hasSubmittedAnswer) && (
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-regular-semibold text-foreground">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-regular-semibold text-foreground truncate">
                   {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
                 </span>
                 {posDisplay && (

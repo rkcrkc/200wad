@@ -1161,7 +1161,7 @@ export function StudyModeClient({
                         key={currentWord.id}
                         imageUrl={currentWord.flashcard_image_url}
                         englishWord={currentWord.english}
-                        isVisible={showTrigger}
+                        isVisible={true}
                       />
                     )}
                   </div>
