@@ -21,6 +21,10 @@ Regenerate Supabase types:
 npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database-generated.ts
 ```
 
+## Glossary
+
+- **NL / new DB** — the current Supabase database backing this 200WAD app (as distinct from the legacy "old DB" / source CSVs under `/Users/ryancrocombe/Documents/200WAD/DB IMPORT/`). When the user says "NL" they mean this project's Supabase instance.
+
 ## Architecture
 
 **Stack:** Next.js 16.1 (App Router) + TypeScript + Supabase + Tailwind CSS 4 + shadcn/ui
