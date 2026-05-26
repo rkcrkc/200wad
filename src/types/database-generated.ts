@@ -1458,6 +1458,7 @@ export type Database = {
           longest_streak: number | null
           name: string | null
           nationalities: string[] | null
+          notifications_last_seen_at: string | null
           referral_code: string | null
           stripe_customer_id: string | null
           total_vocabulary_count: number | null
@@ -1485,6 +1486,7 @@ export type Database = {
           longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
+          notifications_last_seen_at?: string | null
           referral_code?: string | null
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
@@ -1512,6 +1514,7 @@ export type Database = {
           longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
+          notifications_last_seen_at?: string | null
           referral_code?: string | null
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null

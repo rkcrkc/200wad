@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchInbox,
   markAllAsRead,
+  markNotificationsSeen,
 } from "@/lib/mutations/notifications";
 import type { Notification } from "@/types/database";
 import { NotificationRow } from "./NotificationRow";
@@ -43,9 +44,17 @@ export function NotificationBell() {
     refresh();
   }, [refresh]);
 
-  // Refresh when the dropdown opens (so it's never stale).
+  // When the dropdown opens: optimistically clear the badge, stamp
+  // `notifications_last_seen_at`, then refresh the list. The badge represents
+  // "new notifications since you last looked", so opening the panel clears it.
+  // Per-row read state is untouched.
   useEffect(() => {
-    if (open) refresh();
+    if (!open) return;
+    setUnreadCount(0);
+    (async () => {
+      await markNotificationsSeen();
+      await refresh();
+    })();
   }, [open, refresh]);
 
   // Click-outside to close.
@@ -88,6 +97,14 @@ export function NotificationBell() {
   const badgeLabel =
     unreadCount === 0 ? null : unreadCount > 9 ? "9+" : String(unreadCount);
 
+  // Count of items still individually marked unread — used to decide whether
+  // to show the "Mark all as read" link. This is independent of the bell badge
+  // (which counts notifications created since the user last opened the panel).
+  const unreadItemsCount = items.reduce(
+    (acc, n) => (n.is_read ? acc : acc + 1),
+    0
+  );
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -127,8 +144,9 @@ export function NotificationBell() {
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <span className="text-small-semibold text-foreground">
               Notifications
+              {unreadItemsCount > 0 && ` (${unreadItemsCount})`}
             </span>
-            {unreadCount > 0 && (
+            {unreadItemsCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllRead}

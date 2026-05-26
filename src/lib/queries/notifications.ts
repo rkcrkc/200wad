@@ -42,7 +42,12 @@ export async function listInboxNotifications(
 }
 
 /**
- * Count unread, non-dismissed, non-expired in-app notifications for the bell badge.
+ * Count notifications created since the user last opened the bell — i.e.
+ * the badge count.
+ *
+ * "Unread" here means "new since last seen", NOT per-row `is_read`. Opening
+ * the dropdown updates `users.notifications_last_seen_at`, which clears the
+ * badge regardless of whether individual rows have been marked read.
  */
 export async function getUnreadCount(): Promise<number> {
   const supabase = await createClient();
@@ -53,14 +58,28 @@ export async function getUnreadCount(): Promise<number> {
 
   const nowIso = new Date().toISOString();
 
-  const { count, error } = await supabase
+  // Fetch the user's last-seen baseline. If never set, treat everything as new.
+  const { data: userRow } = await supabase
+    .from("users")
+    .select("notifications_last_seen_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const lastSeen = userRow?.notifications_last_seen_at ?? null;
+
+  let query = supabase
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("channel", "in_app")
-    .eq("is_read", false)
     .is("dismissed_at", null)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+
+  if (lastSeen) {
+    query = query.gt("created_at", lastSeen);
+  }
+
+  const { count, error } = await query;
 
   if (error) {
     console.error("getUnreadCount error:", error);

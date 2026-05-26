@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { toast } from "sonner";
@@ -34,10 +35,57 @@ interface NotificationDataShape {
 export function NotificationRow({ notification, onAction }: NotificationRowProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close the context menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuPos) return;
+    const close = () => setMenuPos(null);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuPos(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", handleKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [menuPos]);
 
   const data = (notification.data ?? null) as NotificationDataShape | null;
   const cta = data?.cta;
   const isCritical = data?.severity === "critical";
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Clamp so the menu stays inside the viewport (menu ~180×72 with 2 items).
+    const menuW = 180;
+    const menuH = 72;
+    const x = Math.min(e.clientX, window.innerWidth - menuW - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuH - 8);
+    setMenuPos({ x, y });
+  };
+
+  const runDismiss = () => {
+    startTransition(async () => {
+      const res = await dismissNotification(notification.id);
+      if (!res.success) {
+        toast.error(res.error ?? "Failed to dismiss");
+        return;
+      }
+      router.refresh();
+      onAction?.();
+    });
+  };
 
   const handleToggleRead = () => {
     startTransition(async () => {
@@ -58,6 +106,12 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
     });
   };
 
+  const handleToggleReadClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    handleToggleRead();
+  };
+
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -74,40 +128,42 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
 
   const Body = (
     <div className="group/row relative flex gap-3 px-4 py-3">
-      {/* Status dot — the only signal we use to flag state:
-          • unread + critical → red
-          • unread (normal)   → blue
-          • read              → grey
-          The whole row toggles read/unread; this is just the visual indicator. */}
-      <div className="mt-1.5 w-2 shrink-0">
-        <div
-          className={cn(
-            "h-2 w-2 rounded-full",
-            notification.is_read
-              ? "bg-gray-300"
-              : isCritical
-                ? "bg-destructive"
-                : "bg-primary"
-          )}
-          aria-label={
-            notification.is_read
-              ? "Read"
-              : isCritical
-                ? "Unread, critical"
-                : "Unread"
-          }
-        />
-      </div>
-
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <span className="text-small-semibold line-clamp-2 text-foreground">
+          <span
+            className={cn(
+              "line-clamp-2 text-foreground",
+              notification.is_read ? "text-small-regular" : "text-small-semibold"
+            )}
+          >
             {notification.title}
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
             <span className="text-xs text-muted-foreground">
               {formatRelativeTime(notification.created_at)}
             </span>
+            {/* Status dot — click to toggle read/unread:
+                • unread + critical → red
+                • unread (normal)   → blue
+                • read              → grey */}
+            <button
+              type="button"
+              onClick={handleToggleReadClick}
+              disabled={isPending}
+              aria-label={notification.is_read ? "Mark as unread" : "Mark as read"}
+              className="flex h-5 w-5 items-center justify-center rounded-md transition-colors hover:bg-bone-hover"
+            >
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  notification.is_read
+                    ? "bg-gray-300"
+                    : isCritical
+                      ? "bg-destructive"
+                      : "bg-primary"
+                )}
+              />
+            </button>
             <button
               type="button"
               onClick={handleDismiss}
@@ -131,11 +187,54 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
     </div>
   );
 
+  const menu =
+    mounted && menuPos
+      ? createPortal(
+          <div
+            role="menu"
+            style={{ position: "fixed", top: menuPos.y, left: menuPos.x }}
+            className="z-[60] min-w-[180px] overflow-hidden rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5"
+            // Prevent the outer document-level mousedown handlers (e.g. the
+            // notification bell's click-outside) from firing while the user
+            // interacts with this menu — otherwise the dropdown closes.
+            onMouseDown={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isPending}
+              onClick={() => {
+                setMenuPos(null);
+                handleToggleRead();
+              }}
+              className="block w-full px-3 py-1.5 text-left text-small-regular text-foreground hover:bg-bone-hover disabled:opacity-50"
+            >
+              {notification.is_read ? "Mark as unread" : "Mark as read"}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isPending}
+              onClick={() => {
+                setMenuPos(null);
+                runDismiss();
+              }}
+              className="block w-full px-3 py-1.5 text-left text-small-regular text-foreground hover:bg-bone-hover disabled:opacity-50"
+            >
+              Clear notification
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={handleToggleRead}
+      onContextMenu={handleContextMenu}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -149,6 +248,7 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
       className="block w-full cursor-pointer text-left"
     >
       {Body}
+      {menu}
     </div>
   );
 }
