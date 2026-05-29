@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Info } from "lucide-react";
 import { ExampleSentence } from "@/types/database";
 import type { RelatedEntry, RelatedEntryGroups } from "@/lib/queries/words";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { BodyTextEditor } from "@/components/admin/BodyTextEditor";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip } from "@/components/ui/tooltip";
 import { TipCard } from "./TipCard";
 import { DeveloperSection } from "./DeveloperSection";
 import type { DeveloperData } from "@/lib/mutations";
@@ -444,11 +445,23 @@ function RelatedEntriesCard({
   const entries = flattenRelatedGroups(groups);
   if (entries.length === 0) return null;
   return (
-    <div className={cardClasses}>
+    <div className={cn(cardClasses, "related-words-card")}>
       <div className="flex flex-col gap-5 p-6">
-        <span className="study-card-label uppercase tracking-wide text-foreground/50">
-          RELATED WORDS
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="study-card-label uppercase tracking-wide text-foreground/50">
+            RELATED WORDS
+          </span>
+          <Tooltip
+            label="Find related words distracting? You can hide this card in Settings → Preferences."
+            position="below"
+            align="right"
+          >
+            <Info
+              className="h-4 w-4 text-foreground/40 hover:text-foreground/70 transition-colors"
+              aria-label="About related words"
+            />
+          </Tooltip>
+        </div>
         <div className="flex flex-col divide-y divide-black/10">
           {entries.map((entry) => (
             <RelatedEntryItem

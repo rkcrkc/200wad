@@ -6,20 +6,30 @@ import { Button } from "@/components/ui/button";
 import { resetAllTipDismissals } from "@/lib/mutations/tips";
 
 const TOOLTIPS_KEY = "show-tooltips";
+const RELATED_WORDS_KEY = "show-related-words";
 
 export function PreferencesSection() {
   const [showTooltips, setShowTooltips] = useState(true);
+  const [showRelatedWords, setShowRelatedWords] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isResettingTips, setIsResettingTips] = useState(false);
   const [tipsResetDone, setTipsResetDone] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(TOOLTIPS_KEY);
-    const enabled = stored !== "false";
-    setShowTooltips(enabled);
-    if (!enabled) {
+    const storedTooltips = localStorage.getItem(TOOLTIPS_KEY);
+    const tooltipsEnabled = storedTooltips !== "false";
+    setShowTooltips(tooltipsEnabled);
+    if (!tooltipsEnabled) {
       document.body.classList.add("hide-tooltips");
     }
+
+    const storedRelated = localStorage.getItem(RELATED_WORDS_KEY);
+    const relatedEnabled = storedRelated !== "false";
+    setShowRelatedWords(relatedEnabled);
+    if (!relatedEnabled) {
+      document.body.classList.add("hide-related-words");
+    }
+
     setMounted(true);
   }, []);
 
@@ -30,6 +40,16 @@ export function PreferencesSection() {
       document.body.classList.remove("hide-tooltips");
     } else {
       document.body.classList.add("hide-tooltips");
+    }
+  };
+
+  const handleRelatedWordsToggle = (enabled: boolean) => {
+    setShowRelatedWords(enabled);
+    localStorage.setItem(RELATED_WORDS_KEY, String(enabled));
+    if (enabled) {
+      document.body.classList.remove("hide-related-words");
+    } else {
+      document.body.classList.add("hide-related-words");
     }
   };
 
@@ -60,6 +80,21 @@ export function PreferencesSection() {
         <Switch
           checked={showTooltips}
           onCheckedChange={handleToggle}
+        />
+      </div>
+
+      <div className="my-4 h-px bg-gray-200" />
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Show related words</h3>
+          <p className="text-sm text-gray-600">
+            Display the related words card in study and test mode
+          </p>
+        </div>
+        <Switch
+          checked={showRelatedWords}
+          onCheckedChange={handleRelatedWordsToggle}
         />
       </div>
 

@@ -519,6 +519,11 @@ body.hide-tooltips .tooltip-hover {
   display: none !important;
 }
 
+/* Hide related-words card when user preference is off */
+body.hide-related-words .related-words-card {
+  display: none !important;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
