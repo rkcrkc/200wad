@@ -816,6 +816,7 @@ export async function completeStudySession(
         languageId,
         wordsStudied: stats.wordsStudied,
         studyTimeSeconds: stats.durationSeconds,
+        lessonSessions: 1,
       });
     }
 

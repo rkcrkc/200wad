@@ -16,6 +16,12 @@ export async function recordActivity(params: {
   testPointsEarned?: number;
   testMaxPoints?: number;
   studyTimeSeconds?: number;
+  /** Lesson sessions completed in this call (typically 0 or 1). */
+  lessonSessions?: number;
+  /** Test sessions completed in this call (typically 0 or 1). */
+  testSessions?: number;
+  /** Words that reached `learned` status as a result of this session. */
+  wordsLearned?: number;
 }): Promise<{ success: boolean; error: string | null }> {
   const supabase = await createClient();
   const {
@@ -34,6 +40,9 @@ export async function recordActivity(params: {
     p_test_points_earned: params.testPointsEarned || 0,
     p_test_max_points: params.testMaxPoints || 0,
     p_study_time_seconds: params.studyTimeSeconds || 0,
+    p_lesson_sessions: params.lessonSessions || 0,
+    p_test_sessions: params.testSessions || 0,
+    p_words_learned: params.wordsLearned || 0,
   });
 
   if (error) {

@@ -700,6 +700,8 @@ export async function completeTestSession(
         testPointsEarned: stats.pointsEarned,
         testMaxPoints: stats.maxPoints,
         studyTimeSeconds: stats.durationSeconds,
+        testSessions: 1,
+        wordsLearned: stats.newlyLearnedCount,
       });
     }
   } catch {

@@ -1294,13 +1294,16 @@ export type Database = {
           daily_goal_met: boolean
           id: string
           language_id: string
+          lesson_sessions_count: number
           sessions_count: number | null
           streak_frozen: boolean
           study_time_seconds: number | null
           test_max_points: number | null
           test_points_earned: number | null
+          test_sessions_count: number
           updated_at: string | null
           user_id: string
+          words_learned_count: number
           words_mastered: number | null
           words_studied: number | null
         }
@@ -1310,13 +1313,16 @@ export type Database = {
           daily_goal_met?: boolean
           id?: string
           language_id: string
+          lesson_sessions_count?: number
           sessions_count?: number | null
           streak_frozen?: boolean
           study_time_seconds?: number | null
           test_max_points?: number | null
           test_points_earned?: number | null
+          test_sessions_count?: number
           updated_at?: string | null
           user_id: string
+          words_learned_count?: number
           words_mastered?: number | null
           words_studied?: number | null
         }
@@ -1326,13 +1332,16 @@ export type Database = {
           daily_goal_met?: boolean
           id?: string
           language_id?: string
+          lesson_sessions_count?: number
           sessions_count?: number | null
           streak_frozen?: boolean
           study_time_seconds?: number | null
           test_max_points?: number | null
           test_points_earned?: number | null
+          test_sessions_count?: number
           updated_at?: string | null
           user_id?: string
+          words_learned_count?: number
           words_mastered?: number | null
           words_studied?: number | null
         }
@@ -1625,6 +1634,7 @@ export type Database = {
           pb_week_test_points: number | null
           pb_week_test_points_at: string | null
           referral_code: string | null
+          streak_freeze_auto: boolean
           streak_freezes_available: number
           stripe_customer_id: string | null
           total_vocabulary_count: number | null
@@ -1663,6 +1673,7 @@ export type Database = {
           pb_week_test_points?: number | null
           pb_week_test_points_at?: string | null
           referral_code?: string | null
+          streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
@@ -1701,6 +1712,7 @@ export type Database = {
           pb_week_test_points?: number | null
           pb_week_test_points_at?: string | null
           referral_code?: string | null
+          streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
@@ -1715,7 +1727,7 @@ export type Database = {
             foreignKeyName: "users_current_course_id_fkey"
             columns: ["current_course_id"]
             isOneToOne: false
-            referencedRelation: "courses"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -2059,6 +2071,10 @@ export type Database = {
           word_id: string
         }[]
       }
+      set_streak_freeze_auto: {
+        Args: { p_enabled: boolean; p_user_id: string }
+        Returns: boolean
+      }
       unlock_achievement: {
         Args: { p_achievement_slug: string; p_user_id: string }
         Returns: string
@@ -2066,10 +2082,13 @@ export type Database = {
       update_daily_activity: {
         Args: {
           p_language_id: string
+          p_lesson_sessions?: number
           p_study_time_seconds?: number
           p_test_max_points?: number
           p_test_points_earned?: number
+          p_test_sessions?: number
           p_user_id: string
+          p_words_learned?: number
           p_words_mastered?: number
           p_words_studied?: number
         }
@@ -2205,7 +2224,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      display_context: ["display_context"] as const,
+      display_context: ["study_sidebar"],
     },
   },
 } as const

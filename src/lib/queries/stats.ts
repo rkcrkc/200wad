@@ -38,6 +38,14 @@ export interface HeatmapDay {
    * `/progress` heatmap (which doesn't surface freezes) stays unchanged.
    */
   frozen?: boolean;
+  /** Lesson sessions completed on this date (for the sessions tooltip). */
+  lessonSessions?: number;
+  /** Test sessions completed on this date (for the sessions tooltip). */
+  testSessions?: number;
+  /** Words that reached `learned` status on this date (for the words tooltip). */
+  wordsLearned?: number;
+  /** Words that reached `mastered` status on this date (for the words tooltip). */
+  wordsMastered?: number;
 }
 
 export interface ChartDailyRow {
@@ -688,27 +696,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     testTimeSeconds,
   };
 
-  // --- Heatmap data (last 365 days) ---
-  const heatmapData: HeatmapDay[] = [];
-  const activityMap = new Map<string, number>();
-  for (const row of activityRows) {
-    const existing = activityMap.get(row.activity_date) || 0;
-    activityMap.set(row.activity_date, existing + (row.words_mastered || 0));
-  }
-
-  // Generate 365-day array, filling gaps with 0
-  for (let i = 364; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
-    heatmapData.push({
-      date: dateStr,
-      count: activityMap.get(dateStr) || 0,
-    });
-  }
-
-  // --- Chart data ---
-  // Filter word progress to course words only, then group by date
+  // --- Chart per-day maps (also used by the heatmap tooltip) ---
+  // Filter word progress to course words only, then group by date.
   const courseWordProgressRows = wordProgressRows.filter(
     (w) => w.word_id && courseWordIds.has(w.word_id)
   );
@@ -729,6 +718,24 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       const d = row.mastered_at.slice(0, 10);
       masteredByDate.set(d, (masteredByDate.get(d) || 0) + 1);
     }
+  }
+
+  // --- Heatmap data (last 365 days) ---
+  // Intensity = words_learned + words_mastered on that day; tooltip surfaces
+  // both counts separately. Both maps are course-scoped via courseWordIds.
+  const heatmapData: HeatmapDay[] = [];
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const learned = learnedByDate.get(dateStr) || 0;
+    const mastered = masteredByDate.get(dateStr) || 0;
+    heatmapData.push({
+      date: dateStr,
+      count: learned + mastered,
+      wordsLearned: learned,
+      wordsMastered: mastered,
+    });
   }
 
   // Group session time by date

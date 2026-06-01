@@ -14,6 +14,8 @@ export interface StreakSummary {
   currentStreak: number;
   longestStreak: number;
   freezesAvailable: number;
+  /** When true, freezes auto-consume on the next gap; user can disable. */
+  freezeAuto: boolean;
   coinBalance: number;
 }
 
@@ -46,6 +48,7 @@ const ZERO_DATA: StreakPageData = {
     currentStreak: 0,
     longestStreak: 0,
     freezesAvailable: 0,
+    freezeAuto: true,
     coinBalance: 0,
   },
   recover: {
@@ -80,14 +83,14 @@ export async function getStreakPageData(): Promise<StreakPageData> {
     supabase
       .from("users")
       .select(
-        "current_streak, longest_streak, streak_freezes_available, coin_balance, last_activity_date"
+        "current_streak, longest_streak, streak_freezes_available, streak_freeze_auto, coin_balance, last_activity_date"
       )
       .eq("id", user.id)
       .maybeSingle(),
     supabase
       .from("user_daily_activity")
       .select(
-        "activity_date, words_mastered, words_studied, test_points_earned, streak_frozen"
+        "activity_date, lesson_sessions_count, test_sessions_count, streak_frozen"
       )
       .eq("user_id", user.id)
       .order("activity_date", { ascending: true }),
@@ -100,6 +103,7 @@ export async function getStreakPageData(): Promise<StreakPageData> {
     currentStreak: userRow?.current_streak ?? 0,
     longestStreak: userRow?.longest_streak ?? 0,
     freezesAvailable: userRow?.streak_freezes_available ?? 0,
+    freezeAuto: userRow?.streak_freeze_auto ?? true,
     coinBalance: userRow?.coin_balance ?? 0,
   };
 
@@ -112,23 +116,28 @@ export async function getStreakPageData(): Promise<StreakPageData> {
   });
 
   // ----- Heatmap (collapse across languages) ------------------------------
-  // Per-date aggregate: sum of activity counts, frozen iff EVERY row for the
-  // date is streak_frozen. A real-activity row on the same date as a frozen
-  // row (cross-language) cancels the frozen flag — the day was active.
-  type Agg = { count: number; frozenAll: boolean; anyRow: boolean };
+  // Per-date aggregate. Intensity = total sessions (lesson + test). Frozen
+  // iff EVERY row for the date is streak_frozen — a real-activity row on the
+  // same date as a frozen row (cross-language) cancels the frozen flag.
+  type Agg = {
+    lessonSessions: number;
+    testSessions: number;
+    frozenAll: boolean;
+    anyRow: boolean;
+  };
   const byDate = new Map<string, Agg>();
 
   for (const row of activityRows) {
     const date = row.activity_date;
     const existing = byDate.get(date) ?? {
-      count: 0,
+      lessonSessions: 0,
+      testSessions: 0,
       frozenAll: true,
       anyRow: false,
     };
     existing.anyRow = true;
-    // count = the same "words_mastered" signal /progress already uses, so
-    // intensity reads consistently across the two pages.
-    existing.count += row.words_mastered ?? 0;
+    existing.lessonSessions += row.lesson_sessions_count ?? 0;
+    existing.testSessions += row.test_sessions_count ?? 0;
     if (!row.streak_frozen) {
       existing.frozenAll = false;
     }
@@ -205,7 +214,15 @@ function computeRecoverState(input: {
  * when the user has no activity yet, so the grid renders cleanly.
  */
 function buildHeatmapRange(
-  byDate: Map<string, { count: number; frozenAll: boolean; anyRow: boolean }>
+  byDate: Map<
+    string,
+    {
+      lessonSessions: number;
+      testSessions: number;
+      frozenAll: boolean;
+      anyRow: boolean;
+    }
+  >
 ): HeatmapDay[] {
   const today = todayDateOnly();
   const dates = Array.from(byDate.keys()).sort();
@@ -221,9 +238,13 @@ function buildHeatmapRange(
   while (cursor.getTime() <= today.getTime()) {
     const key = formatDateOnly(cursor);
     const agg = byDate.get(key);
+    const lessons = agg?.lessonSessions ?? 0;
+    const tests = agg?.testSessions ?? 0;
     out.push({
       date: key,
-      count: agg?.count ?? 0,
+      count: lessons + tests,
+      lessonSessions: lessons,
+      testSessions: tests,
       frozen: agg?.anyRow && agg.frozenAll ? true : undefined,
     });
     cursor = addDays(cursor, 1);

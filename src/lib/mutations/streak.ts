@@ -64,3 +64,35 @@ export async function recoverStreakAction(
     },
   };
 }
+
+/**
+ * Toggle the user's `streak_freeze_auto` flag. When enabled (default), a
+ * missed day automatically consumes available freeze tokens; when disabled,
+ * the user must recover manually (recover-streak coin spend or accept the
+ * reset). Wraps the `set_streak_freeze_auto` RPC.
+ */
+export async function setStreakFreezeAutoAction(
+  enabled: boolean
+): Promise<{ success: boolean; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "User not authenticated" };
+  }
+
+  const { error } = await supabase.rpc("set_streak_freeze_auto", {
+    p_user_id: user.id,
+    p_enabled: enabled,
+  });
+
+  if (error) {
+    console.error("Error setting streak_freeze_auto:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/streak");
+  return { success: true, error: null };
+}

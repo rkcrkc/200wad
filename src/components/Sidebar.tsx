@@ -28,10 +28,10 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
+  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
 ];
 
-const getSecondaryNavItems = (courseId?: string) => [
-  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
+const getSecondaryNavItems = () => [
   { path: "/streak", icon: Flame, label: "Streaks" },
   { path: "/trophies", icon: Trophy, label: "Trophies" },
   { path: "/community", icon: Crown, label: "Leaderboard" },
@@ -178,7 +178,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
           />
         ))}
         <div className="my-2 h-px bg-gray-100" role="separator" />
-        {getSecondaryNavItems(courseId).map((item) => (
+        {getSecondaryNavItems().map((item) => (
           <SidebarNavItem
             key={item.label}
             href={item.path}

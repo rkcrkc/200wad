@@ -7,10 +7,17 @@ interface StreakActivityHeatmapProps {
 
 /**
  * Thin wrapper that renders the shared `ActivityHeatmap` with the
- * streak-tinted orange palette and the page-appropriate title. Frozen days
- * (set on `HeatmapDay.frozen`) are highlighted blue by the underlying
- * component regardless of palette.
+ * streak-tinted orange palette, sessions tooltip (lesson + test counts),
+ * and the page-appropriate title. Frozen days (set on `HeatmapDay.frozen`)
+ * are highlighted blue by the underlying component regardless of palette.
  */
 export function StreakActivityHeatmap({ days }: StreakActivityHeatmapProps) {
-  return <ActivityHeatmap data={days} palette="orange" title="Activity" />;
+  return (
+    <ActivityHeatmap
+      data={days}
+      palette="orange"
+      title="Activity"
+      tooltipMode="sessions"
+    />
+  );
 }

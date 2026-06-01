@@ -1,6 +1,7 @@
-import { Calendar, Coins, Flame, Snowflake } from "lucide-react";
+import { Calendar, Flame } from "lucide-react";
 import { SubBadge } from "@/components/ui/sub-badge";
 import type { StreakSummary } from "@/lib/queries/streaks";
+import { FreezeToggleCard } from "./FreezeToggleCard";
 
 interface StreakHeaderProps {
   summary: StreakSummary;
@@ -12,7 +13,7 @@ interface StreakHeaderProps {
  * `text-xl-semibold text-foreground`.
  */
 export function StreakHeader({ summary }: StreakHeaderProps) {
-  const { currentStreak, longestStreak, freezesAvailable, coinBalance } =
+  const { currentStreak, longestStreak, freezesAvailable, freezeAuto } =
     summary;
 
   const isPersonalBest = currentStreak > 0 && currentStreak >= longestStreak;
@@ -24,7 +25,7 @@ export function StreakHeader({ summary }: StreakHeaderProps) {
         Daily activity earns a streak. Miss a day and your freezes step in.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Current streak */}
         <div className="rounded-2xl bg-white p-5">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -37,7 +38,9 @@ export function StreakHeader({ summary }: StreakHeaderProps) {
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-xl-semibold text-foreground">{currentStreak}</p>
+            <p className="text-xl-semibold text-foreground">
+              {currentStreak} {currentStreak === 1 ? "day" : "days"}
+            </p>
             {isPersonalBest && (
               <SubBadge className="bg-orange-100 text-orange-600">
                 Personal best!
@@ -55,39 +58,15 @@ export function StreakHeader({ summary }: StreakHeaderProps) {
             </span>
           </div>
           <p className="mt-2 text-xl-semibold text-foreground">
-            {longestStreak}
+            {longestStreak} {longestStreak === 1 ? "day" : "days"}
           </p>
         </div>
 
-        {/* Freezes available */}
-        <div className="rounded-2xl bg-white p-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Snowflake
-              className="h-4 w-4 text-blue-500"
-              strokeWidth={1.67}
-            />
-            <span className="text-xs-medium uppercase tracking-wide">
-              Freezes
-            </span>
-          </div>
-          <p className="mt-2 text-xl-semibold text-foreground">
-            {freezesAvailable}
-          </p>
-        </div>
-
-        {/* Coin balance (recover-cost context) */}
-        <div className="rounded-2xl bg-white p-5">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Coins
-              className="h-4 w-4 text-amber-500"
-              strokeWidth={1.67}
-            />
-            <span className="text-xs-medium uppercase tracking-wide">
-              Coins
-            </span>
-          </div>
-          <p className="mt-2 text-xl-semibold text-foreground">{coinBalance}</p>
-        </div>
+        {/* Freezes available + auto-apply toggle */}
+        <FreezeToggleCard
+          freezesAvailable={freezesAvailable}
+          initialAuto={freezeAuto}
+        />
       </div>
     </div>
   );

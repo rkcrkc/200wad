@@ -6,6 +6,7 @@ import type { HeatmapDay } from "@/lib/queries/stats";
 import { useText } from "@/context/TextContext";
 
 export type HeatmapPalette = "green" | "orange";
+export type HeatmapTooltipMode = "default" | "words" | "sessions";
 
 interface ActivityHeatmapProps {
   data: HeatmapDay[];
@@ -16,6 +17,12 @@ interface ActivityHeatmapProps {
   palette?: HeatmapPalette;
   /** Section title above the grid. Defaults to "Activity". */
   title?: string;
+  /**
+   * Tooltip format. `"words"` reads `wordsLearned` / `wordsMastered` from each
+   * day; `"sessions"` reads `lessonSessions` / `testSessions`; `"default"`
+   * falls back to the legacy single-count translation.
+   */
+  tooltipMode?: HeatmapTooltipMode;
 }
 
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
@@ -64,10 +71,36 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function buildTooltipLabel(
+  day: HeatmapDay,
+  mode: HeatmapTooltipMode,
+  tt: (key: string, vars: Record<string, string | number>) => string
+): string {
+  const date = formatDate(day.date);
+  if (day.frozen) return `Streak frozen — ${date}`;
+
+  if (mode === "words") {
+    const learned = day.wordsLearned ?? 0;
+    const mastered = day.wordsMastered ?? 0;
+    return `${date} — ${learned} learned · ${mastered} mastered`;
+  }
+
+  if (mode === "sessions") {
+    const lessons = day.lessonSessions ?? 0;
+    const tests = day.testSessions ?? 0;
+    const lessonLabel = lessons === 1 ? "lesson" : "lessons";
+    const testLabel = tests === 1 ? "test" : "tests";
+    return `${date} — ${lessons} ${lessonLabel} · ${tests} ${testLabel}`;
+  }
+
+  return tt("tip_heatmap_day", { count: day.count, date });
+}
+
 export function ActivityHeatmap({
   data,
   palette = "green",
   title = "Activity",
+  tooltipMode = "default",
 }: ActivityHeatmapProps) {
   const { tt } = useText();
   const { weeks, months, max } = useMemo(() => {
@@ -178,11 +211,7 @@ export function ActivityHeatmap({
                   {week.map((day) => (
                     <Tooltip
                       key={day.date}
-                      label={
-                        day.frozen
-                          ? `Streak frozen — ${formatDate(day.date)}`
-                          : tt("tip_heatmap_day", { count: day.count, date: formatDate(day.date) })
-                      }
+                      label={buildTooltipLabel(day, tooltipMode, tt)}
                     >
                       <div
                         className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max, palette, day.frozen ?? false)}`}
