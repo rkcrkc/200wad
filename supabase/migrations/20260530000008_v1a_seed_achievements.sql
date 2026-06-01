@@ -64,12 +64,14 @@ VALUES
   -- Batch A — existing trophy port
   -- ==========================================================================
 
-  -- Progress: word + lesson count milestones
+  -- Progress (lessons) + Mastery (words). The split lets the trophies UI
+  -- surface lesson milestones under Progress and word milestones under
+  -- Mastery without losing the milestone arc.
   (
     'first_word_learned',
     'First word learned',
     'You learned your first word!',
-    'progress',
+    'mastery',
     false,
     'bronze',
     10,
@@ -82,8 +84,8 @@ VALUES
   (
     'words_mastered_25',
     '25 words mastered',
-    'You''ve mastered 25 words. Keep going.',
-    'progress',
+    '25 words mastered. Keep going.',
+    'mastery',
     false,
     'bronze',
     25,
@@ -97,7 +99,7 @@ VALUES
     'words_mastered_50',
     '50 words mastered',
     'Halfway to the first hundred.',
-    'progress',
+    'mastery',
     false,
     'bronze',
     50,
@@ -111,7 +113,7 @@ VALUES
     'words_mastered_100',
     '100 words mastered',
     'A solid foundation.',
-    'progress',
+    'mastery',
     false,
     'silver',
     100,
@@ -125,7 +127,7 @@ VALUES
     'words_mastered_200',
     '200 words mastered',
     'You''re on the way to fluency.',
-    'progress',
+    'mastery',
     false,
     'gold',
     250,
@@ -139,7 +141,7 @@ VALUES
     'words_mastered_500',
     '500 words mastered',
     'You can hold a conversation.',
-    'progress',
+    'mastery',
     false,
     'platinum',
     500,
@@ -206,7 +208,9 @@ VALUES
     true
   ),
 
-  -- Mastery: first-time-only quality milestones
+  -- First-time-only quality milestones. first_word_mastered + first_perfect_test
+  -- live in 'mastery' next to the word count rows; first_lesson_mastered
+  -- lives in 'progress' next to the lesson count rows.
   (
     'first_word_mastered',
     'First word mastered',
@@ -218,7 +222,21 @@ VALUES
     0,
     'achievement.first_word_mastered',
     '{"type":"word_count","metric":"mastered","threshold":1}'::jsonb,
-    10,
+    15,
+    true
+  ),
+  (
+    'first_lesson_mastered',
+    'First lesson mastered',
+    'Every word in a lesson, mastered.',
+    'progress',
+    false,
+    'silver',
+    50,
+    0,
+    'achievement.first_lesson_complete',
+    '{"type":"lesson_mastered","threshold":1}'::jsonb,
+    5,
     true
   ),
   (
@@ -232,21 +250,7 @@ VALUES
     0,
     'achievement.first_perfect_test',
     '{"type":"perfect_session","threshold":1}'::jsonb,
-    20,
-    true
-  ),
-  (
-    'first_lesson_mastered',
-    'First lesson mastered',
-    'Every word in a lesson, mastered.',
-    'mastery',
-    false,
-    'silver',
-    50,
-    0,
-    'achievement.first_lesson_complete',
-    '{"type":"lesson_mastered","threshold":1}'::jsonb,
-    30,
+    70,
     true
   ),
 
