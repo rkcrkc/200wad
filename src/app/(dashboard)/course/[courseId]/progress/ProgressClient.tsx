@@ -3,8 +3,6 @@
 import type { ProgressPageStats } from "@/lib/queries/stats";
 import { SummaryCards } from "@/components/progress/SummaryCards";
 import { LearningChart } from "@/components/progress/LearningChart";
-import { StreaksCard } from "@/components/progress/StreaksCard";
-import { ActivityHeatmap } from "@/components/progress/ActivityHeatmap";
 
 interface ProgressClientProps {
   stats: ProgressPageStats;
@@ -19,12 +17,6 @@ export function ProgressClient({ stats }: ProgressClientProps) {
 
       {/* Row 2: Learning Chart (full width) */}
       <LearningChart data={stats.chartData} />
-
-      {/* Row 3: Streaks (full width) */}
-      <StreaksCard streaks={stats.streaks} />
-
-      {/* Row 4: Activity Heatmap */}
-      <ActivityHeatmap data={stats.heatmapData} />
     </div>
   );
 }

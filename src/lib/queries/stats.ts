@@ -32,6 +32,12 @@ export interface CumulativeProgress {
 export interface HeatmapDay {
   date: string;
   count: number;
+  /**
+   * Set when every row for this date has `streak_frozen = true` — the day is
+   * a freeze bridge rather than real activity. Optional so the existing
+   * `/progress` heatmap (which doesn't surface freezes) stays unchanged.
+   */
+  frozen?: boolean;
 }
 
 export interface ChartDailyRow {

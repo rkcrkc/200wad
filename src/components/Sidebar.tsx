@@ -11,6 +11,7 @@ import {
   LineChart,
   Trophy,
   Crown,
+  Flame,
   Lock,
   Coins,
   Settings,
@@ -31,6 +32,7 @@ const getNavItems = (courseId?: string) => [
 
 const getSecondaryNavItems = (courseId?: string) => [
   { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
+  { path: "/streak", icon: Flame, label: "Streaks" },
   { path: "/trophies", icon: Trophy, label: "Trophies" },
   { path: "/community", icon: Crown, label: "Leaderboard" },
 ];
@@ -141,6 +143,10 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
     // For community (the leaderboard sidebar entry points here)
     if (path === "/community") {
       return pathname === "/community" || pathname.startsWith("/community");
+    }
+    // For streaks
+    if (path === "/streak") {
+      return pathname === "/streak" || pathname.startsWith("/streak");
     }
     // For trophies
     if (path === "/trophies") {

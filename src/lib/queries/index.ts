@@ -87,3 +87,10 @@ export type {
   UserAchievementAggregates,
   GetAchievementsForUserResult,
 } from "./achievements";
+
+export { getStreakPageData } from "./streaks";
+export type {
+  StreakSummary,
+  StreakRecoverState,
+  StreakPageData,
+} from "./streaks";

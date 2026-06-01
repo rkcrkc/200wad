@@ -5,24 +5,53 @@ import { Tooltip } from "@/components/ui/tooltip";
 import type { HeatmapDay } from "@/lib/queries/stats";
 import { useText } from "@/context/TextContext";
 
+export type HeatmapPalette = "green" | "orange";
+
 interface ActivityHeatmapProps {
   data: HeatmapDay[];
+  /**
+   * Colour scale for active cells. Defaults to `"green"` so existing
+   * /progress callsites stay unchanged.
+   */
+  palette?: HeatmapPalette;
+  /** Section title above the grid. Defaults to "Activity". */
+  title?: string;
 }
 
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 
+const PALETTE_SCALES: Record<HeatmapPalette, [string, string, string, string]> = {
+  green: ["bg-emerald-200", "bg-emerald-300", "bg-emerald-400", "bg-emerald-600"],
+  orange: ["bg-orange-200", "bg-orange-300", "bg-orange-400", "bg-orange-600"],
+};
+
+/**
+ * Frozen-day override colour. Blue (matches primary token #0b6cff at ~25%
+ * alpha via Tailwind blue-200) so freeze-bridge events read as visually
+ * distinct from real activity regardless of the underlying palette.
+ */
+const FROZEN_COLOR = "bg-blue-200";
+
 /**
  * Get a 5-level color based on the count relative to the max.
- * Level 0 = no activity, levels 1-4 = increasing intensity.
+ * Level 0 = no activity, levels 1-4 = increasing intensity. Frozen days
+ * always render with the freeze tint regardless of count.
  */
-function getColor(count: number, max: number): string {
+function getColor(
+  count: number,
+  max: number,
+  palette: HeatmapPalette,
+  frozen: boolean
+): string {
+  if (frozen) return FROZEN_COLOR;
   if (count === 0) return "bg-gray-100";
   if (max === 0) return "bg-gray-100";
   const ratio = count / max;
-  if (ratio <= 0.25) return "bg-emerald-200";
-  if (ratio <= 0.5) return "bg-emerald-300";
-  if (ratio <= 0.75) return "bg-emerald-400";
-  return "bg-emerald-600";
+  const scale = PALETTE_SCALES[palette];
+  if (ratio <= 0.25) return scale[0];
+  if (ratio <= 0.5) return scale[1];
+  if (ratio <= 0.75) return scale[2];
+  return scale[3];
 }
 
 function formatDate(dateStr: string): string {
@@ -35,7 +64,11 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
+export function ActivityHeatmap({
+  data,
+  palette = "green",
+  title = "Activity",
+}: ActivityHeatmapProps) {
   const { tt } = useText();
   const { weeks, months, max } = useMemo(() => {
     // Group data into weeks (columns). Each week is an array of 7 days (Sun=0..Sat=6).
@@ -82,7 +115,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
       <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
-        Activity
+        {title}
       </h3>
 
       <div className="overflow-x-auto">
@@ -145,10 +178,14 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
                   {week.map((day) => (
                     <Tooltip
                       key={day.date}
-                      label={tt("tip_heatmap_day", { count: day.count, date: formatDate(day.date) })}
+                      label={
+                        day.frozen
+                          ? `Streak frozen — ${formatDate(day.date)}`
+                          : tt("tip_heatmap_day", { count: day.count, date: formatDate(day.date) })
+                      }
                     >
                       <div
-                        className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max)}`}
+                        className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max, palette, day.frozen ?? false)}`}
                       />
                     </Tooltip>
                   ))}
@@ -161,10 +198,10 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
           <div className="mt-3 flex items-center justify-end gap-1.5">
             <span className="text-[10px] text-muted-foreground">Less</span>
             <div className="h-[11px] w-[11px] rounded-[2px] bg-gray-100" />
-            <div className="h-[11px] w-[11px] rounded-[2px] bg-emerald-200" />
-            <div className="h-[11px] w-[11px] rounded-[2px] bg-emerald-300" />
-            <div className="h-[11px] w-[11px] rounded-[2px] bg-emerald-400" />
-            <div className="h-[11px] w-[11px] rounded-[2px] bg-emerald-600" />
+            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][0]}`} />
+            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][1]}`} />
+            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][2]}`} />
+            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][3]}`} />
             <span className="text-[10px] text-muted-foreground">More</span>
           </div>
         </div>
