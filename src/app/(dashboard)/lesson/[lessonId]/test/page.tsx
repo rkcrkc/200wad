@@ -105,6 +105,8 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
     ? await getToastTemplates([
         "achievement.first_word_learned",
         "achievement.first_word_mastered",
+        "achievement.word_almost_mastered",
+        "achievement.word_mastered",
       ])
     : {};
 

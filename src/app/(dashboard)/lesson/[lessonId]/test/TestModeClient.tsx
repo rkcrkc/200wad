@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { showAchievementToast } from "@/lib/toast/achievement";
 import { Course, Language, Lesson } from "@/types/database";
@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
 import { CelebrationModal } from "@/components/celebrations/CelebrationModal";
+import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import type { CelebrationPayload } from "@/lib/notifications/celebrations";
 import { saveSystemNotes, saveUserNotes } from "@/lib/mutations/study";
 import { updateWord } from "@/lib/mutations/admin/words";
@@ -180,17 +181,42 @@ function calculateTestStats(params: {
  * disabled, or doesn't include the "toast" channel — so admins can turn the
  * toast off without a deploy. Falls back to title/message when toast_title /
  * toast_message are empty so toast and bell can be the same copy if desired.
+ *
+ * Options:
+ *   * `emoji` — overrides the toast's leading emoji (defaults to 🎉 via
+ *     `showAchievementToast`). Pass `null` to render no emoji. Emoji stays
+ *     code-side because it's tied to the firing context (🔥 for "almost
+ *     mastered", 🏆 for mastery, etc.) rather than admin copy.
+ *   * `vars` — `{{key}}` placeholders in title and message are substituted
+ *     with these values at render time. Lets admin templates contain things
+ *     like `"{{word}} is now mastered."` without baking the word into code.
  */
-function fireTemplateToast(template: ToastTemplate | undefined): void {
+function fireTemplateToast(
+  template: ToastTemplate | undefined,
+  options?: { emoji?: string | null; vars?: Record<string, string> },
+): void {
   if (!template) return;
   if (!template.enabled || !template.type_enabled) return;
   if (!template.channels.includes("toast")) return;
 
-  const title = template.toast_title?.trim() || template.title;
-  const message = template.toast_message?.trim() || template.message;
+  let title = template.toast_title?.trim() || template.title;
+  let message = template.toast_message?.trim() || template.message;
+
+  if (options?.vars) {
+    for (const [k, v] of Object.entries(options.vars)) {
+      const re = new RegExp(`\\{\\{${k}\\}\\}`, "g");
+      title = title.replace(re, v);
+      if (message) message = message.replace(re, v);
+    }
+  }
+
   if (!title) return;
 
-  showAchievementToast({ title, message: message || undefined });
+  showAchievementToast({
+    title,
+    message: message || undefined,
+    ...(options && "emoji" in options ? { emoji: options.emoji } : {}),
+  });
 }
 
 interface TestModeClientProps {
@@ -353,6 +379,18 @@ export function TestModeClient({
   // page load (defence-in-depth alongside the priorLearnedCount === 0 check).
   const firedFirstLearnedRef = useRef(false);
   const firedFirstMasteredRef = useRef(false);
+
+  // Per-session, per-word guards for the in-session mastery feedback toasts.
+  // "Almost there" fires when correct_streak reaches 2; "Mastered!" fires
+  // when it reaches 3. Both fire at most once per word per page load so
+  // Test Twice doesn't double-toast on a single mastery event.
+  const firedAlmostMasteredRef = useRef<Set<string>>(new Set());
+  const firedMasteryRef = useRef<Set<string>>(new Set());
+
+  // Bump-counter that re-mounts <ConfettiBurst /> each time a word is
+  // mastered in-session. Component unmounts itself via onComplete.
+  const [confettiNonce, setConfettiNonce] = useState(0);
+  const [confettiActive, setConfettiActive] = useState(false);
 
   // Build test sequence - in testTwice mode, test all words then test them all again
   const testSequence = testTwice ? [...activeWords, ...activeWords] : activeWords;
@@ -725,6 +763,28 @@ export function TestModeClient({
           currentWord.status === "learned" || currentWord.status === "mastered";
         const wasAlreadyMastered = currentWord.status === "mastered";
 
+        // Compute the new streak by replaying this word's session attempts
+        // alongside the prior server streak. Matches calculateTestStats logic.
+        // Hoisted out of the first-mastered check so it's available for the
+        // per-mastery in-session toasts below.
+        const priorStreak = currentWord.progress?.correct_streak || 0;
+        let newStreak = priorStreak;
+        const attempts = testTwice
+          ? [`${currentWord.id}_1`, `${currentWord.id}_2`]
+          : [currentWord.id];
+        for (const key of attempts) {
+          if (key === progressKey) {
+            // The answer being submitted right now is full-mark.
+            newStreak = newStreak + 1;
+          } else {
+            const p = testProgressMap.get(key);
+            if (p?.hasAnswered) {
+              newStreak =
+                p.mistakeCount === 0 && p.clueLevel === 0 ? newStreak + 1 : 0;
+            }
+          }
+        }
+
         if (
           priorLearnedCount === 0 &&
           !wasAlreadyLearned &&
@@ -739,31 +799,47 @@ export function TestModeClient({
         if (
           priorMasteredCount === 0 &&
           !wasAlreadyMastered &&
-          !firedFirstMasteredRef.current
+          !firedFirstMasteredRef.current &&
+          newStreak >= 3
         ) {
-          // Compute the new streak by replaying this word's session attempts
-          // alongside the prior server streak. Matches calculateTestStats logic.
-          const priorStreak = currentWord.progress?.correct_streak || 0;
-          let streak = priorStreak;
-          const attempts = testTwice
-            ? [`${currentWord.id}_1`, `${currentWord.id}_2`]
-            : [currentWord.id];
-          for (const key of attempts) {
-            if (key === progressKey) {
-              // The answer being submitted right now is full-mark.
-              streak = streak + 1;
-            } else {
-              const p = testProgressMap.get(key);
-              if (p?.hasAnswered) {
-                streak =
-                  p.mistakeCount === 0 && p.clueLevel === 0 ? streak + 1 : 0;
-              }
-            }
-          }
-          if (streak >= 3) {
-            firedFirstMasteredRef.current = true;
+          firedFirstMasteredRef.current = true;
+          fireTemplateToast(
+            toastTemplates["achievement.first_word_mastered"]
+          );
+        }
+
+        // Per-mastery in-session feedback. Fires the "almost there" nudge at
+        // streak === 2 and the "Mastered!" celebration + confetti at >= 3.
+        // Skipped for already-mastered words (extending an existing streak)
+        // and gated per word per session to avoid double-firing across the
+        // two Test Twice attempts for a single mastery event.
+        //
+        // Copy + enable/disable live in `notification_templates`:
+        //   * achievement.word_almost_mastered
+        //   * achievement.word_mastered  (supports `{{word}}` placeholder)
+        // Emoji stays code-side because it's tied to the firing context
+        // (🔥 = nearly there, 🏆 = mastery), not editorial copy.
+        if (!wasAlreadyMastered) {
+          if (
+            newStreak === 2 &&
+            !firedAlmostMasteredRef.current.has(currentWord.id) &&
+            !firedMasteryRef.current.has(currentWord.id)
+          ) {
+            firedAlmostMasteredRef.current.add(currentWord.id);
             fireTemplateToast(
-              toastTemplates["achievement.first_word_mastered"]
+              toastTemplates["achievement.word_almost_mastered"],
+              { emoji: "🔥" }
+            );
+          } else if (
+            newStreak >= 3 &&
+            !firedMasteryRef.current.has(currentWord.id)
+          ) {
+            firedMasteryRef.current.add(currentWord.id);
+            setConfettiNonce((n) => n + 1);
+            setConfettiActive(true);
+            fireTemplateToast(
+              toastTemplates["achievement.word_mastered"],
+              { emoji: "🏆", vars: { word: currentWord.headword } }
             );
           }
         }
@@ -1370,6 +1446,17 @@ export function TestModeClient({
   // on every render.
   const testStats = showCompletionModal ? getTestStats() : null;
 
+  // Apply this test's results on top of `activeWords` so the modal sees each
+  // word's POST-TEST status (e.g. a previously-mastered word that was answered
+  // incorrectly drops to `learned`). Without this, the modal would filter on
+  // pre-test `w.status` and over-count `mastered` / `learned` totals.
+  // Memoized so re-renders while the modal is open don't refire
+  // image-preload effects in the modal.
+  const modalWords = useMemo(
+    () => (showCompletionModal ? buildUpdatedWords(activeWords) : activeWords),
+    [showCompletionModal, activeWords, buildUpdatedWords]
+  );
+
   // Calculate running score for header (points earned / max possible for answered words)
   const runningScore = (() => {
     const answeredWords = Array.from(testProgressMap.values()).filter((p) => p.hasAnswered);
@@ -1789,11 +1876,21 @@ export function TestModeClient({
         </div>
       </div>
 
+      {/* In-session confetti burst fired when a word's correct_streak hits
+          mastery (3) during a post-answer reveal. Keyed by `confettiNonce`
+          so consecutive masteries each get a fresh animation. */}
+      {confettiActive && (
+        <ConfettiBurst
+          key={confettiNonce}
+          onComplete={() => setConfettiActive(false)}
+        />
+      )}
+
       {/* Completion Modal */}
       {showCompletionModal && testStats && (
         <TestCompletedModal
           lesson={lesson}
-          words={activeWords}
+          words={modalWords}
           wordResultsMap={getWordResultsMap()}
           elapsedSeconds={elapsedSeconds}
           totalPoints={testStats.totalPoints}
