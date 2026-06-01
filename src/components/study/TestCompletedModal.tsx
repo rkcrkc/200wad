@@ -81,7 +81,6 @@ export function TestCompletedModal({
     return saved !== null ? saved === "true" : true;
   });
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
-  const [detailImageMode, setDetailImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
   const replayRef = useRef<(() => void) | null>(null);
 
@@ -298,8 +297,8 @@ export function TestCompletedModal({
               autoPlayAudio={false}
               showTabs={false}
               replayRef={replayRef}
-              imageMode={detailImageMode}
-              onImageModeChange={setDetailImageMode}
+              imageMode={imageMode}
+              onImageModeChange={setImageMode}
             />
           </>
         ) : (
@@ -342,8 +341,8 @@ export function TestCompletedModal({
             hasNext={selectedWordIndex < displayWords.length - 1}
             wordStatus={selectedWord.status}
             variant="sidebar"
-            imageMode={detailImageMode}
-            onImageModeChange={setDetailImageMode}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
           />
         </div>
       ) : (

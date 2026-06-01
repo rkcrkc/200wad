@@ -907,10 +907,50 @@ export function StudyModeClient({
     setShowStartTestModal(true);
   }, []);
 
-  // Handle modal "Study again" action - restart the lesson from the beginning
-  const handleStudyAgain = useCallback(() => {
-    router.push(`/lesson/${lesson.id}/study`);
-  }, [router, lesson.id]);
+  // Handle modal "Study again" action - restart the lesson from the beginning.
+  // Reset local state instead of router.push (same URL doesn't remount the page).
+  const handleStudyAgain = useCallback(async () => {
+    stopAudio();
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+    }
+    breathingCancelledRef.current = true;
+    setBreathingPhase(null);
+    setBreathingSecond(0);
+
+    // Reset word navigation state
+    setCurrentWordIndex(0);
+    setPhase("reveal-first");
+    setShowEnglishWord(false);
+    setWordProgressMap(new Map());
+    setViewedWordIndices([0]);
+
+    // Close modal and reset timer
+    setShowCompletionModal(false);
+    setElapsedSeconds(0);
+    isFinishingRef.current = false;
+
+    // Clear old session and create a new one
+    if (sessionId) {
+      clearSessionProgress("study", sessionId, lesson.id);
+    }
+
+    if (!isGuest) {
+      const result = await createStudySession(lesson.id);
+      if (result.sessionId) {
+        setSessionId(result.sessionId);
+        initSessionProgress("study", result.sessionId, lesson.id);
+      } else {
+        const newSessionId = `local_${lesson.id}_${Date.now()}`;
+        setSessionId(newSessionId);
+        initSessionProgress("study", newSessionId, lesson.id);
+      }
+    } else {
+      const newSessionId = `guest_${lesson.id}_${Date.now()}`;
+      setSessionId(newSessionId);
+      initSessionProgress("study", newSessionId, lesson.id);
+    }
+  }, [sessionId, lesson.id, isGuest, stopAudio]);
 
   // Handle modal "Not now" action - go to schedule
   const handleDismissModal = useCallback(() => {

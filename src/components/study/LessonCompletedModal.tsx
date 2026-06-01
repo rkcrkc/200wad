@@ -56,7 +56,6 @@ export function LessonCompletedModal({
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
-  const [detailImageMode, setDetailImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const replayRef = useRef<(() => void) | null>(null);
 
   // Exclude information pages from all word counts/tabs (non-testable)
@@ -186,8 +185,8 @@ export function LessonCompletedModal({
               autoPlayAudio={false}
               showTabs={false}
               replayRef={replayRef}
-              imageMode={detailImageMode}
-              onImageModeChange={setDetailImageMode}
+              imageMode={imageMode}
+              onImageModeChange={setImageMode}
             />
           </>
         ) : (
@@ -259,8 +258,8 @@ export function LessonCompletedModal({
             hasNext={selectedWordIndex < displayWords.length - 1}
             wordStatus={selectedWord.status}
             variant="sidebar"
-            imageMode={detailImageMode}
-            onImageModeChange={setDetailImageMode}
+            imageMode={imageMode}
+            onImageModeChange={setImageMode}
           />
         </div>
       ) : (
