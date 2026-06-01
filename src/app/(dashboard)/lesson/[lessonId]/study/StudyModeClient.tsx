@@ -445,7 +445,9 @@ export function StudyModeClient({
         phaseTimeoutRef.current = setTimeout(() => {
           // Facts have no memory-trigger audio — skip that phase so the body
           // card and sidebar reveal together right after the foreign audio.
-          const next = isFactPage ? "show-input" : "show-memory-trigger";
+          // Flashcard mode also skips it: the memory trigger text is hidden,
+          // so we shouldn't play the trigger audio or the closing foreign replay.
+          const next = isFactPage || imageMode === "flashcard" ? "show-input" : "show-memory-trigger";
           console.log(`[Phase] Advancing to ${next}`);
           setPhase(next);
         }, 50);
@@ -488,7 +490,7 @@ export function StudyModeClient({
         clearTimeout(phaseTimeoutRef.current);
       }
     };
-  }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled, isInformationPage, isFactPage]);
+  }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled, isInformationPage, isFactPage, imageMode]);
 
   // Breathing mode phase control (only when breathing mode is ON)
   // Uses a ref for cancellation to persist across effect re-runs
@@ -549,8 +551,8 @@ export function StudyModeClient({
         setBreathingSecond(0);
         setPhase("show-memory-trigger");
 
-        // Play trigger audio
-        if (currentWord.audio_url_trigger) {
+        // Play trigger audio (skip in flashcard mode — trigger text is hidden)
+        if (currentWord.audio_url_trigger && imageMode !== "flashcard") {
           await playAudio(currentWord.audio_url_trigger, "trigger");
         }
         if (isCancelled()) return;
@@ -570,8 +572,8 @@ export function StudyModeClient({
         setBreathingPhase("exhale");
         setBreathingSecond(0);
 
-        // Play foreign audio again
-        if (currentWord.audio_url_foreign) {
+        // Play foreign audio again (skip in flashcard mode — closing replay is suppressed)
+        if (currentWord.audio_url_foreign && imageMode !== "flashcard") {
           await playAudio(currentWord.audio_url_foreign, "foreign");
         }
         if (isCancelled()) return;
@@ -600,7 +602,7 @@ export function StudyModeClient({
       clearTimeout(startTimeout);
       breathingCancelledRef.current = true;
     };
-  }, [currentWordIndex, breathingCycleTrigger, breathingModeEnabled, currentWord, playAudio, isInformationPage]);
+  }, [currentWordIndex, breathingCycleTrigger, breathingModeEnabled, currentWord, playAudio, isInformationPage, imageMode]);
 
   // Handle Escape key to stop audio and skip reveal phases
   useEffect(() => {

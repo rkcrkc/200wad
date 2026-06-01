@@ -348,14 +348,14 @@ export function WordDetailView({
       }
       if (audioSequenceCancelledRef.current) return;
 
-      // Play Trigger
-      if (word.audio_url_trigger && !audioSequenceCancelledRef.current) {
+      // Play Trigger (skip in flashcard mode — trigger text is hidden)
+      if (word.audio_url_trigger && !audioSequenceCancelledRef.current && imageMode !== "flashcard") {
         await playAudio(word.audio_url_trigger, "trigger");
       }
       if (audioSequenceCancelledRef.current) return;
 
-      // Play Foreign again
-      if (word.audio_url_foreign && !audioSequenceCancelledRef.current) {
+      // Play Foreign again (skip in flashcard mode — closing replay is suppressed)
+      if (word.audio_url_foreign && !audioSequenceCancelledRef.current && imageMode !== "flashcard") {
         await playAudio(word.audio_url_foreign, "foreign");
       }
 
@@ -369,7 +369,7 @@ export function WordDetailView({
       stopAudio();
       setIsPlayingSequence(false);
     };
-  }, [word.id, word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio, autoPlayAudio]);
+  }, [word.id, word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio, autoPlayAudio, imageMode]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -458,8 +458,8 @@ export function WordDetailView({
       return;
     }
 
-    // Play Trigger
-    if (word.audio_url_trigger && !audioSequenceCancelledRef.current) {
+    // Play Trigger (skip in flashcard mode — trigger text is hidden)
+    if (word.audio_url_trigger && !audioSequenceCancelledRef.current && imageMode !== "flashcard") {
       await playAudio(word.audio_url_trigger, "trigger");
     }
     if (audioSequenceCancelledRef.current) {
@@ -467,13 +467,13 @@ export function WordDetailView({
       return;
     }
 
-    // Play Foreign again
-    if (word.audio_url_foreign && !audioSequenceCancelledRef.current) {
+    // Play Foreign again (skip in flashcard mode — closing replay is suppressed)
+    if (word.audio_url_foreign && !audioSequenceCancelledRef.current && imageMode !== "flashcard") {
       await playAudio(word.audio_url_foreign, "foreign");
     }
 
     setIsPlayingSequence(false);
-  }, [word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio]);
+  }, [word.audio_url_english, word.audio_url_foreign, word.audio_url_trigger, playAudio, stopAudio, imageMode]);
 
   // Expose replay to parent (used by WordDetailSidebar's own action bar).
   useEffect(() => {
