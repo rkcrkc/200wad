@@ -136,6 +136,7 @@ export function WordGrid({
                   <StatusPill
                     status={word.status === "not-started" ? "notStarted" : word.status as StatusType}
                     variant="pill"
+                    size="sm"
                   />
                 </div>
               )}

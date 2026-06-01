@@ -67,7 +67,8 @@ Types auto-generated in `src/types/database.ts` with convenience aliases (User, 
 
 Colors: background `#faf8f3`, primary `#0b6cff`, success `#00c950`, warning `#ff9224`, destructive `#fb2c36`
 
-Typography utilities: `.text-page-header` (40px), `.text-xxl-bold` (32px), `.text-xl-semibold` (24px), `.text-large-semibold` (20px), `.text-regular-semibold` (15px), `.text-small-semibold` (14px), `.text-xs-medium` (13px)
+Typography utilities (defined in `src/app/globals.css` — these are the ONLY ones; do not invent new ones like `.text-xxl-bold`):
+`.text-page-header` (40px/600), `.text-xxl-semibold` (32px/600), `.text-xxl2-semibold` (28px/600), `.text-xl-medium` (24px/500), `.text-xl-semibold` (24px/600), `.text-large-medium` (20px/500), `.text-large-semibold` (20px/600), `.text-medium-medium` (18px/500), `.text-medium-semibold` (18px/600), `.text-regular-medium` (15px/500), `.text-regular-semibold` (15px/600), `.text-small-regular` (14px/400), `.text-small-medium` (14px/500), `.text-small-semibold` (14px/600), `.text-xs-medium` (13px/500)
 
 ## Key Patterns
 

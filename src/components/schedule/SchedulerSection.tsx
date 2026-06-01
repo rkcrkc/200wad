@@ -209,7 +209,7 @@ export function SchedulerSection({
                     aria-label={`Test ${i + 1} of ${dueTests.length}: ${test.title}`}
                     data-tab-index={i}
                     onClick={() => setActiveTestIndex(i)}
-                    className={`text-small-semibold min-w-[44px] flex-1 truncate rounded-t-xl px-3 py-3 text-center transition-colors ${
+                    className={`text-small-semibold min-w-[80px] flex-1 truncate rounded-t-xl px-3 py-3 text-center transition-colors ${
                       isActive
                         ? "bg-white text-foreground"
                         : "text-muted-foreground hover:text-foreground"

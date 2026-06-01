@@ -11,6 +11,9 @@ interface StatusPillProps {
   showDot?: boolean;
   /** "pill" = colored background, "inline" = plain text with colored dot/star */
   variant?: "pill" | "inline";
+  /** "default" = standard size, "sm" = tighter padding + smaller text (pill variant only).
+   *  Dot/icon sizes are unchanged across sizes so the status marker stays consistent. */
+  size?: "default" | "sm";
   /** Override background color */
   bgOverride?: string;
 }
@@ -28,11 +31,13 @@ export function StatusPill({
   label,
   showDot = true,
   variant = "pill",
+  size = "default",
   bgOverride,
 }: StatusPillProps) {
   const style = statusTokens[status];
   const displayLabel = label || statusLabels[status];
   const isInline = variant === "inline";
+  const isSmall = !isInline && size === "sm";
 
   const dotColor = "dotColor" in style ? style.dotColor : undefined;
   const hasDot = showDot && Boolean(dotColor);
@@ -40,13 +45,15 @@ export function StatusPill({
   const hasIcon = showDot && (iconType === "star" || iconType === "check");
   const inlineColor = ((style as Record<string, string>).inlineColor ?? style.bg) as string;
 
+  const pillClassName = isInline
+    ? "inline-flex cursor-default items-center gap-1.5 text-regular-semibold"
+    : isSmall
+      ? "inline-flex cursor-default items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      : "inline-flex cursor-default items-center gap-1.5 rounded-full px-3 py-1.5 text-xs-medium";
+
   return (
     <span
-      className={
-        isInline
-          ? "inline-flex cursor-default items-center gap-1.5 text-regular-semibold"
-          : "inline-flex cursor-default items-center gap-1.5 rounded-full px-3 py-1.5 text-xs-medium"
-      }
+      className={pillClassName}
       style={isInline ? {} : {
         background: bgOverride ?? style.bg,
         color: style.color,
