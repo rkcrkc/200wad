@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          coin_reward: number
+          created_at: string
+          description: string
+          display_order: number
+          enabled: boolean
+          icon: string | null
+          id: string
+          is_mystery: boolean
+          notification_template_key: string | null
+          slug: string
+          tier: string | null
+          title: string
+          unlock_criteria: Json | null
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          coin_reward?: number
+          created_at?: string
+          description: string
+          display_order?: number
+          enabled?: boolean
+          icon?: string | null
+          id?: string
+          is_mystery?: boolean
+          notification_template_key?: string | null
+          slug: string
+          tier?: string | null
+          title: string
+          unlock_criteria?: Json | null
+          updated_at?: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          coin_reward?: number
+          created_at?: string
+          description?: string
+          display_order?: number
+          enabled?: boolean
+          icon?: string | null
+          id?: string
+          is_mystery?: boolean
+          notification_template_key?: string | null
+          slug?: string
+          tier?: string | null
+          title?: string
+          unlock_criteria?: Json | null
+          updated_at?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       activity_flags: {
         Row: {
           created_at: string | null
@@ -48,6 +105,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "activity_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coin_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_transactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -970,6 +1074,101 @@ export type Database = {
           },
         ]
       }
+      test_sessions: {
+        Row: {
+          auto_lesson_type: string | null
+          correct_answers: number
+          course_id: string | null
+          direction: string
+          duration_seconds: number | null
+          id: string
+          is_retest: boolean
+          learned_words_count: number
+          lesson_id: string | null
+          mastered_words_count: number | null
+          max_points: number
+          milestone: string | null
+          new_words_count: number | null
+          points_earned: number
+          score_percent: number
+          study_session_id: string | null
+          taken_at: string | null
+          total_questions: number
+          user_id: string | null
+        }
+        Insert: {
+          auto_lesson_type?: string | null
+          correct_answers: number
+          course_id?: string | null
+          direction: string
+          duration_seconds?: number | null
+          id?: string
+          is_retest?: boolean
+          learned_words_count?: number
+          lesson_id?: string | null
+          mastered_words_count?: number | null
+          max_points?: number
+          milestone?: string | null
+          new_words_count?: number | null
+          points_earned?: number
+          score_percent?: number
+          study_session_id?: string | null
+          taken_at?: string | null
+          total_questions: number
+          user_id?: string | null
+        }
+        Update: {
+          auto_lesson_type?: string | null
+          correct_answers?: number
+          course_id?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          id?: string
+          is_retest?: boolean
+          learned_words_count?: number
+          lesson_id?: string | null
+          mastered_words_count?: number | null
+          max_points?: number
+          milestone?: string | null
+          new_words_count?: number | null
+          points_earned?: number
+          score_percent?: number
+          study_session_id?: string | null
+          taken_at?: string | null
+          total_questions?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_sessions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_sessions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_sessions_study_session_id_fkey"
+            columns: ["study_session_id"]
+            isOneToOne: true
+            referencedRelation: "study_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tip_words: {
         Row: {
           created_at: string | null
@@ -1042,13 +1241,61 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          coin_transaction_id: string | null
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          coin_transaction_id?: string | null
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          coin_transaction_id?: string | null
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_coin_transaction_id_fkey"
+            columns: ["coin_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "coin_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_daily_activity: {
         Row: {
           activity_date: string
           created_at: string | null
+          daily_goal_met: boolean
           id: string
           language_id: string
           sessions_count: number | null
+          streak_frozen: boolean
           study_time_seconds: number | null
           test_max_points: number | null
           test_points_earned: number | null
@@ -1060,9 +1307,11 @@ export type Database = {
         Insert: {
           activity_date: string
           created_at?: string | null
+          daily_goal_met?: boolean
           id?: string
           language_id: string
           sessions_count?: number | null
+          streak_frozen?: boolean
           study_time_seconds?: number | null
           test_max_points?: number | null
           test_points_earned?: number | null
@@ -1074,9 +1323,11 @@ export type Database = {
         Update: {
           activity_date?: string
           created_at?: string | null
+          daily_goal_met?: boolean
           id?: string
           language_id?: string
           sessions_count?: number | null
+          streak_frozen?: boolean
           study_time_seconds?: number | null
           test_max_points?: number | null
           test_points_earned?: number | null
@@ -1236,101 +1487,6 @@ export type Database = {
           },
         ]
       }
-      test_sessions: {
-        Row: {
-          auto_lesson_type: string | null
-          correct_answers: number
-          course_id: string | null
-          direction: string
-          duration_seconds: number | null
-          id: string
-          is_retest: boolean
-          learned_words_count: number
-          lesson_id: string | null
-          mastered_words_count: number | null
-          max_points: number
-          milestone: string | null
-          new_words_count: number | null
-          points_earned: number
-          score_percent: number
-          study_session_id: string | null
-          taken_at: string | null
-          total_questions: number
-          user_id: string | null
-        }
-        Insert: {
-          auto_lesson_type?: string | null
-          correct_answers: number
-          course_id?: string | null
-          direction?: string
-          duration_seconds?: number | null
-          id?: string
-          is_retest?: boolean
-          learned_words_count?: number
-          lesson_id?: string | null
-          mastered_words_count?: number | null
-          max_points?: number
-          milestone?: string | null
-          new_words_count?: number | null
-          points_earned?: number
-          score_percent?: number
-          study_session_id?: string | null
-          taken_at?: string | null
-          total_questions: number
-          user_id?: string | null
-        }
-        Update: {
-          auto_lesson_type?: string | null
-          correct_answers?: number
-          course_id?: string | null
-          direction?: string
-          duration_seconds?: number | null
-          id?: string
-          is_retest?: boolean
-          learned_words_count?: number
-          lesson_id?: string | null
-          mastered_words_count?: number | null
-          max_points?: number
-          milestone?: string | null
-          new_words_count?: number | null
-          points_earned?: number
-          score_percent?: number
-          study_session_id?: string | null
-          taken_at?: string | null
-          total_questions?: number
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "test_sessions_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_sessions_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "lessons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_sessions_study_session_id_fkey"
-            columns: ["study_session_id"]
-            isOneToOne: true
-            referencedRelation: "study_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_tip_dismissals: {
         Row: {
           dismissed_at: string | null
@@ -1444,22 +1600,32 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           cohort: string | null
+          coin_balance: number
           created_at: string | null
           current_course_id: string | null
           current_language_id: string | null
           current_streak: number | null
+          daily_xp_goal: number
           email: string
           hometown: string | null
           id: string
           last_activity_date: string | null
           league: string | null
           league_points: number | null
+          lifetime_xp: number
           location: string | null
           longest_streak: number | null
           name: string | null
           nationalities: string[] | null
           notifications_last_seen_at: string | null
+          pb_day_test_points: number | null
+          pb_day_test_points_at: string | null
+          pb_session_score_at: string | null
+          pb_session_score_percent: number | null
+          pb_week_test_points: number | null
+          pb_week_test_points_at: string | null
           referral_code: string | null
+          streak_freezes_available: number
           stripe_customer_id: string | null
           total_vocabulary_count: number | null
           two_factor_enabled: boolean | null
@@ -1472,22 +1638,32 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cohort?: string | null
+          coin_balance?: number
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
           current_streak?: number | null
+          daily_xp_goal?: number
           email: string
           hometown?: string | null
           id: string
           last_activity_date?: string | null
           league?: string | null
           league_points?: number | null
+          lifetime_xp?: number
           location?: string | null
           longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
+          pb_day_test_points?: number | null
+          pb_day_test_points_at?: string | null
+          pb_session_score_at?: string | null
+          pb_session_score_percent?: number | null
+          pb_week_test_points?: number | null
+          pb_week_test_points_at?: string | null
           referral_code?: string | null
+          streak_freezes_available?: number
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
@@ -1500,22 +1676,32 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cohort?: string | null
+          coin_balance?: number
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
           current_streak?: number | null
+          daily_xp_goal?: number
           email?: string
           hometown?: string | null
           id?: string
           last_activity_date?: string | null
           league?: string | null
           league_points?: number | null
+          lifetime_xp?: number
           location?: string | null
           longest_streak?: number | null
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
+          pb_day_test_points?: number | null
+          pb_day_test_points_at?: string | null
+          pb_session_score_at?: string | null
+          pb_session_score_percent?: number | null
+          pb_week_test_points?: number | null
+          pb_week_test_points_at?: string | null
           referral_code?: string | null
+          streak_freezes_available?: number
           stripe_customer_id?: string | null
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
@@ -1788,7 +1974,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_coins: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_reference_id?: string
+          p_reference_type?: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       f_unaccent: { Args: { "": string }; Returns: string }
+      fire_notification_template: {
+        Args: { p_overrides?: Json; p_template_key: string; p_user_id: string }
+        Returns: number
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_course_vocab_count: {
         Args: { p_course_id: string; p_user_id: string }
@@ -1827,6 +2028,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      recover_streak: {
+        Args: { p_days_missed: number; p_user_id: string }
+        Returns: Json
+      }
       search_language_words: {
         Args: { p_language_id: string; p_query: string }
         Returns: {
@@ -1853,6 +2058,10 @@ export type Database = {
         Returns: {
           word_id: string
         }[]
+      }
+      unlock_achievement: {
+        Args: { p_achievement_slug: string; p_user_id: string }
+        Returns: string
       }
       update_daily_activity: {
         Args: {
@@ -1996,7 +2205,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      display_context: ["study_sidebar"],
+      display_context: ["display_context"] as const,
     },
   },
 } as const

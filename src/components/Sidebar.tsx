@@ -10,6 +10,7 @@ import {
   BookMarked,
   LineChart,
   Trophy,
+  Crown,
   Lock,
   Coins,
   Settings,
@@ -30,7 +31,8 @@ const getNavItems = (courseId?: string) => [
 
 const getSecondaryNavItems = (courseId?: string) => [
   { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
-  { path: "/community", icon: Trophy, label: "Leaderboard" },
+  { path: "/trophies", icon: Trophy, label: "Trophies" },
+  { path: "/community", icon: Crown, label: "Leaderboard" },
 ];
 
 const bottomNavItems = [
@@ -139,6 +141,10 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
     // For community (the leaderboard sidebar entry points here)
     if (path === "/community") {
       return pathname === "/community" || pathname.startsWith("/community");
+    }
+    // For trophies
+    if (path === "/trophies") {
+      return pathname === "/trophies" || pathname.startsWith("/trophies");
     }
     // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, /dictionary, or /progress) and /lesson routes
     if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary") && !path.includes("/progress")) {

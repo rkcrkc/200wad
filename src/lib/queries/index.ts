@@ -76,3 +76,14 @@ export { getHelpEntries, getHelpEntriesAdmin } from "./help";
 
 export { getTipsForWords, getAllTips, getTipsByWordId } from "./tips";
 export type { TipForWord, TipWithWordCount } from "./tips";
+
+export { getAchievementsForUser } from "./achievements";
+export type {
+  AchievementCategory,
+  AchievementTier,
+  UnlockCriteria,
+  AchievementExtra,
+  AchievementForList,
+  UserAchievementAggregates,
+  GetAchievementsForUserResult,
+} from "./achievements";
