@@ -4,6 +4,7 @@ import { getCourseById } from "@/lib/queries/courses";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
+import { Tooltip } from "@/components/ui/tooltip";
 import { TestsList } from "@/components/TestsList";
 import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
 import { formatDuration, formatPercent } from "@/lib/utils/helpers";
@@ -49,12 +50,38 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
             </div>
             {/* Average score per word */}
             <div className="flex flex-col items-start gap-1.5">
-              <span className="text-xs text-muted-foreground">Avg. Score per Word</span>
+              <span className="text-xs text-muted-foreground">Avg. score/word</span>
               <div className="flex items-center gap-1.5">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <span className="text-regular-semibold">{formatPercent(stats.averageScorePerWord)}</span>
               </div>
             </div>
+            {/* Lifetime XP — primary tests-page ledger stat. Rendered as a
+                green chip mirroring the XP-earned chip on previous test rows
+                to reinforce "earned XP" theming. Ring shows today's progress
+                against the daily goal; tooltip breaks down today + best day. */}
+            <Tooltip
+              align="right"
+              position="below"
+              label={
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold">Lifetime XP</span>
+                  <span>
+                    XP are points you earn from tests — full marks score 3 XP
+                    per word. Today: {stats.todayXp}/{stats.dailyXpGoal} XP.
+                    Best day: {stats.bestDayXp} XP.
+                  </span>
+                </div>
+              }
+            >
+              <div className="flex flex-col items-start gap-1.5">
+                <span className="text-xs text-muted-foreground">Lifetime XP</span>
+                <span className="inline-flex items-center justify-center gap-1 rounded-md border border-green-500 bg-green-50 px-2 py-0.5 text-regular-semibold text-foreground">
+                  {stats.lifetimeXp.toLocaleString()}
+                  <span className="text-[10px] font-medium text-muted-foreground">XP</span>
+                </span>
+              </div>
+            </Tooltip>
           </div>
         </div>
 

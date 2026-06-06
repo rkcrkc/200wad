@@ -43,15 +43,18 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
 
       {/* Tests Table */}
       <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
-          <table className="min-w-[950px] w-full table-fixed border-separate border-spacing-0">
+          <table className="min-w-[960px] w-full table-fixed border-separate border-spacing-0">
           {/* Table Header */}
           <thead>
             <tr className="h-12 cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
               <th className="w-[50px] px-6 py-3 text-left font-medium">#</th>
               <th className="px-2 py-3 text-left font-medium">Lesson</th>
               <th className="w-[90px] px-2 py-3 text-left font-medium">Test Name</th>
-              <th className="w-[90px] px-2 py-3 text-center font-medium">Test #</th>
-              <th className={cn(filter === "previous" ? "w-[110px]" : "w-[100px]", "px-2 py-3 text-left font-medium")}>
+              <th className="w-[60px] px-2 py-3 text-center font-medium">Test #</th>
+              <th className={cn(
+                filter === "previous" ? "w-[110px]" : "w-[120px]",
+                "px-2 py-3 text-left font-medium"
+              )}>
                 {filter === "previous" ? (
                   <Tooltip label="Average lesson test score">
                     <span className="inline-flex items-center gap-1.5">
@@ -65,9 +68,32 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
                   </Tooltip>
                 ) : "Status"}
               </th>
-              <th className={cn(filter === "previous" ? "w-[80px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}># Words</th>
-              <th className={cn(filter === "previous" ? "w-[100px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}>{filter === "previous" ? "New Learned" : "# Learned"}</th>
-              <th className={cn(filter === "previous" ? "w-[100px]" : "w-[90px]", "px-2 py-3 text-center font-medium")}>{filter === "previous" ? "New Mastered" : "# Mastered"}</th>
+              <th className={cn(
+                filter === "previous" ? "w-[80px]" : "w-[60px]",
+                "px-2 py-3 text-center font-medium"
+              )}>
+                <Tooltip
+                  align="right"
+                  label={
+                    <span className="block whitespace-normal">
+                      {filter === "previous"
+                        ? "XP earned — 3 XP per word answered perfectly"
+                        : "XP available — one perfect test scores 3 XP per word"}
+                    </span>
+                  }
+                >
+                  <span>{filter === "previous" ? "XP earned" : "XP"}</span>
+                </Tooltip>
+              </th>
+              <th className="w-[90px] px-2 py-3 text-center font-medium"># Words</th>
+              <th className={cn(
+                filter === "previous" ? "w-[110px]" : "w-[90px]",
+                "px-2 py-3 text-center font-medium"
+              )}>{filter === "previous" ? "New Learned" : "# Learned"}</th>
+              <th className={cn(
+                filter === "previous" ? "w-[110px]" : "w-[90px]",
+                "px-2 py-3 text-center font-medium"
+              )}>{filter === "previous" ? "New Mastered" : "# Mastered"}</th>
               <th className={cn(
                 "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
                 canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
@@ -79,7 +105,7 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
           <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
             {currentTests.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-12 text-center">
+                <td colSpan={filter === "due" ? 10 : 9} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     {filter === "due"
                       ? "No tests due — keep studying to unlock more tests!"

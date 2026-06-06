@@ -86,6 +86,24 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
         )}
       </td>
 
+      {/* XP earned (previous tab) or XP available (due tab). Green chip for
+          earned, yellow for available — matching the header daily-goal pill. */}
+      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+        {showScore ? (
+          test.pointsEarned != null && (
+            <span className="inline-flex items-center justify-center gap-1 rounded-md border border-green-500 bg-green-50 px-2 py-0.5 text-xs-medium text-foreground">
+              +{formatNumber(test.pointsEarned)}
+              <span className="text-[10px] font-medium text-muted-foreground">XP</span>
+            </span>
+          )
+        ) : (
+          <span className="inline-flex items-center justify-center gap-1 rounded-md border border-yellow-400 bg-yellow-50 px-2 py-0.5 text-xs-medium text-foreground">
+            {formatNumber(test.maxPoints ?? wordCount * 3)}
+            <span className="text-[10px] font-medium text-muted-foreground">XP</span>
+          </span>
+        )}
+      </td>
+
       {/* # Words */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
         <WordsPreviewTooltip
@@ -130,15 +148,6 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
         showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"
       )}>
         <div className="flex items-center justify-end gap-2">
-          <Tooltip label="Preview lesson">
-            <Link
-              href={`/lesson/${test.lessonId}`}
-              prefetch
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-          </Tooltip>
           <button
             type="button"
             onClick={() => setShowStartTestModal(true)}
@@ -147,6 +156,15 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
             Test
             <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
           </button>
+          <Tooltip label="Preview lesson" align="right">
+            <Link
+              href={`/lesson/${test.lessonId}`}
+              prefetch
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Tooltip>
         </div>
       </td>
 

@@ -33,6 +33,17 @@ export interface TestForList {
   isRetest?: boolean;
   /** Direction this test session ran in. Persisted on test_sessions.direction. */
   direction?: TestType;
+  /**
+   * XP earned on this test session (`test_sessions.points_earned`). Only set
+   * for previous tests — due tests haven't been taken yet so this is undef.
+   */
+  pointsEarned?: number;
+  /**
+   * Maximum XP available on this test. For previous tests this is the actual
+   * `test_sessions.max_points` (Test Twice doubles it). For due tests we
+   * project from `lessons.word_count × 3` (one perfect single-direction test).
+   */
+  maxPoints?: number;
   // For due tests
   isDue: boolean;
   dueAt?: string;
@@ -46,6 +57,14 @@ export interface GetTestsResult {
     testsTaken: number;
     averageScore: number;
     averageScorePerWord: number;
+    /** Cumulative XP across all tests + achievement rewards. Read from `users.lifetime_xp`. */
+    lifetimeXp: number;
+    /** XP earned today across all languages (mirrors the header daily-goal pill). */
+    todayXp: number;
+    /** User's daily XP target (`users.daily_xp_goal`, default 30). */
+    dailyXpGoal: number;
+    /** Personal-best single-day XP (`users.pb_day_test_points`). */
+    bestDayXp: number;
   };
   isGuest: boolean;
 }
@@ -64,7 +83,16 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     return {
       dueTests: [],
       previousTests: [],
-      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0, averageScorePerWord: 0 },
+      stats: {
+        totalTestTimeSeconds: 0,
+        testsTaken: 0,
+        averageScore: 0,
+        averageScorePerWord: 0,
+        lifetimeXp: 0,
+        todayXp: 0,
+        dailyXpGoal: 30,
+        bestDayXp: 0,
+      },
       isGuest: true,
     };
   }
@@ -82,7 +110,16 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     return {
       dueTests: [],
       previousTests: [],
-      stats: { totalTestTimeSeconds: 0, testsTaken: 0, averageScore: 0, averageScorePerWord: 0 },
+      stats: {
+        totalTestTimeSeconds: 0,
+        testsTaken: 0,
+        averageScore: 0,
+        averageScorePerWord: 0,
+        lifetimeXp: 0,
+        todayXp: 0,
+        dailyXpGoal: 30,
+        bestDayXp: 0,
+      },
       isGuest: false,
     };
   }
@@ -95,10 +132,15 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   // user_word_progress both use .range() pagination because PostgREST's server-side
   // max-rows cap (1,000) silently truncates single-request responses — that caused
   // later lessons in large courses to show 0 learned/mastered.
+  // Today (UTC, matches Postgres `current_date` used by update_daily_activity).
+  const todayISO = new Date().toISOString().slice(0, 10);
+
   const [
     { data: lessonProgress },
     { data: testScores },
     lessonWordsRows,
+    { data: userXpRow },
+    { data: todayActivityRows },
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
@@ -135,6 +177,22 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
           .range(from, to),
       { label: "getTests:lesson_words" }
     ),
+    // Cached cumulative XP + daily target + lifetime PB single-day XP. These
+    // power the Tests-page header stats; cheap single-row reads piggybacked
+    // on the existing Promise.all so they don't add an RTT.
+    supabase
+      .from("users")
+      .select("lifetime_xp, daily_xp_goal, pb_day_test_points")
+      .eq("id", user.id)
+      .maybeSingle(),
+    // Per-language daily-activity rows for today; sum `test_points_earned`
+    // across rows so the Tests page mirrors the header daily-goal pill even
+    // for users learning multiple languages.
+    supabase
+      .from("user_daily_activity")
+      .select("test_points_earned")
+      .eq("user_id", user.id)
+      .eq("activity_date", todayISO),
   ]);
 
   // Filter out information pages — they're non-testable
@@ -233,6 +291,18 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const averageScore = testsTaken > 0 ? Math.round(scoreSum / testsTaken) : 0;
   const averageScorePerWord = totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0;
 
+  // XP stats for the Tests-page header. `lifetime_xp` / `pb_day_test_points`
+  // are maintained by the `update_daily_activity` RPC; `daily_xp_goal`
+  // defaults to 30 when the user hasn't customised it; `todayXp` sums the
+  // per-language `test_points_earned` rows for today.
+  const lifetimeXp = userXpRow?.lifetime_xp ?? 0;
+  const dailyXpGoal = userXpRow?.daily_xp_goal ?? 30;
+  const bestDayXp = userXpRow?.pb_day_test_points ?? 0;
+  const todayXp = (todayActivityRows || []).reduce(
+    (sum, row) => sum + (row.test_points_earned || 0),
+    0
+  );
+
   // Build due tests list
   const now = new Date().toISOString();
   const dueTests: TestForList[] = [];
@@ -268,6 +338,11 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
           completionPercent: live.liveCompletion,
           milestone: progress.next_milestone,
           testNumber: testCount + 1,
+          // Projected XP available on this due test: 3 points per word for one
+          // perfect single-direction run. Test Twice would double this; we
+          // surface the conservative single-direction figure so the row reads
+          // as "minimum XP on the table" rather than overstating the prize.
+          maxPoints: (lesson.word_count || 0) * 3,
           isDue: true,
           dueAt: progress.next_test_due_at,
         });
@@ -316,6 +391,8 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       newlyMastered: ts.mastered_words_count || 0,
       isRetest: ts.is_retest || false,
       direction: (ts.direction || "english-to-foreign") as TestType,
+      pointsEarned: ts.points_earned ?? 0,
+      maxPoints: ts.max_points ?? 0,
       isDue: false,
     });
   });
@@ -328,6 +405,10 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       testsTaken,
       averageScore,
       averageScorePerWord,
+      lifetimeXp,
+      todayXp,
+      dailyXpGoal,
+      bestDayXp,
     },
     isGuest: false,
   };

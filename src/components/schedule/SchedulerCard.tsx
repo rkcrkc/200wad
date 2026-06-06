@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { BookOpen, ClipboardPen, Eye } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -41,6 +42,7 @@ function milestoneShortLabel(milestone: string | undefined | null): string | nul
 
 export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardProps) {
   const { t } = useText();
+  const router = useRouter();
   const isTest = mode === "test";
   const isAuto = isAutoLesson(lesson.id);
   const statusType = mapStatus(lesson.status || "");
@@ -97,6 +99,12 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                 wordCount={lesson.word_count || lesson.sampleWords.length}
                 variant="pill"
               />
+              {/* XP chip — `word_count × 3` (single-direction perfect test). */}
+              <Tooltip label="XP available — one perfect test scores 3 XP per word">
+                <span className="inline-flex items-center justify-center rounded-md border border-yellow-400 bg-yellow-50 px-2 py-0.5 text-xs-medium text-foreground">
+                  {((lesson.word_count || lesson.sampleWords.length) * 3).toLocaleString()} XP
+                </span>
+              </Tooltip>
               <StatusPill status={statusType} />
             </div>
           </div>
@@ -143,13 +151,37 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               </span>
             )}
 
-            <Tooltip label={t("tip_preview_lesson")}>
-              <Button asChild variant="ghost" size="icon-lg">
-                <Link href={`/lesson/${lesson.id}`} prefetch>
-                  <Eye className="size-5" />
-                </Link>
-              </Button>
-            </Tooltip>
+            <div className="flex items-center">
+              {isTest ? (
+                <Tooltip label={t("tip_study_lesson")}>
+                  <Button
+                    variant="ghost"
+                    size="icon-lg"
+                    onClick={() => router.push(`/lesson/${lesson.id}/study`)}
+                  >
+                    <BookOpen className="size-5" />
+                  </Button>
+                </Tooltip>
+              ) : (
+                <Tooltip label={t("tip_take_test")}>
+                  <Button
+                    variant="ghost"
+                    size="icon-lg"
+                    onClick={() => setShowStartTestModal(true)}
+                  >
+                    <ClipboardPen className="size-5" />
+                  </Button>
+                </Tooltip>
+              )}
+
+              <Tooltip label={t("tip_preview_lesson")}>
+                <Button asChild variant="ghost" size="icon-lg">
+                  <Link href={`/lesson/${lesson.id}`} prefetch>
+                    <Eye className="size-5" />
+                  </Link>
+                </Button>
+              </Tooltip>
+            </div>
           </div>
         </div>
       </div>

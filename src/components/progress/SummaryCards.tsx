@@ -22,7 +22,7 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
   const totalVocab = progress.wordsLearned + progress.wordsMastered;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* My Vocab */}
       <div className="rounded-2xl bg-white p-5 shadow-card">
         <div className="mb-2 flex items-center justify-between">
@@ -109,6 +109,36 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
                 )
               : 0
           )}
+        </p>
+      </div>
+
+      {/* Lifetime XP — total points the user has earned across every test
+          they've taken. Bottom sub-label surfaces their personal best in a
+          single day, sourced from `users.pb_day_test_points`. */}
+      <div className="rounded-2xl bg-white p-5 shadow-card">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold text-muted-foreground">
+            Lifetime XP
+          </p>
+          <InfoIcon
+            content={
+              <div className="flex w-[260px] flex-col gap-1.5 whitespace-normal text-left text-xs leading-[1.4]">
+                <p>
+                  Total XP earned across all tests. Full marks score 3 XP per
+                  word (no mistakes, no clues).
+                </p>
+              </div>
+            }
+          />
+        </div>
+        <p className="text-[36px] font-bold leading-tight">
+          {formatNumber(progress.lifetimeXp)}{" "}
+          <span className="text-base font-medium text-muted-foreground">
+            XP
+          </span>
+        </p>
+        <p className="mt-1 text-sm font-medium text-black/50">
+          Best day: {formatNumber(progress.bestDayXp)} XP
         </p>
       </div>
     </div>

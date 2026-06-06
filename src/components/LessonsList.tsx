@@ -235,7 +235,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
       {/* Lessons Table */}
       <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
-        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[700px]")}>
+        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[800px]")}>
           {/* Table Header */}
           <thead>
             <tr className="cursor-default whitespace-nowrap">
@@ -367,6 +367,23 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                     />
                   </th>
                   <th className="w-[140px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Status</th>
+                  <th className="w-[60px] px-2 py-3 text-center">
+                    <Tooltip
+                      align="right"
+                      label={
+                        <span className="block whitespace-normal">
+                          XP available — one perfect test scores 3 XP per word
+                        </span>
+                      }
+                    >
+                      <span
+                        className="inline-flex items-center justify-center whitespace-nowrap text-muted-foreground"
+                        style={{ fontSize: "13px", fontWeight: 500 }}
+                      >
+                        XP
+                      </span>
+                    </Tooltip>
+                  </th>
                   <th className="w-[90px] px-2 py-3 text-center">
                     <SortableHeader
                       label="# Words"
@@ -411,7 +428,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
           <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
             {filteredAndSortedLessons.length === 0 ? (
               <tr>
-                <td colSpan={showStats ? 11 : 7} className="px-6 py-12 text-center">
+                <td colSpan={showStats ? 11 : 8} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     No lessons match this filter.
                   </p>

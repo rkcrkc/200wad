@@ -99,6 +99,17 @@ export function LessonPageContent({
   // Count words with memory trigger images (for picture-only mode)
   const wordsWithImages = words.filter((w) => w.memory_trigger_image_url).length;
 
+  // XP totals for this lesson. Earned XP sums `points_earned` across every
+  // test session in the activity history (the same source backing the
+  // activity list below — no extra fetch). Max XP is the deterministic
+  // single-direction perfect-test prize: `word_count × 3`.
+  const xpEarned = (activityHistory?.activities || []).reduce(
+    (sum, a) => (a.type === "test" ? sum + (a.pointsEarned || 0) : sum),
+    0
+  );
+  const xpMax = words.length * 3;
+  const xpRingValue = xpMax > 0 ? Math.min(100, Math.round((xpEarned / xpMax) * 100)) : 0;
+
   const handleStartTest = (testType: TestType, testTwice: boolean, randomOrder: boolean) => {
     setShowStartTestModal(false);
     const params = new URLSearchParams({ type: testType });
@@ -217,6 +228,33 @@ export function LessonPageContent({
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-regular-semibold">{formatDuration(totalTimeSeconds)}</span>
+              </div>
+            </Popover>
+
+            {/* XP earned vs max XP on this lesson. Earned sums all test
+                sessions in the activity history; max is `word_count × 3`
+                (one perfect single-direction test). */}
+            <Popover
+              className="flex flex-col items-start gap-1.5 cursor-default"
+              align="right"
+              content={
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-foreground text-[14px] leading-[1.4] font-semibold">XP earned</span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    <span className="font-semibold">{formatNumber(xpEarned)}</span> earned / <span className="font-semibold">{formatNumber(xpMax)}</span> max available on this lesson
+                  </span>
+                  <span className="text-foreground text-[13px] leading-[1.4]">
+                    Full marks score 3 XP per word per test.
+                  </span>
+                </div>
+              }
+            >
+              <span className="text-xs text-muted-foreground">XP earned</span>
+              <div className="flex items-center gap-2">
+                <ProgressRing value={xpRingValue} size={20} />
+                <span className="text-regular-semibold">
+                  {formatNumber(xpEarned)} / {formatNumber(xpMax)}
+                </span>
               </div>
             </Popover>
           </div>
