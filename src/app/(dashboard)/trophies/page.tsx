@@ -16,8 +16,8 @@ interface CategoryConfig {
 // Render order. 'progress' surfaces lesson milestones, 'mastery' surfaces
 // word-level milestones — see the seed for the split.
 const CATEGORIES: CategoryConfig[] = [
-  { key: "progress", title: "Progress" },
   { key: "mastery", title: "Mastery" },
+  { key: "progress", title: "Progress" },
   { key: "streak", title: "Streaks" },
   { key: "social", title: "Social" },
   {

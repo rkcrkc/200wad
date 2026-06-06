@@ -407,3 +407,54 @@ export async function addLanguage(languageId: string): Promise<MutationResult> {
   revalidatePath("/dashboard");
   return { success: true, error: null };
 }
+
+// ============================================
+// Daily XP Goal Mutation
+// ============================================
+
+/** Min/max bounds for the daily XP goal — mirrored client-side in the editor. */
+const DAILY_XP_GOAL_MIN = 1;
+const DAILY_XP_GOAL_MAX = 500;
+
+/**
+ * Thin dedicated action used by both the header popover and the Preferences
+ * row. Keeps the revalidation surface tight (only the dashboard + settings).
+ */
+export async function updateDailyXpGoalAction(
+  goal: number
+): Promise<MutationResult> {
+  if (!Number.isFinite(goal) || !Number.isInteger(goal)) {
+    return { success: false, error: "Goal must be a whole number" };
+  }
+  if (goal < DAILY_XP_GOAL_MIN || goal > DAILY_XP_GOAL_MAX) {
+    return {
+      success: false,
+      error: `Goal must be between ${DAILY_XP_GOAL_MIN} and ${DAILY_XP_GOAL_MAX}`,
+    };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ daily_xp_goal: goal })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Error updating daily XP goal:", error);
+    return { success: false, error: error.message };
+  }
+
+  // Revalidate the dashboard (every page renders <Header>) and settings.
+  revalidatePath("/", "layout");
+  revalidatePath("/settings");
+  return { success: true, error: null };
+}

@@ -18,6 +18,7 @@ import {
 } from "@/context/HeaderStatsContext";
 import type { PricingPlan } from "@/types/database";
 import type { SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
+import type { DailyGoalProgress } from "@/lib/queries/daily-goal";
 
 interface DefaultCourseContext {
   languageId: string;
@@ -37,6 +38,17 @@ export interface HeaderStats {
   studyTimeSeconds?: number;
   testTimeSeconds?: number;
   leaderboardRank?: number | null;
+  /**
+   * Effective current streak — matches the value rendered on `/streak`. Drives
+   * the sidebar Streaks badge.
+   */
+  currentStreak?: number;
+  /**
+   * Today's XP-goal progress (goal, todayXp, percent, goalMet). Undefined
+   * until the streamed stats bundle resolves; renders the header ring once
+   * present.
+   */
+  dailyGoal?: DailyGoalProgress;
 }
 
 interface DashboardContentProps {

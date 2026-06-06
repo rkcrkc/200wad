@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
 import { MobileMenu } from "./MobileMenu";
 import { CourseDropdown } from "./CourseDropdown";
+import { DailyGoalRing } from "./header/DailyGoalRing";
 import type { HeaderStats } from "./DashboardContent";
 import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
 import { useText } from "@/context/TextContext";
@@ -40,6 +41,7 @@ const PREVIEW_STATS: HeaderStats = {
   studyTimeSeconds: 2400,
   testTimeSeconds: 1200,
   leaderboardRank: 42,
+  dailyGoal: { goal: 30, todayXp: 12, percent: 40, goalMet: false },
 };
 
 export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons }: HeaderProps) {
@@ -221,7 +223,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   })()}
                 >
                   <div className="flex items-center gap-1">
-                    <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
+                    <span className="text-foreground text-[15px] leading-[1.2] font-semibold tracking-[-0.17px]">
                       {formatNumber(effectiveStats.wordsPerDay ?? 0)}
                     </span>
                     <TrendingUp className="text-success h-4 w-4" strokeWidth={2} />
@@ -231,18 +233,6 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   </span>
                 </Popover>
               </Link>
-
-              {/* Leaderboard Rank Indicator */}
-              {effectiveStats.leaderboardRank != null && effectiveStats.leaderboardRank > 0 && (
-                <Link href="/community" prefetch className="flex flex-col items-center">
-                  <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
-                    #{formatNumber(effectiveStats.leaderboardRank)}
-                  </span>
-                  <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
-                    rank
-                  </span>
-                </Link>
-              )}
 
               {/* Total Time Indicator */}
               {(effectiveStats.totalTimeSeconds ?? 0) > 0 && (
@@ -260,7 +250,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     </div>
                   }
                 >
-                  <span className="text-foreground text-[17px] leading-[1.2] font-semibold tracking-[-0.17px]">
+                  <span className="text-foreground text-[15px] leading-[1.2] font-semibold tracking-[-0.17px]">
                     {formatDuration(effectiveStats.totalTimeSeconds ?? 0)}
                   </span>
                   <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
@@ -302,6 +292,11 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     Admin →
                   </Button>
                 </Link>
+              )}
+
+              {/* Daily XP Goal Ring — sits immediately left of the bell */}
+              {!isGuest && (
+                <DailyGoalRing progress={effectiveStats?.dailyGoal} />
               )}
 
               {/* Notification Bell */}

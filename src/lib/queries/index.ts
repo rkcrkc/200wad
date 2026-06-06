@@ -88,9 +88,12 @@ export type {
   GetAchievementsForUserResult,
 } from "./achievements";
 
-export { getStreakPageData } from "./streaks";
+export { getStreakPageData, getCurrentStreak } from "./streaks";
 export type {
   StreakSummary,
   StreakRecoverState,
   StreakPageData,
 } from "./streaks";
+
+export { getDailyGoalProgress } from "./daily-goal";
+export type { DailyGoalProgress } from "./daily-goal";

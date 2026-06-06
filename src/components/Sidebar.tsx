@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
 import { useSubscription } from "@/context/SubscriptionContext";
+import { useHeaderStats } from "@/context/HeaderStatsContext";
 import { Button } from "@/components/ui/button";
 
 // Base nav items - paths are dynamic based on course context
@@ -48,6 +49,12 @@ interface SidebarNavItemProps {
   label: string;
   isActive?: boolean;
   badge?: number;
+  /**
+   * Pre-formatted badge label (e.g. "#24"). Takes precedence over `badge` when
+   * provided and is rendered verbatim, so callers can prefix or format the
+   * value however they need.
+   */
+  badgeText?: string;
 }
 
 function SidebarNavItem({
@@ -56,7 +63,14 @@ function SidebarNavItem({
   label,
   isActive = false,
   badge,
+  badgeText,
 }: SidebarNavItemProps) {
+  const showBadge =
+    badgeText !== undefined && badgeText !== ""
+      ? true
+      : badge !== undefined && badge > 0;
+  const badgeContent = badgeText !== undefined && badgeText !== "" ? badgeText : badge;
+
   return (
     <Link
       href={href}
@@ -76,9 +90,9 @@ function SidebarNavItem({
           {label}
         </span>
       </div>
-      {badge !== undefined && badge > 0 && (
+      {showBadge && (
         <span className="mr-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-beige px-1.5 text-xs font-semibold text-foreground">
-          {badge}
+          {badgeContent}
         </span>
       )}
     </Link>
@@ -113,9 +127,24 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
   const pathname = usePathname();
   const { courseId, languageId, dueTestsCount: contextDueTestsCount } = useCourseContext();
   const { hasLanguageAccess, hasAllLanguagesAccess, accessEndDate } = useSubscription();
+  const { stats: headerStats } = useHeaderStats();
 
   // Prefer prop (from layout) over context (from page)
   const dueTestsCount = propDueTestsCount ?? contextDueTestsCount;
+
+  // Leaderboard rank badge — formatted as "#24". `undefined` (stats not yet
+  // streamed) and null/0 (no rank) both hide the badge.
+  const leaderboardBadge =
+    headerStats?.leaderboardRank != null && headerStats.leaderboardRank > 0
+      ? `#${headerStats.leaderboardRank}`
+      : undefined;
+
+  // Streak badge — raw day count. `undefined` while stats stream and `0`
+  // (no live streak) both suppress the badge so the row stays clean.
+  const streakBadge =
+    headerStats?.currentStreak && headerStats.currentStreak > 0
+      ? headerStats.currentStreak
+      : undefined;
 
   const showUpgradeCard = !hasAllLanguagesAccess && !(languageId && hasLanguageAccess(languageId));
   const endDate = languageId ? accessEndDate(languageId) : null;
@@ -185,6 +214,8 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
             icon={item.icon}
             label={item.label}
             isActive={isActive(item.path)}
+            badge={item.label === "Streaks" ? streakBadge : undefined}
+            badgeText={item.label === "Leaderboard" ? leaderboardBadge : undefined}
           />
         ))}
       </nav>

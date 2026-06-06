@@ -35,7 +35,7 @@ export function FreezeToggleCard({
   };
 
   return (
-    <div className="rounded-2xl bg-white p-5">
+    <div className="flex flex-col rounded-2xl bg-white p-5">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Snowflake className="h-4 w-4 text-blue-500" strokeWidth={1.67} />
         <span className="text-xs-medium uppercase tracking-wide">
@@ -45,7 +45,7 @@ export function FreezeToggleCard({
       <p className="mt-2 text-xl-semibold text-foreground">
         {freezesAvailable}
       </p>
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-auto flex items-center justify-between gap-3 pt-3">
         <label
           htmlFor="freeze-auto-toggle"
           className="text-[13px] leading-[1.4] text-muted-foreground"

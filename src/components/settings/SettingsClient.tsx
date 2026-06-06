@@ -11,11 +11,13 @@ import {
 interface SettingsClientProps {
   email: string;
   twoFactorEnabled: boolean;
+  dailyXpGoal: number;
 }
 
 export function SettingsClient({
   email,
   twoFactorEnabled,
+  dailyXpGoal,
 }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState("account");
 
@@ -40,7 +42,9 @@ export function SettingsClient({
         </>
       )}
 
-      {activeTab === "preferences" && <PreferencesSection />}
+      {activeTab === "preferences" && (
+        <PreferencesSection dailyXpGoal={dailyXpGoal} />
+      )}
     </div>
   );
 }

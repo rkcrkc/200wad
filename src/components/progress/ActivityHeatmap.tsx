@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { HeatmapDay } from "@/lib/queries/stats";
 import { useText } from "@/context/TextContext";
@@ -23,6 +23,12 @@ interface ActivityHeatmapProps {
    * falls back to the legacy single-count translation.
    */
   tooltipMode?: HeatmapTooltipMode;
+  /**
+   * Optional node rendered to the right of the title (e.g. a view-mode
+   * toggle). Wrappers like `StreakActivityHeatmap` use this to mount tabs
+   * inside the heatmap card without duplicating the chrome.
+   */
+  headerRight?: ReactNode;
 }
 
 const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
@@ -101,6 +107,7 @@ export function ActivityHeatmap({
   palette = "green",
   title = "Activity",
   tooltipMode = "default",
+  headerRight,
 }: ActivityHeatmapProps) {
   const { tt } = useText();
   const { weeks, months, max } = useMemo(() => {
@@ -147,9 +154,10 @@ export function ActivityHeatmap({
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
-      <h3 className="mb-4 text-sm font-semibold text-muted-foreground">
-        {title}
-      </h3>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
+        {headerRight}
+      </div>
 
       <div className="overflow-x-auto">
         <div className="min-w-[720px]">

@@ -9,6 +9,8 @@ import {
   getActivePricingPlans,
   getUserLeaderboardPosition,
   getUserSubscriptions,
+  getCurrentStreak,
+  getDailyGoalProgress,
 } from "@/lib/queries";
 import { getTextOverrides } from "@/lib/queries/text";
 import { getSubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
@@ -53,13 +55,21 @@ export default async function DashboardLayout({
   const headerStatsPromise: Promise<HeaderStatsBundle> | null =
     course && language
       ? (async () => {
-          const [dueTestsCount, learningStats, courseProgress, leaderboardPosition] =
-            await Promise.all([
-              getDueTestsCount(course.id),
-              getUserLearningStats(course.id),
-              getCourseProgress(course.id),
-              getUserLeaderboardPosition(language.id, "avg_words_per_day", "week"),
-            ]);
+          const [
+            dueTestsCount,
+            learningStats,
+            courseProgress,
+            leaderboardPosition,
+            currentStreak,
+            dailyGoal,
+          ] = await Promise.all([
+            getDueTestsCount(course.id),
+            getUserLearningStats(course.id),
+            getCourseProgress(course.id),
+            getUserLeaderboardPosition(language.id, "avg_words_per_day", "week"),
+            getCurrentStreak(),
+            getDailyGoalProgress(),
+          ]);
           return {
             stats: {
               wordsPerDay: learningStats.wordsPerDay,
@@ -71,6 +81,8 @@ export default async function DashboardLayout({
               studyTimeSeconds: learningStats.studyTimeSeconds,
               testTimeSeconds: learningStats.testTimeSeconds,
               leaderboardRank: leaderboardPosition?.rank ?? null,
+              currentStreak,
+              dailyGoal,
             },
             dueTestsCount,
           };

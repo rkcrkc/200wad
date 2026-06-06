@@ -294,6 +294,18 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     group: "Schedule",
     defaultValue: "Preview lesson",
   },
+  tip_take_test: {
+    label: "Take test tooltip",
+    category: "tooltips_popovers",
+    group: "Schedule",
+    defaultValue: "Take test",
+  },
+  tip_study_lesson: {
+    label: "Study lesson tooltip",
+    category: "tooltips_popovers",
+    group: "Schedule",
+    defaultValue: "Study lesson",
+  },
 
   // Lessons List
   tip_show_progress_view: {
@@ -829,6 +841,89 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     category: "greetings_messages",
     group: "Study Action Bar",
     defaultValue: "Set before starting test",
+  },
+
+  // Streak Page — current-streak card status messaging
+  // Shown beneath the "N days" number on the /streak page Current Streak
+  // card. Each state has its own message + CTA so admins can fine-tune the
+  // tone independently. Vars:
+  //   {days}       whole days since last activity
+  //   {dayWord}    "day" or "days" — pluralised in code
+  //   {streak}     current streak length
+  //   {streakWord} "day" or "days" — pluralised in code
+  //   {kind}       "lesson" or "test" — whichever is up next
+  streak_msg_lapsed: {
+    label: "Streak lapsed message",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue:
+      "You haven't studied in {days} {dayWord}. Do your scheduled {kind} now to start a new streak.",
+  },
+  streak_cta_lapsed: {
+    label: "Streak lapsed CTA button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Start next {kind}",
+  },
+  streak_msg_alive_no_today: {
+    label: "Streak alive (no activity today) message",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue:
+      "Keep your {streak}-{streakWord} streak alive — do your scheduled {kind} today.",
+  },
+  streak_cta_alive_no_today: {
+    label: "Streak alive (no activity today) CTA button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Start next {kind}",
+  },
+  streak_msg_alive_today: {
+    label: "Streak alive (already studied today) message",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue:
+      "Nice work — you've already studied today and kept your {streak}-{streakWord} streak going.",
+  },
+  streak_cta_alive_today: {
+    label: "Streak alive (already studied today) CTA button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Start next {kind}",
+  },
+
+  // Streak Page — Longest Streak card leaderboard snapshot
+  // Surfaces the user's streak-leaderboard rank, the milestone tier they've
+  // already cleared, and the gap to the next milestone above. Vars:
+  //   {rank}        1-based rank in the language's streak leaderboard
+  //   {total}       total users on that leaderboard
+  //   {currentTier} milestone the user has cleared (10/50/100/500)
+  //   {nextTier}    next milestone above (10/50/100/500)
+  //   {daysToNext}  whole days needed to overtake the cutoff
+  //   {dayWord}     "day" or "days" — pluralised in code
+  streak_lb_position_in_tier: {
+    label: "Streak leaderboard position (in tier)",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "You're #{rank} of {total} in streaks — Top {currentTier}!",
+  },
+  streak_lb_position_untier: {
+    label: "Streak leaderboard position (outside top 500)",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "You're #{rank} of {total} in streaks.",
+  },
+  streak_lb_gap: {
+    label: "Streak leaderboard gap to next tier",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "{daysToNext} more {dayWord} to reach the top {nextTier}.",
+  },
+  streak_lb_button: {
+    label: "Streak leaderboard CTA button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "View leaderboard",
   },
 
   // Word Status Tooltips

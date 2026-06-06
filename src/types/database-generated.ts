@@ -1291,6 +1291,7 @@ export type Database = {
         Row: {
           activity_date: string
           created_at: string | null
+          daily_goal_half_met: boolean
           daily_goal_met: boolean
           id: string
           language_id: string
@@ -1310,6 +1311,7 @@ export type Database = {
         Insert: {
           activity_date: string
           created_at?: string | null
+          daily_goal_half_met?: boolean
           daily_goal_met?: boolean
           id?: string
           language_id: string
@@ -1329,6 +1331,7 @@ export type Database = {
         Update: {
           activity_date?: string
           created_at?: string | null
+          daily_goal_half_met?: boolean
           daily_goal_met?: boolean
           id?: string
           language_id?: string
@@ -1727,7 +1730,7 @@ export type Database = {
             foreignKeyName: "users_current_course_id_fkey"
             columns: ["current_course_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
           {
@@ -2079,21 +2082,34 @@ export type Database = {
         Args: { p_achievement_slug: string; p_user_id: string }
         Returns: string
       }
-      update_daily_activity: {
-        Args: {
-          p_language_id: string
-          p_lesson_sessions?: number
-          p_study_time_seconds?: number
-          p_test_max_points?: number
-          p_test_points_earned?: number
-          p_test_sessions?: number
-          p_user_id: string
-          p_words_learned?: number
-          p_words_mastered?: number
-          p_words_studied?: number
-        }
-        Returns: undefined
-      }
+      update_daily_activity:
+        | {
+            Args: {
+              p_language_id: string
+              p_study_time_seconds?: number
+              p_test_max_points?: number
+              p_test_points_earned?: number
+              p_user_id: string
+              p_words_mastered?: number
+              p_words_studied?: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_language_id: string
+              p_lesson_sessions?: number
+              p_study_time_seconds?: number
+              p_test_max_points?: number
+              p_test_points_earned?: number
+              p_test_sessions?: number
+              p_user_id: string
+              p_words_learned?: number
+              p_words_mastered?: number
+              p_words_studied?: number
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       display_context: "study_sidebar"

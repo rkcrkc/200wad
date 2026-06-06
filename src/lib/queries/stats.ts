@@ -27,6 +27,8 @@ export interface CumulativeProgress {
   totalStudyTimeSeconds: number;
   studyTimeSeconds: number;
   testTimeSeconds: number;
+  lifetimeXp: number;
+  bestDayXp: number;
 }
 
 export interface HeatmapDay {
@@ -455,6 +457,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       totalStudyTimeSeconds: 0,
       studyTimeSeconds: 0,
       testTimeSeconds: 0,
+      lifetimeXp: 0,
+      bestDayXp: 0,
     },
     heatmapData: [],
     chartData: { dailyRows: [], totalCourseWords: 0, firstActivityDate: null },
@@ -559,7 +563,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       // Streak data from users table
       supabase
         .from("users")
-        .select("current_streak, longest_streak")
+        .select("current_streak, longest_streak, lifetime_xp, pb_day_test_points")
         .eq("id", user.id)
         .single(),
       // Reuse existing course progress function
@@ -694,6 +698,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     totalStudyTimeSeconds: studyTimeSeconds + testTimeSeconds,
     studyTimeSeconds,
     testTimeSeconds,
+    lifetimeXp: userData?.lifetime_xp ?? 0,
+    bestDayXp: userData?.pb_day_test_points ?? 0,
   };
 
   // --- Chart per-day maps (also used by the heatmap tooltip) ---
