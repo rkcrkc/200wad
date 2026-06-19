@@ -2,6 +2,7 @@ import { Info } from "lucide-react";
 import type { CumulativeProgress } from "@/lib/queries/stats";
 import { formatNumber, formatPercent } from "@/lib/utils/helpers";
 import { Tooltip } from "@/components/ui/tooltip";
+import { XpIcon } from "@/components/ui/xp-icon";
 
 interface SummaryCardsProps {
   progress: CumulativeProgress;
@@ -131,14 +132,13 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
             }
           />
         </div>
-        <p className="text-[36px] font-bold leading-tight">
-          {formatNumber(progress.lifetimeXp)}{" "}
-          <span className="text-base font-medium text-muted-foreground">
-            XP
-          </span>
+        <p className="flex items-center gap-1.5 text-[36px] font-bold leading-tight">
+          <XpIcon className="h-6 w-6" />
+          {formatNumber(progress.lifetimeXp)}
         </p>
-        <p className="mt-1 text-sm font-medium text-black/50">
-          Best day: {formatNumber(progress.bestDayXp)} XP
+        <p className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-black/50">
+          Best day: <XpIcon className="h-3.5 w-3.5" />
+          {formatNumber(progress.bestDayXp)}
         </p>
       </div>
     </div>

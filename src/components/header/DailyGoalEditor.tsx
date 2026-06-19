@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { XpIcon } from "@/components/ui/xp-icon";
 
 interface DailyGoalEditorProps {
   /**
@@ -77,7 +78,10 @@ export function DailyGoalEditor({ initialGoal, onChange }: DailyGoalEditorProps)
                   : "border-border bg-white text-foreground"
               )}
             >
-              {preset} XP
+              <span className="inline-flex items-center gap-1">
+                <XpIcon className="h-3.5 w-3.5" />
+                {preset}
+              </span>
             </button>
           );
         })}
@@ -97,6 +101,7 @@ export function DailyGoalEditor({ initialGoal, onChange }: DailyGoalEditorProps)
 
       {customMode && (
         <div className="flex items-center gap-2">
+          <XpIcon className="h-4 w-4" />
           <input
             type="number"
             min={GOAL_MIN}
@@ -106,7 +111,6 @@ export function DailyGoalEditor({ initialGoal, onChange }: DailyGoalEditorProps)
             onChange={(e) => setCustomValue(e.target.value)}
             className="w-24 rounded-md border-[1.5px] border-border bg-white px-2 py-1 text-sm font-medium text-foreground focus:border-primary focus:outline-none"
           />
-          <span className="text-sm font-medium text-muted-foreground">XP</span>
         </div>
       )}
 

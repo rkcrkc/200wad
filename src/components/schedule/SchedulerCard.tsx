@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { XpBadge } from "@/components/ui/xp-badge";
 import { ScrollablePills } from "./ScrollablePills";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonStartTestModal } from "@/components/study";
@@ -101,9 +102,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               />
               {/* XP chip — `word_count × 3` (single-direction perfect test). */}
               <Tooltip label="XP available — one perfect test scores 3 XP per word">
-                <span className="inline-flex items-center justify-center rounded-md border border-yellow-400 bg-yellow-50 px-2 py-0.5 text-xs-medium text-foreground">
-                  {((lesson.word_count || lesson.sampleWords.length) * 3).toLocaleString()} XP
-                </span>
+                <XpBadge value={(lesson.word_count || lesson.sampleWords.length) * 3} variant="available" />
               </Tooltip>
               <StatusPill status={statusType} />
             </div>

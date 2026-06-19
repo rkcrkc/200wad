@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
+import { XpBadge } from "@/components/ui/xp-badge";
 import { LessonStartTestModal } from "@/components/study";
 import { TestForList } from "@/lib/queries/tests";
 import { mapStatus, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -91,16 +92,10 @@ export function TestRow({ test, isFirst, isLast, showScore, showScrollFade }: Te
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
         {showScore ? (
           test.pointsEarned != null && (
-            <span className="inline-flex items-center justify-center gap-1 rounded-md border border-green-500 bg-green-50 px-2 py-0.5 text-xs-medium text-foreground">
-              +{formatNumber(test.pointsEarned)}
-              <span className="text-[10px] font-medium text-muted-foreground">XP</span>
-            </span>
+            <XpBadge value={test.pointsEarned} variant="earned" showPlus />
           )
         ) : (
-          <span className="inline-flex items-center justify-center gap-1 rounded-md border border-yellow-400 bg-yellow-50 px-2 py-0.5 text-xs-medium text-foreground">
-            {formatNumber(test.maxPoints ?? wordCount * 3)}
-            <span className="text-[10px] font-medium text-muted-foreground">XP</span>
-          </span>
+          <XpBadge value={test.maxPoints ?? wordCount * 3} variant="available" />
         )}
       </td>
 

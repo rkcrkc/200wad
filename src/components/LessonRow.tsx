@@ -6,6 +6,7 @@ import { BookOpen, ChevronRight, ClipboardPen, Lock } from "lucide-react";
 import { StatusPill } from "@/components/ui/status-pill";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
+import { XpBadge } from "@/components/ui/xp-badge";
 import { LessonStartTestModal } from "@/components/study";
 import type { LessonWithProgress } from "@/lib/queries/lessons";
 import type { LessonMilestoneScores } from "@/lib/queries/tests";
@@ -189,10 +190,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       {/* XP available — `word_count × 3` (one perfect single-direction test).
           Yellow theming matches the header daily-goal pill. */}
       <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
-        <span className="inline-flex items-center justify-center gap-1 rounded-md border border-yellow-400 bg-yellow-50 px-2 py-0.5 text-xs-medium text-foreground">
-          {formatNumber(wordCount * 3)}
-          <span className="text-[10px] font-medium text-muted-foreground">XP</span>
-        </span>
+        <XpBadge value={wordCount * 3} variant="available" />
       </td>
 
       {/* # Words */}

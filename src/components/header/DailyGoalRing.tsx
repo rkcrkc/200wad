@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Tooltip } from "@/components/ui/tooltip";
+import { XpIcon } from "@/components/ui/xp-icon";
 import type { DailyGoalProgress } from "@/lib/queries/daily-goal";
 
 interface DailyGoalRingProps {
@@ -56,8 +57,9 @@ export function DailyGoalRing({ progress }: DailyGoalRingProps) {
           color={ringColor}
         />
         <div className="flex flex-col items-start leading-tight">
-          <span className="text-foreground text-[15px] font-semibold tracking-[-0.15px]">
-            {todayXp}/{goal} XP
+          <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-semibold tracking-[-0.15px]">
+            <XpIcon className="h-3.5 w-3.5" />
+            {todayXp}/{goal}
           </span>
           <span className="text-muted-foreground text-[11px] font-medium tracking-[-0.11px]">
             Daily goal

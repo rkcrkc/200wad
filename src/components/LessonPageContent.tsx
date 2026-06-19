@@ -20,8 +20,10 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ProgressRing } from "@/components/ui/progress-ring";
+import { XpBadge } from "@/components/ui/xp-badge";
 import { status as statusTokens } from "@/lib/design-tokens";
 import { useText } from "@/context/TextContext";
+import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 
 const AUTO_LESSON_EXPLANATIONS: Record<AutoLessonType, string> = {
   notes: "Every word in this course you've added a personal note to.",
@@ -92,6 +94,7 @@ export function LessonPageContent({
 }: LessonPageContentProps) {
   const { t } = useText();
   const router = useRouter();
+  const sidebarCollapsed = useSidebarCollapsed();
   const [, setIsWordSelected] = useState(false);
   const [showStartTestModal, setShowStartTestModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -108,7 +111,6 @@ export function LessonPageContent({
     0
   );
   const xpMax = words.length * 3;
-  const xpRingValue = xpMax > 0 ? Math.min(100, Math.round((xpEarned / xpMax) * 100)) : 0;
 
   const handleStartTest = (testType: TestType, testTwice: boolean, randomOrder: boolean) => {
     setShowStartTestModal(false);
@@ -241,20 +243,14 @@ export function LessonPageContent({
                 <div className="flex flex-col gap-0.5">
                   <span className="text-foreground text-[14px] leading-[1.4] font-semibold">XP earned</span>
                   <span className="text-foreground text-[13px] leading-[1.4]">
-                    <span className="font-semibold">{formatNumber(xpEarned)}</span> earned / <span className="font-semibold">{formatNumber(xpMax)}</span> max available on this lesson
-                  </span>
-                  <span className="text-foreground text-[13px] leading-[1.4]">
-                    Full marks score 3 XP per word per test.
+                    Total XP earned from tests for this lesson.
                   </span>
                 </div>
               }
             >
               <span className="text-xs text-muted-foreground">XP earned</span>
               <div className="flex items-center gap-2">
-                <ProgressRing value={xpRingValue} size={20} />
-                <span className="text-regular-semibold">
-                  {formatNumber(xpEarned)} / {formatNumber(xpMax)}
-                </span>
+                <XpBadge value={xpEarned} variant="earned" size="md" />
               </div>
             </Popover>
           </div>
@@ -316,7 +312,7 @@ export function LessonPageContent({
 
       {/* Fixed footer bar - hidden when showing history */}
       {!showHistory && words.length > 0 && (
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
+        <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar", sidebarCollapsed ? "left-[72px]" : "left-[240px]")}>
           <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
             {previousLesson ? (
               <Link
@@ -347,7 +343,10 @@ export function LessonPageContent({
                 className="flex-1 max-w-[240px]"
                 onClick={() => setShowStartTestModal(true)}
               >
-                Take test
+                <span className="inline-flex items-center gap-2">
+                  Take test
+                  <XpBadge value={xpMax} variant="available" />
+                </span>
               </PrimaryButton>
             </div>
             {nextLesson ? (

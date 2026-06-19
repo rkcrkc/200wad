@@ -2,6 +2,7 @@ import { Clock, Target } from "lucide-react";
 import { getLessons, getTests } from "@/lib/queries";
 import { getCourseById } from "@/lib/queries/courses";
 import { EmptyState } from "@/components/ui/empty-state";
+import { XpBadge } from "@/components/ui/xp-badge";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -76,10 +77,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
             >
               <div className="flex flex-col items-start gap-1.5">
                 <span className="text-xs text-muted-foreground">Lifetime XP</span>
-                <span className="inline-flex items-center justify-center gap-1 rounded-md border border-green-500 bg-green-50 px-2 py-0.5 text-regular-semibold text-foreground">
-                  {stats.lifetimeXp.toLocaleString()}
-                  <span className="text-[10px] font-medium text-muted-foreground">XP</span>
-                </span>
+                <XpBadge value={stats.lifetimeXp} variant="earned" size="md" />
               </div>
             </Tooltip>
           </div>
