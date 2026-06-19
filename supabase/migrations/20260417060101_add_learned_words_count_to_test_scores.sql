@@ -1,0 +1,1 @@
+ALTER TABLE user_test_scores ADD COLUMN learned_words_count integer NOT NULL DEFAULT 0;

@@ -1,0 +1,1 @@
+ALTER TABLE user_test_scores ADD COLUMN is_retest boolean NOT NULL DEFAULT false;

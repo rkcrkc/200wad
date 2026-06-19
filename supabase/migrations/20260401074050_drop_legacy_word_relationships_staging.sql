@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public._legacy_word_relationships_staging;

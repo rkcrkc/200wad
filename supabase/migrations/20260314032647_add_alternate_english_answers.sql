@@ -1,0 +1,1 @@
+ALTER TABLE words ADD COLUMN alternate_english_answers text[] DEFAULT NULL;

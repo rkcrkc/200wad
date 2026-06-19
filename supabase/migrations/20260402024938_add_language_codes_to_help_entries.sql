@@ -1,0 +1,1 @@
+ALTER TABLE help_entries ADD COLUMN language_codes TEXT[];

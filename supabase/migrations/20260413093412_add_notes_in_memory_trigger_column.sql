@@ -1,0 +1,1 @@
+ALTER TABLE words ADD COLUMN notes_in_memory_trigger boolean DEFAULT false;

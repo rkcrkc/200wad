@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.search_course_words(text, uuid);
