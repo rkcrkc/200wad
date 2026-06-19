@@ -9,6 +9,7 @@ import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
 import { useText } from "@/context/TextContext";
 import { useWordPreview } from "@/context/WordPreviewContext";
+import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
 import { cn } from "@/lib/utils";
 
 interface WordListItem {
@@ -80,6 +81,7 @@ export function WordDetailSidebar({
   // Clicking a related entry from inside the preview sidebar swaps content
   // in-place via the existing openWord behavior (URL replace, no history bloat).
   const { openWord } = useWordPreview();
+  const exitGuard = useStudyExitGuard();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<(() => void) | null>(null);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
@@ -198,6 +200,12 @@ export function WordDetailSidebar({
               return lessonId ? (
                 <Link
                   href={`/lesson/${lessonId}`}
+                  onClick={(e) => {
+                    // Don't leave study/test mode without the exit warning.
+                    if (exitGuard?.requestExit(`/lesson/${lessonId}`)) {
+                      e.preventDefault();
+                    }
+                  }}
                   className={cn(chipBaseClass, "hover:bg-bone-hover")}
                 >
                   {lessonChipContent}

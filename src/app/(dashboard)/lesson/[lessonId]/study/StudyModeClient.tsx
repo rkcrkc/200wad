@@ -26,6 +26,7 @@ import {
 import { useSetCourseContext } from "@/context/CourseContext";
 import { useUser } from "@/context/UserContext";
 import { useWordPreview } from "@/context/WordPreviewContext";
+import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import {
@@ -89,6 +90,7 @@ export function StudyModeClient({
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { openWord } = useWordPreview();
+  const exitGuard = useStudyExitGuard();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
@@ -159,6 +161,9 @@ export function StudyModeClient({
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
+  // When set, confirming the exit dialog navigates here (e.g. the upgrade page
+  // reached via a locked word's CTA) instead of back to the lesson page.
+  const [pendingExitDestination, setPendingExitDestination] = useState<string | null>(null);
 
   // Strict study mode state
   const [strictMode, setStrictMode] = useState(false);
@@ -976,9 +981,21 @@ export function StudyModeClient({
     if (sessionId) {
       clearSessionProgress("study", sessionId, lesson.id);
     }
-    // Navigate back to lesson page
-    router.push(`/lesson/${lesson.id}`);
-  }, [sessionId, lesson.id, router]);
+    // Navigate to the pending destination (e.g. upgrade page) when an external
+    // request triggered the dialog, otherwise back to the lesson page.
+    router.push(pendingExitDestination ?? `/lesson/${lesson.id}`);
+  }, [sessionId, lesson.id, router, pendingExitDestination]);
+
+  // Let in-lesson navigations (e.g. a locked word's "Upgrade to view" CTA)
+  // route through the exit-confirmation dialog instead of leaving silently.
+  useEffect(() => {
+    if (!exitGuard) return;
+    exitGuard.registerExitHandler((destination) => {
+      setPendingExitDestination(destination);
+      setShowExitModal(true);
+    });
+    return () => exitGuard.registerExitHandler(null);
+  }, [exitGuard]);
 
   // Handle restart current word
   const handleRestart = useCallback(() => {
@@ -1359,7 +1376,10 @@ export function StudyModeClient({
               <Button
                 variant="outline"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setShowExitModal(false)}
+                onClick={() => {
+                  setShowExitModal(false);
+                  setPendingExitDestination(null);
+                }}
               >
                 Cancel
               </Button>

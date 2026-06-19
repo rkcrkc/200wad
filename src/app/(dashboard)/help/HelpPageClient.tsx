@@ -12,11 +12,13 @@ import {
   HelpCircle,
   BookOpen,
   MessageCircleQuestion,
+  CirclePlay,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { HelpLinkPreview } from "@/components/HelpLinkPreview";
 import { Badge } from "@/components/ui/badge";
+import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 import type { HelpEntry } from "@/types/database";
 
 interface HelpPageClientProps {
@@ -26,6 +28,7 @@ interface HelpPageClientProps {
 
 export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
   const router = useRouter();
+  const sidebarCollapsed = useSidebarCollapsed();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -266,13 +269,26 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
           })
         )}
       </div>
+
+      {/* Floating tutorial card — pinned to the bottom of the index */}
+      <div className="p-4">
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
+        >
+          <CirclePlay className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.67} />
+          <span className="text-[15px] font-semibold leading-[1.35] text-foreground">
+            View Tutorial
+          </span>
+        </button>
+      </div>
     </div>
   );
 
   return (
     <div className="-mx-4 -mt-[8px] flex h-[calc(100vh-72px)] md:-mx-8 lg:-mx-10">
       {/* Desktop sidebar (lg+) — fixed position */}
-      <div className="hidden lg:fixed lg:left-[240px] lg:top-[72px] lg:bottom-0 lg:z-10 lg:block lg:w-[280px] lg:border-r lg:border-gray-200 lg:bg-background">
+      <div className={`hidden lg:fixed lg:top-[72px] lg:bottom-0 lg:z-10 lg:block lg:w-[280px] lg:border-r lg:border-gray-200 lg:bg-background ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]"}`}>
         {sidebarContent}
       </div>
 
@@ -315,7 +331,7 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
       {/* Content area */}
       <div className="flex-1 overflow-auto">
         {selectedEntry ? (
-          <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
+          <div className="mx-auto max-w-3xl px-6 py-8">
             <div className="rounded-xl bg-white p-6 lg:p-10">
               <h1 className="text-page-header mb-2">{selectedEntry.title}</h1>
               <Badge variant="beige" className="mb-6 text-muted-foreground">
@@ -327,9 +343,9 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-2xl px-6 py-12 lg:px-10">
+          <div className="mx-auto max-w-3xl px-6 py-12">
             <div className="text-center">
-              <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary/40" />
+              <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
               <h1 className="text-xxl-bold mb-3">Help</h1>
               <p className="text-regular-semibold text-muted-foreground">
                 Everything you need to know about using 200 Words a Day

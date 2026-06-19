@@ -18,6 +18,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { useUpgradeModal } from "@/context/UpgradeModalContext";
+import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
 import { preloadImages } from "@/lib/utils/preloadImages";
 
 export interface WordListItem {
@@ -113,6 +114,20 @@ export function WordDetailView({
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
   const upgradeModal = useUpgradeModal();
+  const exitGuard = useStudyExitGuard();
+
+  // Locked-word "Upgrade to view" CTA. On the dashboard this opens the upgrade
+  // modal in-place. Inside study/test mode there is no modal, so we must never
+  // navigate away silently — route through the exit guard so the user sees the
+  // "Exit lesson?/Exit test?" warning first; only on confirm does it navigate.
+  const handleUpgradeClick = useCallback(() => {
+    if (upgradeModal) {
+      upgradeModal.openUpgradeModal();
+      return;
+    }
+    if (exitGuard?.requestExit("/account/subscriptions")) return;
+    router.push("/account/subscriptions");
+  }, [upgradeModal, exitGuard, router]);
 
   // Handle back navigation - go to dictionary if accessed from there
   const handleBackClick = useCallback(() => {
@@ -739,6 +754,12 @@ export function WordDetailView({
                   key={lesson.id}
                   href={`/lesson/${lesson.id}`}
                   prefetch
+                  onClick={(e) => {
+                    // Don't leave study/test mode without the exit warning.
+                    if (exitGuard?.requestExit(`/lesson/${lesson.id}`)) {
+                      e.preventDefault();
+                    }
+                  }}
                   className="grid grid-cols-[64px_1fr_24px] items-center gap-3 px-6 py-4 transition-colors hover:bg-[#FAF8F3]"
                 >
                   <span className="text-sm tabular-nums text-muted-foreground">
@@ -819,13 +840,7 @@ export function WordDetailView({
                           </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (upgradeModal) {
-                                upgradeModal.openUpgradeModal();
-                              } else {
-                                router.push("/account/subscriptions");
-                              }
-                            }}
+                            onClick={handleUpgradeClick}
                             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                           >
                             <Sparkles className="h-4 w-4" />
@@ -848,13 +863,7 @@ export function WordDetailView({
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (upgradeModal) {
-                            upgradeModal.openUpgradeModal();
-                          } else {
-                            router.push("/account/subscriptions");
-                          }
-                        }}
+                        onClick={handleUpgradeClick}
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
                       >
                         <Sparkles className="h-4 w-4" />

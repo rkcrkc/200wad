@@ -28,6 +28,12 @@ interface StudyWordListSidebarProps {
   primaryField?: "foreign" | "english";
   /** Category per word index — information pages get no number */
   categories?: (string | null)[];
+  /**
+   * Optional caption headers to render above specific indices. Used in
+   * testTwice mode to mark the start of each round (e.g. 0 → "Round 1",
+   * midpoint → "Round 2").
+   */
+  roundLabels?: Map<number, string>;
 }
 
 export function StudyWordListSidebar({
@@ -40,6 +46,7 @@ export function StudyWordListSidebar({
   hideSecondaryIndices,
   primaryField = "foreign",
   categories,
+  roundLabels,
 }: StudyWordListSidebarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentItemRef = useRef<HTMLButtonElement>(null);
@@ -114,9 +121,21 @@ export function StudyWordListSidebar({
               // In test mode, disable words not yet reached
               const isDisabled = isTestMode && index > maxReachedIndex;
 
+              const roundLabel = roundLabels?.get(index);
+
               return (
-                <button
-                  key={`${word.id}-${index}`}
+                <div key={`${word.id}-${index}`} className="contents">
+                  {roundLabel && (
+                    <span
+                      className={cn(
+                        "block px-2 text-xs font-medium uppercase tracking-wide text-foreground/50",
+                        index === 0 ? "pt-1 pb-1.5" : "pt-3 pb-1.5"
+                      )}
+                    >
+                      {roundLabel}
+                    </span>
+                  )}
+                  <button
                   ref={isCurrent ? currentItemRef : undefined}
                   onClick={() => !isDisabled && onJumpToWord(index)}
                   disabled={isDisabled}
@@ -189,6 +208,7 @@ export function StudyWordListSidebar({
 
                   {/* Status indicator (test mode only) */}
                 </button>
+                </div>
               );
             })}
           </div>

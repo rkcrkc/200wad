@@ -3,6 +3,7 @@
 import { ShoppingCart, X, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 import type { CartItem } from "./SubscriptionsPageClient";
 
 interface StickyCartBarProps {
@@ -26,6 +27,8 @@ export function StickyCartBar({
   isCheckingOut,
   checkoutError,
 }: StickyCartBarProps) {
+  const sidebarCollapsed = useSidebarCollapsed();
+
   if (cartItems.length === 0) return null;
 
   const total = cartItems.reduce((sum, item) => sum + item.amountCents, 0);
@@ -36,7 +39,7 @@ export function StickyCartBar({
   const hasMixedModes = hasLifetime && hasRecurring;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg lg:left-[240px]">
+    <div className={`fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]"}`}>
       <div className="mx-auto flex max-w-content-sm items-center justify-between px-6 py-4">
         {/* Left side: cart summary */}
         <div className="flex items-center gap-3">

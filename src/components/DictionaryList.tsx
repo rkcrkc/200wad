@@ -9,6 +9,7 @@ import { CategoryFilter, CategoryOption } from "@/components/CategoryFilter";
 import { DictionaryRow } from "@/components/DictionaryRow";
 import { useScrollFade } from "@/hooks/useScrollFade";
 import { useWordPreview } from "@/context/WordPreviewContext";
+import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 import { DictionaryWord } from "@/lib/queries/dictionary";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
@@ -85,6 +86,7 @@ export function DictionaryList({
   const searchParams = useSearchParams();
   const { scrollRef: dictScrollRef, canScrollRight } = useScrollFade();
   const { openWord, selectedWordId } = useWordPreview();
+  const sidebarCollapsed = useSidebarCollapsed();
   const urlWordId = searchParams.get("word");
 
   const [filter, setFilter] = useState<FilterType>(() => {
@@ -481,7 +483,7 @@ export function DictionaryList({
       </div>
 
       {/* Floating Footer */}
-      <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar px-6 py-3">
+      <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar px-6 py-3", sidebarCollapsed ? "left-[72px]" : "left-[240px]")}>
         <div className="mx-auto max-w-[1200px]">
           <span className="text-sm text-muted-foreground">
             {sortedWords.length === 0

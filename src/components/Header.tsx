@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Menu, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, TrendingUp, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SearchBar } from "./SearchBar";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { useUser } from "@/context/UserContext";
@@ -28,6 +28,10 @@ interface HeaderProps {
   onViewPlans?: () => void;
   /** Dynamic free lessons count for mobile menu */
   freeLessons?: number;
+  /** Desktop sidebar collapsed state */
+  sidebarCollapsed?: boolean;
+  /** Toggle the desktop sidebar collapsed state */
+  onToggleSidebar?: () => void;
 }
 
 // Placeholder stats for onboarding preview
@@ -44,7 +48,7 @@ const PREVIEW_STATS: HeaderStats = {
   dailyGoal: { goal: 30, todayXp: 12, percent: 40, goalMet: false },
 };
 
-export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons }: HeaderProps) {
+export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons, sidebarCollapsed = false, onToggleSidebar }: HeaderProps) {
   const { t } = useText();
   const { user, avatarUrl, isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
@@ -118,13 +122,18 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             )}
 
             {/* Logo / Course Selector - smaller on mobile, full width on lg */}
-            <div className="-ml-4 flex w-auto shrink-0 px-4 lg:w-[240px]">
+            <div
+              className={`-ml-4 flex w-auto shrink-0 px-4 ${
+                sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[240px]"
+              }`}
+            >
             {hasContext && showAsLoggedIn && languageId ? (
               <CourseDropdown
                 languageFlag={languageFlag!}
                 languageId={languageId}
                 courseId={courseId!}
                 courseName={courseName!}
+                collapsed={showSidebar && sidebarCollapsed}
               />
             ) : (
               <Link
@@ -147,6 +156,22 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               </Link>
             )}
           </div>
+
+          {/* Sidebar collapse toggle - desktop only, sits left of back/forward */}
+          {showSidebar && showAsLoggedIn && onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="mr-2 hidden h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover lg:flex"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
+              ) : (
+                <PanelLeftClose className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
+              )}
+            </button>
+          )}
 
           {/* Back/Forward Navigation - Show when logged in, hide on small screens */}
           {showAsLoggedIn && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
@@ -11,6 +11,8 @@ import { SubscriptionProvider, type SimpleSubscription } from "@/context/Subscri
 import { TextProvider } from "@/context/TextContext";
 import { WordPreviewProvider } from "@/context/WordPreviewContext";
 import { UpgradeModalProvider } from "@/context/UpgradeModalContext";
+import { StudyExitGuardProvider } from "@/context/StudyExitGuardContext";
+import { SidebarCollapseProvider } from "@/context/SidebarCollapseContext";
 import {
   HeaderStatsProvider,
   useHeaderStats,
@@ -190,6 +192,20 @@ function DashboardShell({
     return true;
   });
 
+  // Desktop sidebar collapse state — persisted across reloads/sessions.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sidebar-collapsed") === "1";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => !prev);
+  }, []);
+
   const handleViewPlans = useCallback(() => {
     setUpgradeModalOpen(true);
   }, []);
@@ -211,10 +227,12 @@ function DashboardShell({
       <CourseProvider>
         <SubscriptionProvider subscriptions={subscriptions}>
           <TextProvider overrides={textOverrides}>
-            <WordPreviewProvider>
-              <DefaultContextSetter context={defaultCourseContext} />
-              {children}
-            </WordPreviewProvider>
+            <StudyExitGuardProvider>
+              <WordPreviewProvider>
+                <DefaultContextSetter context={defaultCourseContext} />
+                {children}
+              </WordPreviewProvider>
+            </StudyExitGuardProvider>
           </TextProvider>
         </SubscriptionProvider>
       </CourseProvider>
@@ -252,24 +270,26 @@ function DashboardShell({
       <SubscriptionProvider subscriptions={subscriptions}>
         <TextProvider overrides={textOverrides}>
           <UpgradeModalProvider openUpgradeModal={handleViewPlans}>
-            <WordPreviewProvider>
-              <DefaultContextSetter context={defaultCourseContext} />
-              <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
-              <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} />
-              <div className="h-screen overflow-visible pt-[72px]">
-                <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:ml-[240px] lg:px-10 lg:pb-10">
-                  {children}
-                </main>
-              </div>
-              <UpgradeModalWithContext
-                isOpen={upgradeModalOpen}
-                onClose={handleCloseUpgradeModal}
-                plans={plans}
-                enabledTiers={enabledTiers}
-                freeLessons={displayInfo?.freeLessons}
-              />
-              {!showPreviewMode && <EmailVerificationReminder />}
-            </WordPreviewProvider>
+            <SidebarCollapseProvider collapsed={sidebarCollapsed}>
+              <WordPreviewProvider>
+                <DefaultContextSetter context={defaultCourseContext} />
+                <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} />
+                <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} collapsed={sidebarCollapsed} />
+                <div className="h-screen overflow-visible pt-[72px]">
+                  <main className={`bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[240px]"}`}>
+                    {children}
+                  </main>
+                </div>
+                <UpgradeModalWithContext
+                  isOpen={upgradeModalOpen}
+                  onClose={handleCloseUpgradeModal}
+                  plans={plans}
+                  enabledTiers={enabledTiers}
+                  freeLessons={displayInfo?.freeLessons}
+                />
+                {!showPreviewMode && <EmailVerificationReminder />}
+              </WordPreviewProvider>
+            </SidebarCollapseProvider>
           </UpgradeModalProvider>
         </TextProvider>
       </SubscriptionProvider>

@@ -27,6 +27,7 @@ import {
 import { useSetCourseContext } from "@/context/CourseContext";
 import { useUser } from "@/context/UserContext";
 import { useWordPreview } from "@/context/WordPreviewContext";
+import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
 import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createTestSession, completeTestSession } from "@/lib/mutations/test";
@@ -264,6 +265,7 @@ export function TestModeClient({
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { openWord } = useWordPreview();
+  const exitGuard = useStudyExitGuard();
   const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
   const {
     isEnabled: musicEnabled,
@@ -355,6 +357,9 @@ export function TestModeClient({
 
   // Exit confirmation modal state
   const [showExitModal, setShowExitModal] = useState(false);
+  // When set, confirming the exit dialog navigates here (e.g. the upgrade page
+  // reached via a locked word's CTA) instead of back to the lesson page.
+  const [pendingExitDestination, setPendingExitDestination] = useState<string | null>(null);
 
   // Nerves of steel mode (punctuation counts in scoring)
   const [nervesOfSteelMode, setNervesOfSteelMode] = useState(false);
@@ -1038,9 +1043,21 @@ export function TestModeClient({
     if (sessionId) {
       clearSessionProgress("test", sessionId, lesson.id);
     }
-    // Navigate back to lesson page
-    router.push(`/lesson/${lesson.id}`);
-  }, [sessionId, lesson.id, router]);
+    // Navigate to the pending destination (e.g. upgrade page) when an external
+    // request triggered the dialog, otherwise back to the lesson page.
+    router.push(pendingExitDestination ?? `/lesson/${lesson.id}`);
+  }, [sessionId, lesson.id, router, pendingExitDestination]);
+
+  // Let in-test navigations (e.g. a locked word's "Upgrade to view" CTA) route
+  // through the exit-confirmation dialog instead of leaving silently.
+  useEffect(() => {
+    if (!exitGuard) return;
+    exitGuard.registerExitHandler((destination) => {
+      setPendingExitDestination(destination);
+      setShowExitModal(true);
+    });
+    return () => exitGuard.registerExitHandler(null);
+  }, [exitGuard]);
 
   // Handle restart/replay - replay all word audio (english, foreign, trigger).
   // Captures the word-sequence id at start and bails between awaits if the
@@ -1623,6 +1640,14 @@ export function TestModeClient({
     }
   }
 
+  // In testTwice mode, label the start of each round in the sidebar.
+  const roundLabels = testTwice
+    ? new Map<number, string>([
+        [0, "Round 1"],
+        [activeWords.length, "Round 2"],
+      ])
+    : undefined;
+
   // Test-type-specific computed values
   const testTypeConfig = (() => {
     switch (testType) {
@@ -1678,6 +1703,7 @@ export function TestModeClient({
         testResults={testResults}
         hideSecondaryIndices={hideSecondaryIndices}
         primaryField={testType === "foreign-to-english" ? "foreign" : "english"}
+        roundLabels={roundLabels}
       />
 
       {/* Main content area */}
@@ -1953,7 +1979,10 @@ export function TestModeClient({
               <Button
                 variant="outline"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setShowExitModal(false)}
+                onClick={() => {
+                  setShowExitModal(false);
+                  setPendingExitDestination(null);
+                }}
               >
                 Cancel
               </Button>

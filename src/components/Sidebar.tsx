@@ -10,18 +10,19 @@ import {
   BookMarked,
   LineChart,
   Trophy,
-  Crown,
   Flame,
   Lock,
   Coins,
+  ShoppingBag,
   Settings,
   HelpCircle,
-  CirclePlay,
 } from "lucide-react";
+import { Podium } from "@/components/ui/podium-icon";
 import { useCourseContext } from "@/context/CourseContext";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { useHeaderStats } from "@/context/HeaderStatsContext";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 
 // Base nav items - paths are dynamic based on course context
 const getNavItems = (courseId?: string) => [
@@ -29,13 +30,14 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
-  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
 ];
 
-const getSecondaryNavItems = () => [
-  { path: "/streak", icon: Flame, label: "Streaks" },
+const getSecondaryNavItems = (courseId?: string) => [
+  { path: "/community", icon: Podium, label: "Leaderboard" },
   { path: "/trophies", icon: Trophy, label: "Trophies" },
-  { path: "/community", icon: Crown, label: "Leaderboard" },
+  { path: "/streak", icon: Flame, label: "Streaks" },
+  { path: "/shop", icon: ShoppingBag, label: "Shop" },
+  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
 ];
 
 const bottomNavItems = [
@@ -55,6 +57,14 @@ interface SidebarNavItemProps {
    * value however they need.
    */
   badgeText?: string;
+  /**
+   * Drops the badge's filled pill background, rendering the value as plain
+   * text. Used for the Streaks/Leaderboard rows where the count reads as a
+   * subtle label rather than a notification pill.
+   */
+  badgeUnfilled?: boolean;
+  /** Collapsed sidebar: icon only, label/badge hidden, tooltip on hover */
+  collapsed?: boolean;
 }
 
 function SidebarNavItem({
@@ -64,12 +74,34 @@ function SidebarNavItem({
   isActive = false,
   badge,
   badgeText,
+  badgeUnfilled = false,
+  collapsed = false,
 }: SidebarNavItemProps) {
   const showBadge =
     badgeText !== undefined && badgeText !== ""
       ? true
       : badge !== undefined && badge > 0;
   const badgeContent = badgeText !== undefined && badgeText !== "" ? badgeText : badge;
+
+  if (collapsed) {
+    return (
+      <Tooltip label={label} position="right">
+        <Link
+          href={href}
+          prefetch
+          aria-label={label}
+          className={`flex h-12 w-full items-center justify-center rounded-[10px] transition-all ${
+            isActive ? "bg-secondary" : "hover:bg-bone-hover"
+          }`}
+        >
+          <Icon
+            className={`h-5 w-5 shrink-0 ${isActive ? "text-gray-dark" : "text-gray-mid"}`}
+            strokeWidth={1.67}
+          />
+        </Link>
+      </Tooltip>
+    );
+  }
 
   return (
     <Link
@@ -91,7 +123,11 @@ function SidebarNavItem({
         </span>
       </div>
       {showBadge && (
-        <span className="mr-4 flex h-5 min-w-5 items-center justify-center rounded-full bg-beige px-1.5 text-xs font-semibold text-foreground">
+        <span
+          className={`mr-4 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
+            badgeUnfilled ? "text-gray-mid" : "bg-beige text-foreground"
+          }`}
+        >
           {badgeContent}
         </span>
       )}
@@ -99,31 +135,15 @@ function SidebarNavItem({
   );
 }
 
-function SidebarButton({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <button className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-bone-hover">
-      <div className="flex items-center gap-3 pl-4">
-        <Icon
-          className="h-5 w-5 shrink-0 text-gray-mid"
-          strokeWidth={1.67}
-        />
-        <span
-          className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px] text-black-75"
-        >
-          {label}
-        </span>
-      </div>
-    </button>
-  );
-}
-
 interface SidebarProps {
   dueTestsCount?: number;
   onViewPlans?: () => void;
   freeLessons?: number;
+  /** Collapse to an icon-only rail */
+  collapsed?: boolean;
 }
 
-export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLessons = 10 }: SidebarProps) {
+export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLessons = 10, collapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const { courseId, languageId, dueTestsCount: contextDueTestsCount } = useCourseContext();
   const { hasLanguageAccess, hasAllLanguagesAccess, accessEndDate } = useSubscription();
@@ -181,6 +201,10 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
     if (path === "/trophies") {
       return pathname === "/trophies" || pathname.startsWith("/trophies");
     }
+    // For shop
+    if (path === "/shop") {
+      return pathname === "/shop" || pathname.startsWith("/shop");
+    }
     // For lessons, match /course/[id] (but not /course/[id]/schedule, /tests, /dictionary, or /progress) and /lesson routes
     if (path.startsWith("/course/") && !path.includes("/schedule") && !path.includes("/tests") && !path.includes("/dictionary") && !path.includes("/progress")) {
       const isSchedulePage = pathname.endsWith("/schedule");
@@ -193,7 +217,11 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
   };
 
   return (
-    <div className="fixed top-[72px] bottom-0 left-0 hidden w-[240px] flex-col bg-white lg:flex">
+    <div
+      className={`fixed top-[72px] bottom-0 left-0 hidden flex-col bg-white lg:flex ${
+        collapsed ? "w-[72px]" : "w-[240px]"
+      }`}
+    >
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 px-4 pt-2">
         {getNavItems(courseId).map((item) => (
@@ -204,10 +232,11 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
             label={item.label}
             isActive={isActive(item.path)}
             badge={item.label === "Tests" ? dueTestsCount : undefined}
+            collapsed={collapsed}
           />
         ))}
         <div className="my-2 h-px bg-gray-100" role="separator" />
-        {getSecondaryNavItems().map((item) => (
+        {getSecondaryNavItems(courseId).map((item) => (
           <SidebarNavItem
             key={item.label}
             href={item.path}
@@ -216,12 +245,14 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
             isActive={isActive(item.path)}
             badge={item.label === "Streaks" ? streakBadge : undefined}
             badgeText={item.label === "Leaderboard" ? leaderboardBadge : undefined}
+            badgeUnfilled={item.label === "Streaks" || item.label === "Leaderboard"}
+            collapsed={collapsed}
           />
         ))}
       </nav>
 
       {/* Unlock Card */}
-      {showUpgradeCard && (
+      {!collapsed && showUpgradeCard && (
         <div className="mx-4 mb-4 rounded-2xl bg-bone p-4">
           <div className="mb-2 flex items-center gap-2">
             <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
@@ -243,7 +274,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
       )}
 
       {/* Subscription ending warning */}
-      {!showUpgradeCard && endDate && (
+      {!collapsed && !showUpgradeCard && endDate && (
         <div className="mx-4 mb-4 rounded-2xl bg-orange-50 p-4">
           <div className="mb-1 flex items-center gap-2">
             <Lock className="h-5 w-5 text-orange-500" strokeWidth={1.67} />
@@ -266,10 +297,10 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
             href={item.path}
             icon={item.icon}
             label={item.label}
+            collapsed={collapsed}
           />
         ))}
-        <SidebarButton icon={CirclePlay} label="Tutorial" />
-        <SidebarNavItem href="/help" icon={HelpCircle} label="Help" />
+        <SidebarNavItem href="/help" icon={HelpCircle} label="Help" collapsed={collapsed} />
       </div>
     </div>
   );

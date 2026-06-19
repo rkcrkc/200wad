@@ -19,6 +19,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { ScoreIndicator } from "@/components/ui/score-indicator";
 import { StatusPill, type StatusType } from "@/components/ui/status-pill";
 import { useText } from "@/context/TextContext";
+import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 
 interface TestAttempt {
   pointsEarned: number;
@@ -130,6 +131,7 @@ export function WordDetailActionBar({
   compact = false,
 }: WordDetailActionBarProps) {
   const { t, tt } = useText();
+  const sidebarCollapsed = useSidebarCollapsed();
   const [isWordListOpen, setIsWordListOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -178,7 +180,9 @@ export function WordDetailActionBar({
       "z-10 bg-white shadow-bar",
       variant === "sidebar"
         ? "absolute bottom-0 left-0 right-0"
-        : "fixed bottom-0 left-[240px] right-0"
+        : sidebarCollapsed
+          ? "fixed bottom-0 left-[72px] right-0"
+          : "fixed bottom-0 left-[240px] right-0"
     )}>
       <div className="border-t border-gray-100 px-6 py-4">
         <div className="flex items-center justify-between gap-4">

@@ -24,6 +24,8 @@ interface CourseDropdownProps {
   languageId: string;
   courseId: string;
   courseName: string;
+  /** Collapsed sidebar: show only the language flag, dropdown still works on hover */
+  collapsed?: boolean;
 }
 
 export function CourseDropdown({
@@ -31,6 +33,7 @@ export function CourseDropdown({
   languageId,
   courseId,
   courseName,
+  collapsed = false,
 }: CourseDropdownProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -104,20 +107,30 @@ export function CourseDropdown({
       onMouseLeave={handleMouseLeave}
     >
       {/* Trigger */}
-      <div className="flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover">
-        <div className="flex h-full min-w-0 flex-1 items-center gap-3 pl-4 pr-3">
+      <div
+        className={`flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        {collapsed ? (
           <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
             {languageFlag}
           </div>
-          <div className="flex min-w-0 flex-col items-start">
-            <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
-              Learning
-            </span>
-            <span className="max-w-full text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
-              {courseName}
-            </span>
+        ) : (
+          <div className="flex h-full min-w-0 flex-1 items-center gap-3 pl-4 pr-3">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
+              {languageFlag}
+            </div>
+            <div className="flex min-w-0 flex-col items-start">
+              <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
+                Learning
+              </span>
+              <span className="max-w-full text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+                {courseName}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Dropdown panel */}
