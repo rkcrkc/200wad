@@ -892,38 +892,90 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     defaultValue: "Start next {kind}",
   },
 
-  // Streak Page — Longest Streak card leaderboard snapshot
-  // Surfaces the user's streak-leaderboard rank, the milestone tier they've
-  // already cleared, and the gap to the next milestone above. Vars:
-  //   {rank}        1-based rank in the language's streak leaderboard
-  //   {total}       total users on that leaderboard
-  //   {currentTier} milestone the user has cleared (10/50/100/500)
-  //   {nextTier}    next milestone above (10/50/100/500)
-  //   {daysToNext}  whole days needed to overtake the cutoff
-  //   {dayWord}     "day" or "days" — pluralised in code
-  streak_lb_position_in_tier: {
-    label: "Streak leaderboard position (in tier)",
+  // Streak Page — Recover-streak callout
+  // Shown above the streak header cards when the user has missed 1-3 days
+  // (streak broken) and can bridge the gap with coins. Two body variants
+  // cover whether the user can currently afford the cost. Vars:
+  //   {streak}     streak length being recovered
+  //   {streakWord} "day" or "days" — pluralised in code
+  //   {days}       whole days missed (1-3)
+  //   {dayWord}    "day" or "days" — pluralised in code
+  //   {coins}      coin cost to recover (50 × days)
+  streak_recover_heading: {
+    label: "Streak recover callout heading",
     category: "greetings_messages",
     group: "Streak Page",
-    defaultValue: "You're #{rank} of {total} in streaks — Top {currentTier}!",
+    defaultValue: "Your {streak}-{streakWord} streak has been broken",
   },
-  streak_lb_position_untier: {
-    label: "Streak leaderboard position (outside top 500)",
+  streak_recover_body_affordable: {
+    label: "Streak recover callout body (can afford)",
     category: "greetings_messages",
     group: "Streak Page",
-    defaultValue: "You're #{rank} of {total} in streaks.",
+    defaultValue:
+      "You missed {days} {dayWord}. Spend {coins} coins to restore it.",
   },
-  streak_lb_gap: {
-    label: "Streak leaderboard gap to next tier",
+  streak_recover_body_unaffordable: {
+    label: "Streak recover callout body (can't afford)",
     category: "greetings_messages",
     group: "Streak Page",
-    defaultValue: "{daysToNext} more {dayWord} to reach the top {nextTier}.",
+    defaultValue:
+      "You missed {days} {dayWord}. Recovery costs {coins} coins — earn more coins to restore.",
   },
-  streak_lb_button: {
-    label: "Streak leaderboard CTA button",
+  streak_recover_button: {
+    label: "Streak recover callout button",
     category: "greetings_messages",
     group: "Streak Page",
-    defaultValue: "View leaderboard",
+    defaultValue: "Recover streak",
+  },
+
+  // Streak Page — shared callout chrome
+  // The personal-best badge applies to every state of the streak status
+  // callout (recover + motivational).
+  streak_personal_best_badge: {
+    label: "Streak callout personal-best badge",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Personal best!",
+  },
+
+  // Streak Page — recover confirm dialog
+  // Modal shown after tapping the recover button. Vars:
+  //   {coins}      coin cost to recover
+  //   {days}       whole days missed
+  //   {dayWord}    "day" or "days" — pluralised in code
+  //   {streak}     streak length being recovered
+  //   {streakWord} "day" or "days" — pluralised in code
+  streak_recover_dialog_title: {
+    label: "Streak recover dialog title",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Recover streak",
+  },
+  streak_recover_dialog_body: {
+    label: "Streak recover dialog body",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue:
+      "Spend {coins} coins to bridge the {days} missed {dayWord} and keep your {streak}-{streakWord} streak alive.",
+  },
+  streak_recover_dialog_note: {
+    label: "Streak recover dialog note",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue:
+      "Your streak will continue from today as if you hadn't missed a day.",
+  },
+  streak_recover_dialog_cancel: {
+    label: "Streak recover dialog cancel button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Cancel",
+  },
+  streak_recover_dialog_confirm: {
+    label: "Streak recover dialog confirm button",
+    category: "greetings_messages",
+    group: "Streak Page",
+    defaultValue: "Spend {coins} coins",
   },
 
   // Word Status Tooltips

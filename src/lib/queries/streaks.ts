@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getLeaderboard, getUserLeaderboardPosition } from "./leaderboard";
-import { getCurrentCourse, getDueTestsCount } from "./schedule";
+import { getDueTestsCount } from "./schedule";
 import type { HeatmapDay } from "./stats";
 
 // ============================================================================
@@ -11,14 +10,6 @@ import type { HeatmapDay } from "./stats";
 const RECOVER_COIN_COST_PER_DAY = 50;
 /** Maximum gap (in days) eligible for coin-recovery, mirrors the RPC clamp. */
 const RECOVER_MAX_DAYS = 3;
-
-/**
- * Streak-leaderboard milestones used by the Longest Streak card to surface
- * "Top {N}!" badges and "X more days to reach top {N+1}" gaps. Ordered from
- * best (smallest rank) to worst.
- */
-const STREAK_TIER_MILESTONES = [10, 50, 100, 500] as const;
-type StreakTier = (typeof STREAK_TIER_MILESTONES)[number];
 
 export interface StreakSummary {
   currentStreak: number;
@@ -40,28 +31,6 @@ export interface StreakSummary {
    * label ("Start next test" vs "Start next lesson").
    */
   nextActivityKind: "test" | "lesson";
-  /**
-   * Snapshot of the user's position on the streak leaderboard for their
-   * current language. `null` when no current course/language is set, the
-   * user has no rank yet, or the leaderboard RPC is unavailable.
-   */
-  leaderboard: StreakLeaderboardSnapshot | null;
-}
-
-export interface StreakLeaderboardSnapshot {
-  /** 1-based rank on the streak leaderboard. */
-  rank: number;
-  /** Total users in the leaderboard for the user's current language. */
-  totalUsers: number;
-  /** Highest milestone the user has reached (10/50/100/500), null when rank > 500. */
-  currentTier: StreakTier | null;
-  /** Next milestone above the user, null when already in the top 10. */
-  nextTier: StreakTier | null;
-  /**
-   * Whole days needed for the user to overtake the streak at `nextTier` rank.
-   * Null when no nextTier or when the cutoff value couldn't be fetched.
-   */
-  daysToNextTier: number | null;
 }
 
 export interface StreakRecoverState {
@@ -97,7 +66,6 @@ const ZERO_DATA: StreakPageData = {
     coinBalance: 0,
     daysSinceLastActivity: null,
     nextActivityKind: "lesson",
-    leaderboard: null,
   },
   recover: {
     eligible: false,
@@ -127,32 +95,25 @@ export async function getStreakPageData(): Promise<StreakPageData> {
     return ZERO_DATA;
   }
 
-  const [userRowResult, activityResult, dueTestsCount, currentCourse] =
-    await Promise.all([
-      supabase
-        .from("users")
-        .select(
-          "current_streak, longest_streak, streak_freezes_available, streak_freeze_auto, coin_balance, last_activity_date"
-        )
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("user_daily_activity")
-        .select(
-          "activity_date, lesson_sessions_count, test_sessions_count, streak_frozen"
-        )
-        .eq("user_id", user.id)
-        .order("activity_date", { ascending: true }),
-      // Global due-tests count — mirrors the sidebar badge. Drives the
-      // streak-header CTA label.
-      getDueTestsCount(),
-      // Current course → language id for the streak leaderboard snapshot.
-      getCurrentCourse(),
-    ]);
-
-  const leaderboard = await buildStreakLeaderboardSnapshot(
-    currentCourse.language?.id ?? null
-  );
+  const [userRowResult, activityResult, dueTestsCount] = await Promise.all([
+    supabase
+      .from("users")
+      .select(
+        "current_streak, longest_streak, streak_freezes_available, streak_freeze_auto, coin_balance, last_activity_date"
+      )
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("user_daily_activity")
+      .select(
+        "activity_date, lesson_sessions_count, test_sessions_count, streak_frozen"
+      )
+      .eq("user_id", user.id)
+      .order("activity_date", { ascending: true }),
+    // Global due-tests count — mirrors the sidebar badge. Drives the
+    // streak-header CTA label.
+    getDueTestsCount(),
+  ]);
 
   const userRow = userRowResult.data;
   const activityRows = activityResult.data ?? [];
@@ -182,7 +143,6 @@ export async function getStreakPageData(): Promise<StreakPageData> {
       userRow?.last_activity_date ?? null
     ),
     nextActivityKind: dueTestsCount > 0 ? "test" : "lesson",
-    leaderboard,
   };
 
   // ----- Recover-streak eligibility snapshot ------------------------------
@@ -402,72 +362,6 @@ function computeEffectiveCurrentStreak(input: {
   const daysMissed = diffDays - 1;
   if (freezeAuto && freezesAvailable >= daysMissed) return storedStreak;
   return 0;
-}
-
-/**
- * Build a streak-leaderboard snapshot for the Longest Streak card. Returns
- * `null` when there's no current language, the user has no rank, or the
- * leaderboard RPC fails.
- *
- * - `currentTier` is the smallest milestone the user has already cleared
- *   (e.g. rank 7 → Top 10; rank 42 → Top 50; rank 600 → null).
- * - `nextTier` is the next milestone above the user. Users outside the top
- *   500 get `nextTier = 500` (i.e. "X more days to crack the top 500").
- * - `daysToNextTier` reads the streak length sitting at the cutoff rank and
- *   computes how many more days the user needs to overtake them (floor of 1).
- */
-async function buildStreakLeaderboardSnapshot(
-  languageId: string | null
-): Promise<StreakLeaderboardSnapshot | null> {
-  if (!languageId) return null;
-
-  const position = await getUserLeaderboardPosition(
-    languageId,
-    "streak",
-    "all-time"
-  );
-  if (!position) return null;
-
-  const { rank, total_users: totalUsers, metric_value: userValue } = position;
-
-  let currentTier: StreakTier | null = null;
-  for (const tier of STREAK_TIER_MILESTONES) {
-    if (rank <= tier) {
-      currentTier = tier;
-      break;
-    }
-  }
-
-  let nextTier: StreakTier | null = null;
-  if (currentTier === null) {
-    // Outside the top 500 — the next milestone is the largest tier.
-    nextTier = STREAK_TIER_MILESTONES[STREAK_TIER_MILESTONES.length - 1];
-  } else {
-    const idx = STREAK_TIER_MILESTONES.indexOf(currentTier);
-    if (idx > 0) nextTier = STREAK_TIER_MILESTONES[idx - 1];
-  }
-
-  let daysToNextTier: number | null = null;
-  if (nextTier !== null) {
-    const board = await getLeaderboard(
-      languageId,
-      "streak",
-      "all-time",
-      nextTier
-    );
-    const cutoffEntry = board.entries[nextTier - 1];
-    if (cutoffEntry) {
-      daysToNextTier = Math.max(1, cutoffEntry.metric_value - userValue + 1);
-    }
-  }
-
-  return {
-    rank,
-    totalUsers,
-    currentTier,
-    nextTier,
-    daysToNextTier,
-  };
 }
 
 /** Whole days elapsed since `lastActivityDate`. Null when never recorded. */

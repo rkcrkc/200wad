@@ -18,6 +18,11 @@ interface ActivityHeatmapProps {
   /** Section title above the grid. Defaults to "Activity". */
   title?: string;
   /**
+   * Custom node rendered in place of the default `title` heading (e.g. an
+   * eyebrow + value block). When provided, `title` is ignored.
+   */
+  titleSlot?: ReactNode;
+  /**
    * Tooltip format. `"words"` reads `wordsLearned` / `wordsMastered` from each
    * day; `"sessions"` reads `lessonSessions` / `testSessions`; `"default"`
    * falls back to the legacy single-count translation.
@@ -106,6 +111,7 @@ export function ActivityHeatmap({
   data,
   palette = "green",
   title = "Activity",
+  titleSlot,
   tooltipMode = "default",
   headerRight,
 }: ActivityHeatmapProps) {
@@ -155,14 +161,33 @@ export function ActivityHeatmap({
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
+        {titleSlot ?? (
+          <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
+        )}
         {headerRight}
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[720px]">
+      <div className="flex">
+        {/* Fixed day-of-week column (stays put while the grid scrolls) */}
+        <div className="w-8 shrink-0">
+          {/* Spacer matching the month-label row height */}
+          <div className="mb-1 h-4" />
+          <div className="flex flex-col gap-[3px]">
+            {DAY_LABELS.map((label, i) => (
+              <div
+                key={i}
+                className="flex h-[11px] items-center text-[10px] leading-none text-muted-foreground"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scrolling region: month labels + cells only */}
+        <div className="overflow-x-auto">
           {/* Month labels */}
-          <div className="mb-1 flex pl-8">
+          <div className="mb-1 flex h-4">
             {(() => {
               const elements: React.ReactNode[] = [];
               for (let i = 0; i < months.length; i++) {
@@ -192,56 +217,42 @@ export function ActivityHeatmap({
             })()}
           </div>
 
-          {/* Grid: day labels + cells */}
-          <div className="flex gap-0">
-            {/* Day labels */}
-            <div className="flex w-8 shrink-0 flex-col gap-[3px]">
-              {DAY_LABELS.map((label, i) => (
-                <div
-                  key={i}
-                  className="flex h-[11px] items-center text-[10px] leading-none text-muted-foreground"
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            {/* Heatmap cells */}
-            <div className="flex gap-[3px]">
-              {weeks.map((week, wIdx) => (
-                <div key={wIdx} className="flex flex-col gap-[3px]">
-                  {/* Pad the first week if it doesn't start on Sunday */}
-                  {wIdx === 0 &&
-                    week.length < 7 &&
-                    Array.from({ length: 7 - week.length }).map((_, i) => (
-                      <div key={`pad-${i}`} className="h-[11px] w-[11px]" />
-                    ))}
-                  {week.map((day) => (
-                    <Tooltip
-                      key={day.date}
-                      label={buildTooltipLabel(day, tooltipMode, tt)}
-                    >
-                      <div
-                        className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max, palette, day.frozen ?? false)}`}
-                      />
-                    </Tooltip>
+          {/* Heatmap cells */}
+          <div className="flex gap-[3px]">
+            {weeks.map((week, wIdx) => (
+              <div key={wIdx} className="flex flex-col gap-[3px]">
+                {/* Pad the first week if it doesn't start on Sunday */}
+                {wIdx === 0 &&
+                  week.length < 7 &&
+                  Array.from({ length: 7 - week.length }).map((_, i) => (
+                    <div key={`pad-${i}`} className="h-[11px] w-[11px]" />
                   ))}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="mt-3 flex items-center justify-end gap-1.5">
-            <span className="text-[10px] text-muted-foreground">Less</span>
-            <div className="h-[11px] w-[11px] rounded-[2px] bg-gray-100" />
-            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][0]}`} />
-            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][1]}`} />
-            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][2]}`} />
-            <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][3]}`} />
-            <span className="text-[10px] text-muted-foreground">More</span>
+                {week.map((day) => (
+                  <Tooltip
+                    key={day.date}
+                    portal
+                    label={buildTooltipLabel(day, tooltipMode, tt)}
+                  >
+                    <div
+                      className={`h-[11px] w-[11px] rounded-[2px] ${getColor(day.count, max, palette, day.frozen ?? false)}`}
+                    />
+                  </Tooltip>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Legend — fixed at the card's bottom-right, outside the scroller */}
+      <div className="mt-3 flex items-center justify-end gap-1.5">
+        <span className="text-[10px] text-muted-foreground">Less</span>
+        <div className="h-[11px] w-[11px] rounded-[2px] bg-gray-100" />
+        <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][0]}`} />
+        <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][1]}`} />
+        <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][2]}`} />
+        <div className={`h-[11px] w-[11px] rounded-[2px] ${PALETTE_SCALES[palette][3]}`} />
+        <span className="text-[10px] text-muted-foreground">More</span>
       </div>
     </div>
   );

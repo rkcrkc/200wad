@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 interface StreakActivityHeatmapProps {
   days: HeatmapDay[];
+  currentStreak: number;
 }
 
 type ViewMode = "list" | "heatmap";
@@ -32,12 +33,14 @@ const SCROLL_STEP = 92;
  * Card for the /streak page that toggles between a horizontally-scrolling
  * list of day cards (default) and the orange heatmap. List cards are ordered
  * earliest -> latest, left to right; today is scrolled into view on mount.
- * Each card fills with the same orange intensity scale as the heatmap when
- * the day counted toward the streak, with a bone-coloured fill for empty
- * days and blue for frozen-bridge days. Beneath each card the total session
- * count and lesson/test breakdown are surfaced.
+ * List cards share a neutral fill; active days are signalled by an orange-
+ * filled flame icon plus the session count + lesson/test breakdown beneath,
+ * while frozen-bridge days use a blue fill and snowflake.
  */
-export function StreakActivityHeatmap({ days }: StreakActivityHeatmapProps) {
+export function StreakActivityHeatmap({
+  days,
+  currentStreak,
+}: StreakActivityHeatmapProps) {
   const [view, setView] = useState<ViewMode>("list");
 
   const toggle = (
@@ -48,58 +51,40 @@ export function StreakActivityHeatmap({ days }: StreakActivityHeatmapProps) {
     />
   );
 
+  // Eyebrow + value heading reused across both views, matching the styling
+  // of the streak header stat cards.
+  const heading = (
+    <div>
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Flame className="h-4 w-4 text-orange-500" strokeWidth={1.67} />
+        <span className="text-xs-medium uppercase tracking-wide">
+          Current streak
+        </span>
+      </div>
+      <p className="mt-1 text-xl-semibold text-foreground">
+        {currentStreak} {currentStreak === 1 ? "day" : "days"}
+      </p>
+    </div>
+  );
+
   if (view === "heatmap") {
     return (
       <ActivityHeatmap
         data={days}
         palette="orange"
-        title="Activity"
+        titleSlot={heading}
         tooltipMode="sessions"
         headerRight={toggle}
       />
     );
   }
 
-  return <ListView days={days} toggle={toggle} />;
+  return <ListView days={days} heading={heading} toggle={toggle} />;
 }
 
 // ---------------------------------------------------------------------------
 // List view
 // ---------------------------------------------------------------------------
-
-/** Mirrors the orange palette in `ActivityHeatmap.PALETTE_SCALES`. */
-const ORANGE_SCALE: [string, string, string, string] = [
-  "bg-orange-200",
-  "bg-orange-300",
-  "bg-orange-400",
-  "bg-orange-600",
-];
-
-/**
- * Returns Tailwind classes for the card fill based on session count vs the
- * global max across the visible range. Matches the heatmap's bucketing so the
- * two views shade the same day identically.
- */
-function getFillClasses(
-  count: number,
-  max: number,
-  frozen: boolean
-): { bg: string; intense: boolean } {
-  if (frozen) return { bg: "bg-blue-200", intense: false };
-  if (count === 0 || max === 0) {
-    return { bg: "bg-background", intense: false };
-  }
-  const ratio = count / max;
-  let level = 0;
-  if (ratio <= 0.25) level = 0;
-  else if (ratio <= 0.5) level = 1;
-  else if (ratio <= 0.75) level = 2;
-  else level = 3;
-  return {
-    bg: ORANGE_SCALE[level],
-    intense: level >= 2, // orange-400 / orange-600 need lighter text
-  };
-}
 
 /** YYYY-MM-DD in local time, matching the date-only strings from the query. */
 function formatLocalDateOnly(d: Date): string {
@@ -111,15 +96,13 @@ function formatLocalDateOnly(d: Date): string {
 
 function ListView({
   days,
+  heading,
   toggle,
 }: {
   days: HeatmapDay[];
+  heading: React.ReactNode;
   toggle: React.ReactNode;
 }) {
-  const max = useMemo(
-    () => days.reduce((acc, d) => Math.max(acc, d.count), 0),
-    [days]
-  );
   const todayStr = useMemo(() => formatLocalDateOnly(new Date()), []);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -157,9 +140,7 @@ function ListView({
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-muted-foreground">
-          Activity
-        </h3>
+        {heading}
         {toggle}
       </div>
 
@@ -172,10 +153,16 @@ function ListView({
             <DayCard
               key={day.date}
               day={day}
-              max={max}
               isToday={day.date === todayStr}
             />
           ))}
+          {/* Disabled placeholders for the next 3 days so today doesn't sit
+              awkwardly flush against the right edge. */}
+          {Array.from({ length: 3 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() + i + 1);
+            return <FutureDayCard key={`future-${i}`} date={d} />;
+          })}
         </div>
 
         {/* Fade-out gradients at the ends */}
@@ -222,19 +209,15 @@ function ListView({
 
 function DayCard({
   day,
-  max,
   isToday,
 }: {
   day: HeatmapDay;
-  max: number;
   isToday: boolean;
 }) {
   const lessons = day.lessonSessions ?? 0;
   const tests = day.testSessions ?? 0;
   const total = lessons + tests;
   const isFrozen = !!day.frozen;
-
-  const { bg, intense } = getFillClasses(total, max, isFrozen);
 
   const d = new Date(day.date + "T00:00:00");
   const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
@@ -244,28 +227,23 @@ function DayCard({
   });
 
   const topLabel = isToday ? "TODAY" : weekday;
-  const topLabelClass = intense ? "text-white/85" : "text-muted-foreground";
-  const dateClass = intense ? "text-white" : "text-foreground";
   let iconClass = "text-gray-300";
   if (isFrozen) iconClass = "text-blue-500";
-  else if (intense) iconClass = "text-white";
-  else if (total > 0) iconClass = "text-orange-500";
+  else if (total > 0) iconClass = "fill-orange-500 text-orange-500";
 
   return (
     <div className="flex w-20 shrink-0 flex-col items-center">
       <div
         className={cn(
           "flex w-full flex-col items-center gap-1 rounded-xl px-2 py-3",
-          bg,
-          isToday && "border-2 border-foreground"
+          isFrozen ? "bg-blue-200" : "bg-background",
+          isToday && "border-[1.5px] border-primary"
         )}
       >
-        <span
-          className={`text-[10px] uppercase tracking-wide ${topLabelClass}`}
-        >
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
           {topLabel}
         </span>
-        <span className={`text-small-semibold ${dateClass}`}>{monthDay}</span>
+        <span className="text-small-semibold text-foreground">{monthDay}</span>
         {isFrozen ? (
           <Snowflake className={`mt-1 h-5 w-5 ${iconClass}`} strokeWidth={1.67} />
         ) : (
@@ -297,14 +275,31 @@ function DayCard({
               </span>
             </span>
           </>
-        ) : (
-          <>
-            <span className="text-xs-medium text-muted-foreground">
-              No activity
-            </span>
-            <span className="text-[11px] text-transparent select-none">.</span>
-          </>
-        )}
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Greyed-out placeholder for an upcoming day. Purely visual padding so the
+ * "today" card isn't pinned to the right edge of the scroller.
+ */
+function FutureDayCard({ date }: { date: Date }) {
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+  const monthDay = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="flex w-20 shrink-0 flex-col items-center opacity-40">
+      <div className="flex w-full flex-col items-center gap-1 rounded-xl bg-background px-2 py-3">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {weekday}
+        </span>
+        <span className="text-small-semibold text-foreground">{monthDay}</span>
+        <Flame className="mt-1 h-5 w-5 text-gray-300" strokeWidth={1.67} />
       </div>
     </div>
   );
