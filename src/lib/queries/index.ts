@@ -97,3 +97,9 @@ export type {
 
 export { getDailyGoalProgress } from "./daily-goal";
 export type { DailyGoalProgress } from "./daily-goal";
+
+export { getShopData } from "./shop";
+export type { ShopCategory, ShopItemForList, ShopData } from "./shop";
+
+export { getUserLevel } from "./levels";
+export type { LevelTier, UserLevelData } from "./levels";
