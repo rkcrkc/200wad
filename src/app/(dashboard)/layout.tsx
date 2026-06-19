@@ -66,7 +66,10 @@ export default async function DashboardLayout({
             getDueTestsCount(course.id),
             getUserLearningStats(course.id),
             getCourseProgress(course.id),
-            getUserLeaderboardPosition(language.id, "avg_words_per_day", "week"),
+            // Global (cross-language) XP weekly rank — matches the leaderboard board.
+            // The board hides zero-XP members behind a teaser, so a rank is only
+            // meaningful once the learner has scored this week (see leaderboardRank).
+            getUserLeaderboardPosition(null, "xp", "week"),
             getCurrentStreak(),
             getDailyGoalProgress(),
           ]);
@@ -80,7 +83,10 @@ export default async function DashboardLayout({
               totalTimeSeconds: learningStats.totalTimeSeconds,
               studyTimeSeconds: learningStats.studyTimeSeconds,
               testTimeSeconds: learningStats.testTimeSeconds,
-              leaderboardRank: leaderboardPosition?.rank ?? null,
+              leaderboardRank:
+                (leaderboardPosition?.metric_value ?? 0) > 0
+                  ? leaderboardPosition?.rank ?? null
+                  : null,
               currentStreak,
               dailyGoal,
             },
