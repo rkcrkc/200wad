@@ -60,7 +60,12 @@ export interface AchievementForList {
 export interface UserAchievementAggregates {
   unlockedCount: number;
   totalCount: number;
-  totalCoinRewardsEarned: number;
+  /**
+   * Lifetime GROSS coins earned across all sources (achievements, tests,
+   * daily goal, streaks…), read from the coin_transactions ledger — not a
+   * theoretical sum of unlocked trophies' catalogue rewards.
+   */
+  totalCoinsEarned: number;
 }
 
 export interface GetAchievementsForUserResult {
@@ -133,6 +138,10 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
           wordsMastered: 0,
           lessonsMastered: 0,
           longestStreak: 0,
+          lessonsTested: 0,
+          highestLeagueTier: 0,
+          leaguePodiumFinishes: 0,
+          leagueWins: 0,
         },
         {}
       )
@@ -143,7 +152,7 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
       userAggregates: {
         unlockedCount: 0,
         totalCount: guestRows.length,
-        totalCoinRewardsEarned: 0,
+        totalCoinsEarned: 0,
       },
     };
   }
@@ -158,6 +167,9 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
     lessonsMasteredResult,
     userRowResult,
     firstLearnedWordResult,
+    coinsEarnedResult,
+    lessonsTestedResult,
+    leagueStatsResult,
   ] = await Promise.all([
     supabase
       .from("user_achievements")
@@ -195,6 +207,12 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
       .order("learned_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    // Lifetime gross coins earned across all sources (ledger sum).
+    supabase.rpc("get_lifetime_coins_earned"),
+    // Distinct real lessons tested — backs the leagues_unlocked progress bar.
+    supabase.rpc("get_distinct_lessons_tested", { p_user_id: user.id }),
+    // League placement stats — backs the league_*_reached / podium / wins bars.
+    supabase.rpc("get_league_achievement_stats", { p_user_id: user.id }),
   ]);
 
   const unlockedMap = new Map<string, string>();
@@ -202,11 +220,19 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
     unlockedMap.set(row.achievement_id, row.unlocked_at);
   }
 
+  const ls = Array.isArray(leagueStatsResult.data)
+    ? leagueStatsResult.data[0]
+    : null;
+
   const aggregates: UserScalarAggregates = {
     wordsLearned: wordsLearnedResult.count ?? 0,
     wordsMastered: wordsMasteredResult.count ?? 0,
     lessonsMastered: lessonsMasteredResult.count ?? 0,
     longestStreak: userRowResult.data?.longest_streak ?? 0,
+    lessonsTested: (lessonsTestedResult.data as number | null) ?? 0,
+    highestLeagueTier: Number(ls?.highest_tier_order ?? 0),
+    leaguePodiumFinishes: Number(ls?.podium_finishes ?? 0),
+    leagueWins: Number(ls?.wins ?? 0),
   };
 
   // Resolve the slug-specific extras keyed by slug.
@@ -246,17 +272,14 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
   );
 
   const unlockedCount = items.filter((i) => i.isUnlocked).length;
-  const totalCoinRewardsEarned = items.reduce(
-    (sum, i) => sum + (i.isUnlocked ? i.coinReward : 0),
-    0
-  );
+  const totalCoinsEarned = Number(coinsEarnedResult.data ?? 0);
 
   return {
     achievements: items,
     userAggregates: {
       unlockedCount,
       totalCount: items.length,
-      totalCoinRewardsEarned,
+      totalCoinsEarned,
     },
   };
 }
@@ -270,6 +293,10 @@ interface UserScalarAggregates {
   wordsMastered: number;
   lessonsMastered: number;
   longestStreak: number;
+  lessonsTested: number;
+  highestLeagueTier: number;
+  leaguePodiumFinishes: number;
+  leagueWins: number;
 }
 
 /**
@@ -328,6 +355,36 @@ function resolveProgress(
     };
   }
 
+  if (type === "lessons_tested") {
+    return {
+      currentProgress: aggregates.lessonsTested,
+      progressThreshold: threshold,
+    };
+  }
+
+  if (type === "league_tier_reached") {
+    return {
+      currentProgress: aggregates.highestLeagueTier,
+      progressThreshold: threshold,
+    };
+  }
+
+  if (type === "league_podium_finishes") {
+    return {
+      currentProgress: aggregates.leaguePodiumFinishes,
+      progressThreshold: threshold,
+    };
+  }
+
+  if (type === "league_wins") {
+    return {
+      currentProgress: aggregates.leagueWins,
+      progressThreshold: threshold,
+    };
+  }
+
+  // alltime_rank_reached intentionally falls through -> binary (rank isn't a
+  // fill-up bar).
   // perfect_session, lesson_mastered, mystery / special criteria are binary.
   return { currentProgress: null, progressThreshold: null };
 }
