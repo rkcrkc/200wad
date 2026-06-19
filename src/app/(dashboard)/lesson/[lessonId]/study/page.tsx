@@ -32,11 +32,13 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
 
   // Filter words if specific word IDs are provided (e.g. "study incorrect words" from test modal)
   let studyWords = words;
+  let isIncorrectWordsSession = false;
   if (wordIdsParam) {
     const wordIdSet = new Set(wordIdsParam.split(","));
     const filtered = words.filter((w) => wordIdSet.has(w.id));
     if (filtered.length > 0) {
       studyWords = filtered;
+      isIncorrectWordsSession = true;
     }
   }
 
@@ -66,6 +68,7 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
       courseLessons={courseLessons}
       dismissedTipIds={dismissedTipIds}
       nextMilestone={nextMilestone}
+      incorrectWords={isIncorrectWordsSession}
     />
   );
 }

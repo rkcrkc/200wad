@@ -20,6 +20,7 @@ import {
   type NormalizeOptions,
 } from "@/lib/utils/scoring";
 import { useDeadKeyComposition } from "@/lib/utils/deadKeys";
+import { useText } from "@/context/TextContext";
 
 export interface TestAnswerInputHandle {
   insertCharacter: (char: string) => void;
@@ -66,6 +67,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   onNextWord,
   nervesOfSteelMode = false,
 }, ref) {
+  const { t, tt } = useText();
   const [input, setInput] = useState("");
   const [localResult, setLocalResult] = useState<TestAnswerResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -226,9 +228,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
 
     if (grade === "correct") {
       return {
-        icon: "✅",
-        text: `Correct! ${pointsText}`,
-        emoji: pointsEarned > 0 ? "🙌" : "",
+        text: tt("feedback_correct_points", { points: pointsText }),
         ...toneClasses,
       };
     } else if (grade === "half-correct") {
@@ -238,19 +238,15 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
         ? /\s+\(?[mf]\)?\s*$/i.test(result.userAnswer.trim())
         : true;
       const text = !userHasGender
-        ? `Half correct! Don\u2019t forget the gender. ${pointsText}`
-        : `Half correct! ${pointsText}`;
+        ? tt("feedback_half_correct_gender_points", { points: pointsText })
+        : tt("feedback_half_correct_points", { points: pointsText });
       return {
-        icon: "✅",
         text,
-        emoji: pointsEarned > 0 ? "🙌" : "",
         ...toneClasses,
       };
     } else {
       return {
-        icon: "❌",
-        text: `Incorrect! 0 points`,
-        emoji: "",
+        text: t("feedback_incorrect_points"),
         ...toneClasses,
       };
     }
@@ -320,7 +316,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
         <div className="flex items-center gap-4">
           {feedback && (
             <span className={cn("text-regular-semibold", feedback.textColor)}>
-              {feedback.icon} {feedback.text} {feedback.emoji}
+              {feedback.text}
             </span>
           )}
 

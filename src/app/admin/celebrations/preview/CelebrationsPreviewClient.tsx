@@ -29,6 +29,11 @@ interface VariantMeta {
   category: "Word" | "Lesson" | "Free tier" | "Course" | "Language";
   trigger: string;
   description: string;
+  // Whether this variant actually fires in the live app today, or is a
+  // preview-only mockup with no trigger wired up yet. The three "mastered"
+  // tiers fire from completeTestSession() (src/lib/mutations/test.ts); the
+  // rest exist here for design review only.
+  wired: boolean;
 }
 
 const VARIANTS: VariantMeta[] = [
@@ -39,6 +44,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Per word, when correct_streak hits 3 during a test",
     description:
       "Lightweight per-word toast confirming mastery. Fires individually — not aggregated.",
+    wired: false,
   },
   {
     id: "lesson-learned",
@@ -47,6 +53,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Lesson transitions to 'learned' (100% words at learned+)",
     description:
       "Medium celebration. Distinct from lesson mastered: same lesson, lower bar — every word recalled at least once with full marks.",
+    wired: false,
   },
   {
     id: "lesson-mastered",
@@ -55,6 +62,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Lesson transitions to 'mastered' (100% words at mastered)",
     description:
       "Major celebration with confetti and share. Fires when every word in the lesson hits 3-streak.",
+    wired: true,
   },
   {
     id: "lesson-1y",
@@ -63,6 +71,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Lesson reaches 1-year milestone test completion",
     description:
       "Medium celebration. 'Committed to long-term memory.' First major checkpoint after mastery.",
+    wired: false,
   },
   {
     id: "lesson-5y",
@@ -71,6 +80,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Lesson reaches 5-year milestone test completion",
     description:
       "Terminal lesson celebration. 'Retained for life.' Major + certificate + share.",
+    wired: false,
   },
   {
     id: "free-tier-upgrade",
@@ -79,6 +89,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Last free lesson hits ANY of: test taken / learned / mastered (whichever first, idempotent)",
     description:
       "Renders AFTER the standard test completion modal dismisses. Celebration framing for the upgrade pitch — peak emotional moment, not denial.",
+    wired: false,
   },
   {
     id: "course-learned",
@@ -86,6 +97,7 @@ const VARIANTS: VariantMeta[] = [
     category: "Course",
     trigger: "Every lesson in course reaches 'learned' or higher",
     description: "Medium celebration. CTA pushes toward mastery on weakest lesson.",
+    wired: false,
   },
   {
     id: "course-mastered",
@@ -94,6 +106,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Every lesson in course at 'mastered'",
     description:
       "Major celebration with full stats grid + share. Stats selection is open — review and trim here.",
+    wired: true,
   },
   {
     id: "language-learned",
@@ -101,6 +114,7 @@ const VARIANTS: VariantMeta[] = [
     category: "Language",
     trigger: "Every course in language at 'learned'",
     description: "Major celebration. CTA pushes toward mastery on weakest course.",
+    wired: false,
   },
   {
     id: "language-mastered",
@@ -109,6 +123,7 @@ const VARIANTS: VariantMeta[] = [
     trigger: "Every course in language at 'mastered'",
     description:
       "Top-tier celebration: flag + trophy + confetti + share + new-language picker.",
+    wired: true,
   },
 ];
 
@@ -144,8 +159,10 @@ export function CelebrationsPreviewClient() {
         <h1 className="text-page-header text-foreground">Celebrations preview</h1>
         <p className="mt-2 max-w-2xl text-regular-semibold text-foreground/70">
           Visual review of every completion celebration variant. Click any
-          variant to render it with mock data. Use this to iterate on copy,
-          stats, and CTAs before wiring real triggers.
+          variant to render it with mock data. Each card is tagged{" "}
+          <span className="text-success">Live</span> if it fires in the app
+          today, or <span className="text-warning">Preview only</span> if it&apos;s
+          a mockup with no trigger wired up yet.
         </p>
       </header>
 
@@ -189,9 +206,12 @@ function VariantCard({
       onClick={onTrigger}
       className="group flex flex-col items-start rounded-xl border border-border bg-bone p-4 text-left transition-colors hover:border-primary/40 hover:bg-white"
     >
-      <p className="text-regular-semibold text-foreground group-hover:text-primary">
-        {variant.label}
-      </p>
+      <div className="flex w-full items-center justify-between gap-2">
+        <p className="text-regular-semibold text-foreground group-hover:text-primary">
+          {variant.label}
+        </p>
+        <WiredBadge wired={variant.wired} />
+      </div>
       <p className="mt-1 text-xs-medium text-foreground/60">
         Trigger: {variant.trigger}
       </p>
@@ -202,6 +222,20 @@ function VariantCard({
         Preview →
       </span>
     </button>
+  );
+}
+
+function WiredBadge({ wired }: { wired: boolean }) {
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-xs-medium ${
+        wired
+          ? "bg-success/10 text-success"
+          : "bg-warning/10 text-warning"
+      }`}
+    >
+      {wired ? "Live" : "Preview only"}
+    </span>
   );
 }
 

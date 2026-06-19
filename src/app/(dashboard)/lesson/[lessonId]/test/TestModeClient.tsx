@@ -1695,7 +1695,12 @@ export function TestModeClient({
     <div className="flex h-screen overflow-hidden">
       {/* Word list sidebar */}
       <StudyWordListSidebar
-        wordList={testSequence.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+        wordList={testSequence.map((w) => ({
+          id: w.id,
+          english: w.english,
+          foreign: w.headword,
+          imageUrl: imageMode === "memory-trigger" ? w.memory_trigger_image_url : w.flashcard_image_url,
+        }))}
         currentWordIndex={currentWordIndex}
         completedWordIndices={viewedWordIndices}
         onJumpToWord={handleJumpToWord}
@@ -1724,6 +1729,7 @@ export function TestModeClient({
           testResults={testResults}
           testPointsEarned={runningScore.pointsEarned}
           testMaxPoints={runningScore.maxPoints}
+          incorrectWords={isRetest}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}

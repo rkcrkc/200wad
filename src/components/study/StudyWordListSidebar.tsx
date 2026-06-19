@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface WordListItem {
   id: string;
   english: string;
   foreign: string;
+  /** Effective thumbnail image for the word (already resolved at the call site) */
+  imageUrl?: string | null;
 }
 
 interface StudyWordListSidebarProps {
@@ -121,6 +124,13 @@ export function StudyWordListSidebar({
               // In test mode, disable words not yet reached
               const isDisabled = isTestMode && index > maxReachedIndex;
 
+              // The thumbnail follows the same reveal rule as the secondary
+              // text: always shown in study, but in test mode only once the
+              // word's answer is revealed (answered, and not suppressed for an
+              // upcoming Test-Twice occurrence). Otherwise it would leak a clue.
+              const revealThumb =
+                !isDisabled && (!isTestMode || (!!testResult && !hideSecondary));
+
               const roundLabel = roundLabels?.get(index);
 
               return (
@@ -155,6 +165,31 @@ export function StudyWordListSidebar({
                   )}>
                     {wordNumbers[index] ?? ""}
                   </span>
+
+                  {/* Thumbnail – revealed per the same rule as secondary text.
+                      Dimmed to match the recessed text for not-yet-done words. */}
+                  <div className={cn(
+                    "relative h-7 w-7 shrink-0 overflow-hidden rounded-md transition-opacity",
+                    isCurrent || isCompleted || isTestMode ? "opacity-100" : "opacity-40"
+                  )}>
+                    {revealThumb ? (
+                      word.imageUrl ? (
+                        <Image
+                          src={word.imageUrl}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="28px"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm">
+                          🗣️
+                        </div>
+                      )
+                    ) : (
+                      <div className="h-full w-full bg-foreground/5" />
+                    )}
+                  </div>
 
                   {/* Word text – all states share the same fixed height */}
                   <div className="min-w-0 flex-1 h-[36px] flex flex-col justify-center">

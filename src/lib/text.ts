@@ -126,7 +126,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Score history popover title",
     category: "tooltips_popovers",
     group: "Study Action Bar",
-    defaultValue: "Average score",
+    defaultValue: "Average score (all tests)",
   },
   pop_times_tested: {
     label: "Times tested popover label",
@@ -138,7 +138,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Current correct streak popover label",
     category: "tooltips_popovers",
     group: "Study Action Bar",
-    defaultValue: "{count} correct in a row",
+    defaultValue: "Last {count} correct in a row",
   },
   pop_score_untested_title: {
     label: "Untested score popover title",
@@ -170,7 +170,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Score breakdown popover line",
     category: "tooltips_popovers",
     group: "Word Detail",
-    defaultValue: "{pts} points total / {total} available = {pct}%",
+    defaultValue: "{pts} XP / {total} available ({pct}%)",
   },
 
   // Word Detail Sidebar
@@ -206,7 +206,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Time breakdown popover title",
     category: "tooltips_popovers",
     group: "Stats Popovers",
-    defaultValue: "Time breakdown",
+    defaultValue: "Learning breakdown",
   },
   pop_study_time: {
     label: "Study time popover label",
@@ -342,25 +342,25 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Correct answer (study)",
     category: "scoring_feedback",
     group: "Study Mode",
-    defaultValue: "Correct!",
+    defaultValue: "✅ Correct! 🙌",
   },
   feedback_half_correct: {
     label: "Half-correct answer (study)",
     category: "scoring_feedback",
     group: "Study Mode",
-    defaultValue: "Half-correct!",
+    defaultValue: "✅ Half-correct!",
   },
   feedback_half_correct_gender: {
     label: "Half-correct missing gender (study)",
     category: "scoring_feedback",
     group: "Study Mode",
-    defaultValue: "Half-correct! Don't forget the gender",
+    defaultValue: "✅ Half-correct! Don’t forget the gender",
   },
   feedback_incorrect: {
     label: "Incorrect answer (study)",
     category: "scoring_feedback",
     group: "Study Mode",
-    defaultValue: "Incorrect!",
+    defaultValue: "❌ Incorrect!",
   },
 
   // Test Mode Feedback
@@ -368,25 +368,25 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Correct answer with points",
     category: "scoring_feedback",
     group: "Test Mode",
-    defaultValue: "Correct! {points}",
+    defaultValue: "✅ Correct! {points} 🙌",
   },
   feedback_half_correct_points: {
     label: "Half-correct with points",
     category: "scoring_feedback",
     group: "Test Mode",
-    defaultValue: "Half correct! {points}",
+    defaultValue: "✅ Half correct! {points} 🙌",
   },
   feedback_half_correct_gender_points: {
     label: "Half-correct missing gender with points",
     category: "scoring_feedback",
     group: "Test Mode",
-    defaultValue: "Half correct! Don't forget the gender. {points}",
+    defaultValue: "✅ Half correct! Don’t forget the gender. {points} 🙌",
   },
   feedback_incorrect_points: {
     label: "Incorrect answer with points",
     category: "scoring_feedback",
     group: "Test Mode",
-    defaultValue: "Incorrect! 0 points",
+    defaultValue: "❌ Incorrect! 0 points",
   },
 
   // Test Types

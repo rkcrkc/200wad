@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, Image as ImageIcon } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Image as ImageIcon,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+} from "lucide-react";
 import { ConfirmModal } from "@/components/admin/AdminModal";
 import { ImageGroupEditModal } from "@/components/admin/ImageGroupEditModal";
+import { Tabs } from "@/components/ui/tabs";
 import { deleteImageGroup } from "@/lib/mutations/admin/imageGroups";
 import type { ImageGroupWithStats } from "@/lib/queries/imageGroups";
 
@@ -12,11 +20,17 @@ interface ImageGroupsClientProps {
   groups: ImageGroupWithStats[];
 }
 
+type SortKey = "label" | "key" | "members";
+type SortDir = "asc" | "desc";
+
 export function ImageGroupsClient({
   groups: initialGroups,
 }: ImageGroupsClientProps) {
   const router = useRouter();
   const [groups, setGroups] = useState(initialGroups);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [activeCourse, setActiveCourse] = useState<string>("all");
   const [editingGroup, setEditingGroup] = useState<ImageGroupWithStats | null>(
     null
   );
@@ -45,11 +59,65 @@ export function ImageGroupsClient({
     router.refresh();
   };
 
+  // Clicking a header sorts by that column; clicking the active column flips dir.
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  // Course tabs, derived from the groups present. "All" first, then one per
+  // course (ordered by course name), each annotated with its group count.
+  const courseTabs = useMemo(() => {
+    const byCourse = new Map<string, { name: string; count: number }>();
+    for (const g of groups) {
+      const entry = byCourse.get(g.course_id);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        byCourse.set(g.course_id, { name: g.courseName ?? "—", count: 1 });
+      }
+    }
+    const courses = [...byCourse.entries()]
+      .map(([id, { name, count }]) => ({ id, label: name, count }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return [{ id: "all", label: "All", count: groups.length }, ...courses];
+  }, [groups]);
+
+  // Filter by the selected course tab, then apply the active sort. Sorting
+  // falls back to the server order until a header is clicked.
+  const visibleGroups = useMemo(() => {
+    const filtered =
+      activeCourse === "all"
+        ? groups
+        : groups.filter((g) => g.course_id === activeCourse);
+    if (!sortKey) return filtered;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "label":
+          cmp = (a.label ?? "").localeCompare(b.label ?? "");
+          break;
+        case "key":
+          cmp = (a.key ?? "").localeCompare(b.key ?? "");
+          break;
+        case "members":
+          cmp = a.memberCount - b.memberCount;
+          break;
+      }
+      return cmp * dir;
+    });
+  }, [groups, activeCourse, sortKey, sortDir]);
+
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Image Groups</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Concept Pics</h1>
         <p className="mt-1 text-sm text-gray-500">
           Course-scoped picture groups. Each group owns a master image that its
           member words inherit, unless a word sets its own override.
@@ -63,19 +131,27 @@ export function ImageGroupsClient({
         </div>
       ) : (
         <>
+          {/* Course tabs */}
+          <Tabs
+            tabs={courseTabs}
+            activeTab={activeCourse}
+            onChange={setActiveCourse}
+            className="mb-4"
+          />
+
           {/* Header row */}
           <div className="grid grid-cols-[64px_1.5fr_1.5fr_1fr_100px_80px] gap-4 px-6 py-3">
             <span className="text-xs-medium text-muted-foreground">Master</span>
-            <span className="text-xs-medium text-muted-foreground">Label</span>
-            <span className="text-xs-medium text-muted-foreground">Key</span>
+            <SortHeader label="Label" column="label" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortHeader label="Key" column="key" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <span className="text-xs-medium text-muted-foreground">Course</span>
-            <span className="text-xs-medium text-muted-foreground">Members</span>
+            <SortHeader label="Members" column="members" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <span className="text-xs-medium text-muted-foreground">Actions</span>
           </div>
 
           {/* Body */}
           <div className="divide-y divide-gray-200 overflow-hidden rounded-xl bg-white">
-            {groups.map((group) => (
+            {visibleGroups.map((group) => (
               <div
                 key={group.id}
                 className="grid grid-cols-[64px_1.5fr_1.5fr_1fr_100px_80px] items-center gap-4 px-6 py-4 transition-colors hover:bg-[#FAF8F3]"
@@ -174,5 +250,35 @@ export function ImageGroupsClient({
         isLoading={isDeleting}
       />
     </div>
+  );
+}
+
+interface SortHeaderProps {
+  label: string;
+  column: SortKey;
+  sortKey: SortKey | null;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+}
+
+function SortHeader({ label, column, sortKey, sortDir, onSort }: SortHeaderProps) {
+  const isActive = sortKey === column;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(column)}
+      className="flex items-center gap-1 text-left text-xs-medium text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {label}
+      {isActive ? (
+        sortDir === "asc" ? (
+          <ChevronUp className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5" />
+        )
+      ) : (
+        <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+      )}
+    </button>
   );
 }

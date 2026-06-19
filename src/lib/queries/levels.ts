@@ -21,6 +21,8 @@ export interface UserLevelData {
   current: LevelTier;
   /** The next rank up, or null when the user is at the top of the ladder. */
   next: LevelTier | null;
+  /** The full enabled ladder, lowest tier first — drives the reference table. */
+  ladder: LevelTier[];
   lifetimeXp: number;
   lessonsMastered: number;
   /** Lifetime XP still needed to clear the next tier's XP gate (0 at max). */
@@ -101,11 +103,13 @@ export async function getUserLevel(): Promise<UserLevelData | null> {
     ladder.find((l) => l.level_number > currentRow.level_number) ?? null;
 
   const current = toTier(currentRow);
+  const tiers = ladder.map(toTier);
 
   if (!nextRow) {
     return {
       current,
       next: null,
+      ladder: tiers,
       lifetimeXp,
       lessonsMastered,
       xpToNext: 0,
@@ -128,6 +132,7 @@ export async function getUserLevel(): Promise<UserLevelData | null> {
   return {
     current,
     next,
+    ladder: tiers,
     lifetimeXp,
     lessonsMastered,
     xpToNext: Math.max(0, next.xpThreshold - lifetimeXp),

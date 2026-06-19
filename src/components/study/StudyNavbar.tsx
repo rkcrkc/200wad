@@ -1,7 +1,8 @@
 "use client";
 
-import { Clock, Pause, X } from "lucide-react";
+import { BookOpen, ClipboardPen, Clock, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { XpIcon } from "@/components/ui/xp-icon";
 import { formatDuration } from "@/lib/utils/helpers";
 import { WordTrackerDots, type WordTrackerResult } from "./WordTrackerDots";
 
@@ -32,6 +33,8 @@ interface StudyNavbarProps {
   testMaxPoints?: number;
   /** Category per word index — for tracker dots and word count */
   categories?: (string | null)[];
+  /** When true, this session only contains the user's previously incorrect words. */
+  incorrectWords?: boolean;
 }
 
 export function StudyNavbar({
@@ -50,6 +53,7 @@ export function StudyNavbar({
   testPointsEarned = 0,
   testMaxPoints = 0,
   categories,
+  incorrectWords = false,
 }: StudyNavbarProps) {
   const isTestMode = mode === "test";
   const testScorePercent = testMaxPoints > 0 ? Math.round((testPointsEarned / testMaxPoints) * 100) : 0;
@@ -57,7 +61,8 @@ export function StudyNavbar({
   // Badge styling differs by mode
   const badgeBgColor = isTestMode ? "bg-[rgba(255,149,0,0.3)]" : "bg-[rgba(65,207,30,0.3)]";
   const badgeTextColor = isTestMode ? "text-[#E67E00]" : "text-[#22ac00]";
-  const badgeText = isTestMode ? "Test mode" : "Study mode";
+  const badgeText = `${isTestMode ? "Test mode" : "Study mode"}${incorrectWords ? " · Incorrect Words" : ""}`;
+  const BadgeIcon = isTestMode ? ClipboardPen : BookOpen;
   const exitButtonText = isTestMode ? "Exit test" : "Exit lesson";
 
   const showWordProgress = totalWords > 0 && onJumpToWord;
@@ -67,7 +72,8 @@ export function StudyNavbar({
       {/* Left side - Mode badge, lesson, word progress, timer */}
       <div className="flex items-center gap-4">
         {/* Mode badge */}
-        <div className={`rounded-lg ${badgeBgColor} px-3 py-1.5`}>
+        <div className={`flex items-center gap-1.5 rounded-lg ${badgeBgColor} px-3 py-1.5`}>
+          <BadgeIcon className={`h-4 w-4 shrink-0 ${badgeTextColor}`} />
           <span className={`text-regular-semibold ${badgeTextColor}`}>{badgeText}</span>
         </div>
 
@@ -118,8 +124,10 @@ export function StudyNavbar({
         {isTestMode && (
           <>
             <span className="text-small-semibold text-foreground/25">|</span>
-            <span className="text-small-semibold text-foreground">
-              Test score {testScorePercent}% ({testPointsEarned}/{testMaxPoints})
+            <span className="inline-flex items-center gap-1 text-small-semibold text-foreground">
+              Test score
+              <XpIcon className="size-3.5" />
+              {testPointsEarned}/{testMaxPoints} XP ({testScorePercent}%)
             </span>
           </>
         )}

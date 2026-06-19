@@ -279,7 +279,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     {formatDuration(effectiveStats.totalTimeSeconds ?? 0)}
                   </span>
                   <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.11px]">
-                    total time
+                    learning time
                   </span>
                 </Popover>
               )}

@@ -426,24 +426,25 @@ export function StudyActionBar({
           {/* Test mode clue button */}
           {isTestMode && (
             <>
-              <button
-                onClick={onRevealClue}
-                disabled={!canRevealClue}
-                className={cn(
-                  "relative flex h-6 w-6 items-center justify-center",
-                  canRevealClue
-                    ? "text-foreground"
-                    : "text-foreground opacity-30 cursor-not-allowed"
-                )}
-                title={canRevealClue ? tt("msg_reveal_clue", { remaining: 2 - clueLevel }) : t("msg_no_clues")}
-              >
-                <Puzzle className="h-5 w-5" />
-                {canRevealClue && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                    {2 - clueLevel}
-                  </span>
-                )}
-              </button>
+              <Tooltip label={canRevealClue ? tt("msg_reveal_clue", { remaining: 2 - clueLevel }) : t("msg_no_clues")}>
+                <button
+                  onClick={onRevealClue}
+                  disabled={!canRevealClue}
+                  className={cn(
+                    "relative flex h-6 w-6 items-center justify-center",
+                    canRevealClue
+                      ? "text-foreground"
+                      : "text-foreground opacity-30 cursor-not-allowed"
+                  )}
+                >
+                  <Puzzle className="h-5 w-5" />
+                  {canRevealClue && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                      {2 - clueLevel}
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
               <span className="text-foreground/25">|</span>
             </>
           )}

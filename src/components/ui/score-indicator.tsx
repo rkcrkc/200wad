@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
+import { XpIcon } from "@/components/ui/xp-icon";
 import { useText } from "@/context/TextContext";
 
 interface TestAttempt {
@@ -202,7 +203,8 @@ export function ScoreIndicator({
         <div className="flex flex-col gap-1">
           <span className="text-sm font-semibold text-foreground">{t("pop_score_history")}</span>
           <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-            <span>
+            <span className="inline-flex items-center gap-1">
+              <XpIcon className="size-3.5" />
               {tt("pop_score_breakdown", {
                 pts: scoreStats.totalPointsEarned,
                 total: scoreStats.totalMaxPoints,

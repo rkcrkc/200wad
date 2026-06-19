@@ -74,6 +74,8 @@ interface StudyModeClientProps {
   dismissedTipIds?: string[];
   /** Currently scheduled next milestone for this lesson (from user_lesson_progress). */
   nextMilestone?: string | null;
+  /** When true, this session only contains the user's previously incorrect words. */
+  incorrectWords?: boolean;
 }
 
 export function StudyModeClient({
@@ -85,6 +87,7 @@ export function StudyModeClient({
   courseLessons = [],
   dismissedTipIds: initialDismissedTipIds = [],
   nextMilestone = null,
+  incorrectWords = false,
 }: StudyModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1115,7 +1118,7 @@ export function StudyModeClient({
     <div className="flex h-screen overflow-hidden">
       {/* Word list sidebar */}
       <StudyWordListSidebar
-        wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword }))}
+        wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword, imageUrl: w.memory_trigger_image_url }))}
         currentWordIndex={currentWordIndex}
         completedWordIndices={answeredWordIndices}
         onJumpToWord={handleJumpToWord}
@@ -1138,6 +1141,7 @@ export function StudyModeClient({
           onJumpToWord={handleJumpToWord}
           isTimerPaused={isTimerPaused}
           categories={wordCategories}
+          incorrectWords={incorrectWords}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}

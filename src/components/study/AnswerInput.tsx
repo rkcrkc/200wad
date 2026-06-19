@@ -15,6 +15,7 @@ import {
   type NormalizeOptions,
 } from "@/lib/utils/scoring";
 import { useDeadKeyComposition } from "@/lib/utils/deadKeys";
+import { useText } from "@/context/TextContext";
 
 interface FeedbackState {
   grade: AnswerGrade;
@@ -58,6 +59,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   previousAnswer,
   isAlreadyAnswered = false,
 }, ref) {
+  const { t } = useText();
   const [input, setInput] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [showDiff, setShowDiff] = useState(false);
@@ -235,16 +237,16 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   const getFeedbackDisplay = () => {
     if (!feedback) return null;
     if (feedback.grade === "correct") {
-      return { icon: "✅", text: "Correct!", emoji: "🙌", textColor: "text-green-600" };
+      return { text: t("feedback_correct"), textColor: "text-green-600" };
     }
     if (feedback.grade === "half-correct") {
       // Check if gender was missing
       const genderMatch = feedback.correctAnswer.match(/\((m|f)\)\s*$/);
       const userHasGender = genderMatch ? /\s+\(?[mf]\)?\s*$/i.test(feedback.userAnswer.trim()) : true;
-      const text = !userHasGender ? "Half-correct! Don\u2019t forget the gender" : "Half-correct!";
-      return { icon: "✅", text, emoji: "", textColor: "text-amber-600" };
+      const text = !userHasGender ? t("feedback_half_correct_gender") : t("feedback_half_correct");
+      return { text, textColor: "text-amber-600" };
     }
-    return { icon: "❌", text: "Incorrect!", emoji: "", textColor: "text-red-500" };
+    return { text: t("feedback_incorrect"), textColor: "text-red-500" };
   };
 
   const feedbackDisplay = getFeedbackDisplay();
@@ -314,7 +316,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
         <div className="flex items-center gap-4">
           {feedbackDisplay && (
             <span className={cn("text-regular-semibold", feedbackDisplay.textColor)}>
-              {feedbackDisplay.icon} {feedbackDisplay.text} {feedbackDisplay.emoji}
+              {feedbackDisplay.text}
             </span>
           )}
           {showWarning && (

@@ -36,20 +36,20 @@ const navSections: NavItem[][] = [
     { label: "Courses", href: "/admin/courses", icon: <BookOpen className="h-5 w-5" /> },
     { label: "Lessons", href: "/admin/lessons", icon: <GraduationCap className="h-5 w-5" /> },
     { label: "Words", href: "/admin/words", icon: <Type className="h-5 w-5" /> },
+    { label: "Concept Pics", href: "/admin/image-groups", icon: <Images className="h-5 w-5" /> },
   ],
   // Section 2: Content & media
   [
-    { label: "Image Groups", href: "/admin/image-groups", icon: <Images className="h-5 w-5" /> },
     { label: "Text & Labels", href: "/admin/text-labels", icon: <FileText className="h-5 w-5" /> },
     { label: "Tips", href: "/admin/tips", icon: <Lightbulb className="h-5 w-5" /> },
-    { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
     { label: "Notifications", href: "/admin/notifications", icon: <Bell className="h-5 w-5" /> },
     { label: "Celebrations", href: "/admin/celebrations", icon: <Sparkles className="h-5 w-5" /> },
-    { label: "Music", href: "/admin/music", icon: <Music className="h-5 w-5" /> },
   ],
   // Section 3: Billing
   [
     { label: "Billing", href: "/admin/settings", icon: <CreditCard className="h-5 w-5" /> },
+    { label: "Music", href: "/admin/music", icon: <Music className="h-5 w-5" /> },
+    { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
   ],
   // Section 4: Gamification
   [

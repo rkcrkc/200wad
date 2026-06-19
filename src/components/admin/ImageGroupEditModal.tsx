@@ -7,10 +7,17 @@ import { AdminFormField } from "./AdminFormField";
 import { AdminFileUpload } from "./AdminFileUpload";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Tabs } from "@/components/ui/tabs";
+import {
+  AdminWordEditModal,
+  type WordWithDetails,
+  type WordLessonInfo,
+} from "./AdminWordEditModal";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
   updateImageGroup,
   listImageGroupMembers,
+  getWordForEditModal,
 } from "@/lib/mutations/admin/imageGroups";
 import type { ImageGroupWithStats, ImageGroupMember } from "@/lib/queries/imageGroups";
 
@@ -40,8 +47,15 @@ export function ImageGroupEditModal({
   const [members, setMembers] = useState<ImageGroupMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("content");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Inline word-edit modal (opened from a member word in the Words tab)
+  const [editingWord, setEditingWord] = useState<WordWithDetails | null>(null);
+  const [editingWordLanguage, setEditingWordLanguage] = useState<string | undefined>();
+  const [editingWordLessons, setEditingWordLessons] = useState<WordLessonInfo[]>([]);
+  const [loadingWordId, setLoadingWordId] = useState<string | null>(null);
 
   // Reset form when modal opens / group changes
   useEffect(() => {
@@ -54,6 +68,7 @@ export function ImageGroupEditModal({
       setNotes(editingGroup.notes ?? "");
       setMasterUrl(editingGroup.master_image_url);
       setMasterFile(null);
+      setActiveTab("content");
       setError(null);
     }
   }, [isOpen, editingGroup]);
@@ -77,6 +92,30 @@ export function ImageGroupEditModal({
       active = false;
     };
   }, [isOpen, editingGroup]);
+
+  // Open a member word in the full word-edit modal, fetching its details first.
+  const handleMemberClick = async (memberId: string) => {
+    setLoadingWordId(memberId);
+    const result = await getWordForEditModal(memberId);
+    setLoadingWordId(null);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    setEditingWord(result.data.word as WordWithDetails);
+    setEditingWordLanguage(result.data.languageName ?? undefined);
+    setEditingWordLessons(result.data.wordLessons);
+  };
+
+  // After saving a word, reload the member list so its thumbnail/state refreshes.
+  const handleWordSaved = () => {
+    setEditingWord(null);
+    if (!editingGroup) return;
+    setMembersLoading(true);
+    listImageGroupMembers(editingGroup.id)
+      .then(setMembers)
+      .finally(() => setMembersLoading(false));
+  };
 
   const handleSubmit = async () => {
     if (!editingGroup) return;
@@ -124,11 +163,13 @@ export function ImageGroupEditModal({
   };
 
   return (
+    <>
     <AdminModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Edit Image Group"
+      title="Edit Concept Pic"
       size="lg"
+      fullHeight
       footer={
         <div className="flex items-center justify-between">
           <div>{error && <p className="text-sm text-red-500">{error}</p>}</div>
@@ -146,7 +187,17 @@ export function ImageGroupEditModal({
         </div>
       }
     >
-      <div className="flex flex-col gap-5">
+      <Tabs
+        tabs={[
+          { id: "content", label: "Content" },
+          { id: "words", label: "Words", count: members.length },
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        className="mb-5"
+      />
+
+      <div className={activeTab === "content" ? "flex flex-col gap-5" : "hidden"}>
         {/* Course (read-only) */}
         <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-3">
           <span className="text-sm text-gray-500">Course</span>
@@ -246,8 +297,10 @@ export function ImageGroupEditModal({
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </AdminFormField>
+      </div>
 
-        {/* Member list (read-only) */}
+      {/* Words tab — member words (read-only) */}
+      <div className={activeTab === "words" ? "block" : "hidden"}>
         <div>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">
@@ -257,16 +310,19 @@ export function ImageGroupEditModal({
               {membersLoading ? "Loading…" : `${members.length} total`}
             </span>
           </div>
-          <div className="max-h-48 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200">
+          <div className="max-h-96 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200">
             {members.length === 0 && !membersLoading ? (
               <p className="px-3 py-4 text-center text-xs text-gray-400">
                 No member words.
               </p>
             ) : (
               members.map((m) => (
-                <div
+                <button
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2"
+                  type="button"
+                  onClick={() => handleMemberClick(m.id)}
+                  disabled={loadingWordId !== null}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-60"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-100">
                     {m.memory_trigger_image_url ? (
@@ -286,17 +342,31 @@ export function ImageGroupEditModal({
                     </p>
                     <p className="truncate text-xs text-gray-400">{m.english}</p>
                   </div>
+                  {loadingWordId === m.id && (
+                    <span className="shrink-0 text-xs text-gray-400">Opening…</span>
+                  )}
                   {m.image_override_url && (
                     <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                       Override
                     </span>
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>
         </div>
       </div>
     </AdminModal>
+
+    {/* Inline word editor, opened from a member word */}
+    <AdminWordEditModal
+      isOpen={!!editingWord}
+      onClose={() => setEditingWord(null)}
+      editingWord={editingWord}
+      languageName={editingWordLanguage}
+      wordLessons={editingWordLessons}
+      onSuccess={handleWordSaved}
+    />
+    </>
   );
 }

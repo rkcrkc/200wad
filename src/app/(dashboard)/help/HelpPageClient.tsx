@@ -13,10 +13,12 @@ import {
   BookOpen,
   MessageCircleQuestion,
   CirclePlay,
+  MessageSquarePlus,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { HelpLinkPreview } from "@/components/HelpLinkPreview";
+import { FeedbackModal } from "./FeedbackModal";
 import { Badge } from "@/components/ui/badge";
 import { useSidebarCollapsed } from "@/context/SidebarCollapseContext";
 import type { HelpEntry } from "@/types/database";
@@ -32,6 +34,7 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | undefined>(initialSlug);
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const savedScrollRef = useRef<number>(0);
@@ -270,8 +273,8 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
         )}
       </div>
 
-      {/* Floating tutorial card — pinned to the bottom of the index */}
-      <div className="p-4">
+      {/* Floating cards — pinned to the bottom of the index */}
+      <div className="space-y-3 p-4">
         <button
           type="button"
           className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
@@ -279,6 +282,19 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
           <CirclePlay className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.67} />
           <span className="text-[15px] font-semibold leading-[1.35] text-foreground">
             View Tutorial
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSidebarOpen(false);
+            setFeedbackOpen(true);
+          }}
+          className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
+        >
+          <MessageSquarePlus className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.67} />
+          <span className="text-[15px] font-semibold leading-[1.35] text-foreground">
+            Give feedback
           </span>
         </button>
       </div>
@@ -385,6 +401,9 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
           </div>
         )}
       </div>
+
+      {/* Feedback modal */}
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     </div>
   );
 }

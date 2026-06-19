@@ -144,15 +144,13 @@ export function TestCompletedModal({
           title={
             <>
               Test completed!{" "}
-              <span className="text-muted-foreground">You scored {formatPercent(scorePercent)}</span>
+              <span className="text-muted-foreground">
+                You scored {formatNumber(totalPoints)}/{formatNumber(maxPoints)} ({formatPercent(scorePercent)})
+              </span>
             </>
           }
         >
           <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
-            <span>
-              {formatNumber(totalPoints)}/{formatNumber(maxPoints)} ({formatPercent(scorePercent)})
-            </span>
-            <span>·</span>
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>

@@ -345,7 +345,7 @@ export function LessonPageContent({
               >
                 <span className="inline-flex items-center gap-2">
                   Take test
-                  <XpBadge value={xpMax} variant="available" />
+                  <XpBadge value={xpMax} variant="available-blue" />
                 </span>
               </PrimaryButton>
             </div>

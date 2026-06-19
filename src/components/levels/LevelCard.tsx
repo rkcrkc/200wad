@@ -1,168 +1,134 @@
 import { XpIcon } from "@/components/ui/xp-icon";
 import { LevelBadge } from "@/components/levels/LevelBadge";
+import { cn } from "@/lib/utils";
 import type { UserLevelData } from "@/lib/queries/levels";
 
 /**
- * Experience-level block. Shows the user's current tier and, when there's a
- * tier above, the dual-gate progress toward it — both the XP and
- * lessons-mastered gates must be cleared for promotion (mirrors
- * `compute_user_level`).
+ * Experience-level block. A top stats row (current tier, lifetime XP, lessons
+ * mastered) sits above a reference table of every enabled tier and its dual
+ * gates (XP and lessons-mastered required), with the user's held tier
+ * highlighted. The thresholds mirror `compute_user_level`.
  */
 export function LevelCard({ data }: { data: UserLevelData }) {
-  const { current, next } = data;
+  const { current, ladder } = data;
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
       <h2 className="mb-5 text-xl font-semibold">Experience Level</h2>
 
-      {/* Tier badges — current vs next, split horizontally. */}
-      <div className="flex gap-6 sm:gap-8">
-        <div className="flex-1">
-          <p className="text-small-medium text-muted-foreground">
-            Current level
-          </p>
-          <div className="mt-2">
-            <LevelBadge name={current.name} color={current.color} size="lg" />
-          </div>
-          {next && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              You currently have:
-            </p>
-          )}
-        </div>
-
-        {next ? (
-          <div className="flex-1 text-right">
-            <p className="text-small-medium text-muted-foreground">Next level</p>
-            <div className="mt-2">
-              <LevelBadge name={next.name} color={next.color} size="lg" />
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Achieve the following to reach the next level:
-            </p>
-          </div>
-        ) : (
-          <p className="flex-1 text-sm text-gray-500">
-            You&apos;ve reached the top level — {current.name} is as high as it
-            goes.
-          </p>
-        )}
+      {/* Top stats: current tier, lifetime XP, lessons mastered. */}
+      <div className="grid grid-cols-3 gap-4">
+        <Stat label="Current level">
+          <LevelBadge name={current.name} color={current.color} size="lg" />
+        </Stat>
+        <Stat
+          label="Current XP"
+          sub={
+            data.next
+              ? data.xpToNext > 0
+                ? `${data.xpToNext.toLocaleString()} XP to next level`
+                : "XP goal met"
+              : undefined
+          }
+        >
+          <span className="flex items-center gap-1 text-large-semibold text-gray-900">
+            <XpIcon />
+            {data.lifetimeXp.toLocaleString()}
+          </span>
+        </Stat>
+        <Stat
+          label="Lessons mastered"
+          sub={
+            data.next
+              ? data.lessonsToNext > 0
+                ? `${data.lessonsToNext.toLocaleString()} more to next level`
+                : "Lessons goal met"
+              : undefined
+          }
+        >
+          <span className="text-large-semibold text-gray-900">
+            {data.lessonsMastered.toLocaleString()}
+          </span>
+        </Stat>
       </div>
 
-      {/* One block per gate: the current/next values (split horizontally) sit
-          directly above that gate's full-width progress bar. */}
-      {next && (
-        <div className="mt-4 space-y-6">
-          <MetricBlock
-            withXpIcon
-            currentValue={`${data.lifetimeXp.toLocaleString()} XP`}
-            nextValue={`${next.xpThreshold.toLocaleString()} XP`}
-            color={next.color}
-            progress={data.xpProgress ?? 0}
-            trailing={
-              data.xpToNext > 0
-                ? `${data.xpToNext.toLocaleString()} XP to go`
-                : "XP goal met"
-            }
-          />
-          <MetricBlock
-            currentValue={`${data.lessonsMastered.toLocaleString()} lessons mastered`}
-            nextValue={`${next.lessonsMasteredThreshold.toLocaleString()} lessons mastered`}
-            color={next.color}
-            progress={data.lessonsProgress ?? 0}
-            trailing={
-              data.lessonsToNext > 0
-                ? `${data.lessonsToNext.toLocaleString()} lessons to go`
-                : "Lessons goal met"
-            }
-          />
-        </div>
-      )}
+      {/* Reference ladder: every tier with its XP and lessons-mastered gates. */}
+      <div className="mt-6 overflow-hidden rounded-xl border border-gray-100">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="bg-bone text-small-medium text-muted-foreground">
+              <th className="px-4 py-2.5 font-medium">Level</th>
+              <th className="px-4 py-2.5 text-right font-medium">XP required</th>
+              <th className="px-4 py-2.5 text-right font-medium">
+                Lessons mastered required
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {ladder.map((tier) => {
+              const isCurrent = tier.levelNumber === current.levelNumber;
+              const xpMet = data.lifetimeXp >= tier.xpThreshold;
+              const lessonsMet =
+                data.lessonsMastered >= tier.lessonsMasteredThreshold;
+              return (
+                <tr key={tier.levelNumber} className="border-t border-gray-100">
+                  <td
+                    className={cn(
+                      "px-4 py-2.5 text-gray-900",
+                      isCurrent ? "text-small-semibold" : "text-small-regular"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {tier.name}
+                      {isCurrent && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs-medium text-primary">
+                          Current level
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-small-regular text-gray-900">
+                    <span className="inline-flex items-center justify-end gap-1.5">
+                      {xpMet && <span aria-label="Achieved">✅</span>}
+                      {tier.xpThreshold.toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-small-regular text-gray-900">
+                    <span className="inline-flex items-center justify-end gap-1.5">
+                      {lessonsMet && <span aria-label="Achieved">✅</span>}
+                      {tier.lessonsMasteredThreshold.toLocaleString()}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 /**
- * A single dual-gate metric: the current value (left) and next-level target
- * (right) split horizontally to line up under the tier badges, with that gate's
- * full-width progress bar stacked directly beneath them.
+ * A labelled stat: a muted caption, the value, and an optional small
+ * "# to next level" hint stacked beneath.
  */
-function MetricBlock({
-  currentValue,
-  nextValue,
-  withXpIcon = false,
-  color,
-  progress,
-  trailing,
+function Stat({
+  label,
+  sub,
+  children,
 }: {
-  currentValue: string;
-  nextValue: string;
-  withXpIcon?: boolean;
-  color: string;
-  progress: number;
-  trailing: string;
+  label: string;
+  sub?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="mb-3 flex gap-6 sm:gap-8">
-        <div className="flex-1">
-          <MetricValue withXpIcon={withXpIcon} value={currentValue} />
-        </div>
-        <div className="flex-1">
-          <MetricValue withXpIcon={withXpIcon} value={nextValue} align="right" />
-        </div>
-      </div>
-      <ProgressRow color={color} progress={progress} trailing={trailing} />
-    </div>
-  );
-}
-
-/** A bold value line, optionally prefixed with the XP coin icon. */
-function MetricValue({
-  value,
-  withXpIcon = false,
-  align = "left",
-}: {
-  value: string;
-  withXpIcon?: boolean;
-  align?: "left" | "right";
-}) {
-  return (
-    <p
-      className={`flex items-center gap-1 text-regular-semibold text-gray-900 ${
-        align === "right" ? "justify-end" : ""
-      }`}
-    >
-      {withXpIcon && <XpIcon />}
-      {value}
-    </p>
-  );
-}
-
-/** Full-width progress bar with a muted "# to go" caption beneath it. */
-function ProgressRow({
-  color,
-  progress,
-  trailing,
-}: {
-  color: string;
-  progress: number;
-  trailing: string;
-}) {
-  return (
-    <div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{
-            width: `${Math.round(progress * 100)}%`,
-            backgroundColor: color,
-          }}
-        />
-      </div>
-      <p className="mt-1.5 text-small-regular text-muted-foreground">
-        {trailing}
-      </p>
+      <p className="text-small-medium text-muted-foreground">{label}</p>
+      <div className="mt-2 flex items-center">{children}</div>
+      {sub && (
+        <p className="mt-1 text-xs-medium text-muted-foreground">{sub}</p>
+      )}
     </div>
   );
 }

@@ -47,6 +47,8 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
   const isTest = mode === "test";
   const isAuto = isAutoLesson(lesson.id);
   const statusType = mapStatus(lesson.status || "");
+  // XP available — `word_count × 3` (single-direction perfect test).
+  const xpAvailable = (lesson.word_count || lesson.sampleWords.length) * 3;
   const [showStartTestModal, setShowStartTestModal] = useState(false);
   const milestoneLabel = isTest ? milestoneShortLabel(lesson.nextMilestone) : null;
   // For test cards we surface the milestone (e.g. "1-week test"); for the
@@ -100,10 +102,6 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                 wordCount={lesson.word_count || lesson.sampleWords.length}
                 variant="pill"
               />
-              {/* XP chip — `word_count × 3` (single-direction perfect test). */}
-              <Tooltip label="XP available — one perfect test scores 3 XP per word">
-                <XpBadge value={(lesson.word_count || lesson.sampleWords.length) * 3} variant="available" />
-              </Tooltip>
               <StatusPill status={statusType} />
             </div>
           </div>
@@ -136,7 +134,10 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                   className="animate-button-pulse w-full"
                   onClick={() => setShowStartTestModal(true)}
                 >
-                  {milestoneLabel ? `Start ${milestoneLabel} test` : "Start test"}
+                  <span className="inline-flex items-center gap-2">
+                    {milestoneLabel ? `Start ${milestoneLabel} test` : "Start test"}
+                    <XpBadge value={xpAvailable} variant="on-primary" />
+                  </span>
                 </PrimaryButton>
               </span>
             ) : (
@@ -145,7 +146,10 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                   className="animate-button-pulse w-full"
                   href={`/lesson/${lesson.id}/study`}
                 >
-                  Study lesson
+                  <span className="inline-flex items-center gap-2">
+                    Study lesson
+                    <XpBadge value={xpAvailable} variant="on-primary" />
+                  </span>
                 </PrimaryButton>
               </span>
             )}

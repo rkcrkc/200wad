@@ -22,6 +22,8 @@ interface LessonPreviewCardProps {
 export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
   const { t } = useText();
   const statusType = mapStatus(lesson.status || "");
+  // XP available — `word_count × 3` (single-direction perfect test).
+  const xpAvailable = (lesson.word_count || lesson.sampleWords.length) * 3;
   const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   return (
@@ -56,10 +58,6 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
               wordCount={lesson.word_count || lesson.sampleWords.length}
               variant="pill"
             />
-            {/* XP chip — `word_count × 3` (single-direction perfect test). */}
-            <Tooltip label="XP available — one perfect test scores 3 XP per word">
-              <XpBadge value={(lesson.word_count || lesson.sampleWords.length) * 3} variant="available" />
-            </Tooltip>
             <StatusPill status={statusType} />
           </div>
         </div>
@@ -81,7 +79,10 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
           className="flex-1"
           href={`/lesson/${lesson.id}/study`}
         >
-          Study lesson
+          <span className="inline-flex items-center gap-2">
+            Study lesson
+            <XpBadge value={xpAvailable} variant="on-primary" />
+          </span>
         </PrimaryButton>
 
         <div className="flex items-center">

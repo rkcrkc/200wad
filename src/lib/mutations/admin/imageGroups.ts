@@ -31,6 +31,118 @@ export async function listImageGroupMembers(
   return getImageGroupMembers(groupId);
 }
 
+/** Lesson assignment for a word, used by the inline word-edit modal. */
+export interface WordLessonRef {
+  id: string;
+  number: number;
+  title: string;
+  emoji: string | null;
+  course_id: string | null;
+}
+
+/** Example sentence shape returned with a word for the inline edit modal. */
+export interface WordExampleSentence {
+  id: string;
+  foreign_sentence: string;
+  english_sentence: string;
+  thumbnail_image_url: string | null;
+  sort_order: number | null;
+}
+
+/** Full word payload for opening AdminWordEditModal inline from the group modal. */
+export interface WordEditModalData {
+  word: {
+    id: string;
+    headword: string;
+    lemma: string;
+    english: string;
+    language_id: string;
+    category: string | null;
+    part_of_speech: string | null;
+    gender: string | null;
+    transitivity: string | null;
+    is_irregular: boolean | null;
+    grammatical_number: string | null;
+    notes: string | null;
+    developer_notes: string | null;
+    alternate_answers: string[] | null;
+    alternate_english_answers: string[] | null;
+    memory_trigger_text: string | null;
+    memory_trigger_image_url: string | null;
+    image_group_id: string | null;
+    image_override_url: string | null;
+    audio_url_english: string | null;
+    audio_url_foreign: string | null;
+    audio_url_trigger: string | null;
+    example_sentences: WordExampleSentence[];
+  };
+  languageName: string | null;
+  wordLessons: WordLessonRef[];
+}
+
+/**
+ * Fetch one word with the full detail set the admin word-edit modal needs, so a
+ * member word in the Concept Pic modal can be opened and edited in place.
+ * Service-role; server-only.
+ */
+export async function getWordForEditModal(
+  wordId: string
+): Promise<
+  | { success: true; error: null; data: WordEditModalData }
+  | { success: false; error: string; data: null }
+> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("words")
+    .select(
+      `
+        id, headword, lemma, english, language_id, category, part_of_speech,
+        gender, transitivity, is_irregular, grammatical_number, notes,
+        developer_notes, alternate_answers, alternate_english_answers,
+        memory_trigger_text, memory_trigger_image_url, image_group_id,
+        image_override_url, audio_url_english, audio_url_foreign,
+        audio_url_trigger,
+        language:languages(name),
+        example_sentences(id, foreign_sentence, english_sentence, thumbnail_image_url, sort_order)
+      `
+    )
+    .eq("id", wordId)
+    .single();
+
+  if (error || !data) {
+    return { success: false, error: error?.message ?? "Word not found", data: null };
+  }
+
+  const { language, example_sentences, ...word } = data as typeof data & {
+    language: { name: string } | null;
+    example_sentences: WordExampleSentence[] | null;
+  };
+
+  const { data: lessonRows } = await supabase
+    .from("lesson_words")
+    .select("lesson:lessons(id, number, title, emoji, course_id)")
+    .eq("word_id", wordId);
+
+  const wordLessons = (lessonRows ?? [])
+    .map((row) => (row as { lesson: WordLessonRef | null }).lesson)
+    .filter((l): l is WordLessonRef => l !== null);
+
+  return {
+    success: true,
+    error: null,
+    data: {
+      word: {
+        ...(word as WordEditModalData["word"]),
+        example_sentences: example_sentences ?? [],
+      },
+      languageName: language?.name ?? null,
+      wordLessons,
+    },
+  };
+}
+
 /** A group option for the word modal's group selector. */
 export interface ImageGroupOption {
   id: string;
