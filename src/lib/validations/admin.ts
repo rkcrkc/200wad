@@ -94,6 +94,11 @@ export const createWordSchema = z.object({
   developer_notes: z.string().max(2000).optional().nullable(),
   memory_trigger_text: z.string().max(10000).optional().nullable(),
   memory_trigger_image_url: z.string().url().optional().nullable(),
+  // Image grouping: a word inherits its group's master image, or sets a
+  // per-word override. `memory_trigger_image_url` is materialized by a DB
+  // trigger from these and must not be written directly going forward.
+  image_group_id: z.string().uuid("Invalid image group ID").optional().nullable(),
+  image_override_url: z.string().url().optional().nullable(),
   audio_url_english: z.string().url().optional().nullable(),
   audio_url_foreign: z.string().url().optional().nullable(),
   audio_url_trigger: z.string().url().optional().nullable(),
@@ -121,6 +126,85 @@ export const updateSentenceSchema = createSentenceSchema.partial().omit({ word_i
 
 export type CreateSentenceInput = z.input<typeof createSentenceSchema>;
 export type UpdateSentenceInput = z.input<typeof updateSentenceSchema>;
+
+// ============================================================================
+// LEVEL SCHEMAS
+// ============================================================================
+
+export const createLevelSchema = z.object({
+  level_number: z.number().int().gt(0, "Level number must be greater than 0"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens"),
+  name: z.string().min(1, "Name is required").max(200),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex colour")
+    .default("#9ca3af"),
+  xp_threshold: z.number().int().min(0, "XP threshold must be non-negative"),
+  lessons_mastered_threshold: z
+    .number()
+    .int()
+    .min(0, "Lessons-mastered threshold must be non-negative"),
+  enabled: z.boolean().default(true),
+});
+
+export const updateLevelSchema = createLevelSchema.partial();
+
+export type CreateLevelInput = z.input<typeof createLevelSchema>;
+export type UpdateLevelInput = z.input<typeof updateLevelSchema>;
+
+// ============================================================================
+// LEAGUE SCHEMAS
+// ============================================================================
+
+export const createLeagueSchema = z.object({
+  tier_order: z.number().int().gt(0, "Tier order must be greater than 0"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens"),
+  name: z.string().min(1, "Name is required").max(200),
+  icon: z.string().min(1, "Icon is required").max(8),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex colour")
+    .default("#9ca3af"),
+  division_size: z.number().int().gt(0, "Division size must be greater than 0"),
+  promote_count: z.number().int().min(0, "Promote count must be non-negative"),
+  relegate_count: z.number().int().min(0, "Relegate count must be non-negative"),
+  enabled: z.boolean().default(true),
+});
+
+export const updateLeagueSchema = createLeagueSchema.partial();
+
+export type CreateLeagueInput = z.input<typeof createLeagueSchema>;
+export type UpdateLeagueInput = z.input<typeof updateLeagueSchema>;
+
+// ============================================================================
+// IMAGE GROUP SCHEMAS
+// ============================================================================
+
+export const createImageGroupSchema = z.object({
+  course_id: z.string().uuid("Invalid course ID"),
+  key: z.string().min(1, "Key is required").max(200),
+  label: z.string().min(1, "Label is required").max(200),
+  master_image_url: z.string().url().optional().nullable(),
+  is_exception: z.boolean().optional().default(false),
+  english_suffix: z.string().max(100).optional().nullable(),
+  italian_suffix: z.string().max(100).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export const updateImageGroupSchema = createImageGroupSchema
+  .partial()
+  .omit({ course_id: true });
+
+export type CreateImageGroupInput = z.input<typeof createImageGroupSchema>;
+export type UpdateImageGroupInput = z.input<typeof updateImageGroupSchema>;
 
 // ============================================================================
 // REORDER SCHEMA

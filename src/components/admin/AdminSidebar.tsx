@@ -12,11 +12,14 @@ import {
   CreditCard,
   ChevronLeft,
   Trophy,
+  Medal,
   HelpCircle,
   FileText,
   Lightbulb,
   Bell,
   Sparkles,
+  Images,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +39,7 @@ const navSections: NavItem[][] = [
   ],
   // Section 2: Content & media
   [
+    { label: "Image Groups", href: "/admin/image-groups", icon: <Images className="h-5 w-5" /> },
     { label: "Text & Labels", href: "/admin/text-labels", icon: <FileText className="h-5 w-5" /> },
     { label: "Tips", href: "/admin/tips", icon: <Lightbulb className="h-5 w-5" /> },
     { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
@@ -47,9 +51,11 @@ const navSections: NavItem[][] = [
   [
     { label: "Billing", href: "/admin/settings", icon: <CreditCard className="h-5 w-5" /> },
   ],
-  // Section 4: Leaderboard
+  // Section 4: Gamification
   [
     { label: "Leaderboard", href: "/admin/leaderboard", icon: <Trophy className="h-5 w-5" /> },
+    { label: "Levels", href: "/admin/levels", icon: <Medal className="h-5 w-5" /> },
+    { label: "Leagues", href: "/admin/leagues", icon: <Shield className="h-5 w-5" /> },
   ],
 ];
 

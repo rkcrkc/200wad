@@ -426,6 +426,146 @@ export type Database = {
         }
         Relationships: []
       }
+      league_memberships: {
+        Row: {
+          coin_reward: number
+          created_at: string
+          division: number
+          final_rank: number | null
+          id: string
+          league_id: string
+          result: string | null
+          user_id: string
+          week_start: string
+          xp_earned: number
+        }
+        Insert: {
+          coin_reward?: number
+          created_at?: string
+          division: number
+          final_rank?: number | null
+          id?: string
+          league_id: string
+          result?: string | null
+          user_id: string
+          week_start: string
+          xp_earned?: number
+        }
+        Update: {
+          coin_reward?: number
+          created_at?: string
+          division?: number
+          final_rank?: number | null
+          id?: string
+          league_id?: string
+          result?: string | null
+          user_id?: string
+          week_start?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_memberships_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "league_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      league_rewards: {
+        Row: {
+          coin_reward: number
+          created_at: string
+          enabled: boolean
+          id: string
+          league_id: string
+          rank_max: number
+          rank_min: number
+          updated_at: string
+        }
+        Insert: {
+          coin_reward?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          league_id: string
+          rank_max: number
+          rank_min: number
+          updated_at?: string
+        }
+        Update: {
+          coin_reward?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          league_id?: string
+          rank_max?: number
+          rank_min?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_rewards_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leagues: {
+        Row: {
+          color: string
+          created_at: string
+          division_size: number
+          enabled: boolean
+          icon: string
+          id: string
+          name: string
+          promote_count: number
+          relegate_count: number
+          slug: string
+          tier_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          division_size?: number
+          enabled?: boolean
+          icon?: string
+          id?: string
+          name: string
+          promote_count?: number
+          relegate_count?: number
+          slug: string
+          tier_order: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          division_size?: number
+          enabled?: boolean
+          icon?: string
+          id?: string
+          name?: string
+          promote_count?: number
+          relegate_count?: number
+          slug?: string
+          tier_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lesson_words: {
         Row: {
           created_at: string | null
@@ -517,6 +657,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      levels: {
+        Row: {
+          color: string
+          created_at: string
+          enabled: boolean
+          id: string
+          lessons_mastered_threshold: number
+          level_number: number
+          name: string
+          slug: string
+          updated_at: string
+          xp_threshold: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          lessons_mastered_threshold?: number
+          level_number: number
+          name: string
+          slug: string
+          updated_at?: string
+          xp_threshold?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          lessons_mastered_threshold?: number
+          level_number?: number
+          name?: string
+          slug?: string
+          updated_at?: string
+          xp_threshold?: number
+        }
+        Relationships: []
       }
       notification_broadcasts: {
         Row: {
@@ -839,6 +1018,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shop_items: {
+        Row: {
+          category: string
+          cost_coins: number
+          created_at: string
+          description: string
+          display_order: number
+          effect_type: string
+          effect_value: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          max_owned: number | null
+          required_level: number
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cost_coins: number
+          created_at?: string
+          description: string
+          display_order?: number
+          effect_type: string
+          effect_value?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          max_owned?: number | null
+          required_level?: number
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_coins?: number
+          created_at?: string
+          description?: string
+          display_order?: number
+          effect_type?: string
+          effect_value?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          max_owned?: number | null
+          required_level?: number
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       study_music_tracks: {
         Row: {
@@ -1499,6 +1732,61 @@ export type Database = {
           },
         ]
       }
+      user_purchases: {
+        Row: {
+          coin_transaction_id: string | null
+          coins_spent: number
+          created_at: string
+          id: string
+          quantity: number
+          shop_item_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          coin_transaction_id?: string | null
+          coins_spent: number
+          created_at?: string
+          id?: string
+          quantity?: number
+          shop_item_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          coin_transaction_id?: string | null
+          coins_spent?: number
+          created_at?: string
+          id?: string
+          quantity?: number
+          shop_item_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_coin_transaction_id_fkey"
+            columns: ["coin_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "coin_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_tip_dismissals: {
         Row: {
           dismissed_at: string | null
@@ -1616,6 +1904,7 @@ export type Database = {
           created_at: string | null
           current_course_id: string | null
           current_language_id: string | null
+          current_level: number
           current_streak: number | null
           daily_xp_goal: number
           email: string
@@ -1640,6 +1929,7 @@ export type Database = {
           streak_freeze_auto: boolean
           streak_freezes_available: number
           stripe_customer_id: string | null
+          timezone: string
           total_vocabulary_count: number | null
           two_factor_enabled: boolean | null
           updated_at: string | null
@@ -1655,6 +1945,7 @@ export type Database = {
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
+          current_level?: number
           current_streak?: number | null
           daily_xp_goal?: number
           email: string
@@ -1679,6 +1970,7 @@ export type Database = {
           streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null
+          timezone?: string
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
@@ -1694,6 +1986,7 @@ export type Database = {
           created_at?: string | null
           current_course_id?: string | null
           current_language_id?: string | null
+          current_level?: number
           current_streak?: number | null
           daily_xp_goal?: number
           email?: string
@@ -1718,6 +2011,7 @@ export type Database = {
           streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null
+          timezone?: string
           total_vocabulary_count?: number | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
@@ -1811,6 +2105,56 @@ export type Database = {
           },
         ]
       }
+      word_image_groups: {
+        Row: {
+          course_id: string
+          created_at: string
+          english_suffix: string | null
+          id: string
+          is_exception: boolean
+          italian_suffix: string | null
+          key: string
+          label: string
+          master_image_url: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          english_suffix?: string | null
+          id?: string
+          is_exception?: boolean
+          italian_suffix?: string | null
+          key: string
+          label: string
+          master_image_url?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          english_suffix?: string | null
+          id?: string
+          is_exception?: boolean
+          italian_suffix?: string | null
+          key?: string
+          label?: string
+          master_image_url?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_image_groups_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       word_relationships: {
         Row: {
           created_at: string | null
@@ -1868,6 +2212,8 @@ export type Database = {
           grammatical_number: string | null
           headword: string
           id: string
+          image_group_id: string | null
+          image_override_url: string | null
           is_false_friend: boolean | null
           is_irregular: boolean | null
           is_plural_only: boolean | null
@@ -1909,6 +2255,8 @@ export type Database = {
           grammatical_number?: string | null
           headword: string
           id?: string
+          image_group_id?: string | null
+          image_override_url?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
@@ -1950,6 +2298,8 @@ export type Database = {
           grammatical_number?: string | null
           headword?: string
           id?: string
+          image_group_id?: string | null
+          image_override_url?: string | null
           is_false_friend?: boolean | null
           is_irregular?: boolean | null
           is_plural_only?: boolean | null
@@ -1976,6 +2326,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "words_image_group_id_fkey"
+            columns: ["image_group_id"]
+            isOneToOne: false
+            referencedRelation: "word_image_groups"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "words_language_id_fkey"
             columns: ["language_id"]
             isOneToOne: false
@@ -2000,6 +2357,8 @@ export type Database = {
         }
         Returns: string
       }
+      close_league_week: { Args: { p_week_start?: string }; Returns: undefined }
+      compute_user_level: { Args: { p_user_id: string }; Returns: number }
       f_unaccent: { Args: { "": string }; Returns: string }
       fire_notification_template: {
         Args: { p_overrides?: Json; p_template_key: string; p_user_id: string }
@@ -2008,6 +2367,10 @@ export type Database = {
       generate_referral_code: { Args: never; Returns: string }
       get_course_vocab_count: {
         Args: { p_course_id: string; p_user_id: string }
+        Returns: number
+      }
+      get_distinct_lessons_tested: {
+        Args: { p_user_id: string }
         Returns: number
       }
       get_leaderboard: {
@@ -2021,12 +2384,45 @@ export type Database = {
           avatar_url: string
           current_streak: number
           league: string
+          location: string
           metric_value: number
           name: string
-          nationalities: string[]
           rank: number
           user_id: string
           username: string
+        }[]
+      }
+      get_league_achievement_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          highest_tier_order: number
+          podium_finishes: number
+          wins: number
+        }[]
+      }
+      get_lifetime_coins_earned: { Args: never; Returns: number }
+      get_or_create_league_room: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          current_streak: number
+          division: number
+          is_bottom: boolean
+          is_current_user: boolean
+          is_top: boolean
+          league_color: string
+          league_icon: string
+          league_name: string
+          league_slug: string
+          location: string
+          name: string
+          promote_count: number
+          rank: number
+          relegate_count: number
+          tier_order: number
+          user_id: string
+          username: string
+          xp_earned: number
         }[]
       }
       get_user_leaderboard_position: {
@@ -2042,7 +2438,20 @@ export type Database = {
           total_users: number
         }[]
       }
+      get_users_levels: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          level_color: string
+          level_name: string
+          level_number: number
+          user_id: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
+      purchase_shop_item: {
+        Args: { p_item_id: string; p_quantity?: number; p_user_id: string }
+        Returns: Json
+      }
       recover_streak: {
         Args: { p_days_missed: number; p_user_id: string }
         Returns: Json
@@ -2078,8 +2487,13 @@ export type Database = {
         Args: { p_enabled: boolean; p_user_id: string }
         Returns: boolean
       }
+      set_user_timezone: { Args: { p_timezone: string }; Returns: boolean }
       unlock_achievement: {
-        Args: { p_achievement_slug: string; p_user_id: string }
+        Args: {
+          p_achievement_slug: string
+          p_fire_notification?: boolean
+          p_user_id: string
+        }
         Returns: string
       }
       update_daily_activity:

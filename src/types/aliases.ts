@@ -84,6 +84,24 @@ export type LeaderboardRewardRow = Database["public"]["Tables"]["leaderboard_rew
 export type ActivityFlag = Database["public"]["Tables"]["activity_flags"]["Row"];
 export type ActivityFlagInsert = Database["public"]["Tables"]["activity_flags"]["Insert"];
 
+// Shop / economy types
+export type CoinTransaction = Database["public"]["Tables"]["coin_transactions"]["Row"];
+export type ShopItem = Database["public"]["Tables"]["shop_items"]["Row"];
+export type ShopItemInsert = Database["public"]["Tables"]["shop_items"]["Insert"];
+export type ShopItemUpdate = Database["public"]["Tables"]["shop_items"]["Update"];
+export type UserPurchase = Database["public"]["Tables"]["user_purchases"]["Row"];
+
+// Levels (rank ladder) types
+export type Level = Database["public"]["Tables"]["levels"]["Row"];
+
+// Leagues (weekly XP competition tier catalogue) types
+export type League = Database["public"]["Tables"]["leagues"]["Row"];
+
+// Image group (course-scoped master-image grouping) types
+export type WordImageGroup = Database["public"]["Tables"]["word_image_groups"]["Row"];
+export type WordImageGroupInsert = Database["public"]["Tables"]["word_image_groups"]["Insert"];
+export type WordImageGroupUpdate = Database["public"]["Tables"]["word_image_groups"]["Update"];
+
 // Help types
 export type HelpEntry = Database["public"]["Tables"]["help_entries"]["Row"];
 export type HelpEntryInsert = Database["public"]["Tables"]["help_entries"]["Insert"];
