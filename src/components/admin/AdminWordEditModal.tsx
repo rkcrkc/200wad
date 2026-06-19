@@ -27,6 +27,12 @@ import {
   deleteSentence,
 } from "@/lib/mutations/admin/sentences";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
+import {
+  assignWordToGroup,
+  setWordImageOverride,
+  listImageGroupsForCourse,
+  type ImageGroupOption,
+} from "@/lib/mutations/admin/imageGroups";
 import { createClient as createClientSupabase } from "@/lib/supabase/client";
 import {
   getWordRelationships,
@@ -66,7 +72,12 @@ export interface WordWithDetails {
   alternate_answers: string[] | null;
   alternate_english_answers: string[] | null;
   memory_trigger_text: string | null;
+  /** Materialized effective image URL (owned by DB trigger). Read-only here. */
   memory_trigger_image_url: string | null;
+  /** Group membership; NULL = one-off. */
+  image_group_id?: string | null;
+  /** Per-word override; NULL = inherit the group master. */
+  image_override_url?: string | null;
   audio_url_english: string | null;
   audio_url_foreign: string | null;
   audio_url_trigger: string | null;
@@ -246,6 +257,12 @@ export function AdminWordEditModal({
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("word");
 
+  // ---- Image group membership ----
+  const [imageGroupId, setImageGroupId] = useState<string | null>(null);
+  const [imageOverrideUrl, setImageOverrideUrl] = useState<string | null>(null);
+  const [courseGroups, setCourseGroups] = useState<ImageGroupOption[]>([]);
+  const [isGroupBusy, setIsGroupBusy] = useState(false);
+
   // ---- Delete modal ----
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -302,10 +319,14 @@ export function AdminWordEditModal({
         audioForeign: editingWord.audio_url_foreign,
         audioTrigger: editingWord.audio_url_trigger,
       });
+      setImageGroupId(editingWord.image_group_id ?? null);
+      setImageOverrideUrl(editingWord.image_override_url ?? null);
       setWordLessons(wordLessonsProp || []);
     } else {
       setFormData(INITIAL_FORM_DATA);
       setPreviewUrls(INITIAL_PREVIEW_URLS);
+      setImageGroupId(null);
+      setImageOverrideUrl(null);
       setWordLessons([]);
     }
     setErrors({});
@@ -319,6 +340,23 @@ export function AdminWordEditModal({
     setRelationSearch("");
     setRelationSearchResults([]);
   }, [isOpen, editingWord?.id]);
+
+  // ---- Load the course's image groups for the group selector ----
+  const wordCourseId =
+    (wordLessonsProp ?? []).find((l) => l.course_id)?.course_id ?? null;
+  useEffect(() => {
+    if (!isOpen || !editingWord || !wordCourseId) {
+      setCourseGroups([]);
+      return;
+    }
+    let active = true;
+    listImageGroupsForCourse(wordCourseId).then((groups) => {
+      if (active) setCourseGroups(groups);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isOpen, editingWord?.id, wordCourseId]);
 
   // ---- Fetch related words when editing word changes ----
   useEffect(() => {
@@ -466,7 +504,7 @@ export function AdminWordEditModal({
           fileType: string;
           column: keyof Pick<
             WordWithDetails,
-            | "memory_trigger_image_url"
+            | "image_override_url"
             | "audio_url_english"
             | "audio_url_foreign"
             | "audio_url_trigger"
@@ -474,12 +512,14 @@ export function AdminWordEditModal({
         }> = [];
 
         if (fileUploads.triggerImage) {
+          // The image is authored as a per-word override; the DB trigger
+          // materializes `memory_trigger_image_url` from it.
           uploads.push({
             label: "trigger image",
             bucket: "word-images",
             file: fileUploads.triggerImage,
             fileType: "trigger",
-            column: "memory_trigger_image_url",
+            column: "image_override_url",
           });
         }
         if (fileUploads.audioEnglish) {
@@ -550,6 +590,47 @@ export function AdminWordEditModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Assign the word to a group (or detach with null). Joining a group clears any
+  // override so the word inherits the master; the DB trigger re-materializes the
+  // effective image. Applied immediately, separate from the form save.
+  const handleAssignGroup = async (groupId: string | null) => {
+    if (!editingWord) return;
+    setIsGroupBusy(true);
+    const result = await assignWordToGroup(editingWord.id, groupId);
+    setIsGroupBusy(false);
+    if (!result.success) {
+      setErrors({ general: result.error || "Failed to change group" });
+      return;
+    }
+    const master = groupId
+      ? courseGroups.find((g) => g.id === groupId)?.master_image_url ?? null
+      : null;
+    setImageGroupId(groupId);
+    setImageOverrideUrl(null);
+    setPreviewUrls((prev) => ({ ...prev, triggerImage: master }));
+    setFileUploads((prev) => ({ ...prev, triggerImage: null }));
+    router.refresh();
+  };
+
+  // Clear the per-word override so the word re-inherits its group master.
+  const handleClearOverride = async () => {
+    if (!editingWord) return;
+    setIsGroupBusy(true);
+    const result = await setWordImageOverride(editingWord.id, null);
+    setIsGroupBusy(false);
+    if (!result.success) {
+      setErrors({ general: result.error || "Failed to clear override" });
+      return;
+    }
+    const master = imageGroupId
+      ? courseGroups.find((g) => g.id === imageGroupId)?.master_image_url ?? null
+      : null;
+    setImageOverrideUrl(null);
+    setPreviewUrls((prev) => ({ ...prev, triggerImage: master }));
+    setFileUploads((prev) => ({ ...prev, triggerImage: null }));
+    router.refresh();
   };
 
   const handleDelete = async () => {
@@ -1528,10 +1609,61 @@ export function AdminWordEditModal({
                 />
               </AdminFormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
                   Trigger Image
                 </label>
+
+                {/* Image group membership (only when the course has groups) */}
+                {courseGroups.length > 0 && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Image group
+                      </span>
+                      {imageGroupId ? (
+                        imageOverrideUrl ? (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            Overriding group master
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                            Inheriting group master
+                          </span>
+                        )
+                      ) : (
+                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          One-off (no group)
+                        </span>
+                      )}
+                    </div>
+                    <AdminSelect
+                      value={imageGroupId ?? ""}
+                      disabled={isGroupBusy}
+                      onChange={(e) =>
+                        handleAssignGroup(e.target.value ? e.target.value : null)
+                      }
+                      options={[
+                        { value: "", label: "— No group (one-off) —" },
+                        ...courseGroups.map((g) => ({
+                          value: g.id,
+                          label: g.label,
+                        })),
+                      ]}
+                    />
+                    {imageGroupId && imageOverrideUrl && (
+                      <button
+                        type="button"
+                        onClick={handleClearOverride}
+                        disabled={isGroupBusy}
+                        className="mt-2 text-sm font-medium text-primary hover:underline disabled:opacity-50"
+                      >
+                        Clear override (re-inherit group master)
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <AdminFileUpload
                   type="image"
                   value={previewUrls.triggerImage}
@@ -1540,6 +1672,11 @@ export function AdminWordEditModal({
                     setPreviewUrls({ ...previewUrls, triggerImage: url });
                   }}
                 />
+                <p className="text-xs text-gray-500">
+                  {imageGroupId
+                    ? "Uploading a new image overrides the group master for this word only."
+                    : "This image is stored as the word's own picture."}
+                </p>
               </div>
             </div>
           )}

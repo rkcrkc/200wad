@@ -75,7 +75,11 @@ export async function createWord(
         notes: validated.notes,
         developer_notes: validated.developer_notes,
         memory_trigger_text: validated.memory_trigger_text,
-        memory_trigger_image_url: validated.memory_trigger_image_url,
+        // The image is owned by the group/override model; a DB trigger
+        // materializes `memory_trigger_image_url` from these. A new one-off word
+        // carries its image as an override.
+        image_group_id: validated.image_group_id ?? null,
+        image_override_url: validated.image_override_url ?? null,
         audio_url_english: validated.audio_url_english,
         audio_url_foreign: validated.audio_url_foreign,
         audio_url_trigger: validated.audio_url_trigger,
@@ -155,7 +159,12 @@ export async function updateWord(
         notes: validated.notes ?? undefined,
         developer_notes: validated.developer_notes ?? undefined,
         memory_trigger_text: validated.memory_trigger_text ?? undefined,
-        memory_trigger_image_url: validated.memory_trigger_image_url ?? undefined,
+        // Image is owned by the group/override model (trigger materializes
+        // `memory_trigger_image_url`). Explicit clears/assigns go through
+        // setWordImageOverride / assignWordToGroup; here we only set non-null
+        // values so a partial form save never clobbers membership.
+        image_group_id: validated.image_group_id ?? undefined,
+        image_override_url: validated.image_override_url ?? undefined,
         audio_url_english: validated.audio_url_english ?? undefined,
         audio_url_foreign: validated.audio_url_foreign ?? undefined,
         audio_url_trigger: validated.audio_url_trigger ?? undefined,

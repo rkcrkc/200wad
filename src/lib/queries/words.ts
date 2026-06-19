@@ -788,6 +788,8 @@ export async function getWord(wordId: string): Promise<{
     memory_trigger_text: word.memory_trigger_text,
     memory_trigger_image_url: word.memory_trigger_image_url,
     flashcard_image_url: word.flashcard_image_url,
+    image_group_id: word.image_group_id,
+    image_override_url: word.image_override_url,
     audio_url_english: word.audio_url_english,
     audio_url_foreign: word.audio_url_foreign,
     audio_url_trigger: word.audio_url_trigger,

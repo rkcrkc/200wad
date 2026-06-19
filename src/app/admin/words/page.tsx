@@ -42,6 +42,8 @@ interface WordWithLessons {
   developer_notes: string | null;
   memory_trigger_text: string | null;
   memory_trigger_image_url: string | null;
+  image_group_id: string | null;
+  image_override_url: string | null;
   audio_url_english: string | null;
   audio_url_foreign: string | null;
   audio_url_trigger: string | null;
@@ -107,6 +109,8 @@ async function getData(searchParams: SearchParams) {
       developer_notes,
       memory_trigger_text,
       memory_trigger_image_url,
+      image_group_id,
+      image_override_url,
       audio_url_english,
       audio_url_foreign,
       audio_url_trigger,
