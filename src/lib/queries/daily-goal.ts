@@ -47,23 +47,32 @@ export async function getDailyGoalProgress(): Promise<DailyGoalProgress> {
     return GUEST_PROGRESS;
   }
 
-  // `current_date` in Postgres is server-local (UTC on Supabase). Use the
-  // same UTC-date string client-side so the read aligns with the row the RPC
-  // writes to.
-  const todayISO = new Date().toISOString().slice(0, 10);
+  // `update_daily_activity` buckets the row by the user's local calendar day
+  // (users.timezone). Resolve "today" in that same zone so the read targets the
+  // row the RPC wrote — otherwise a user east/west of UTC sees the ring reset
+  // at UTC midnight rather than their own. Falls back to UTC.
+  const userRowResult = await supabase
+    .from("users")
+    .select("daily_xp_goal, timezone")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  const [userRowResult, activityResult] = await Promise.all([
-    supabase
-      .from("users")
-      .select("daily_xp_goal")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("user_daily_activity")
-      .select("test_points_earned, daily_goal_met")
-      .eq("user_id", user.id)
-      .eq("activity_date", todayISO),
-  ]);
+  const timezone = userRowResult.data?.timezone || "UTC";
+  let todayISO: string;
+  try {
+    // `en-CA` formats as YYYY-MM-DD, matching the DATE column's text form.
+    todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(
+      new Date()
+    );
+  } catch {
+    todayISO = new Date().toISOString().slice(0, 10);
+  }
+
+  const activityResult = await supabase
+    .from("user_daily_activity")
+    .select("test_points_earned, daily_goal_met")
+    .eq("user_id", user.id)
+    .eq("activity_date", todayISO);
 
   const goal = userRowResult.data?.daily_xp_goal ?? DEFAULT_DAILY_XP_GOAL;
 

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { syncUserTimezone } from "@/lib/mutations/settings";
 import type { User } from "@supabase/supabase-js";
 
 interface UserContextType {
@@ -109,6 +110,33 @@ export function UserProvider({
       subscription.unsubscribe();
     };
   }, [supabase.auth, fetchProfile]);
+
+  // Sync the browser's IANA timezone to the user's profile so daily activity
+  // buckets by their local day (not UTC). Fire-and-forget, once per (user, tz)
+  // — a localStorage stamp skips the round-trip on subsequent visits while the
+  // zone is unchanged (e.g. travel re-syncs automatically). The server RPC
+  // also no-ops when the value already matches, so this is belt-and-braces.
+  useEffect(() => {
+    if (!user) return;
+    let tz: string;
+    try {
+      tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return;
+    }
+    if (!tz) return;
+
+    const stampKey = `tz-synced:${user.id}`;
+    if (localStorage.getItem(stampKey) === tz) return;
+
+    syncUserTimezone(tz)
+      .then((result) => {
+        if (result.success) localStorage.setItem(stampKey, tz);
+      })
+      .catch(() => {
+        /* non-fatal: retried on next mount */
+      });
+  }, [user]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();

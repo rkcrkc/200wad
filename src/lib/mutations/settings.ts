@@ -409,6 +409,45 @@ export async function addLanguage(languageId: string): Promise<MutationResult> {
 }
 
 // ============================================
+// Timezone Sync
+// ============================================
+
+/**
+ * Persist the user's IANA timezone (e.g. `Asia/Makassar`) captured from the
+ * browser so the daily-activity RPC can bucket "today" by their local day
+ * rather than UTC. Fire-and-forget from the client on mount; writes only when
+ * the value actually changed to keep this near-free on repeat visits.
+ *
+ * The name is validated against Postgres's `pg_timezone_names` so an
+ * unrecognised string can never reach `update_daily_activity` (where an invalid
+ * `AT TIME ZONE` would raise). Unknown names are silently ignored — the stored
+ * default (`UTC`) keeps the prior behaviour.
+ */
+export async function syncUserTimezone(
+  timezone: string
+): Promise<MutationResult> {
+  if (typeof timezone !== "string" || timezone.length === 0 || timezone.length > 64) {
+    return { success: false, error: "Invalid timezone" };
+  }
+
+  const supabase = await createClient();
+
+  // The RPC (SECURITY DEFINER) resolves identity from auth.uid(), validates the
+  // name against pg_timezone_names, and writes only on change. Unknown names
+  // return false without raising, so the stored default stands.
+  const { error } = await supabase.rpc("set_user_timezone", {
+    p_timezone: timezone,
+  });
+
+  if (error) {
+    console.error("Error syncing timezone:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+}
+
+// ============================================
 // Daily XP Goal Mutation
 // ============================================
 
