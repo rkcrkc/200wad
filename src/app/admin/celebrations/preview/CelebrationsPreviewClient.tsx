@@ -153,7 +153,7 @@ export function CelebrationsPreviewClient() {
 
   return (
     <div className="space-y-6">
-      <Toaster position="top-right" />
+      <Toaster position="bottom-right" />
 
       <header>
         <h1 className="text-page-header text-foreground">Celebrations preview</h1>
