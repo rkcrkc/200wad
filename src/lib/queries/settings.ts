@@ -1,4 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCourses, type CourseWithProgress } from "./courses";
+
+export interface LearningLanguageCourse {
+  id: string;
+  name: string;
+  status: "not-started" | "learning" | "mastered";
+  progressPercent: number;
+  /** True when this is the user's selected course (users.current_course_id) */
+  isCurrent: boolean;
+}
 
 export interface LearningLanguage {
   id: string;
@@ -6,6 +16,7 @@ export interface LearningLanguage {
   code: string;
   isCurrent: boolean;
   courseCount: number;
+  courses: LearningLanguageCourse[];
 }
 
 export interface UserSettings {
@@ -77,30 +88,24 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
     console.error("Error fetching user languages:", langError);
   }
 
-  // Get course counts for each language
-  const languageIds = userLanguages?.map((ul) => ul.language_id) || [];
-  let courseCounts: Record<string, number> = {};
+  // Fetch each language's courses (with status + progress) in parallel, reusing
+  // the same query the Courses page uses so progress stays consistent. The
+  // selected course (currentCourseId) also tells us which language is current.
+  const languageIds = (userLanguages || [])
+    .map((ul) => ul.language_id)
+    .filter((id): id is string => !!id);
 
-  if (languageIds.length > 0) {
-    const { data: courses } = await supabase
-      .from("courses")
-      .select("language_id")
-      .in("language_id", languageIds)
-      .eq("is_published", true);
-
-    if (courses) {
-      courseCounts = courses.reduce(
-        (acc, course) => {
-          const langId = course.language_id;
-          if (langId) {
-            acc[langId] = (acc[langId] || 0) + 1;
-          }
-          return acc;
-        },
-        {} as Record<string, number>
-      );
+  const courseResults = await Promise.all(
+    languageIds.map((id) => getCourses(id))
+  );
+  const coursesByLanguage: Record<string, CourseWithProgress[]> = {};
+  let currentCourseId: string | null = null;
+  languageIds.forEach((id, i) => {
+    coursesByLanguage[id] = courseResults[i].courses;
+    if (!currentCourseId && courseResults[i].currentCourseId) {
+      currentCourseId = courseResults[i].currentCourseId;
     }
-  }
+  });
 
   // Transform learning languages data
   const learningLanguages: LearningLanguage[] = (userLanguages || []).map(
@@ -111,12 +116,22 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
         code: string;
       };
       const langId = ul.language_id;
+      const langCourses = (langId && coursesByLanguage[langId]) || [];
+      const courses: LearningLanguageCourse[] = langCourses.map((c) => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        progressPercent: c.progressPercent,
+        isCurrent: c.id === currentCourseId,
+      }));
       return {
         id: lang.id,
         name: lang.name,
         code: lang.code,
-        isCurrent: ul.is_current ?? false,
-        courseCount: langId ? (courseCounts[langId] || 0) : 0,
+        // Current language follows the selected course (consistent with My Languages).
+        isCurrent: courses.some((c) => c.isCurrent),
+        courseCount: courses.length,
+        courses,
       };
     }
   );

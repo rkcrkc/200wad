@@ -19,11 +19,11 @@ export function SettingsClient({
   twoFactorEnabled,
   dailyXpGoal,
 }: SettingsClientProps) {
-  const [activeTab, setActiveTab] = useState("account");
+  const [activeTab, setActiveTab] = useState("preferences");
 
   const tabs = [
-    { id: "account", label: "Account" },
     { id: "preferences", label: "Preferences" },
+    { id: "account", label: "Account" },
   ];
 
   return (

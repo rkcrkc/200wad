@@ -57,16 +57,16 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
                 <span className="text-regular-semibold">{formatPercent(stats.averageScorePerWord)}</span>
               </div>
             </div>
-            {/* Lifetime XP — primary tests-page ledger stat. Rendered as a
-                green chip mirroring the XP-earned chip on previous test rows
-                to reinforce "earned XP" theming. Ring shows today's progress
-                against the daily goal; tooltip breaks down today + best day. */}
+            {/* Total XP for this course — primary tests-page ledger stat.
+                Rendered as a green chip mirroring the XP-earned chip on previous
+                test rows to reinforce "earned XP" theming. Tooltip breaks down
+                today (vs daily goal) + best day, all scoped to this course. */}
             <Tooltip
               align="right"
               position="below"
               label={
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold">Lifetime XP</span>
+                  <span className="font-semibold">Total XP (This course)</span>
                   <span>
                     XP are points you earn from tests — full marks score 3 XP
                     per word. Today: {stats.todayXp}/{stats.dailyXpGoal} XP.
@@ -76,8 +76,8 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
               }
             >
               <div className="flex flex-col items-start gap-1.5">
-                <span className="text-xs text-muted-foreground">Lifetime XP</span>
-                <XpBadge value={stats.lifetimeXp} variant="earned" size="md" />
+                <span className="text-xs text-muted-foreground">Total XP (This course)</span>
+                <XpBadge value={stats.totalXp} variant="default" size="md" />
               </div>
             </Tooltip>
           </div>

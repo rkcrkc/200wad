@@ -51,6 +51,7 @@ interface LeaderboardClientProps {
   personalBests: {
     bestDayXp: number;
     bestWeekXp: number;
+    lifetimeXp: number;
   } | null;
   /**
    * Distinct real lessons the signed-in user has tested. `null` = guest (no
@@ -115,7 +116,7 @@ function LearningTipBody({
     <div className="space-y-2 text-sm text-gray-600">
       <div className="flex items-start gap-2.5">
         <XpIcon className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>Your rank is based on XP — the points you score from tests.</p>
+        <p>Your rank is based on XP — the points you score from tests — totalled across every language and course you study.</p>
       </div>
       <div className="flex items-start gap-2.5">
         <Coins
@@ -546,6 +547,19 @@ function PersonalBestsStats({
 
   return (
     <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
+      <Popover
+        className="flex flex-col items-start gap-1.5"
+        content={
+          <p className="max-w-[220px] text-[13px] leading-[1.4] text-foreground">
+            Your total XP across every language and course you study — the same
+            all-course score your leaderboard rank is based on.
+          </p>
+        }
+      >
+        <span className="text-xs text-muted-foreground">Total XP</span>
+        <XpBadge value={personalBests.lifetimeXp} variant="default" size="md" />
+      </Popover>
+
       <div className="flex flex-col items-start gap-1.5">
         <span className="text-xs text-muted-foreground">Best day</span>
         <XpBadge value={personalBests.bestDayXp} variant="default" size="md" />

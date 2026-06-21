@@ -49,6 +49,8 @@ export interface GetCoursesResult {
   language: Language | null;
   courses: CourseWithProgress[];
   isGuest: boolean;
+  /** The user's currently selected course (users.current_course_id), if any */
+  currentCourseId: string | null;
 }
 
 export async function getCourses(languageId: string): Promise<GetCoursesResult> {
@@ -56,6 +58,17 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Resolve the user's selected course so the UI can mark it as active.
+  let currentCourseId: string | null = null;
+  if (user) {
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("current_course_id")
+      .eq("id", user.id)
+      .single();
+    currentCourseId = userRow?.current_course_id ?? null;
+  }
 
   // Fetch language
   const { data: language } = await supabase
@@ -75,12 +88,12 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
 
   if (coursesError) {
     console.error("Error fetching courses:", coursesError);
-    return { language, courses: [], isGuest: !user };
+    return { language, courses: [], isGuest: !user, currentCourseId };
   }
 
   // Guard: skip lessons query if no courses exist (prevents PostgREST 400 on empty .in())
   if (!courses || courses.length === 0) {
-    return { language, courses: [], isGuest: !user };
+    return { language, courses: [], isGuest: !user, currentCourseId };
   }
 
   // Get lesson counts per course
@@ -257,5 +270,6 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
     language,
     courses: coursesWithProgress,
     isGuest: !user,
+    currentCourseId,
   };
 }

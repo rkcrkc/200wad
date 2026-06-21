@@ -15,6 +15,19 @@ export interface CourseContextValue {
   wordsMastered?: number;
   totalWords?: number;
   courseProgressPercent?: number;
+  // Course-scoped learning stats (words/day + time breakdown) for the header.
+  // Same staleness problem as above: the dashboard layout computes these against
+  // the persisted course, so the course-scoped layout overrides them here.
+  wordsPerDay?: number;
+  totalWordsLearned?: number;
+  studyTimeSeconds?: number;
+  testTimeSeconds?: number;
+  totalTimeSeconds?: number;
+  // All-course learning time, for the "All courses" column of the learning-time
+  // popover. The course-scoped values above drive the headline figure.
+  allCourseStudyTimeSeconds?: number;
+  allCourseTestTimeSeconds?: number;
+  allCourseTotalTimeSeconds?: number;
 }
 
 interface CourseContextState {
@@ -73,6 +86,14 @@ export function useSetCourseContext(contextValue: CourseContextValue) {
       wordsMastered: contextValue.wordsMastered !== undefined ? contextValue.wordsMastered : prev.wordsMastered,
       totalWords: contextValue.totalWords !== undefined ? contextValue.totalWords : prev.totalWords,
       courseProgressPercent: contextValue.courseProgressPercent !== undefined ? contextValue.courseProgressPercent : prev.courseProgressPercent,
+      wordsPerDay: contextValue.wordsPerDay !== undefined ? contextValue.wordsPerDay : prev.wordsPerDay,
+      totalWordsLearned: contextValue.totalWordsLearned !== undefined ? contextValue.totalWordsLearned : prev.totalWordsLearned,
+      studyTimeSeconds: contextValue.studyTimeSeconds !== undefined ? contextValue.studyTimeSeconds : prev.studyTimeSeconds,
+      testTimeSeconds: contextValue.testTimeSeconds !== undefined ? contextValue.testTimeSeconds : prev.testTimeSeconds,
+      totalTimeSeconds: contextValue.totalTimeSeconds !== undefined ? contextValue.totalTimeSeconds : prev.totalTimeSeconds,
+      allCourseStudyTimeSeconds: contextValue.allCourseStudyTimeSeconds !== undefined ? contextValue.allCourseStudyTimeSeconds : prev.allCourseStudyTimeSeconds,
+      allCourseTestTimeSeconds: contextValue.allCourseTestTimeSeconds !== undefined ? contextValue.allCourseTestTimeSeconds : prev.allCourseTestTimeSeconds,
+      allCourseTotalTimeSeconds: contextValue.allCourseTotalTimeSeconds !== undefined ? contextValue.allCourseTotalTimeSeconds : prev.allCourseTotalTimeSeconds,
     }));
     // Don't clear context on unmount - preserve it for navigation
   }, [
@@ -85,6 +106,14 @@ export function useSetCourseContext(contextValue: CourseContextValue) {
     contextValue.wordsMastered,
     contextValue.totalWords,
     contextValue.courseProgressPercent,
+    contextValue.wordsPerDay,
+    contextValue.totalWordsLearned,
+    contextValue.studyTimeSeconds,
+    contextValue.testTimeSeconds,
+    contextValue.totalTimeSeconds,
+    contextValue.allCourseStudyTimeSeconds,
+    contextValue.allCourseTestTimeSeconds,
+    contextValue.allCourseTotalTimeSeconds,
     setValue,
   ]);
 }

@@ -1,5 +1,7 @@
+import { HelpCircle } from "lucide-react";
 import { XpIcon } from "@/components/ui/xp-icon";
 import { LevelBadge } from "@/components/levels/LevelBadge";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { UserLevelData } from "@/lib/queries/levels";
 
@@ -14,7 +16,26 @@ export function LevelCard({ data }: { data: UserLevelData }) {
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-card">
-      <h2 className="mb-5 text-xl font-semibold">Experience Level</h2>
+      <div className="mb-5 flex items-center gap-1.5">
+        <h2 className="text-xl font-semibold">Experience Level</h2>
+        <Tooltip
+          align="left"
+          position="above"
+          label={
+            <p className="max-w-[240px] text-[13px] leading-[1.4]">
+              Your experience level is based on your total XP and lessons
+              mastered across all courses and languages you study.
+            </p>
+          }
+        >
+          <span
+            aria-label="More info"
+            className="flex h-4 w-4 items-center justify-center text-muted-foreground/60"
+          >
+            <HelpCircle className="h-4 w-4" strokeWidth={2} />
+          </span>
+        </Tooltip>
+      </div>
 
       {/* Top stats: current tier, lifetime XP, lessons mastered. */}
       <div className="grid grid-cols-3 gap-4">
@@ -22,7 +43,7 @@ export function LevelCard({ data }: { data: UserLevelData }) {
           <LevelBadge name={current.name} color={current.color} size="lg" />
         </Stat>
         <Stat
-          label="Current XP"
+          label="Current XP (all course)"
           sub={
             data.next
               ? data.xpToNext > 0

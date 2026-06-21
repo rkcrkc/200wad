@@ -93,6 +93,42 @@ export interface UserLearningStats {
   wordsPerDay: number;
 }
 
+/** Per-course XP totals computed on the fly from test_sessions rows. */
+export interface CourseXp {
+  /** Sum of points_earned across the course's test sessions. */
+  totalXp: number;
+  /** Points earned today (UTC date), matching update_daily_activity's day key. */
+  todayXp: number;
+  /** Largest single-day points total for the course. */
+  bestDayXp: number;
+}
+
+/**
+ * Derive course-specific XP totals from already-loaded, course-scoped
+ * test_sessions rows. Callers pass rows they already fetched (Tests + Progress
+ * pages both load course-scoped test_sessions), so this avoids an extra query.
+ * `lifetime_xp` is account-wide; there is no per-course XP column, but
+ * `lifetime_xp == SUM(test_sessions.points_earned)` so summing the course's
+ * rows yields an exact course total.
+ */
+export function computeCourseXp(
+  rows: { points_earned: number | null; taken_at: string | null }[],
+  todayISO: string,
+): CourseXp {
+  let totalXp = 0;
+  const byDate = new Map<string, number>();
+  for (const r of rows) {
+    const pts = r.points_earned || 0;
+    totalXp += pts;
+    if (!r.taken_at) continue;
+    const d = r.taken_at.slice(0, 10);
+    byDate.set(d, (byDate.get(d) || 0) + pts);
+  }
+  let bestDayXp = 0;
+  for (const v of byDate.values()) bestDayXp = Math.max(bestDayXp, v);
+  return { totalXp, todayXp: byDate.get(todayISO) || 0, bestDayXp };
+}
+
 /**
  * Get user learning stats from word progress, study sessions, and tests.
  * Words per day is calculated as: (words_learned / total_time_hours) * 8
@@ -563,7 +599,7 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       // Streak data from users table
       supabase
         .from("users")
-        .select("current_streak, longest_streak, lifetime_xp, pb_day_test_points")
+        .select("current_streak, longest_streak")
         .eq("id", user.id)
         .single(),
       // Reuse existing course progress function
@@ -577,10 +613,10 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
         .select("duration_seconds, started_at")
         .eq("user_id", user.id)
         .or(courseScopeOr),
-      // Test scores for time totals — scoped to this course
+      // Test scores for time totals + course XP — scoped to this course
       supabase
         .from("test_sessions")
-        .select("duration_seconds, taken_at")
+        .select("duration_seconds, taken_at, points_earned")
         .eq("user_id", user.id)
         .or(courseScopeOr),
     ]);
@@ -687,6 +723,10 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
       ? Math.round((totalVocab / courseProgress.totalWords) * 100)
       : 0;
 
+  // Course-specific XP, summed from this course's test_sessions (lifetime_xp is
+  // account-wide). `today` is the local midnight Date computed above.
+  const courseXp = computeCourseXp(tests, today.toISOString().slice(0, 10));
+
   const cumulative: CumulativeProgress = {
     wordsMastered: courseProgress.wordsMastered,
     wordsLearned,
@@ -698,8 +738,8 @@ export async function getProgressStats(courseId: string): Promise<ProgressPageSt
     totalStudyTimeSeconds: studyTimeSeconds + testTimeSeconds,
     studyTimeSeconds,
     testTimeSeconds,
-    lifetimeXp: userData?.lifetime_xp ?? 0,
-    bestDayXp: userData?.pb_day_test_points ?? 0,
+    lifetimeXp: courseXp.totalXp,
+    bestDayXp: courseXp.bestDayXp,
   };
 
   // --- Chart per-day maps (also used by the heatmap tooltip) ---

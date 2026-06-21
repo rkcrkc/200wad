@@ -113,20 +113,19 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
         </p>
       </div>
 
-      {/* Lifetime XP — total points the user has earned across every test
-          they've taken. Bottom sub-label surfaces their personal best in a
-          single day, sourced from `users.pb_day_test_points`. */}
+      {/* Total XP (This course) — points earned across this course's tests.
+          Bottom sub-label surfaces the best single day for this course. */}
       <div className="rounded-2xl bg-white p-5 shadow-card">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-semibold text-muted-foreground">
-            Lifetime XP
+            Total XP (This course)
           </p>
           <InfoIcon
             content={
               <div className="flex w-[260px] flex-col gap-1.5 whitespace-normal text-left text-xs leading-[1.4]">
                 <p>
-                  Total XP earned across all tests. Full marks score 3 XP per
-                  word (no mistakes, no clues).
+                  Total XP earned across this course&apos;s tests. Full marks
+                  score 3 XP per word (no mistakes, no clues).
                 </p>
               </div>
             }

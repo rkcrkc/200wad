@@ -8,6 +8,8 @@ export interface LanguageWithProgress extends Language {
   wordsLearned: number;
   progressPercent: number;
   isCurrentLanguage: boolean;
+  /** True when the user has this language in their user_languages (i.e. is learning it) */
+  isEnrolled: boolean;
   /** Computed status based on word progress */
   status: "not-started" | "learning" | "mastered";
 }
@@ -77,6 +79,10 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
   // Fetch user progress if authenticated
   let userLanguages: UserLanguage[] = [];
   const wordsLearnedByLanguage: Record<string, number> = {};
+  // The "current" language follows the selected course: it is the language that
+  // owns users.current_course_id. We fall back to current_language_id only when
+  // no course is selected so a brand-new account still highlights something.
+  let activeLanguageId: string | null = null;
 
   if (user) {
     // Get user's languages
@@ -86,6 +92,26 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       .eq("user_id", user.id);
 
     userLanguages = userLangs || [];
+
+    // Resolve the active language from the selected course (source of truth),
+    // falling back to the cached current_language_id.
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("current_course_id, current_language_id")
+      .eq("id", user.id)
+      .single();
+
+    if (userRow?.current_course_id) {
+      const { data: courseRow } = await supabase
+        .from("courses")
+        .select("language_id")
+        .eq("id", userRow.current_course_id)
+        .single();
+      activeLanguageId = courseRow?.language_id ?? null;
+    }
+    if (!activeLanguageId) {
+      activeLanguageId = userRow?.current_language_id ?? null;
+    }
 
     // Get words in learning/mastered status, joined directly via words.language_id.
     // user_word_progress has a unique (user_id, word_id) constraint so each row is
@@ -135,6 +161,9 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       const totalWords = wordCountByLanguage[lang.id] || 0;
       const wordsLearned = wordsLearnedByLanguage[lang.id] || 0;
       const userLang = userLanguages.find((ul) => ul.language_id === lang.id);
+      const isCurrentLanguage = activeLanguageId
+        ? lang.id === activeLanguageId
+        : userLang?.is_current || false;
 
       // Compute status from word progress
       const status: "not-started" | "learning" | "mastered" =
@@ -150,7 +179,8 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
         totalWords,
         wordsLearned,
         progressPercent: totalWords > 0 ? Math.round((wordsLearned / totalWords) * 100) : 0,
-        isCurrentLanguage: userLang?.is_current || false,
+        isCurrentLanguage,
+        isEnrolled: !!userLang,
         status,
       };
     }

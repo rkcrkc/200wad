@@ -443,6 +443,7 @@ export async function getLeagueConfig(): Promise<{
 export async function getPersonalBests(): Promise<{
   bestDayXp: number;
   bestWeekXp: number;
+  lifetimeXp: number;
 } | null> {
   const supabase = await createClient();
   const {
@@ -453,13 +454,14 @@ export async function getPersonalBests(): Promise<{
 
   const { data: userData } = await supabase
     .from("users")
-    .select("pb_day_test_points, pb_week_test_points")
+    .select("pb_day_test_points, pb_week_test_points, lifetime_xp")
     .eq("id", user.id)
     .single();
 
   return {
     bestDayXp: userData?.pb_day_test_points ?? 0,
     bestWeekXp: userData?.pb_week_test_points ?? 0,
+    lifetimeXp: userData?.lifetime_xp ?? 0,
   };
 }
 

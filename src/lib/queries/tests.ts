@@ -4,6 +4,7 @@ import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
 import { LessonStatus } from "./lessons";
 import { resolveLessonIdRef } from "./auto-lessons";
+import { computeCourseXp } from "./stats";
 
 // ============================================================================
 // Types
@@ -57,13 +58,13 @@ export interface GetTestsResult {
     testsTaken: number;
     averageScore: number;
     averageScorePerWord: number;
-    /** Cumulative XP across all tests + achievement rewards. Read from `users.lifetime_xp`. */
-    lifetimeXp: number;
-    /** XP earned today across all languages (mirrors the header daily-goal pill). */
+    /** Total XP for THIS course, summed from the course's test_sessions. */
+    totalXp: number;
+    /** XP earned today for this course (taken_at = today). */
     todayXp: number;
-    /** User's daily XP target (`users.daily_xp_goal`, default 30). */
+    /** User's daily XP target (`users.daily_xp_goal`, default 30). Account-wide. */
     dailyXpGoal: number;
-    /** Personal-best single-day XP (`users.pb_day_test_points`). */
+    /** Best single-day XP for this course. */
     bestDayXp: number;
   };
   isGuest: boolean;
@@ -88,7 +89,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
         testsTaken: 0,
         averageScore: 0,
         averageScorePerWord: 0,
-        lifetimeXp: 0,
+        totalXp: 0,
         todayXp: 0,
         dailyXpGoal: 30,
         bestDayXp: 0,
@@ -115,7 +116,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
         testsTaken: 0,
         averageScore: 0,
         averageScorePerWord: 0,
-        lifetimeXp: 0,
+        totalXp: 0,
         todayXp: 0,
         dailyXpGoal: 30,
         bestDayXp: 0,
@@ -140,7 +141,6 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
     { data: testScores },
     lessonWordsRows,
     { data: userXpRow },
-    { data: todayActivityRows },
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
@@ -177,22 +177,14 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
           .range(from, to),
       { label: "getTests:lesson_words" }
     ),
-    // Cached cumulative XP + daily target + lifetime PB single-day XP. These
-    // power the Tests-page header stats; cheap single-row reads piggybacked
-    // on the existing Promise.all so they don't add an RTT.
+    // Daily XP target only (account-wide). Course-specific XP totals are
+    // computed below from the course-scoped `testScores` rows. Cheap single-row
+    // read piggybacked on the existing Promise.all so it doesn't add an RTT.
     supabase
       .from("users")
-      .select("lifetime_xp, daily_xp_goal, pb_day_test_points")
+      .select("daily_xp_goal")
       .eq("id", user.id)
       .maybeSingle(),
-    // Per-language daily-activity rows for today; sum `test_points_earned`
-    // across rows so the Tests page mirrors the header daily-goal pill even
-    // for users learning multiple languages.
-    supabase
-      .from("user_daily_activity")
-      .select("test_points_earned")
-      .eq("user_id", user.id)
-      .eq("activity_date", todayISO),
   ]);
 
   // Filter out information pages — they're non-testable
@@ -291,17 +283,11 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
   const averageScore = testsTaken > 0 ? Math.round(scoreSum / testsTaken) : 0;
   const averageScorePerWord = totalMaxPoints > 0 ? Math.round((totalPointsEarned / totalMaxPoints) * 100) : 0;
 
-  // XP stats for the Tests-page header. `lifetime_xp` / `pb_day_test_points`
-  // are maintained by the `update_daily_activity` RPC; `daily_xp_goal`
-  // defaults to 30 when the user hasn't customised it; `todayXp` sums the
-  // per-language `test_points_earned` rows for today.
-  const lifetimeXp = userXpRow?.lifetime_xp ?? 0;
+  // Course-specific XP for the Tests-page header, summed from this course's
+  // test_sessions (`testScores`). `daily_xp_goal` stays account-wide (default
+  // 30 when uncustomised); todayXp is measured against it for this course.
+  const { totalXp, todayXp, bestDayXp } = computeCourseXp(testScores ?? [], todayISO);
   const dailyXpGoal = userXpRow?.daily_xp_goal ?? 30;
-  const bestDayXp = userXpRow?.pb_day_test_points ?? 0;
-  const todayXp = (todayActivityRows || []).reduce(
-    (sum, row) => sum + (row.test_points_earned || 0),
-    0
-  );
 
   // Build due tests list
   const now = new Date().toISOString();
@@ -405,7 +391,7 @@ export async function getTests(courseId: string): Promise<GetTestsResult> {
       testsTaken,
       averageScore,
       averageScorePerWord,
-      lifetimeXp,
+      totalXp,
       todayXp,
       dailyXpGoal,
       bestDayXp,

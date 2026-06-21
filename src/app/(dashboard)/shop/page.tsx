@@ -1,7 +1,9 @@
 import { PageContainer } from "@/components/PageContainer";
 import { getShopData } from "@/lib/queries/shop";
 import type { ShopCategory, ShopItemForList } from "@/lib/queries/shop";
+import { getCoinHistory, getCoinTotals } from "@/lib/queries/coins";
 import { ShopHeader } from "@/components/shop/ShopHeader";
+import { ShopTabs } from "@/components/shop/ShopTabs";
 import { ShopCategorySection } from "@/components/shop/ShopCategorySection";
 import { LearningResourcesSection } from "@/components/shop/LearningResourcesSection";
 
@@ -25,7 +27,11 @@ const CATEGORIES: CategoryConfig[] = [
 ];
 
 export default async function ShopPage() {
-  const { coinBalance, items } = await getShopData();
+  const [{ coinBalance, items }, history, historyTotals] = await Promise.all([
+    getShopData(),
+    getCoinHistory(),
+    getCoinTotals(),
+  ]);
 
   const grouped = new Map<ShopCategory, ShopItemForList[]>();
   for (const item of items) {
@@ -37,15 +43,21 @@ export default async function ShopPage() {
   return (
     <PageContainer size="md">
       <ShopHeader coinBalance={coinBalance} />
-      {CATEGORIES.map((cat) => (
-        <ShopCategorySection
-          key={cat.key}
-          title={cat.title}
-          description={cat.description}
-          items={grouped.get(cat.key) ?? []}
-        />
-      ))}
-      <LearningResourcesSection />
+      <ShopTabs
+        initialHistory={history.entries}
+        historyHasMore={history.hasMore}
+        historyTotals={historyTotals}
+      >
+        {CATEGORIES.map((cat) => (
+          <ShopCategorySection
+            key={cat.key}
+            title={cat.title}
+            description={cat.description}
+            items={grouped.get(cat.key) ?? []}
+          />
+        ))}
+        <LearningResourcesSection />
+      </ShopTabs>
     </PageContainer>
   );
 }

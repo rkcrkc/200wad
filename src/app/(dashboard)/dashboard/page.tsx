@@ -48,6 +48,17 @@ export default async function DashboardPage({
       .map((s) => s.target_id!)
   );
 
+  // My Languages mirrors the Profile "Learning Languages" set: signed-in users
+  // see only the languages they're enrolled in. Guests have no enrolled set, so
+  // they keep browsing the full catalogue. Non-enrolled languages feed the
+  // "Add a language" picker.
+  const displayLanguages = isGuest
+    ? languages
+    : languages.filter((l) => l.isEnrolled);
+  const availableLanguages = languages
+    .filter((l) => !l.isEnrolled)
+    .map((l) => ({ id: l.id, name: l.name, code: l.code }));
+
   return (
     <PageContainer size="md">
       <div className="mb-8">
@@ -68,7 +79,7 @@ export default async function DashboardPage({
           </div>
         ) : (
           <>
-            {languages.map((language) => (
+            {displayLanguages.map((language) => (
               <LanguageCard
                 key={language.id}
                 language={language}
@@ -77,7 +88,9 @@ export default async function DashboardPage({
                 freeLessons={freeLessons}
               />
             ))}
-            <AddLanguageCard />
+            {!isGuest && availableLanguages.length > 0 && (
+              <AddLanguageCard availableLanguages={availableLanguages} />
+            )}
           </>
         )}
       </div>

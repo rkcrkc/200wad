@@ -8,6 +8,7 @@ import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/PageContainer";
 import { PageShell } from "@/components/PageShell";
+import type { TimeOfDay } from "@/components/PageTopBar";
 import { createClient } from "@/lib/supabase/server";
 import type { LanguageGreetings } from "@/types/database";
 
@@ -85,7 +86,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   const languages = isGuest ? await getLanguagesWithCourses() : [];
 
   // Generate greeting based on language and time
-  const { greeting, translation } = getGreeting(
+  const { greeting, translation, timeOfDay } = getGreeting(
     language?.greetings as LanguageGreetings | null,
     userName
   );
@@ -126,7 +127,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     : needsReviewLessons;
 
   return (
-    <PageShell greeting={greeting} greetingTranslation={translation} withTopPadding={false} className="pt-12 pb-20">
+    <PageShell greeting={greeting} greetingTranslation={translation} greetingTimeOfDay={timeOfDay} withTopPadding={false} className="pt-12 pb-20">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}
@@ -175,9 +176,9 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
 function getGreeting(
   greetings: LanguageGreetings | null,
   userName: string | null
-): { greeting: string; translation: string | undefined } {
+): { greeting: string; translation: string | undefined; timeOfDay: TimeOfDay } {
   const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const timeOfDay: TimeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
   const suffix = userName ? `, ${userName}` : "";
 
   if (greetings?.[timeOfDay]) {
@@ -185,11 +186,12 @@ function getGreeting(
     return {
       greeting: `${entry.text}${suffix}`,
       translation: entry.translation ? `${entry.translation}${suffix}` : undefined,
+      timeOfDay,
     };
   }
 
   // Fallback: English only (no translation needed)
-  const english: Record<string, string> = {
+  const english: Record<TimeOfDay, string> = {
     morning: "Good morning",
     afternoon: "Good afternoon",
     evening: "Good evening",
@@ -198,5 +200,6 @@ function getGreeting(
   return {
     greeting: `${english[timeOfDay]}${suffix}`,
     translation: undefined,
+    timeOfDay,
   };
 }

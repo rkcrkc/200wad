@@ -21,6 +21,14 @@ export function SetCourseContext({
   wordsMastered,
   totalWords,
   courseProgressPercent,
+  wordsPerDay,
+  totalWordsLearned,
+  studyTimeSeconds,
+  testTimeSeconds,
+  totalTimeSeconds,
+  allCourseStudyTimeSeconds,
+  allCourseTestTimeSeconds,
+  allCourseTotalTimeSeconds,
 }: SetCourseContextProps) {
   useSetCourseContext({
     languageId,
@@ -32,6 +40,14 @@ export function SetCourseContext({
     wordsMastered,
     totalWords,
     courseProgressPercent,
+    wordsPerDay,
+    totalWordsLearned,
+    studyTimeSeconds,
+    testTimeSeconds,
+    totalTimeSeconds,
+    allCourseStudyTimeSeconds,
+    allCourseTestTimeSeconds,
+    allCourseTotalTimeSeconds,
   });
   return <>{children}</>;
 }

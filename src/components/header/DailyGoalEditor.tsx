@@ -79,7 +79,9 @@ export function DailyGoalEditor({ initialGoal, onChange }: DailyGoalEditorProps)
               )}
             >
               <span className="inline-flex items-center gap-1">
-                <XpIcon className="h-3.5 w-3.5" />
+                <XpIcon
+                  className={cn("h-3.5 w-3.5", isActive && "fill-white text-white")}
+                />
                 {preset}
               </span>
             </button>

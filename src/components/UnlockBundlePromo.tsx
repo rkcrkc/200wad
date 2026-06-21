@@ -44,41 +44,37 @@ export function UnlockBundlePromo({
     : null;
 
   return (
-    <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-6 shadow-lg">
-      {/* Background decoration */}
-      <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/10" />
-      <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-8 translate-y-8 rounded-full bg-white/10" />
-
-      <div className="relative flex items-center justify-between gap-6">
+    <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <div className="flex items-center justify-between gap-6">
         <div className="flex-1">
           {/* Bundle Label */}
           <div className="mb-2 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-300" />
-            <span className="text-sm font-medium text-amber-300">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            <span className="text-sm font-medium text-amber-700">
               Complete Bundle
             </span>
           </div>
 
           {/* Heading */}
-          <h2 className="mb-2 text-2xl text-white">
+          <h2 className="mb-2 text-2xl text-foreground">
             Unlock all {languageName} courses
           </h2>
 
           {/* Description */}
-          <p className="mb-4 text-blue-100">
+          <p className="mb-4 text-muted-foreground">
             Get access to all {formatNumber(courseCount)} courses with {formatNumber(totalWords)} words
             total.{savingsPercent ? ` Save up to ${savingsPercent}% with annual billing.` : ""}
           </p>
 
           {/* Pricing Toggle */}
           <div className="mb-4 flex items-center gap-4">
-            <div className="flex gap-1 rounded-lg bg-white/20 p-1 backdrop-blur-sm">
+            <div className="flex gap-1 rounded-lg border border-amber-200 bg-white p-1">
               <button
                 onClick={() => setPricingMode("subscription")}
                 className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-all ${
                   pricingMode === "subscription"
-                    ? "bg-white text-blue-600 shadow-md"
-                    : "text-white hover:bg-white/10"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-amber-50"
                 }`}
               >
                 Subscription
@@ -87,8 +83,8 @@ export function UnlockBundlePromo({
                 onClick={() => setPricingMode("lifetime")}
                 className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-all ${
                   pricingMode === "lifetime"
-                    ? "bg-white text-blue-600 shadow-md"
-                    : "text-white hover:bg-white/10"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-amber-50"
                 }`}
               >
                 Lifetime
@@ -101,23 +97,23 @@ export function UnlockBundlePromo({
         <div className="flex-shrink-0 text-center">
           {pricingMode === "subscription" ? (
             <>
-              <div className="mb-1 text-sm text-blue-100">from</div>
-              <div className="mb-1 text-5xl font-bold text-white">
+              <div className="mb-1 text-sm text-muted-foreground">from</div>
+              <div className="mb-1 text-5xl font-bold text-foreground">
                 {lowestMonthly ? formatPrice(lowestMonthly) : "$10.75"}
               </div>
-              <div className="mb-4 text-sm text-blue-100">/month</div>
+              <div className="mb-4 text-sm text-muted-foreground">/month</div>
             </>
           ) : (
             <>
-              <div className="mb-1 text-5xl font-bold text-white">
+              <div className="mb-1 text-5xl font-bold text-foreground">
                 {lifetimePlan ? formatPrice(lifetimePlan.amount_cents) : "$120"}
               </div>
-              <div className="mb-4 text-sm text-blue-100">one-time payment</div>
+              <div className="mb-4 text-sm text-muted-foreground">one-time payment</div>
             </>
           )}
           <Link
             href="/account/subscriptions"
-            className="flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 font-bold text-blue-600 shadow-lg transition-all hover:bg-blue-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-white shadow-sm transition-all hover:bg-primary/90"
           >
             View Bundle Plans
             <ChevronRight className="h-5 w-5" />

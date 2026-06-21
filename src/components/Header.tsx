@@ -75,6 +75,15 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
         totalWords: courseContext.totalWords ?? baseStats.totalWords,
         courseProgressPercent:
           courseContext.courseProgressPercent ?? baseStats.courseProgressPercent,
+        wordsPerDay: courseContext.wordsPerDay ?? baseStats.wordsPerDay,
+        totalWordsLearned:
+          courseContext.totalWordsLearned ?? baseStats.totalWordsLearned,
+        studyTimeSeconds:
+          courseContext.studyTimeSeconds ?? baseStats.studyTimeSeconds,
+        testTimeSeconds:
+          courseContext.testTimeSeconds ?? baseStats.testTimeSeconds,
+        totalTimeSeconds:
+          courseContext.totalTimeSeconds ?? baseStats.totalTimeSeconds,
       }
     : baseStats;
 
@@ -259,21 +268,55 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 </Popover>
               </Link>
 
-              {/* Total Time Indicator */}
-              {(effectiveStats.totalTimeSeconds ?? 0) > 0 && (
-                <Popover
+              {/* Total Time Indicator. Always shown inside a course (the whole
+                  block is gated by hasContext) so it stays consistent with the
+                  progress + words/day stats, which render even at zero. A fresh
+                  course reads 0s rather than the stat vanishing. */}
+              <Popover
                   className="flex flex-col items-center cursor-default"
-                  content={
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_time_breakdown")}</span>
-                      <span className="text-foreground text-[13px] leading-[1.4]">
-                        {t("pop_study_time")} <span className="font-semibold">{formatDuration(effectiveStats.studyTimeSeconds ?? 0)}</span>
-                      </span>
-                      <span className="text-foreground text-[13px] leading-[1.4]">
-                        {t("pop_test_time")} <span className="font-semibold">{formatDuration(effectiveStats.testTimeSeconds ?? 0)}</span>
-                      </span>
-                    </div>
-                  }
+                  content={(() => {
+                    // Headline figure is course-specific; the popover compares it
+                    // against the all-course totals. All-course values come from
+                    // CourseContext (set by the course layout); fall back to the
+                    // course/base figures on pages that don't populate them.
+                    const courseStudy = effectiveStats.studyTimeSeconds ?? 0;
+                    const courseTest = effectiveStats.testTimeSeconds ?? 0;
+                    const courseTotal = effectiveStats.totalTimeSeconds ?? 0;
+                    const allStudy = courseContext.allCourseStudyTimeSeconds ?? courseStudy;
+                    const allTest = courseContext.allCourseTestTimeSeconds ?? courseTest;
+                    const allTotal = courseContext.allCourseTotalTimeSeconds ?? courseTotal;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_time_breakdown")}</span>
+                        <table className="border-separate border-spacing-x-3 border-spacing-y-0.5 text-[13px] leading-[1.4]">
+                          <thead>
+                            <tr className="text-muted-foreground text-left font-medium">
+                              <th className="font-medium"> </th>
+                              <th className="font-medium whitespace-nowrap">This course</th>
+                              <th className="font-medium whitespace-nowrap">All courses</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-foreground">
+                            <tr>
+                              <td className="whitespace-nowrap">Study</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseStudy)}</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(allStudy)}</td>
+                            </tr>
+                            <tr>
+                              <td className="whitespace-nowrap">Test</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseTest)}</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(allTest)}</td>
+                            </tr>
+                            <tr>
+                              <td className="whitespace-nowrap">Total</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseTotal)}</td>
+                              <td className="whitespace-nowrap font-semibold">{formatDuration(allTotal)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
                 >
                   <span className="text-foreground text-[15px] leading-[1.2] font-semibold tracking-[-0.17px]">
                     {formatDuration(effectiveStats.totalTimeSeconds ?? 0)}
@@ -282,7 +325,6 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     learning time
                   </span>
                 </Popover>
-              )}
             </div>
           )}
 

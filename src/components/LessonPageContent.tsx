@@ -250,7 +250,7 @@ export function LessonPageContent({
             >
               <span className="text-xs text-muted-foreground">XP earned</span>
               <div className="flex items-center gap-2">
-                <XpBadge value={xpEarned} variant="earned" size="md" />
+                <XpBadge value={xpEarned} variant="default" size="md" />
               </div>
             </Popover>
           </div>

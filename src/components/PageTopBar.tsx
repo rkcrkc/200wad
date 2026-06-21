@@ -5,10 +5,19 @@ import { ChevronLeft, ChevronsLeftRight, ChevronsRightLeft } from "lucide-react"
 import { Tooltip } from "@/components/ui/tooltip";
 import { useText } from "@/context/TextContext";
 
+export type TimeOfDay = "morning" | "afternoon" | "evening";
+
+const TIME_OF_DAY_EMOJI: Record<TimeOfDay, string> = {
+  morning: "👋",
+  afternoon: "☀️",
+  evening: "🌙",
+};
+
 interface PageTopBarProps {
   backLink?: { href: string; label: string };
   greeting?: string;
   greetingTranslation?: string;
+  greetingTimeOfDay?: TimeOfDay;
   width: "md" | "lg";
   onToggleWidth: () => void;
   mounted: boolean;
@@ -18,11 +27,13 @@ export function PageTopBar({
   backLink,
   greeting,
   greetingTranslation,
+  greetingTimeOfDay = "afternoon",
   width,
   onToggleWidth,
   mounted,
 }: PageTopBarProps) {
   const { t } = useText();
+  const greetingEmoji = TIME_OF_DAY_EMOJI[greetingTimeOfDay];
   return (
     <div className="mb-6 flex items-center justify-between">
       {/* Left: greeting or back link */}
@@ -30,13 +41,13 @@ export function PageTopBar({
         greetingTranslation ? (
           <Tooltip label={greetingTranslation} position="below">
             <p className="cursor-default text-[18px] font-medium text-muted-foreground">
-              <span className="mr-2">☀️</span>
+              <span className="mr-2">{greetingEmoji}</span>
               {greeting}
             </p>
           </Tooltip>
         ) : (
           <p className="text-[18px] font-medium text-muted-foreground">
-            <span className="mr-2">☀️</span>
+            <span className="mr-2">{greetingEmoji}</span>
             {greeting}
           </p>
         )

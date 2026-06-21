@@ -416,7 +416,7 @@ async function main() {
         title: sectionTitle,
         legacy_lesson_id: lessonLegacyId,
         number: newNumber,
-        sort_order: lessonLegacyId, // Use legacy ID as sort order
+        sort_order: newNumber, // Curriculum order (matches All Lessons), not legacy ID
       });
     }
   }

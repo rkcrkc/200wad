@@ -8,7 +8,6 @@ import { UnlockBundlePromo } from "@/components/UnlockBundlePromo";
 import { PageContainer } from "@/components/PageContainer";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
-import { setCurrentLanguage } from "@/lib/mutations/settings";
 import { hasActiveSubscription, getActivePricingPlans } from "@/lib/queries/subscriptions";
 import { getDefaultFreeLessons } from "@/lib/utils/accessControl";
 import { createClient } from "@/lib/supabase/server";
@@ -19,17 +18,10 @@ interface CoursesPageProps {
 
 export default async function CoursesPage({ params }: CoursesPageProps) {
   const { languageId } = await params;
-  const { language, courses, isGuest } = await getCourses(languageId);
+  const { language, courses, isGuest, currentCourseId } = await getCourses(languageId);
 
   if (!language) {
     notFound();
-  }
-
-  // Update the user's current language preference when they navigate here
-  // This is a "fire and forget" operation - we don't await or handle errors
-  // skipRevalidation is true since we're calling this during render
-  if (!isGuest) {
-    setCurrentLanguage(languageId, { skipRevalidation: true });
   }
 
   // Fetch pricing and access info in parallel
@@ -59,7 +51,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
     <SetCourseContext languageId={languageId} languageFlag={languageFlag} languageName={language.name}>
     <PageContainer size="sm">
       {/* Back Button */}
-      <BackButton href="/dashboard" label="All Languages" />
+      <BackButton href="/dashboard?pick=true" label="All Languages" />
 
       {/* Header with Language Flag */}
       <div className="mb-8 flex items-center gap-4">
@@ -91,9 +83,13 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
           description="Courses will appear here once added."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-6 pb-8 lg:grid-cols-2">
+        <div className="flex flex-col gap-6 pb-8">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard
+              key={course.id}
+              course={course}
+              isActive={course.id === currentCourseId}
+            />
           ))}
         </div>
       )}

@@ -237,7 +237,7 @@ New responsibilities after the existing activity-row update:
 
 1. **Honour streak freezes on gap detection.** If gap detected and `users.streak_freezes_available > 0`: decrement counter, write `streak_frozen=true` row for the missed day, preserve `current_day_streak`. Otherwise reset per existing logic. Fire `streak.frozen_today` template.
 2. **Award XP.** `UPDATE users SET lifetime_xp = lifetime_xp + p_test_points_earned WHERE id = p_user_id`. Raw, no multipliers.
-3. **Daily-goal completion.** If today's cumulative `test_points_earned` (summed across languages) >= `users.daily_xp_goal` AND today's `daily_goal_met=false`, set true, call `award_coins(..., 20, 'earn_daily_goal', ...)`, fire `goal.daily_complete`.
+3. **Daily-goal completion.** If today's cumulative `test_points_earned` (summed across languages) >= `users.daily_xp_goal` AND today's `daily_goal_met=false`, set true and fire `goal.daily_complete`. **Coin reward disabled** (migration `20260621185751_disable_daily_goal_coins.sql`): the `award_coins(..., 20, 'daily_goal', ...)` grant was removed and the `coins` key dropped from the notification, so the goal now completes coin-free as a pure self-motivation tool. The coin model is otherwise intact — historical `daily_goal` transactions, the `daily_goal` coin type, and its `Target` icon in Shop > History all remain — so re-enabling is a one-block migration (re-add the `award_coins` call + restore the `coins` template key + wording). See "Disabled rewards" below.
 4. **Day-streak milestone.** If new `current_day_streak` matches a milestone, call `award_coins`, `unlock_achievement` for matching slug, fire `streak.day_streak_milestone` with `{{count}}`.
 5. **PB comparison.** Today's total `test_points_earned` vs `pb_day_test_points`; same for week. Update + fire `personal_best.day` / `.week` if broken.
 6. **Mystery achievement evaluation (low-cost only).** night_owl / early_bird (current-time-based), comeback_kid (gap-based). Higher-cost evaluations live in `complete_test_session`.
@@ -335,6 +335,19 @@ Single migration appends:
 Dependencies: 5/6 depend on 3/4. 7 depends on 5/6. 8 depends on 4. 10-13 are idempotent backfills, run last.
 
 All migrations can ship dark before any UI work — none change runtime behaviour until the corresponding code change calls the new RPCs.
+
+## Disabled rewards (post-v1a changes)
+
+Reward grants that have been turned off after launch, kept here so the model stays documented and re-enabling is a known one-block change.
+
+### Daily-goal coins — disabled
+
+- **Migration:** `20260621185751_disable_daily_goal_coins.sql`.
+- **What changed:** `update_daily_activity` step 5 (daily-goal completion) no longer calls `award_coins(..., 20, 'daily_goal', ...)`. The goal still completes (`daily_goal_met = true`) and still fires `goal.daily_complete`, but the notification no longer carries the `coins` key, and the template copy was reverted to coin-free wording (`message`: "You hit your daily XP goal ({xp}/{goal}). Nice work!", `toast_message`: "{xp}/{goal} XP — daily goal complete!").
+- **Why a migration, not an app gate:** the grant is entirely server-side inside the RPC; Postgres requires a full `CREATE OR REPLACE` to change a function (the established pattern here). The full body was copied verbatim from `20260615133549_v1b_coin_amounts_in_notifications.sql` with only step 5 altered.
+- **What's intentionally kept:** all coin tables, `award_coins`, the `daily_goal` coin type, and its `Target` icon mapping in `src/lib/coins.ts` (so historical `daily_goal` rows still render +20 / green in Shop > History). Existing `coin_transactions` of type `daily_goal` are untouched — past earnings remain in balances and history.
+- **Going forward:** completing the goal creates no `coin_transactions` row and no `coin_balance` change; it fires the coin-free completion notification only. Idempotency unchanged (gated by `daily_goal_met`, fires once/day).
+- **Re-enable path:** a new migration that re-adds the `award_coins(..., 20, 'daily_goal', ...)` block to step 5 and restores the `coins` key + coin wording on the `goal.daily_complete` template.
 
 ## Backfill plan
 

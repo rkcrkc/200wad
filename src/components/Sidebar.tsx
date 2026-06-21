@@ -30,14 +30,14 @@ const getNavItems = (courseId?: string) => [
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
+  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
 ];
 
-const getSecondaryNavItems = (courseId?: string) => [
+const getSecondaryNavItems = () => [
   { path: "/community", icon: Podium, label: "Leaderboard" },
   { path: "/trophies", icon: Trophy, label: "Trophies" },
   { path: "/streak", icon: Flame, label: "Streaks" },
   { path: "/shop", icon: ShoppingBag, label: "Shop" },
-  { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
 ];
 
 const bottomNavItems = [
@@ -149,8 +149,11 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
   const { hasLanguageAccess, hasAllLanguagesAccess, accessEndDate } = useSubscription();
   const { stats: headerStats } = useHeaderStats();
 
-  // Prefer prop (from layout) over context (from page)
-  const dueTestsCount = propDueTestsCount ?? contextDueTestsCount;
+  // Prefer the course-scoped context value (set by the course layout against the
+  // URL courseId) over the streamed prop, which is computed against the persisted
+  // current_course_id and can be stale on first visit to a course. Fall back to
+  // the prop on non-course pages where context isn't populated.
+  const dueTestsCount = contextDueTestsCount ?? propDueTestsCount;
 
   // Leaderboard rank badge — formatted as "#24". `undefined` (stats not yet
   // streamed) and null/0 (no rank) both hide the badge.
@@ -236,7 +239,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
           />
         ))}
         <div className="my-2 h-px bg-gray-100" role="separator" />
-        {getSecondaryNavItems(courseId).map((item) => (
+        {getSecondaryNavItems().map((item) => (
           <SidebarNavItem
             key={item.label}
             href={item.path}

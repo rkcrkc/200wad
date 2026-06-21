@@ -39,8 +39,8 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
     >
       {/* Currently Selected Badge */}
       {isActive && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+        <div className="absolute -top-3 left-1/2 z-10 -translate-x-1/2">
+          <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-blue-50 px-3 py-1 text-xs font-medium text-primary shadow-sm">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
             Currently Selected
           </div>
@@ -103,7 +103,7 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
 
       {/* Action Button */}
       <div className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm text-white transition-all hover:bg-primary/90">
-        <span>Select course</span>
+        <span>{isActive ? "Continue" : "Select course"}</span>
         <ChevronRight className="h-4 w-4 flex-shrink-0" />
       </div>
     </Link>

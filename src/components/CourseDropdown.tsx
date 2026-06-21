@@ -2,22 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Globe } from "lucide-react";
-import { getCoursesForDropdown, type DropdownCourse } from "@/lib/actions/courses";
+import { Check, Globe } from "lucide-react";
+import {
+  getGroupedCoursesForDropdown,
+  type DropdownLanguageGroup,
+} from "@/lib/actions/courses";
 import { setCurrentCourse } from "@/lib/mutations/settings";
+import { getFlagFromCode } from "@/lib/utils/flags";
 import { formatPercent } from "@/lib/utils/helpers";
-
-const levelStyles = {
-  beginner: "bg-green-100 text-green-700",
-  intermediate: "bg-blue-100 text-blue-700",
-  advanced: "bg-purple-100 text-purple-700",
-};
-
-const levelLabels: Record<string, string> = {
-  beginner: "Beginner",
-  intermediate: "Intermediate",
-  advanced: "Advanced",
-};
 
 interface CourseDropdownProps {
   languageFlag: string;
@@ -28,6 +20,9 @@ interface CourseDropdownProps {
   collapsed?: boolean;
 }
 
+/** Gap kept between the dropdown's bottom edge and the viewport bottom. */
+const VIEWPORT_BOTTOM_GAP = 16;
+
 export function CourseDropdown({
   languageFlag,
   languageId,
@@ -37,20 +32,40 @@ export function CourseDropdown({
 }: CourseDropdownProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [courses, setCourses] = useState<DropdownCourse[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [groups, setGroups] = useState<DropdownLanguageGroup[] | null>(null);
+  const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch fresh courses every time dropdown opens
+  // Spinner only on the first-ever open; later opens refetch silently behind the
+  // existing list so switching courses doesn't flash a loader.
+  const loading = groups === null;
+
+  // Fetch fresh courses every time dropdown opens. languageId is unused for the
+  // query (we show every enrolled language) but kept in deps so reopening after
+  // a course switch refetches.
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    getCoursesForDropdown(languageId).then((result) => {
-      setCourses(result.courses);
-      setLoading(false);
+    getGroupedCoursesForDropdown().then((result) => {
+      setGroups(result.groups);
     });
   }, [open, languageId]);
+
+  // Bound the panel so its bottom sits just above the viewport bottom; the inner
+  // list then scrolls internally when the content is taller than that.
+  useEffect(() => {
+    if (!open) return;
+    function recompute() {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const top = panel.getBoundingClientRect().top;
+      setMaxHeight(window.innerHeight - top - VIEWPORT_BOTTOM_GAP);
+    }
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, [open, groups]);
 
   const handleMouseEnter = useCallback(() => {
     if (closeTimer.current) {
@@ -94,7 +109,7 @@ export function CourseDropdown({
     [courseId, router]
   );
 
-  const handleSwitchLanguage = useCallback(() => {
+  const handleManageLanguages = useCallback(() => {
     setOpen(false);
     router.push("/dashboard?pick=true");
   }, [router]);
@@ -135,52 +150,64 @@ export function CourseDropdown({
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[260px] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5">
-          {/* Label */}
-          <div className="px-4 pt-3 pb-1">
-            <span className="text-muted-foreground text-[14px] font-medium">
-              Switch course
-            </span>
-          </div>
-
-          {/* Courses list */}
-          <div className="max-h-[320px] overflow-y-auto pb-1">
+        <div
+          ref={panelRef}
+          className="absolute left-0 top-full z-50 mt-1 flex min-w-[260px] flex-col overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5"
+          style={maxHeight ? { maxHeight } : undefined}
+        >
+          {/* Scrollable language groups */}
+          <div className="min-h-0 flex-1 overflow-y-auto py-1">
             {loading ? (
               <div className="flex items-center justify-center py-6">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-primary" />
               </div>
-            ) : courses && courses.length > 0 ? (
-              courses.map((course) => {
-                const level = (course.level || "beginner") as keyof typeof levelStyles;
-                const isCurrent = course.id === courseId;
-                return (
-                  <button
-                    key={course.id}
-                    onClick={() => handleSelectCourse(course.id)}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover ${isCurrent ? "bg-bone" : ""}`}
-                  >
-                    {/* Course info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="text-foreground truncate text-[14px] leading-[1.35] font-medium">
-                        {course.name}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-2">
-                        <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium leading-[1.35] ${levelStyles[level]}`}
-                        >
-                          {levelLabels[course.level || "beginner"] || course.level}
-                          {course.cefr_range && ` · ${course.cefr_range}`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress */}
-                    <span className="text-muted-foreground shrink-0 text-[12px] font-medium">
-                      {formatPercent(course.progressPercent)}
+            ) : groups && groups.length > 0 ? (
+              groups.map((group) => (
+                <div
+                  key={group.languageId}
+                  className="border-t border-gray-100 pb-1 pt-1 first:border-t-0 first:pt-0"
+                >
+                  {/* Language header */}
+                  <div className="flex items-center gap-2 px-4 pt-2 pb-1">
+                    <span className="text-[15px] leading-none">
+                      {getFlagFromCode(group.languageCode)}
                     </span>
-                  </button>
-                );
-              })
+                    <span className="text-muted-foreground text-[12px] font-semibold uppercase tracking-[0.04em]">
+                      {group.languageName}
+                    </span>
+                  </div>
+
+                  {/* Courses for this language */}
+                  {group.courses.map((course) => {
+                    const isCurrent = course.id === courseId;
+                    return (
+                      <button
+                        key={course.id}
+                        onClick={() => handleSelectCourse(course.id)}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bone-hover"
+                      >
+                        {/* Leading slot: only the active course gets a blue check;
+                            other rows align their name to the left. */}
+                        {isCurrent && (
+                          <span className="bg-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
+                            <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                          </span>
+                        )}
+
+                        {/* Course name */}
+                        <span className="text-foreground min-w-0 flex-1 truncate text-[14px] leading-[1.35] font-medium">
+                          {course.name}
+                        </span>
+
+                        {/* Progress */}
+                        <span className="text-muted-foreground shrink-0 text-[12px] font-medium">
+                          {formatPercent(course.progressPercent)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
             ) : (
               <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                 No courses available
@@ -188,15 +215,15 @@ export function CourseDropdown({
             )}
           </div>
 
-          {/* Footer: Switch language */}
-          <div className="border-t border-gray-100">
+          {/* Footer: Manage languages */}
+          <div className="shrink-0 border-t border-gray-100">
             <button
-              onClick={handleSwitchLanguage}
+              onClick={handleManageLanguages}
               className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bone-hover"
             >
               <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.67} />
               <span className="text-foreground text-[14px] font-medium">
-                Switch language
+                Manage languages
               </span>
             </button>
           </div>

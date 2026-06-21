@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { getCourseById } from "@/lib/queries/courses";
-import { getCourseProgress, getDueTestsCount } from "@/lib/queries";
+import { getCourseProgress, getDueTestsCount, getUserLearningStats } from "@/lib/queries";
 import { SetCourseContext } from "@/components/SetCourseContext";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { createClient } from "@/lib/supabase/server";
@@ -39,10 +39,19 @@ export default async function CourseLayout({ children, params }: CourseLayoutPro
   // persisted-id lookup lets us skip a redundant write below when the user is
   // already on this course. Stats calls already short-circuit for guests
   // internally.
-  const [{ course, language }, courseProgress, dueTestsCount, persistedCourseRow] = await Promise.all([
+  const [
+    { course, language },
+    courseProgress,
+    dueTestsCount,
+    courseLearningStats,
+    allCourseLearningStats,
+    persistedCourseRow,
+  ] = await Promise.all([
     getCourseById(courseId),
     isGuest ? Promise.resolve(null) : getCourseProgress(courseId),
     isGuest ? Promise.resolve(0) : getDueTestsCount(courseId),
+    isGuest ? Promise.resolve(null) : getUserLearningStats(courseId),
+    isGuest ? Promise.resolve(null) : getUserLearningStats(),
     isGuest || !user
       ? Promise.resolve(null)
       : supabase
@@ -66,17 +75,42 @@ export default async function CourseLayout({ children, params }: CourseLayoutPro
   // Use the admin client + captured userId here: `cookies()` (and therefore
   // the cookie-backed server client) cannot be called inside `after()` in
   // Next.js 16.
-  if (!isGuest && user && persistedCourseRow?.current_course_id !== courseId) {
+  const courseChanged = persistedCourseRow?.current_course_id !== courseId;
+  if (!isGuest && user && (courseChanged || language?.id)) {
     const userId = user.id;
+    const languageId = language?.id;
     after(async () => {
       try {
         const admin = createAdminClient();
-        const { error } = await admin
-          .from("users")
-          .update({ current_course_id: courseId })
-          .eq("id", userId);
-        if (error) {
-          console.error("Failed to persist current course:", error.message);
+
+        if (courseChanged) {
+          const { error } = await admin
+            .from("users")
+            .update({ current_course_id: courseId })
+            .eq("id", userId);
+          if (error) {
+            console.error("Failed to persist current course:", error.message);
+          }
+        }
+
+        // Enroll the language into user_languages if it isn't already, so that
+        // "My Languages" and the Profile "Learning Languages" set stay in sync
+        // whenever a user starts a course in a language they reached directly.
+        if (languageId) {
+          const { data: existingLang } = await admin
+            .from("user_languages")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("language_id", languageId)
+            .maybeSingle();
+          if (!existingLang) {
+            const { error: enrollError } = await admin
+              .from("user_languages")
+              .insert({ user_id: userId, language_id: languageId, is_current: false });
+            if (enrollError) {
+              console.error("Failed to enroll language:", enrollError.message);
+            }
+          }
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -98,6 +132,14 @@ export default async function CourseLayout({ children, params }: CourseLayoutPro
       wordsMastered={courseProgress?.wordsMastered}
       totalWords={courseProgress?.totalWords}
       courseProgressPercent={courseProgress?.progressPercent}
+      wordsPerDay={courseLearningStats?.wordsPerDay}
+      totalWordsLearned={courseLearningStats?.totalWordsLearned}
+      studyTimeSeconds={courseLearningStats?.studyTimeSeconds}
+      testTimeSeconds={courseLearningStats?.testTimeSeconds}
+      totalTimeSeconds={courseLearningStats?.totalTimeSeconds}
+      allCourseStudyTimeSeconds={allCourseLearningStats?.studyTimeSeconds}
+      allCourseTestTimeSeconds={allCourseLearningStats?.testTimeSeconds}
+      allCourseTotalTimeSeconds={allCourseLearningStats?.totalTimeSeconds}
     >
       {children}
     </SetCourseContext>
