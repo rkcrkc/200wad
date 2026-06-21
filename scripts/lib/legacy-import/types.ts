@@ -139,6 +139,34 @@ export interface CourseDef {
   createName?: string;
 }
 
+/**
+ * Media-import configuration (FRENCH_MEDIA_IMPORT_PLAN). Drives
+ * `scripts/import-legacy-media.ts`, which uploads source images/audio to
+ * Supabase Storage and rewrites the word media columns to public URLs. Optional
+ * — languages whose media is already hosted leave it undefined.
+ */
+export interface MediaConfig {
+  /**
+   * Storage slug folder isolating this language inside the shared buckets, e.g.
+   * `word-images/<slug>/…` and `word-audio/<slug>/…`. Keeps languages from
+   * colliding (Italian sits at the bucket root as the legacy exception).
+   */
+  slug: string;
+  /** Mounted disc root holding the `<prefix>Pictures` / `<prefix>Sound*` folders. */
+  mountRoot: string;
+  /**
+   * Legacy folder prefix where this language's images live (French images are
+   * all under `1Pictures`, shared by vocab and sentences).
+   */
+  imagePrefix: string;
+  /**
+   * NL course `legacy_ref` → legacy folder prefix (ICC) for that course's audio
+   * folders. French: `{ 1: "1", 6: "21" }` (Vocab #1 → `1Sound*`, Sentences →
+   * `21Sound*`).
+   */
+  audioPrefixByCourseRef: Record<number, string>;
+}
+
 export interface LanguageConfig {
   /** Matches `languages.name` in NL (case-insensitive). */
   name: string;
@@ -167,4 +195,6 @@ export interface LanguageConfig {
   resolveHeadword?(ctx: FieldContext): string;
   /** Raw memory-trigger text. Default: `row.memory_trigger_text || row.Trigger`. */
   resolveTrigger?(ctx: FieldContext): string | null;
+  /** Media-import settings. Undefined → language has no legacy media pass. */
+  media?: MediaConfig;
 }

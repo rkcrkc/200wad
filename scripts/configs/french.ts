@@ -100,4 +100,13 @@ export const frenchConfig: LanguageConfig = {
     }
     return null;
   },
+
+  // Media pass (FRENCH_MEDIA_IMPORT_PLAN). Images all live under 1Pictures;
+  // audio is split by course (Vocab #1 → 1Sound*, French Sentences → 21Sound*).
+  media: {
+    slug: "french",
+    mountRoot: RTF_ROOT,
+    imagePrefix: "1",
+    audioPrefixByCourseRef: { 1: "1", 6: "21" },
+  },
 };
