@@ -18,9 +18,36 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { parse } from "csv-parse/sync";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  readCsv,
+  sanitizeText,
+  cleanFilename,
+  parseTags,
+  safeParseInt,
+} from "./lib/legacy-import/text";
+import type {
+  Product,
+  Section,
+  GenderCodeMapping,
+  GeneralRow,
+  WordInsert,
+  RelationshipStaging,
+  FieldContext,
+  LanguageConfig,
+} from "./lib/legacy-import/types";
+import { buildGenderResolver } from "./lib/legacy-import/gender-codes";
+import { buildCourseMapping } from "./lib/legacy-import/course-mapping";
+import { createRtfResolver } from "./lib/legacy-import/rtf";
+import {
+  probeEnglish,
+  resolveEnglish,
+  resolveHeadword,
+  resolveTrigger,
+  resolveLemma,
+} from "./lib/legacy-import/field-source";
+import { getLanguageConfig } from "./configs";
 
 // Load env vars from .env.local if running locally
 const envPath = path.join(process.cwd(), ".env.local");
@@ -53,6 +80,9 @@ const dataDirArg = getArg("data-dir");
 const skipWords = hasFlag("skip-words");
 const skipRelationships = hasFlag("skip-relationships");
 const dryRun = hasFlag("dry-run");
+// Optional: in dry-run, write the fully-resolved word inserts to a JSON file for
+// review (the §13 verification gate) and byte-level regression diffing.
+const dumpWordsPath = getArg("dump-words");
 
 if (!languageNameArg || !dataDirArg) {
   console.error("Usage: npx tsx scripts/import-legacy-database.ts --language <name> --data-dir <path>");
@@ -87,251 +117,23 @@ if (!supabaseUrl || !serviceRoleKey) {
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 // ============================================================================
-// Types
+// Language config
 // ============================================================================
 
-interface Product {
-  Ref: string;
-  Product: string;
-}
-
-interface Section {
-  Course: string;
-  Lesson: string;
-  Section: string;
-  Pointer: string;
-}
-
-interface GenderCodeMapping {
-  Code: string;
-  language: string;
-  category: string;
-  part_of_speech: string;
-  gender: string;
-  grammatical_number: string;
-  transitivity: string;
-  is_irregular: string;
-  phrase_type: string;
-  tags: string;
-}
-
-interface GeneralRow {
-  // New NL columns (pre-mapped in CSV)
-  english: string;
-  headword: string;
-  notes: string;
-  memory_trigger_text: string;
-  memory_trigger_image: string;
-  audio_url_english: string;
-  audio_url_foreign: string;
-  audio_url_trigger: string;
-  lemma: string;
-  lesson_id: string;
-  old_gender: string;
-  // Legacy DL columns
-  Course: string;
-  Lesson: string;
-  LessonSortOrder: string;
-  RefN: string;
-  Gender: string;
-  FgnDictionary: string;
-  FileFgnPic: string;
-  FilePSuffix: string;
-  FileEngSouRTF: string;
-  FileFgnSouRTF: string;
-  FileFgnTrigger: string;
-  FlagFalseFriends: string;
-  CompoundRef1N: string;
-  CompoundRef2N: string;
-  LinkN: string;
-  MiniLinkN: string;
-  English: string;
-  ForeignRTF: string;
-  Notes: string;
-  Trigger: string;
-  Queries: string;
-}
-
-interface WordInsert {
-  language_id: string;
-  english: string;
-  headword: string;
-  lemma: string;
-  notes: string | null;
-  memory_trigger_text: string | null;
-  memory_trigger_image_url: string | null;
-  audio_url_english: string | null;
-  audio_url_foreign: string | null;
-  audio_url_trigger: string | null;
-  part_of_speech: string | null;
-  gender: string | null;
-  grammatical_number: string | null;
-  transitivity: string | null;
-  is_irregular: boolean | null;
-  category: string;
-  phrase_type: string | null;
-  tags: string[] | null;
-  is_false_friend: boolean;
-  legacy_refn: number;
-  legacy_gender_code: string | null;
-  legacy_image_suffix: string | null;
-}
-
-interface RelationshipStaging {
-  word_legacy_refn: number;
-  related_legacy_refn: number;
-  relationship_type: string;
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function readCsv<T>(filePath: string): T[] {
-  const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
-  if (!fs.existsSync(absolutePath)) {
-    throw new Error(`File not found: ${absolutePath}`);
+function requireConfig(name: string): LanguageConfig {
+  const c = getLanguageConfig(name);
+  if (!c) {
+    console.error(`No import config registered for language '${name}'.`);
+    console.error("Add one under scripts/configs/ and register it in scripts/configs/index.ts.");
+    process.exit(1);
   }
-  const content = fs.readFileSync(absolutePath, "utf-8");
-  return parse(content, {
-    columns: true,
-    skip_empty_lines: true,
-    relax_column_count: true,
-    relax_quotes: true,
-  }) as T[];
+  return c;
 }
 
-/**
- * Clean lemma value by removing grammar markers like ",m.", ",f.", etc.
- * Examples:
- *   "segno,m." -> "segno"
- *   "casa,f." -> "casa"
- *   "bello,adj." -> "bello"
- */
-function cleanLemma(rawLemma: string): string {
-  if (!rawLemma) return "";
+const config = requireConfig(languageName);
 
-  // Remove common grammar suffixes
-  let cleaned = rawLemma
-    .replace(/,\s*(m\.|f\.|n\.|adj\.|adv\.|v\.|prep\.|conj\.|art\.|prn\.|num\.|exc\.|phr\.).*$/i, "")
-    .replace(/\s*\(m\.\)|\s*\(f\.\)|\s*\(n\.\)|\s*\(pl\.\)/gi, "")
-    .trim();
-
-  // If still has trailing comma and abbreviation, try more aggressive cleanup
-  if (cleaned.includes(",")) {
-    const parts = cleaned.split(",");
-    if (parts.length > 1 && parts[parts.length - 1].trim().length <= 5) {
-      cleaned = parts.slice(0, -1).join(",").trim();
-    }
-  }
-
-  return cleaned;
-}
-
-/**
- * Parse tags string into array
- * "tag1, tag2" -> ["tag1", "tag2"]
- */
-function parseTags(tagsStr: string): string[] {
-  if (!tagsStr) return [];
-  return tagsStr.split(",").map(t => t.trim()).filter(t => t.length > 0);
-}
-
-/**
- * Safely parse integer, return null if invalid
- */
-function safeParseInt(value: string): number | null {
-  if (!value || value.trim() === "") return null;
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? null : parsed;
-}
-
-/**
- * Map Windows-1252 typographic characters that share code points with C1
- * control characters (0x80–0x9F) to their proper Unicode equivalents.
- * Anything in this range that isn't a known Win-1252 char is dropped because
- * it's a non-printing control that browsers render as a missing-glyph box.
- */
-const WIN1252_C1_TO_UNICODE: Record<string, string> = {
-  "\u0080": "\u20ac", // €
-  "\u0082": "\u201a", // ‚
-  "\u0083": "\u0192", // ƒ
-  "\u0084": "\u201e", // „
-  "\u0085": "\u2026", // …
-  "\u0086": "\u2020", // †
-  "\u0087": "\u2021", // ‡
-  "\u0088": "\u02c6", // ˆ
-  "\u0089": "\u2030", // ‰
-  "\u008a": "\u0160", // Š
-  "\u008b": "\u2039", // ‹
-  "\u008c": "\u0152", // Œ
-  "\u008e": "\u017d", // Ž
-  "\u0091": "\u2018", // ‘
-  "\u0092": "\u2019", // ’
-  "\u0093": "\u201c", // “
-  "\u0094": "\u201d", // ”
-  "\u0095": "\u2022", // •
-  "\u0096": "\u2013", // –
-  "\u0097": "\u2014", // —
-  "\u0098": "\u02dc", // ˜
-  "\u0099": "\u2122", // ™
-  "\u009a": "\u0161", // š
-  "\u009b": "\u203a", // ›
-  "\u009c": "\u0153", // œ
-  "\u009e": "\u017e", // ž
-  "\u009f": "\u0178", // Ÿ
-};
-
-/**
- * Strip binary control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) from text.
- * Preserves tabs (0x09), newlines (0x0A), and carriage returns (0x0D).
- * Also replaces curly/smart quotes with straight apostrophes, backticks (`)
- * with straight apostrophes (legacy data uses them as both apostrophes and
- * single quotes), diaeresis (¨ U+00A8) with straight double quotes (legacy
- * data uses ¨ as paired double quotes), normalises Italian elided articles
- * (l' x → l'x), and remaps any leaked Windows-1252 C1-range bytes
- * (e.g. 0x85 = …) to their proper Unicode points.
- */
-function sanitizeText(text: string | null): string | null {
-  if (!text) return text;
-  let cleaned = text
-    // Strip binary control characters (keep \t, \n, \r)
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-    // Remap Win-1252 typographic chars that landed in the C1 control range
-    .replace(/[\u0080-\u009F]/g, (ch) => WIN1252_C1_TO_UNICODE[ch] ?? "")
-    // Replace curly/smart quotes and backticks with straight apostrophes
-    .replace(/[\u2018\u2019`]/g, "'")
-    // Replace diaeresis (¨) used as paired double quotes with straight "
-    .replace(/\u00A8/g, '"')
-    // Normalise Italian elided articles: l' x → l'x
-    .replace(/l' /gi, (m) => m[0] + "'");
-  // Promote whole-line underlines to headings: a line whose content is
-  // entirely wrapped in <u>...</u> (with optional surrounding whitespace) was
-  // used in legacy data as a sub-heading. Convert to "# ..." so the new
-  // parser renders it as <h2>.
-  cleaned = cleaned
-    .split("\n")
-    .map((line) => {
-      const m = line.match(/^(\s*)<u>([\s\S]*?)<\/u>(\s*)$/);
-      if (!m) return line;
-      const inner = m[2].trim();
-      if (!inner) return line;
-      // If the inner text itself contains <u> tags, leave it alone.
-      if (/<\/?u>/i.test(inner)) return line;
-      return `${m[1]}# ${inner}${m[3]}`;
-    })
-    .join("\n");
-  return cleaned;
-}
-
-/**
- * Extract clean filename from legacy file reference
- */
-function cleanFilename(filename: string): string | null {
-  if (!filename || filename.trim() === "") return null;
-  // Remove any path components, keep just the filename
-  return filename.trim().replace(/^.*[\\\/]/, "");
-}
+// RTF capability is only built when the language sources fields from RTF folders.
+const rtf = config.rtfRoot ? createRtfResolver(config.rtfRoot) : null;
 
 // ============================================================================
 // Main Import Logic
@@ -372,7 +174,9 @@ async function main() {
   const productsPath = path.join(dataDir, "Products.csv");
   const sectionsPath = path.join(dataDir, "Sections.csv");
   const generalPath = path.join(dataDir, "General.csv");
-  const mappingPath = path.join(dataDir, "200w_lexical_code_mapping.csv");
+  // The lexical-code mapping is canonical/shared; a language may point at a
+  // central copy (French) instead of one sitting in its own data dir.
+  const mappingPath = config.mappingPath || path.join(dataDir, "200w_lexical_code_mapping.csv");
 
   const products = readCsv<Product>(productsPath);
   console.log(`  Products.csv: ${products.length} courses`);
@@ -383,37 +187,22 @@ async function main() {
   const genderMapping = readCsv<GenderCodeMapping>(mappingPath);
   console.log(`  200w_lexical_code_mapping.csv: ${genderMapping.length} codes`);
 
-  // Build gender code lookup map
-  const genderCodeMap = new Map<string, GenderCodeMapping>();
-  for (const mapping of genderMapping) {
-    genderCodeMap.set(mapping.Code, mapping);
-  }
+  // Gender-code resolver: language override → exact → canonical-normalised.
+  // Exact-match-second keeps Italian byte-identical (see gender-codes.ts / §6).
+  const genderResolver = buildGenderResolver(genderMapping, config.genderOverrides);
 
-  // Build valid course refs set from Products
+  // Course mapping: ProductFlag indirection (ICC ↔ Ref). For Italian icc===ref.
+  const courseMapping = buildCourseMapping(products);
+
+  // Valid Product Refs (the values stored as legacy_ref / keyed in courseRefToId).
   const validCourseRefs = new Set(products.map(p => parseInt(p.Ref, 10)));
   console.log(`  Valid course refs: ${Array.from(validCourseRefs).join(", ")}`);
+  console.log(`  Valid internal course codes: ${Array.from(courseMapping.validIccs).join(", ")}`);
 
-  // Helper function to derive correct course from lesson ID
-  // Lesson IDs encode course: 1-999 = Course 1, 21xxx = Course 21, 41xxxxx = Course 41, etc.
-  function deriveCourseFromLesson(lessonId: number): number | null {
-    if (lessonId <= 0) return null;
-    if (lessonId < 1000) return 1; // Lessons 1-999 belong to Course 1
-
-    // Try to extract course from first 2 digits
-    const str = lessonId.toString();
-    if (str.length >= 2) {
-      const prefix2 = parseInt(str.substring(0, 2), 10);
-      if (validCourseRefs.has(prefix2)) return prefix2;
-    }
-
-    // Try first digit for single-digit courses
-    if (str.length >= 1) {
-      const prefix1 = parseInt(str.substring(0, 1), 10);
-      if (validCourseRefs.has(prefix1)) return prefix1;
-    }
-
-    return null;
-  }
+  // Derive the Product Ref for a lesson id (deriveIcc → iccToRef). Replaces the
+  // old direct deriveCourseFromLesson; identical for Italian (icc===ref).
+  const deriveCourseFromLesson = (lessonId: number): number | null =>
+    courseMapping.deriveRef(lessonId);
 
   // -------------------------------------------------------------------------
   // Step 3: Create/Update courses with legacy_ref
@@ -438,11 +227,20 @@ async function main() {
     const legacyRef = parseInt(product.Ref, 10);
     const productName = product.Product.trim();
 
-    // Find matching course by name (case-insensitive partial match) or by legacy_ref
+    // Config may override which existing NL course(s) to match (keeping their
+    // name) and the name to use when creating. Defaults reproduce the original
+    // behaviour: match/ create against the Product name itself.
+    const courseDef = config.courses?.find(c => c.ref === legacyRef);
+    const matchNames = courseDef?.matchNames ?? [productName];
+    const createName = courseDef?.createName ?? productName;
+
+    // Find matching course by legacy_ref or by name (case-insensitive partial match)
     const matchingCourse = existingCourses?.find(c =>
       c.legacy_ref === legacyRef ||
-      c.name.toLowerCase().includes(productName.toLowerCase()) ||
-      productName.toLowerCase().includes(c.name.toLowerCase())
+      matchNames.some(n =>
+        c.name.toLowerCase().includes(n.toLowerCase()) ||
+        n.toLowerCase().includes(c.name.toLowerCase())
+      )
     );
 
     if (matchingCourse) {
@@ -468,7 +266,7 @@ async function main() {
         const { data: newCourse, error } = await supabase
           .from("courses")
           .insert({
-            name: productName,
+            name: createName,
             language_id: language.id,
             legacy_ref: legacyRef,
             is_published: true,
@@ -478,7 +276,7 @@ async function main() {
           .single();
 
         if (error) {
-          console.error(`  Error creating course "${productName}":`, error);
+          console.error(`  Error creating course "${createName}":`, error);
         } else {
           coursesCreated++;
           console.log(`  Created: ${newCourse.name} (legacy_ref=${legacyRef})`);
@@ -486,7 +284,7 @@ async function main() {
           existingCourses?.push({ id: newCourse.id, name: newCourse.name, legacy_ref: legacyRef });
         }
       } else {
-        console.log(`  [DRY RUN] Would create: ${productName} (legacy_ref=${legacyRef})`);
+        console.log(`  [DRY RUN] Would create: ${createName} (legacy_ref=${legacyRef})`);
         coursesCreated++;
       }
     }
@@ -717,14 +515,16 @@ async function main() {
       continue;
     }
 
-    // Skip if course not in valid courses
-    if (courseRef !== null && !validCourseRefs.has(courseRef)) {
+    // Skip if course not in valid courses. `row.Course` holds the internal
+    // course code (ICC), which is not always a Product Ref (French sentences =
+    // ICC 21 → Ref 6); check it against the ICC set. For Italian icc===ref.
+    if (courseRef !== null && !courseMapping.validIccs.has(courseRef)) {
       continue;
     }
 
-    // Get gender code mapping
+    // Resolve gender code (override → exact → canonical-normalised).
     const genderCode = row.Gender || row.old_gender || "";
-    const mapping = genderCodeMap.get(genderCode);
+    const mapping = genderResolver.resolve(genderCode);
 
     // Determine values from mapping or defaults. When the gender-code mapping
     // is missing, fall back to an english-text heuristic instead of blindly
@@ -734,7 +534,7 @@ async function main() {
     //   otherwise uppercase start or "(Capital"      → sentence
     //   otherwise multi-word lowercase               → phrase
     //   single token                                 → word
-    const englishText = (row.english || row.English || "").trim();
+    const englishText = probeEnglish(config, row);
     const fallbackCategory =
       /[.?!…]$/.test(englishText) ||
       /^[A-Z]/.test(englishText) ||
@@ -752,20 +552,18 @@ async function main() {
     const phraseType = mapping?.phrase_type || null;
     const tags = parseTags(mapping?.tags || "");
 
+    // Field-source context: language config resolves english/headword/trigger
+    // from columns, RTF folders, or derived rules (defaults = column behaviour).
+    const ctx: FieldContext = { row, category, rtf };
+
     // Clean lemma - use FgnDictionary if available, otherwise extract from headword
-    let lemma = cleanLemma(row.FgnDictionary || row.lemma || "");
-    if (!lemma && row.headword) {
-      lemma = row.headword;
-    }
-    if (!lemma && row.ForeignRTF) {
-      lemma = row.ForeignRTF;
-    }
+    const lemma = resolveLemma(row);
 
     // Get headword
-    const headword = row.headword || row.ForeignRTF || "";
+    const headword = resolveHeadword(config, ctx);
 
     // Get english
-    const english = row.english || row.English || "";
+    const english = resolveEnglish(config, ctx);
 
     // Skip if no english or headword
     if (!english.trim() || !headword.trim()) {
@@ -773,7 +571,7 @@ async function main() {
     }
 
     // Build word insert object (sanitize all text fields to strip control chars)
-    const rawTriggerText = sanitizeText(row.memory_trigger_text || row.Trigger || null);
+    const rawTriggerText = sanitizeText(resolveTrigger(config, ctx));
     const wordInsert: WordInsert = {
       language_id: language.id,
       english: sanitizeText(english.trim()) || english.trim(),
@@ -960,6 +758,11 @@ async function main() {
 
   if (dryRun) {
     console.log("\n[DRY RUN] Would insert words and create relationships");
+    if (dumpWordsPath) {
+      const sorted = [...wordsToInsert].sort((a, b) => a.legacy_refn - b.legacy_refn);
+      fs.writeFileSync(dumpWordsPath, JSON.stringify(sorted, null, 2));
+      console.log(`  [DRY RUN] Wrote ${sorted.length} resolved words to ${dumpWordsPath}`);
+    }
     console.log("\nDone!");
     process.exit(0);
   }
