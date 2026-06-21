@@ -1624,11 +1624,11 @@ export function AdminWordEditModal({
                       {imageGroupId ? (
                         imageOverrideUrl ? (
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                            Overriding group master
+                            Overriding concept pic
                           </span>
                         ) : (
                           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                            Inheriting group master
+                            Inheriting concept pic
                           </span>
                         )
                       ) : (
@@ -1658,7 +1658,7 @@ export function AdminWordEditModal({
                         disabled={isGroupBusy}
                         className="mt-2 text-sm font-medium text-primary hover:underline disabled:opacity-50"
                       >
-                        Clear override (re-inherit group master)
+                        Clear override (re-inherit concept pic)
                       </button>
                     )}
                   </div>
@@ -1674,7 +1674,7 @@ export function AdminWordEditModal({
                 />
                 <p className="text-xs text-gray-500">
                   {imageGroupId
-                    ? "Uploading a new image overrides the group master for this word only."
+                    ? "Uploading a new image overrides the concept pic for this word only."
                     : "This image is stored as the word's own picture."}
                 </p>
               </div>

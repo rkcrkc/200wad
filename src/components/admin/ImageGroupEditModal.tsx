@@ -134,7 +134,7 @@ export function ImageGroupEditModal({
           "master"
         );
         if (!res.url) {
-          setError(`Master image upload failed${res.error ? `: ${res.error}` : ""}`);
+          setError(`Concept pic upload failed${res.error ? `: ${res.error}` : ""}`);
           setIsSaving(false);
           return;
         }
@@ -206,9 +206,9 @@ export function ImageGroupEditModal({
           </span>
         </div>
 
-        {/* Master image */}
+        {/* Concept pic (group master image) */}
         <AdminFormField
-          label="Master Image"
+          label="Concept Pic"
           name="master_image_url"
           hint="Replacing this updates every inheriting member word"
         >

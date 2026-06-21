@@ -13,6 +13,7 @@ export { EditableArrayField } from "./EditableArrayField";
 export { EditableImage } from "./EditableImage";
 export { MarkdownEditor } from "./MarkdownEditor";
 export { AdminWordEditModal } from "./AdminWordEditModal";
+export { WordThumbnail } from "./WordThumbnail";
 export {
   SortableList,
   SortableRow,

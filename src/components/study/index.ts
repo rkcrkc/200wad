@@ -4,6 +4,7 @@ export { StudyWordListSidebar } from "./StudyWordListSidebar";
 export { WordTrackerDots } from "./WordTrackerDots";
 export { WordCard } from "./WordCard";
 export { MemoryTriggerCard } from "./MemoryTriggerCard";
+export { MemoryTriggerImageEditor } from "./MemoryTriggerImageEditor";
 export { FlashcardCard } from "./FlashcardCard";
 export { StudySidebar } from "./StudySidebar";
 export { AnswerInput } from "./AnswerInput";

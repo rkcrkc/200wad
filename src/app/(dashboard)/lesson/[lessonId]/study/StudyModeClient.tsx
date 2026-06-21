@@ -38,6 +38,12 @@ import {
 } from "@/lib/mutations/study";
 import { dismissTip } from "@/lib/mutations/tips";
 import { updateWord } from "@/lib/mutations/admin/words";
+import {
+  setWordImageOverride,
+  updateImageGroup,
+  getWordImageContext,
+  type WordImageContext,
+} from "@/lib/mutations/admin/imageGroups";
 import { uploadFileClient } from "@/lib/supabase/storage.client";
 import {
   initSessionProgress,
@@ -1052,38 +1058,133 @@ export function StudyModeClient({
     [currentWord.id, lesson.id]
   );
 
-  // Handle admin image upload
-  const handleImageUpload = useCallback(
-    async (field: string, file: File): Promise<boolean> => {
-      // Upload file to storage
+  // Admin image editing: group/override context for the current word, loaded
+  // when edit mode is on so the two-tile editor can offer the concept control.
+  const [imageContext, setImageContext] = useState<WordImageContext | null>(null);
+
+  useEffect(() => {
+    if (!isEditMode || !isAdmin) {
+      setImageContext(null);
+      return;
+    }
+    let cancelled = false;
+    setImageContext(null);
+    getWordImageContext(currentWord.id).then((ctx) => {
+      if (!cancelled) setImageContext(ctx);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, isAdmin, currentWord.id]);
+
+  // Set this word's own picture (override). Only the current word changes.
+  const handleWordImageUpload = useCallback(
+    async (file: File): Promise<boolean> => {
       const uploadResult = await uploadFileClient(
         "word-images",
         file,
         "words",
         currentWord.id,
-        field === "memory_trigger_image_url" ? "trigger" : "flashcard"
+        "trigger"
       );
-
       if (uploadResult.error || !uploadResult.url) {
         console.error("Failed to upload image:", uploadResult.error);
         return false;
       }
+      const url = uploadResult.url;
 
-      // Update word with new image URL
-      const result = await updateWord(
-        currentWord.id,
-        { [field]: uploadResult.url },
-        lesson.id
-      );
-
-      if (result.success) {
-        return true;
+      const result = await setWordImageOverride(currentWord.id, url);
+      if (!result.success) {
+        console.error("Failed to set word image override:", result.error);
+        return false;
       }
-      console.error("Failed to update word image:", result.error);
-      return false;
+
+      // Override wins, so the effective image is the uploaded URL.
+      setLocalWords((prev) =>
+        prev.map((w) =>
+          w.id === currentWord.id
+            ? { ...w, memory_trigger_image_url: url, image_override_url: url }
+            : w
+        )
+      );
+      setImageContext((ctx) =>
+        ctx ? { ...ctx, imageOverrideUrl: url, effectiveImageUrl: url } : ctx
+      );
+      return true;
     },
-    [currentWord.id, lesson.id]
+    [currentWord.id]
   );
+
+  // Replace the shared concept picture (group master). Fans out to every member
+  // word that has no override.
+  const handleConceptImageUpload = useCallback(
+    async (file: File): Promise<boolean> => {
+      const groupId = imageContext?.imageGroupId;
+      if (!groupId) return false;
+
+      const uploadResult = await uploadFileClient(
+        "word-images",
+        file,
+        "image-groups",
+        groupId,
+        "master"
+      );
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload concept image:", uploadResult.error);
+        return false;
+      }
+      const url = uploadResult.url;
+
+      const result = await updateImageGroup(groupId, { master_image_url: url });
+      if (!result.success) {
+        console.error("Failed to update concept image:", result.error);
+        return false;
+      }
+
+      // Mirror the DB fan-out: every loaded member without an override now shows
+      // the new master.
+      setLocalWords((prev) =>
+        prev.map((w) =>
+          w.image_group_id === groupId && !w.image_override_url
+            ? { ...w, memory_trigger_image_url: url }
+            : w
+        )
+      );
+      setImageContext((ctx) =>
+        ctx
+          ? {
+              ...ctx,
+              masterImageUrl: url,
+              effectiveImageUrl: ctx.imageOverrideUrl ? ctx.effectiveImageUrl : url,
+            }
+          : ctx
+      );
+      return true;
+    },
+    [imageContext?.imageGroupId]
+  );
+
+  // Clear this word's override so it re-inherits the concept picture.
+  const handleResetImageToConcept = useCallback(async (): Promise<boolean> => {
+    const result = await setWordImageOverride(currentWord.id, null);
+    if (!result.success) {
+      console.error("Failed to reset word image:", result.error);
+      return false;
+    }
+
+    const master = imageContext?.masterImageUrl ?? null;
+    setLocalWords((prev) =>
+      prev.map((w) =>
+        w.id === currentWord.id
+          ? { ...w, memory_trigger_image_url: master, image_override_url: null }
+          : w
+      )
+    );
+    setImageContext((ctx) =>
+      ctx ? { ...ctx, imageOverrideUrl: null, effectiveImageUrl: master } : ctx
+    );
+    return true;
+  }, [currentWord.id, imageContext?.masterImageUrl]);
 
   // Get current word's user notes from progress map
   const currentWordProgress = wordProgressMap.get(currentWord.id);
@@ -1217,7 +1318,10 @@ export function StudyModeClient({
                         wordId={currentWord.id}
                         isEditMode={isEditMode}
                         onFieldSave={handleFieldSave}
-                        onImageUpload={handleImageUpload}
+                        imageContext={imageContext}
+                        onWordImageUpload={handleWordImageUpload}
+                        onConceptImageUpload={handleConceptImageUpload}
+                        onResetImageToConcept={handleResetImageToConcept}
                       />
                     ) : (
                       <FlashcardCard

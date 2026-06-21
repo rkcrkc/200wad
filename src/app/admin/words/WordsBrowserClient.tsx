@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Book, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AdminPagination } from "@/components/admin";
+import { AdminPagination, WordThumbnail } from "@/components/admin";
 import { AdminWordEditModal } from "@/components/admin/AdminWordEditModal";
 import type { WordWithDetails, WordLessonInfo } from "@/components/admin/AdminWordEditModal";
 import { getFlagFromCode } from "@/lib/utils/flags";
@@ -286,6 +286,9 @@ export function WordsBrowserClient({
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <span className="sr-only">Image</span>
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Headword
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -308,7 +311,7 @@ export function WordsBrowserClient({
           <tbody className="divide-y divide-bone-hover">
             {words.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                   {totalWords === 0 ? (
                     <div className="flex flex-col items-center gap-2">
                       <Book className="h-8 w-8 text-gray-300" />
@@ -326,6 +329,12 @@ export function WordsBrowserClient({
                   onClick={() => openEditModal(word)}
                   className="cursor-pointer hover:bg-gray-50"
                 >
+                  <td className="px-6 py-3">
+                    <WordThumbnail
+                      src={word.memory_trigger_image_url}
+                      alt={word.english}
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{word.headword}</div>
                     {word.lemma !== word.headword && (

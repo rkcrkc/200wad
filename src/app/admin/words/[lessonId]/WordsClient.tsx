@@ -9,7 +9,6 @@ import {
   Trash2,
   ChevronLeft,
   Volume2,
-  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +17,7 @@ import {
   SortableRow,
   DragHandle,
   reorderById,
+  WordThumbnail,
 } from "@/components/admin";
 import { AdminWordEditModal } from "@/components/admin/AdminWordEditModal";
 import type { WordWithDetails, WordLessonInfo } from "@/components/admin/AdminWordEditModal";
@@ -235,6 +235,9 @@ export function WordsClient({ lesson, words, positionInOrder, allLessons, allCou
                 #
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <span className="sr-only">Image</span>
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 English
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -257,7 +260,7 @@ export function WordsClient({ lesson, words, positionInOrder, allLessons, allCou
           <tbody className="divide-y divide-bone-hover">
             {orderedWords.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                   No words yet. Add your first word to this lesson.
                 </td>
               </tr>
@@ -282,6 +285,12 @@ export function WordsClient({ lesson, words, positionInOrder, allLessons, allCou
                             </span>
                           </div>
                         </td>
+                        <td className="px-6 py-3">
+                          <WordThumbnail
+                            src={word.memory_trigger_image_url}
+                            alt={word.english}
+                          />
+                        </td>
                         <td className="px-6 py-4 font-medium text-gray-900">
                           {word.english}
                         </td>
@@ -293,24 +302,15 @@ export function WordsClient({ lesson, words, positionInOrder, allLessons, allCou
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
                           <div className="flex items-center gap-2">
-                            {word.memory_trigger_image_url && (
-                              <span title="Has image">
-                                <ImageIcon className="h-4 w-4 text-green-500" />
-                              </span>
-                            )}
                             {(word.audio_url_english ||
                               word.audio_url_foreign ||
-                              word.audio_url_trigger) && (
+                              word.audio_url_trigger) ? (
                               <span title="Has audio">
                                 <Volume2 className="h-4 w-4 text-blue-500" />
                               </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
                             )}
-                            {!word.memory_trigger_image_url &&
-                              !word.audio_url_english &&
-                              !word.audio_url_foreign &&
-                              !word.audio_url_trigger && (
-                                <span className="text-gray-400">-</span>
-                              )}
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-gray-600">

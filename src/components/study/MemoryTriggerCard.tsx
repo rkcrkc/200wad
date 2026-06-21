@@ -3,9 +3,10 @@
 import Image from "next/image";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
-import { EditableImage } from "@/components/admin";
 import { EditableBodyText } from "@/components/admin/EditableBodyText";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
+import { MemoryTriggerImageEditor } from "./MemoryTriggerImageEditor";
+import type { WordImageContext } from "@/lib/mutations/admin/imageGroups";
 import { genderColorDark, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 
@@ -62,7 +63,14 @@ interface MemoryTriggerCardProps {
   wordId?: string;
   isEditMode?: boolean;
   onFieldSave?: (field: string, value: string) => Promise<boolean>;
-  onImageUpload?: (field: string, file: File) => Promise<boolean>;
+  /** Group/override context for the current word (admin edit mode). */
+  imageContext?: WordImageContext | null;
+  /** Set this word's own picture (override). */
+  onWordImageUpload?: (file: File) => Promise<boolean>;
+  /** Replace the shared concept picture for the whole group. */
+  onConceptImageUpload?: (file: File) => Promise<boolean>;
+  /** Clear this word's override so it re-inherits the concept picture. */
+  onResetImageToConcept?: () => Promise<boolean>;
 }
 
 /** Get darker shade of gender color for audio playback highlighting */
@@ -90,11 +98,32 @@ export function MemoryTriggerCard({
   wordId,
   isEditMode = false,
   onFieldSave,
-  onImageUpload,
+  imageContext,
+  onWordImageUpload,
+  onConceptImageUpload,
+  onResetImageToConcept,
 }: MemoryTriggerCardProps) {
   const isHorizontal = layout === "horizontal";
   const isPlayingTrigger = playingAudioType === "trigger";
   const audioDarkColor = getHighlightColorDark(gender);
+
+  // Admin edit mode: the two-tile image editor (this word vs concept pic).
+  // Rendered in place of the static image when all image handlers are wired.
+  const imageEditor =
+    isEditMode &&
+    wordId &&
+    onWordImageUpload &&
+    onConceptImageUpload &&
+    onResetImageToConcept ? (
+      <MemoryTriggerImageEditor
+        wordId={wordId}
+        effectiveImageUrl={imageUrl}
+        context={imageContext ?? null}
+        onWordUpload={onWordImageUpload}
+        onConceptUpload={onConceptImageUpload}
+        onReset={onResetImageToConcept}
+      />
+    ) : null;
 
   // If there's no memory trigger content at all, hide the entire card
   const hasNoContent = !triggerText && !imageUrl;
@@ -201,17 +230,8 @@ export function MemoryTriggerCard({
       </div>
     );
 
-    const factImageBlock = isEditMode && wordId && onImageUpload ? (
-      <EditableImage
-        src={imageUrl}
-        alt="Memory trigger"
-        field="memory_trigger_image_url"
-        wordId={wordId}
-        isEditMode={isEditMode}
-        onUpload={onImageUpload}
-        height={400}
-        className="w-full"
-      />
+    const factImageBlock = imageEditor ? (
+      imageEditor
     ) : showImage && imageUrl ? (
       <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
         <Image
@@ -350,18 +370,9 @@ export function MemoryTriggerCard({
   );
 
   // Image block - visible at clueLevel 1+ (always visible in picture-only mode)
-  const imageBlock = isEditMode && wordId && onImageUpload ? (
-    // Edit mode: use EditableImage component
-    <EditableImage
-      src={imageUrl}
-      alt="Memory trigger"
-      field="memory_trigger_image_url"
-      wordId={wordId}
-      isEditMode={isEditMode}
-      onUpload={onImageUpload}
-      height={400}
-      className="w-full"
-    />
+  const imageBlock = imageEditor ? (
+    // Edit mode: two-tile image editor (this word vs concept pic)
+    imageEditor
   ) : showImage && imageUrl ? (
     imageOnly ? (
       <div className="relative h-[400px] w-full overflow-hidden rounded-lg">

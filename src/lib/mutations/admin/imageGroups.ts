@@ -143,6 +143,86 @@ export async function getWordForEditModal(
   };
 }
 
+/**
+ * Group + override context for one word, used by the in-context (study/test)
+ * image editor to decide whether to show the concept-pic control and how many
+ * words a concept edit would affect.
+ *
+ * - `imageGroupId`     — the word's group, or NULL for a one-off word.
+ * - `groupLabel`       — human-friendly group name (concept tile heading).
+ * - `memberCount`      — how many words share this group (the fan-out blast radius).
+ * - `masterImageUrl`   — the group's shared concept pic.
+ * - `imageOverrideUrl` — the word's own override; non-null means it does NOT inherit.
+ * - `effectiveImageUrl`— the materialized URL the learner currently sees.
+ */
+export interface WordImageContext {
+  imageGroupId: string | null;
+  groupLabel: string | null;
+  memberCount: number;
+  masterImageUrl: string | null;
+  imageOverrideUrl: string | null;
+  effectiveImageUrl: string | null;
+}
+
+/**
+ * Fetch the group/override context for a single word so the study/test image
+ * editor can offer the right controls. Service-role; admin-gated.
+ */
+export async function getWordImageContext(
+  wordId: string
+): Promise<WordImageContext> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const { data: word, error } = await supabase
+    .from("words")
+    .select("image_group_id, image_override_url, memory_trigger_image_url")
+    .eq("id", wordId)
+    .single();
+
+  const empty: WordImageContext = {
+    imageGroupId: null,
+    groupLabel: null,
+    memberCount: 0,
+    masterImageUrl: null,
+    imageOverrideUrl: null,
+    effectiveImageUrl: null,
+  };
+
+  if (error || !word) {
+    return empty;
+  }
+
+  if (!word.image_group_id) {
+    return {
+      ...empty,
+      imageOverrideUrl: word.image_override_url,
+      effectiveImageUrl: word.memory_trigger_image_url,
+    };
+  }
+
+  const [{ data: group }, { count }] = await Promise.all([
+    supabase
+      .from("word_image_groups")
+      .select("label, master_image_url")
+      .eq("id", word.image_group_id)
+      .single(),
+    supabase
+      .from("words")
+      .select("id", { count: "exact", head: true })
+      .eq("image_group_id", word.image_group_id),
+  ]);
+
+  return {
+    imageGroupId: word.image_group_id,
+    groupLabel: group?.label ?? null,
+    memberCount: count ?? 0,
+    masterImageUrl: group?.master_image_url ?? null,
+    imageOverrideUrl: word.image_override_url,
+    effectiveImageUrl: word.memory_trigger_image_url,
+  };
+}
+
 /** A group option for the word modal's group selector. */
 export interface ImageGroupOption {
   id: string;
