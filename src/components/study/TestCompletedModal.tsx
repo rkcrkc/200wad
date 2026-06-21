@@ -19,6 +19,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Popover } from "@/components/ui/popover";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { XpIcon } from "@/components/ui/xp-icon";
 import { Lesson } from "@/types/database";
 import { WordWithDetails } from "@/lib/queries/words";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -144,8 +145,8 @@ export function TestCompletedModal({
           title={
             <>
               Test completed!{" "}
-              <span className="text-muted-foreground">
-                You scored {formatNumber(totalPoints)}/{formatNumber(maxPoints)} ({formatPercent(scorePercent)})
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                You scored <XpIcon className="size-5" /> {formatNumber(totalPoints)} XP
               </span>
             </>
           }
@@ -155,6 +156,10 @@ export function TestCompletedModal({
               <Clock className="h-4 w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
             </div>
+            <span>·</span>
+            <span>
+              <span className="font-medium text-foreground">{formatNumber(totalPoints)}/{formatNumber(maxPoints)}</span> ({formatPercent(scorePercent)})
+            </span>
             <span>·</span>
             {totalLearnedCount > 0 ? (
               <Popover

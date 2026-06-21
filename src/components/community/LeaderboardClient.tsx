@@ -327,9 +327,9 @@ export function LeaderboardClient({
     initialRoom && !initialRoom.league.is_bottom ? initialRoom.league.relegate_count : 0;
   let movementText = "";
   if (promoteCount > 0 && relegateCount > 0) {
-    movementText = `Each week the top ${promoteCount} are promoted to the next league, where you can earn more points, and the bottom ${relegateCount} are relegated.`;
+    movementText = `Each week the top ${promoteCount} are promoted to the next league, where you can earn more XP, and the bottom ${relegateCount} are relegated.`;
   } else if (promoteCount > 0) {
-    movementText = `Each week the top ${promoteCount} are promoted to the next league, where you can earn more points.`;
+    movementText = `Each week the top ${promoteCount} are promoted to the next league, where you can earn more XP.`;
   } else if (relegateCount > 0) {
     movementText = `Each week the bottom ${relegateCount} are relegated to a lower league.`;
   }

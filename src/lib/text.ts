@@ -386,7 +386,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Incorrect answer with points",
     category: "scoring_feedback",
     group: "Test Mode",
-    defaultValue: "❌ Incorrect! 0 points",
+    defaultValue: "❌ Incorrect! +0 XP",
   },
 
   // Test Types
@@ -778,7 +778,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Nerves of steel description",
     category: "greetings_messages",
     group: "Study Action Bar",
-    defaultValue: "Punctuation and capitalization must be correct for full points",
+    defaultValue: "Punctuation and capitalization must be correct for full XP",
   },
   msg_breathing_mode: {
     label: "Breathing mode label",
@@ -1057,7 +1057,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Score % definition",
     category: "definitions",
     group: "Scoring & Tests",
-    defaultValue: "The percentage of total available points the user has earned across all test attempts for a word. Calculated as (points earned / points available) x 100.",
+    defaultValue: "The percentage of total available XP the user has earned across all test attempts for a word. Calculated as (XP earned / XP available) x 100.",
   },
   def_traffic_lights: {
     label: "Traffic lights definition",
@@ -1099,13 +1099,13 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Nerves of Steel definition",
     category: "definitions",
     group: "Scoring & Tests",
-    defaultValue: "A strict scoring mode where punctuation and capitalisation must be exactly correct to earn full points.",
+    defaultValue: "A strict scoring mode where punctuation and capitalisation must be exactly correct to earn full XP.",
   },
   def_half_correct: {
     label: "Half-correct definition",
     category: "definitions",
     group: "Scoring & Tests",
-    defaultValue: "The answer was mostly right but the gender article was missing or wrong. Half points are awarded.",
+    defaultValue: "The answer was mostly right but the gender article was missing or wrong. Half XP is awarded.",
   },
 
   // Progress Metrics
@@ -1155,7 +1155,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Test Time definition",
     category: "definitions",
     group: "Progress Metrics",
-    defaultValue: "Time spent taking tests, where the user types answers and earns points.",
+    defaultValue: "Time spent taking tests, where the user types answers and earns XP.",
   },
 
   // Study Features
@@ -1187,7 +1187,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Clue definition",
     category: "definitions",
     group: "Study Features",
-    defaultValue: "A hint revealed during a test that shows part of the correct answer. Each word allows up to 2 clues. Using a clue reduces the maximum points available.",
+    defaultValue: "A hint revealed during a test that shows part of the correct answer. Each word allows up to 2 clues. Using a clue reduces the maximum XP available.",
   },
   def_alpha_wave_music: {
     label: "Alpha Wave Music definition",

@@ -198,7 +198,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     if (!result) return null;
 
     const { grade, pointsEarned, maxPoints } = result;
-    const pointsText = `${pointsEarned} point${pointsEarned !== 1 ? "s" : ""}`;
+    const pointsText = `+${pointsEarned} XP`;
 
     // Points-based tone
     const tone: "success" | "warning" | "destructive" =

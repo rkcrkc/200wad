@@ -127,7 +127,7 @@ export function WordGrid({
                     }`}
                   />
                   <span>
-                    {result.pointsEarned} {result.pointsEarned === 1 ? "point" : "points"}
+                    +{result.pointsEarned} XP
                   </span>
                 </div>
               )}
