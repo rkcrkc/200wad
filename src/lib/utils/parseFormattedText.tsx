@@ -29,6 +29,9 @@
  * Trigger context (when `headword` is set):
  *   - Plain text gets explicit color (#141515 default,
  *     dark gender shade when `isPlaying`).
+ *   - Text inside `{{...}}` markers also renders in CAPS (display-only via
+ *     text-transform; stored text and audio stay natural-case). Body context
+ *     leaves marker case untouched.
  *   - When the source has NO inline markers, falls back to legacy auto-highlight:
  *     word tokens matching the headword (case-insensitive) and ALL CAPS words
  *     get gender-colored bold. Preserves the long-standing playback-highlight UX.
@@ -233,7 +236,15 @@ function parseInline(
         nodes.push(
           <span
             key={`${keyPrefix}c${key++}`}
-            style={{ color, fontWeight: 600 }}
+            style={{
+              color,
+              fontWeight: 600,
+              // Trigger context only: mnemonics in {{...}} render in CAPS.
+              // Display-only (stored text/audio stay natural-case).
+              ...(ctx.triggerStyle
+                ? { textTransform: "uppercase" as const }
+                : {}),
+            }}
           >
             {parseInline(content, { ...ctx, inMarker: true }, childKey)}
           </span>,
