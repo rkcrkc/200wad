@@ -131,6 +131,15 @@ export interface CourseDef {
   /** Product Ref this entry configures (matches Products.csv `Ref`). */
   ref: number;
   /**
+   * Internal course code (ICC) whose `General`/`Sections` rows belong to this
+   * course. When set, the importer assigns lessons/words by the row's own
+   * `Course` column via this explicit map instead of decoding the ICC from the
+   * lesson-id prefix (French 2: the content ICCs 2/22/12 disagree with both the
+   * Products flags and the lesson-id prefixes). Omitted → prefix derivation
+   * (Italian/French 1, where icc === ref or is encoded in the lesson id).
+   */
+  icc?: number;
+  /**
    * Existing NL course names to match and KEEP (the importer sets legacy_ref
    * but leaves the name unchanged). Used for e.g. French Ref 1 → "Vocab #1".
    */
@@ -155,10 +164,19 @@ export interface MediaConfig {
   /** Mounted disc root holding the `<prefix>Pictures` / `<prefix>Sound*` folders. */
   mountRoot: string;
   /**
-   * Legacy folder prefix where this language's images live (French images are
-   * all under `1Pictures`, shared by vocab and sentences).
+   * Legacy folder prefix where this language's images live (French 1 images are
+   * all under `1Pictures`, shared by vocab and sentences). Used as the default
+   * when `imagePrefixByCourseRef` has no entry for a word's course.
    */
   imagePrefix: string;
+  /**
+   * Optional NL course `legacy_ref` → image folder prefix, mirroring
+   * `audioPrefixByCourseRef`. French 2 splits images across prefixes (vocab in
+   * `2Pictures`, the 3 proverb images in `12Pictures`), so it maps
+   * `{ 2: "2", 22: "22", 12: "12" }`. Falls back to `imagePrefix` when a course
+   * is absent (French 1 leaves this undefined).
+   */
+  imagePrefixByCourseRef?: Record<number, string>;
   /**
    * NL course `legacy_ref` → legacy folder prefix (ICC) for that course's audio
    * folders. French: `{ 1: "1", 6: "21" }` (Vocab #1 → `1Sound*`, Sentences →
@@ -187,6 +205,23 @@ export interface LanguageConfig {
    * course set straight from Products.csv (Italian: icc == ref).
    */
   courses?: CourseDef[];
+  /**
+   * Match existing NL courses by `legacy_ref` ONLY (skip the case-insensitive
+   * name-substring match). Required when a new course name is a superstring of
+   * an existing one — e.g. French 2's "French Sentences 2" would otherwise
+   * fuzzy-match French 1's "French Sentences" and re-point it. Default false
+   * (Italian/French 1 keep the name-substring match).
+   */
+  matchCoursesByRefOnly?: boolean;
+  /**
+   * Re-run delete scope before re-inserting words:
+   *   - "language" (default): delete ALL words for the language (Italian /
+   *     French 1 idempotency — the original behaviour).
+   *   - "courses": delete only words belonging (via lesson_words → lessons) to
+   *     THIS config's courses, leaving other courses of the same language
+   *     untouched. French 2 uses this so French 1 survives.
+   */
+  deleteScope?: "language" | "courses";
   /** Probe text feeding the fallback-category heuristic when a code is unmapped. */
   probeEnglish?(row: GeneralRow): string;
   /** Final NL `english` value. Default: `row.english || row.English`. */

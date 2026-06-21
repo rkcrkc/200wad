@@ -153,14 +153,17 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log("Step 1: Finding language...");
 
+  // Look the NL language up by the CONFIG's name, not the `--language` arg. The
+  // arg is the config-registry key (e.g. `french2`), while several configs can
+  // target the same NL language row (French 1 and French 2 are both "french").
   const { data: language, error: langError } = await supabase
     .from("languages")
     .select("id, name")
-    .ilike("name", languageName)
+    .ilike("name", config.name)
     .single();
 
   if (langError || !language) {
-    console.error(`Language '${languageName}' not found in database`);
+    console.error(`Language '${config.name}' not found in database`);
     process.exit(1);
   }
 
@@ -192,17 +195,32 @@ async function main() {
   const genderResolver = buildGenderResolver(genderMapping, config.genderOverrides);
 
   // Course mapping: ProductFlag indirection (ICC ↔ Ref). For Italian icc===ref.
-  const courseMapping = buildCourseMapping(products);
+  // When the config supplies explicit ICC courses (French 2) the mapping is
+  // built from them instead, and `explicit` switches course assignment to the
+  // row's `Course` column (see course-mapping.ts).
+  const courseMapping = buildCourseMapping(products, config.courses);
 
   // Valid Product Refs (the values stored as legacy_ref / keyed in courseRefToId).
-  const validCourseRefs = new Set(products.map(p => parseInt(p.Ref, 10)));
+  // In explicit mode the refs come from the config courses, not Products (whose
+  // French 2 Refs 1/6/3 collide with French 1 and don't match the content ICCs).
+  const validCourseRefs = courseMapping.explicit
+    ? new Set((config.courses || []).filter(c => c.icc != null).map(c => c.ref))
+    : new Set(products.map(p => parseInt(p.Ref, 10)));
   console.log(`  Valid course refs: ${Array.from(validCourseRefs).join(", ")}`);
   console.log(`  Valid internal course codes: ${Array.from(courseMapping.validIccs).join(", ")}`);
 
-  // Derive the Product Ref for a lesson id (deriveIcc → iccToRef). Replaces the
-  // old direct deriveCourseFromLesson; identical for Italian (icc===ref).
+  // Derive the Product Ref for a row. In explicit mode (French 2) the course is
+  // the row's own ICC (`General.Course` / `Sections.Course`) mapped via config;
+  // otherwise the legacy lesson-id prefix decodes it (deriveIcc → iccToRef),
+  // identical to today for Italian/French 1.
   const deriveCourseFromLesson = (lessonId: number): number | null =>
     courseMapping.deriveRef(lessonId);
+  const resolveCourseRef = (iccColumn: number | null, lessonId: number): number | null => {
+    if (courseMapping.explicit) {
+      return iccColumn != null ? courseMapping.iccToRef(iccColumn) ?? null : null;
+    }
+    return deriveCourseFromLesson(lessonId);
+  };
 
   // -------------------------------------------------------------------------
   // Step 3: Create/Update courses with legacy_ref
@@ -220,13 +238,19 @@ async function main() {
     process.exit(1);
   }
 
+  // The course set comes from the explicit config list (French 2) or, by
+  // default, from Products. Normalise both to { legacyRef, productName } so the
+  // create/match loop below is identical.
+  const courseEntries = courseMapping.explicit
+    ? (config.courses || [])
+        .filter(c => c.icc != null)
+        .map(c => ({ legacyRef: c.ref, productName: c.createName ?? `Course ${c.ref}` }))
+    : products.map(p => ({ legacyRef: parseInt(p.Ref, 10), productName: p.Product.trim() }));
+
   // Match or create courses
   let coursesUpdated = 0;
   let coursesCreated = 0;
-  for (const product of products) {
-    const legacyRef = parseInt(product.Ref, 10);
-    const productName = product.Product.trim();
-
+  for (const { legacyRef, productName } of courseEntries) {
     // Config may override which existing NL course(s) to match (keeping their
     // name) and the name to use when creating. Defaults reproduce the original
     // behaviour: match/ create against the Product name itself.
@@ -234,13 +258,17 @@ async function main() {
     const matchNames = courseDef?.matchNames ?? [productName];
     const createName = courseDef?.createName ?? productName;
 
-    // Find matching course by legacy_ref or by name (case-insensitive partial match)
+    // Find matching course by legacy_ref, and (unless the config opts out) by
+    // name (case-insensitive partial match). `matchCoursesByRefOnly` disables
+    // the name match so e.g. French 2's "French Sentences 2" cannot fuzzy-match
+    // French 1's existing "French Sentences" and re-point it.
     const matchingCourse = existingCourses?.find(c =>
       c.legacy_ref === legacyRef ||
-      matchNames.some(n =>
-        c.name.toLowerCase().includes(n.toLowerCase()) ||
-        n.toLowerCase().includes(c.name.toLowerCase())
-      )
+      (!config.matchCoursesByRefOnly &&
+        matchNames.some(n =>
+          c.name.toLowerCase().includes(n.toLowerCase()) ||
+          n.toLowerCase().includes(c.name.toLowerCase())
+        ))
     );
 
     if (matchingCourse) {
@@ -361,8 +389,11 @@ async function main() {
       continue;
     }
 
-    // Derive correct course from lesson ID (not from CSV Course column which may be wrong)
-    const derivedCourseRef = deriveCourseFromLesson(lessonLegacyId);
+    // Resolve the course. Default: derive from the lesson ID (the CSV Course
+    // column is unreliable for Italian/French 1). Explicit mode (French 2):
+    // trust the section's own `Course` (ICC) column, since the lesson-id prefix
+    // scheme misfiles French 2 (vocab 39–104 → ICC 1, sentences 21xxxx → "21").
+    const derivedCourseRef = resolveCourseRef(safeParseInt(section.Course), lessonLegacyId);
     if (!derivedCourseRef || !validCourseRefs.has(derivedCourseRef)) {
       lessonsSkipped++;
       continue;
@@ -600,10 +631,10 @@ async function main() {
 
     wordsToInsert.push(wordInsert);
 
-    // Track lesson assignment (only if Lesson > 0)
-    // Derive course from lesson ID, not from CSV Course column
+    // Track lesson assignment (only if Lesson > 0). Course comes from the lesson
+    // ID by default; in explicit mode (French 2) from the row's `Course` ICC.
     if (lessonLegacyId !== null && lessonLegacyId > 0) {
-      const derivedCourse = deriveCourseFromLesson(lessonLegacyId);
+      const derivedCourse = resolveCourseRef(courseRef, lessonLegacyId);
       if (derivedCourse !== null) {
         lessonWordAssignments.push({
           wordRefN: refN,
@@ -768,38 +799,83 @@ async function main() {
   }
 
   // -------------------------------------------------------------------------
-  // Step 6: Delete existing words for this language
+  // Step 6: Delete existing words (idempotent re-run)
   // -------------------------------------------------------------------------
-  console.log("\nStep 6: Deleting existing words...");
+  // Default ("language"): wipe ALL words for the language, as Italian/French 1
+  // have always done. Opt-in ("courses", French 2): wipe ONLY words belonging
+  // (via lesson_words → lessons) to THIS config's courses, so sibling courses
+  // of the same language (French 1) survive. See FRENCH2_IMPORT_PLAN §7 R-2.
+  const scopedDelete = config.deleteScope === "courses";
+  console.log(
+    `\nStep 6: Deleting existing words (${scopedDelete ? "scoped to config courses" : "whole language"})...`
+  );
 
-  // First delete lesson_words entries
-  const { data: existingWords } = await supabase
-    .from("words")
-    .select("id")
-    .eq("language_id", language.id);
+  let wordIdsToDelete: string[];
+  if (scopedDelete) {
+    // Course UUIDs for this config (validCourseRefs → courseRefToId).
+    const scopedCourseIds = Array.from(validCourseRefs)
+      .map(ref => courseRefToId.get(ref))
+      .filter((id): id is string => !!id);
 
-  if (existingWords && existingWords.length > 0) {
-    const wordIds = existingWords.map(w => w.id);
+    if (scopedCourseIds.length === 0) {
+      wordIdsToDelete = [];
+    } else {
+      // lessons in those courses → lesson_words → distinct word ids. Both
+      // queries must paginate via .range(): a single select is capped at
+      // PostgREST's default 1000 rows, which would silently leave stale words
+      // behind on a partial re-run.
+      const scopedLessonIds: string[] = [];
+      const pageSize = 1000;
+      for (let off = 0; ; off += pageSize) {
+        const { data: scopedLessons } = await supabase
+          .from("lessons")
+          .select("id")
+          .in("course_id", scopedCourseIds)
+          .range(off, off + pageSize - 1);
+        if (!scopedLessons || scopedLessons.length === 0) break;
+        for (const l of scopedLessons) scopedLessonIds.push(l.id);
+        if (scopedLessons.length < pageSize) break;
+      }
 
-    // Delete in batches
+      const wordIdSet = new Set<string>();
+      for (let i = 0; i < scopedLessonIds.length; i += pageSize) {
+        const lessonBatch = scopedLessonIds.slice(i, i + pageSize);
+        for (let off = 0; ; off += pageSize) {
+          const { data: lws } = await supabase
+            .from("lesson_words")
+            .select("word_id")
+            .in("lesson_id", lessonBatch)
+            .range(off, off + pageSize - 1);
+          if (!lws || lws.length === 0) break;
+          for (const lw of lws) wordIdSet.add(lw.word_id);
+          if (lws.length < pageSize) break;
+        }
+      }
+      wordIdsToDelete = Array.from(wordIdSet);
+    }
+  } else {
+    const { data: existingWords } = await supabase
+      .from("words")
+      .select("id")
+      .eq("language_id", language.id);
+    wordIdsToDelete = (existingWords || []).map(w => w.id);
+  }
+
+  if (wordIdsToDelete.length > 0) {
     const batchSize = 500;
-    for (let i = 0; i < wordIds.length; i += batchSize) {
-      const batch = wordIds.slice(i, i + batchSize);
+    for (let i = 0; i < wordIdsToDelete.length; i += batchSize) {
+      const batch = wordIdsToDelete.slice(i, i + batchSize);
       await supabase.from("lesson_words").delete().in("word_id", batch);
       await supabase.from("word_relationships").delete().in("word_id", batch);
+      // Delete the words by id (scoped) — never by language_id, which would
+      // also remove sibling courses' words.
+      const { error: deleteError } = await supabase.from("words").delete().in("id", batch);
+      if (deleteError) {
+        console.error("Error deleting existing words:", deleteError);
+        process.exit(1);
+      }
     }
-
-    // Now delete words
-    const { error: deleteError } = await supabase
-      .from("words")
-      .delete()
-      .eq("language_id", language.id);
-
-    if (deleteError) {
-      console.error("Error deleting existing words:", deleteError);
-      process.exit(1);
-    }
-    console.log(`  Deleted ${existingWords.length} existing words`);
+    console.log(`  Deleted ${wordIdsToDelete.length} existing words`);
   } else {
     console.log("  No existing words to delete");
   }
@@ -813,16 +889,39 @@ async function main() {
   let insertedCount = 0;
   let errorCount = 0;
 
+  // RefN → inserted word UUID. In explicit mode (French 2) we build this map
+  // from the insert results so it holds ONLY this run's words — disambiguating
+  // the one RefN that collides with a French 1 word (Step 8 R-4). In default
+  // mode it is rebuilt by query in Step 8 (the language was fully wiped first,
+  // so a query returns exactly this run's words — unchanged behaviour).
+  const refnToWordId = new Map<number, string>();
+  const captureInsertedIds = courseMapping.explicit;
+
   for (let i = 0; i < wordsToInsert.length; i += insertBatchSize) {
     const batch = wordsToInsert.slice(i, i + insertBatchSize);
 
-    const { error } = await supabase.from("words").insert(batch);
-
-    if (error) {
-      console.error(`  Error inserting batch ${i / insertBatchSize + 1}:`, error);
-      errorCount += batch.length;
+    if (captureInsertedIds) {
+      const { data: inserted, error } = await supabase
+        .from("words")
+        .insert(batch)
+        .select("id, legacy_refn");
+      if (error) {
+        console.error(`  Error inserting batch ${i / insertBatchSize + 1}:`, error);
+        errorCount += batch.length;
+      } else {
+        insertedCount += batch.length;
+        for (const w of inserted || []) {
+          if (w.legacy_refn !== null) refnToWordId.set(w.legacy_refn, w.id);
+        }
+      }
     } else {
-      insertedCount += batch.length;
+      const { error } = await supabase.from("words").insert(batch);
+      if (error) {
+        console.error(`  Error inserting batch ${i / insertBatchSize + 1}:`, error);
+        errorCount += batch.length;
+      } else {
+        insertedCount += batch.length;
+      }
     }
 
     // Progress indicator
@@ -839,28 +938,32 @@ async function main() {
   // -------------------------------------------------------------------------
   console.log("\nStep 8: Creating lesson-word assignments...");
 
-  // Fetch all words with their legacy_refn (paginate to get all)
-  const refnToWordId = new Map<number, string>();
-  let wordOffset = 0;
-  const wordPageSize = 1000;
-  while (true) {
-    const { data: insertedWords } = await supabase
-      .from("words")
-      .select("id, legacy_refn")
-      .eq("language_id", language.id)
-      .not("legacy_refn", "is", null)
-      .range(wordOffset, wordOffset + wordPageSize - 1);
+  // Default mode: rebuild RefN → UUID by querying the language's words (the
+  // language was wiped in Step 6, so this returns exactly this run's words).
+  // Explicit mode (French 2): the map was already captured from the inserts in
+  // Step 7 (run-local, collision-safe) — skip the query.
+  if (!captureInsertedIds) {
+    let wordOffset = 0;
+    const wordPageSize = 1000;
+    while (true) {
+      const { data: insertedWords } = await supabase
+        .from("words")
+        .select("id, legacy_refn")
+        .eq("language_id", language.id)
+        .not("legacy_refn", "is", null)
+        .range(wordOffset, wordOffset + wordPageSize - 1);
 
-    if (!insertedWords || insertedWords.length === 0) break;
+      if (!insertedWords || insertedWords.length === 0) break;
 
-    for (const word of insertedWords) {
-      if (word.legacy_refn !== null) {
-        refnToWordId.set(word.legacy_refn, word.id);
+      for (const word of insertedWords) {
+        if (word.legacy_refn !== null) {
+          refnToWordId.set(word.legacy_refn, word.id);
+        }
       }
-    }
 
-    wordOffset += wordPageSize;
-    if (insertedWords.length < wordPageSize) break;
+      wordOffset += wordPageSize;
+      if (insertedWords.length < wordPageSize) break;
+    }
   }
 
   // Create lesson_words entries

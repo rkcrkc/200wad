@@ -393,7 +393,12 @@ async function processImage(word: WordRow): Promise<void> {
     return;
   }
 
-  const folder = `${media.imagePrefix}Pictures`;
+  // Per-course image prefix when configured (French 2: vocab in 2Pictures, the
+  // 3 proverb images in 12Pictures), else the single default `imagePrefix`.
+  const imgPrefix =
+    (word.courseRef != null ? media.imagePrefixByCourseRef?.[word.courseRef] : undefined) ??
+    media.imagePrefix;
+  const folder = `${imgPrefix}Pictures`;
   const src = resolver.resolve(folder, `${stem}.${suffix}`);
   if (!src) {
     stats.imgMissing++;

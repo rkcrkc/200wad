@@ -6,10 +6,13 @@
 import type { LanguageConfig } from "../lib/legacy-import/types";
 import { italianConfig } from "./italian";
 import { frenchConfig } from "./french";
+import { french2Config } from "./french2";
 
 const configs: Record<string, LanguageConfig> = {
   italian: italianConfig,
   french: frenchConfig,
+  // French 2 (Volume 2): same NL "french" language, new courses. See french2.ts.
+  french2: french2Config,
 };
 
 export function getLanguageConfig(name: string): LanguageConfig | undefined {
