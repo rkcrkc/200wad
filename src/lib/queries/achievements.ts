@@ -167,6 +167,7 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
     lessonsMasteredResult,
     userRowResult,
     firstLearnedWordResult,
+    firstMasteredWordResult,
     coinsEarnedResult,
     lessonsTestedResult,
     leagueStatsResult,
@@ -207,6 +208,17 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
       .order("learned_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    // Earliest mastered word for the user, for the first_word_mastered card.
+    supabase
+      .from("user_word_progress")
+      .select(
+        "word_id, mastered_at, words!inner(id, headword, english, flashcard_image_url)"
+      )
+      .eq("user_id", user.id)
+      .not("mastered_at", "is", null)
+      .order("mastered_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
     // Lifetime gross coins earned across all sources (ledger sum).
     supabase.rpc("get_lifetime_coins_earned"),
     // Distinct real lessons tested — backs the leagues_unlocked progress bar.
@@ -235,31 +247,18 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
     leagueWins: Number(ls?.wins ?? 0),
   };
 
-  // Resolve the slug-specific extras keyed by slug.
+  // Resolve the slug-specific extras keyed by slug. The first-learned and
+  // first-mastered cards share the same word-thumbnail shape.
   const extrasBySlug: Record<string, AchievementExtra> = {};
 
-  const firstWordRow = firstLearnedWordResult.data as
-    | {
-        words:
-          | {
-              id: string;
-              headword: string;
-              english: string;
-              flashcard_image_url: string | null;
-            }
-          | null;
-      }
-    | null;
-  const firstWord = firstWordRow?.words ?? null;
-  if (firstWord) {
-    extrasBySlug["first_word_learned"] = {
-      firstWord: {
-        id: firstWord.id,
-        headword: firstWord.headword,
-        english: firstWord.english,
-        imageUrl: firstWord.flashcard_image_url,
-      },
-    };
+  const firstLearnedWord = parseFirstWordRow(firstLearnedWordResult.data);
+  if (firstLearnedWord) {
+    extrasBySlug["first_word_learned"] = { firstWord: firstLearnedWord };
+  }
+
+  const firstMasteredWord = parseFirstWordRow(firstMasteredWordResult.data);
+  if (firstMasteredWord) {
+    extrasBySlug["first_word_mastered"] = { firstWord: firstMasteredWord };
   }
 
   const items: AchievementForList[] = achievementRows.map((row) =>
@@ -287,6 +286,36 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Normalise a `user_word_progress` row carrying a nested `words` object (from a
+ * PostgREST inner-join) into the `firstWord` extra shape. Returns null when the
+ * user has no qualifying word yet.
+ */
+function parseFirstWordRow(
+  data: unknown
+): NonNullable<AchievementExtra["firstWord"]> | null {
+  const row = data as
+    | {
+        words:
+          | {
+              id: string;
+              headword: string;
+              english: string;
+              flashcard_image_url: string | null;
+            }
+          | null;
+      }
+    | null;
+  const word = row?.words ?? null;
+  if (!word) return null;
+  return {
+    id: word.id,
+    headword: word.headword,
+    english: word.english,
+    imageUrl: word.flashcard_image_url,
+  };
+}
 
 interface UserScalarAggregates {
   wordsLearned: number;

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Award,
+  Check,
   ChevronRight,
   Coins,
   Lock,
@@ -60,12 +61,15 @@ export function TrophyCard({ row }: TrophyCardProps) {
       )
     : 0;
 
-  // Slug-specific embellishment: when the first_word_learned trophy is
-  // unlocked, swap the standard footer for a small thumbnail of the actual
-  // word the user learned first.
+  // Slug-specific embellishment: when the first_word_learned or
+  // first_word_mastered trophy is unlocked, swap the standard footer for a
+  // small thumbnail of the actual word.
   const firstWord = row.extra.firstWord;
   const showFirstWordThumb =
-    row.isUnlocked && row.slug === "first_word_learned" && firstWord;
+    row.isUnlocked &&
+    (row.slug === "first_word_learned" ||
+      row.slug === "first_word_mastered") &&
+    firstWord;
 
   return (
     <div
@@ -83,11 +87,15 @@ export function TrophyCard({ row }: TrophyCardProps) {
         >
           {showMystery ? (
             <Lock className="h-6 w-6 text-gray-400" strokeWidth={1.67} />
+          ) : row.isUnlocked ? (
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-success">
+              <Check className="h-4 w-4 text-white" strokeWidth={2.5} />
+            </div>
           ) : (
             <Icon
               className="h-7 w-7"
               strokeWidth={1.67}
-              style={{ color: row.isUnlocked ? "#00c950" : "#9ca3af" }}
+              style={{ color: "#9ca3af" }}
             />
           )}
         </div>
@@ -118,15 +126,15 @@ export function TrophyCard({ row }: TrophyCardProps) {
       <div className="mt-4 flex flex-col gap-2">
         {row.isUnlocked && row.unlockedAt && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs-medium text-muted-foreground">
-              Unlocked {formatUnlockedDate(row.unlockedAt)}
-            </span>
             {row.coinReward > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs-medium text-success">
                 <Coins className="h-3 w-3" strokeWidth={2} />
                 {row.coinReward}
               </span>
             )}
+            <span className="text-xs-medium text-muted-foreground">
+              Unlocked {formatUnlockedDate(row.unlockedAt)}
+            </span>
           </div>
         )}
 
@@ -169,8 +177,8 @@ export function TrophyCard({ row }: TrophyCardProps) {
         {!row.isUnlocked && !showMystery && (showProgress || row.coinReward > 0) && (
           <div className="flex flex-col gap-2">
             {row.coinReward > 0 && (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs-medium text-warning">
-                <Coins className="h-3 w-3" strokeWidth={2} />
+              <span className="inline-flex w-fit items-center gap-1 text-xs-medium text-foreground">
+                <Coins className="h-3 w-3 text-amber-500" strokeWidth={2} />
                 {row.coinReward}
               </span>
             )}
