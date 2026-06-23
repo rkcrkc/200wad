@@ -88,7 +88,7 @@ export function TrophyCard({ row }: TrophyCardProps) {
           {showMystery ? (
             <Lock className="h-6 w-6 text-gray-400" strokeWidth={1.67} />
           ) : row.isUnlocked ? (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-success">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success">
               <Check className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
           ) : (

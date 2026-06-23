@@ -134,6 +134,7 @@ export const genderColor: Record<string, string> = {
   m: "#001EFF",   // Blue - masculine
   n: "#FF8000",   // Orange - neuter
   mf: "#00C950",  // Green - mixed gender
+  mn: "#8000FF",  // Purple - masculine/neuter (German der/das)
 } as const;
 
 /** Darker shades for audio playback highlighting */
@@ -142,6 +143,7 @@ export const genderColorDark: Record<string, string> = {
   m: "#0018CC",   // Dark blue - masculine
   n: "#CC6600",   // Dark orange - neuter
   mf: "#00A040",  // Dark green - mixed gender
+  mn: "#6600CC",  // Dark purple - masculine/neuter (German der/das)
 } as const;
 
 /** Default highlight color when no gender applies */

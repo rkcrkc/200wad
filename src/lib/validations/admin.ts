@@ -86,7 +86,7 @@ export const createWordSchema = z.object({
   alternate_english_answers: z.array(z.string().max(200)).nullable().optional().default([]),
   category: z.enum(["word", "phrase", "sentence", "fact", "information"]).optional().nullable(),
   part_of_speech: z.string().max(50).optional().nullable(),
-  gender: z.enum(["m", "f", "n", "mf"]).optional().nullable(),
+  gender: z.enum(["m", "f", "n", "mf", "mn"]).optional().nullable(),
   transitivity: z.enum(["vt", "vi", "vt_vi"]).optional().nullable(),
   is_irregular: z.boolean().optional().default(false),
   grammatical_number: z.enum(["sg", "pl"]).optional().nullable(),

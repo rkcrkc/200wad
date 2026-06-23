@@ -3,6 +3,7 @@ import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { PostHogPageView } from "@/components/providers/PostHogPageView";
+import { FlagEmojiPolyfill } from "@/components/providers/FlagEmojiPolyfill";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <FlagEmojiPolyfill />
         <PostHogProvider>
           <PostHogPageView />
           <UserProvider initialUser={user} initialAvatarUrl={avatarUrl}>

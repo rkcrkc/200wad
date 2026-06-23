@@ -379,7 +379,14 @@ async function main() {
   // Batch lessons to create
   const lessonsToCreate: { course_id: string; title: string; legacy_lesson_id: number; number: number; sort_order: number }[] = [];
 
-  for (const section of sections) {
+  // Process in legacy Lesson-ID order so new lessons are numbered in the DL
+  // curriculum order (DL displays lessons sorted by Lesson ID). Sections.csv is
+  // NOT pre-sorted, so relying on row order scrambles number/sort_order.
+  const orderedSections = [...sections].sort(
+    (a, b) => parseInt(a.Lesson, 10) - parseInt(b.Lesson, 10)
+  );
+
+  for (const section of orderedSections) {
     const lessonLegacyId = parseInt(section.Lesson, 10);
     const pointer = parseInt(section.Pointer, 10);
 
@@ -447,7 +454,7 @@ async function main() {
         title: sectionTitle,
         legacy_lesson_id: lessonLegacyId,
         number: newNumber,
-        sort_order: newNumber, // Curriculum order (matches All Lessons), not legacy ID
+        sort_order: newNumber, // Sequential in legacy Lesson-ID order (DL curriculum order)
       });
     }
   }
@@ -752,15 +759,25 @@ async function main() {
 
       let nextNumber = (maxLesson?.number || 0) + 1;
 
+      // These lessons are referenced by words but missing from Sections.csv, so
+      // they sit outside the curriculum list and are appended after existing
+      // lessons. Sort by legacy ID for deterministic ordering, and keep
+      // sort_order in lock-step with number (matching the Step 5 scheme) so they
+      // don't scatter by raw legacy ID.
+      const orderedLessonIds = [...lessonIds].sort((a, b) => a - b);
+
       // Create lessons in batches - use title from Sections.csv if available
-      const lessonsToAdd = lessonIds.map((legacyId) => ({
-        course_id: courseUuid,
-        title: sectionTitlesByLessonId.get(legacyId) || `Lesson ${legacyId}`,
-        legacy_lesson_id: legacyId,
-        number: nextNumber++,
-        sort_order: legacyId,
-        is_published: true,
-      }));
+      const lessonsToAdd = orderedLessonIds.map((legacyId) => {
+        const num = nextNumber++;
+        return {
+          course_id: courseUuid,
+          title: sectionTitlesByLessonId.get(legacyId) || `Lesson ${legacyId}`,
+          legacy_lesson_id: legacyId,
+          number: num,
+          sort_order: num,
+          is_published: true,
+        };
+      });
 
       const batchSize = 100;
       for (let i = 0; i < lessonsToAdd.length; i += batchSize) {

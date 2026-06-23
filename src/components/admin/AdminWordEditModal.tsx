@@ -153,6 +153,7 @@ const genderOptions = [
   { value: "f", label: "Feminine (f)" },
   { value: "n", label: "Neuter (n)" },
   { value: "mf", label: "Both (m/f)" },
+  { value: "mn", label: "Both (m/n)" },
 ];
 
 const transitivityOptions = [

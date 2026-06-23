@@ -98,11 +98,9 @@ export function CourseDropdown({
 
   const handleSelectCourse = useCallback(
     async (selectedId: string) => {
-      if (selectedId === courseId) {
-        setOpen(false);
-        return;
+      if (selectedId !== courseId) {
+        await setCurrentCourse(selectedId);
       }
-      await setCurrentCourse(selectedId);
       setOpen(false);
       router.push(`/course/${selectedId}/schedule`);
     },
@@ -123,6 +121,7 @@ export function CourseDropdown({
     >
       {/* Trigger */}
       <div
+        onClick={() => handleSelectCourse(courseId)}
         className={`flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover ${
           collapsed ? "justify-center" : ""
         }`}

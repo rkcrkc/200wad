@@ -139,7 +139,6 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
           lessonsMastered: 0,
           longestStreak: 0,
           lessonsTested: 0,
-          highestLeagueTier: 0,
           leaguePodiumFinishes: 0,
           leagueWins: 0,
         },
@@ -242,7 +241,6 @@ export async function getAchievementsForUser(): Promise<GetAchievementsForUserRe
     lessonsMastered: lessonsMasteredResult.count ?? 0,
     longestStreak: userRowResult.data?.longest_streak ?? 0,
     lessonsTested: (lessonsTestedResult.data as number | null) ?? 0,
-    highestLeagueTier: Number(ls?.highest_tier_order ?? 0),
     leaguePodiumFinishes: Number(ls?.podium_finishes ?? 0),
     leagueWins: Number(ls?.wins ?? 0),
   };
@@ -323,7 +321,6 @@ interface UserScalarAggregates {
   lessonsMastered: number;
   longestStreak: number;
   lessonsTested: number;
-  highestLeagueTier: number;
   leaguePodiumFinishes: number;
   leagueWins: number;
 }
@@ -387,13 +384,6 @@ function resolveProgress(
   if (type === "lessons_tested") {
     return {
       currentProgress: aggregates.lessonsTested,
-      progressThreshold: threshold,
-    };
-  }
-
-  if (type === "league_tier_reached") {
-    return {
-      currentProgress: aggregates.highestLeagueTier,
       progressThreshold: threshold,
     };
   }

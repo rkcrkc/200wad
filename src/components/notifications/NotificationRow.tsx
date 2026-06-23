@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/helpers";
+import { NotificationIcon } from "./NotificationIcon";
 import {
   markAsRead,
   markAsUnread,
@@ -30,6 +31,9 @@ interface NotificationDataShape {
   // seeded templates that may have "info" / "warning" / "critical". Render
   // logic only treats "critical" specially — anything else is normal.
   severity?: "info" | "warning" | "critical" | string;
+  // Stable template key stamped at send time (e.g. "league.reward"); used to
+  // refine the row icon where one `type` spans several events.
+  template_key?: string;
 }
 
 export function NotificationRow({ notification, onAction }: NotificationRowProps) {
@@ -130,13 +134,22 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
     <div className="group/row relative flex gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <span
-            className={cn(
-              "line-clamp-2 text-foreground",
-              notification.is_read ? "text-small-regular" : "text-small-semibold"
-            )}
-          >
-            {notification.title}
+          <span className="flex min-w-0 items-start gap-1.5">
+            <NotificationIcon
+              type={notification.type}
+              templateKey={data?.template_key}
+              isRead={notification.is_read}
+            />
+            <span
+              className={cn(
+                "line-clamp-2 text-foreground",
+                notification.is_read
+                  ? "text-small-regular"
+                  : "text-small-semibold"
+              )}
+            >
+              {notification.title}
+            </span>
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
             <span className="text-xs text-muted-foreground">

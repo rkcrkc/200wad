@@ -342,12 +342,30 @@ export function createRtfResolver(rtfRoot: string): RtfResolver {
   // folder name → (normalised basename → absolute path)
   const folderIndexes = new Map<string, Map<string, string>>();
 
+  // Case-insensitive map of the actual top-level folder names under `rtfRoot`,
+  // so a requested `2RtfEng` resolves a disc folder named `2RTFEng`. Some discs
+  // (e.g. Spanish 2) mount case-sensitively with mixed RTF/Rtf casing; this is a
+  // no-op when the requested case already matches (French/Italian/Spanish 1).
+  let rootDirs: Map<string, string> | null = null;
+  function actualFolder(folder: string): string {
+    if (rootDirs === null) {
+      rootDirs = new Map();
+      if (fs.existsSync(rtfRoot)) {
+        for (const entry of fs.readdirSync(rtfRoot)) {
+          const key = entry.toLowerCase();
+          if (!rootDirs.has(key)) rootDirs.set(key, entry);
+        }
+      }
+    }
+    return rootDirs.get(folder.toLowerCase()) ?? folder;
+  }
+
   function indexFor(folder: string): Map<string, string> {
     const cached = folderIndexes.get(folder);
     if (cached) return cached;
 
     const index = new Map<string, string>();
-    const dir = path.join(rtfRoot, folder);
+    const dir = path.join(rtfRoot, actualFolder(folder));
     if (fs.existsSync(dir)) {
       for (const file of fs.readdirSync(dir)) {
         if (!file.toLowerCase().endsWith(".rtf")) continue;

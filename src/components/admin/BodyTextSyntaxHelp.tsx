@@ -13,6 +13,7 @@ type RowKey =
   | "feminine"
   | "neuter"
   | "mixed"
+  | "mascNeuter"
   | "highlight"
   | "heading"
   | "bullet"
@@ -42,6 +43,7 @@ const MULTI_GENDER_ROWS: RowDef[] = [
   { key: "feminine", label: "Feminine (red)", source: "{{f|text}}" },
   { key: "neuter", label: "Neuter (orange)", source: "{{n|text}}" },
   { key: "mixed", label: "Mixed (green)", source: "{{mf|text}}" },
+  { key: "mascNeuter", label: "Masc/neuter (purple)", source: "{{mn|text}}" },
 ];
 
 const WORD_HIGHLIGHT_ROW: RowDef = {
@@ -266,6 +268,10 @@ function Preview({ row }: { row: RowDef }) {
     case "mixed":
       return (
         <span style={{ color: genderColor.mf, fontWeight: 600 }}>text</span>
+      );
+    case "mascNeuter":
+      return (
+        <span style={{ color: genderColor.mn, fontWeight: 600 }}>text</span>
       );
     case "highlight":
       return (

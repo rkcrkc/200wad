@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil, X, ChevronDown as ChevronDownIcon } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   SortableList,
   SortableRow,
   DragHandle,
+  reorderById,
 } from "@/components/admin";
 import {
   createCourse,
@@ -26,6 +28,12 @@ import {
   reorderCourses,
 } from "@/lib/mutations/admin/courses";
 import {
+  createLanguage,
+  updateLanguage,
+  deleteLanguage,
+  reorderLanguages,
+} from "@/lib/mutations/admin/languages";
+import {
   publishLesson,
   unpublishLesson,
   reorderLessons,
@@ -34,11 +42,23 @@ import {
 } from "@/lib/mutations/admin/lessons";
 import { Switch } from "@/components/ui/switch";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import type { LanguageGreetings } from "@/types/database";
+
+interface CourseLanguage {
+  id: string;
+  name: string;
+  code: string;
+}
 
 interface Language {
   id: string;
   name: string;
+  native_name: string;
   code: string;
+  sort_order: number | null;
+  is_visible: boolean;
+  greetings: LanguageGreetings | null;
+  courseCount: number;
 }
 
 interface Course {
@@ -54,7 +74,7 @@ interface Course {
   word_count: number | null;
   sort_order: number | null;
   is_published: boolean | null;
-  language: Language | null;
+  language: CourseLanguage | null;
   lessonCount: number;
 }
 
@@ -98,6 +118,26 @@ interface InlineCourseForm {
   cefr_range: string;
 }
 
+interface LanguageFormData {
+  name: string;
+  native_name: string;
+  code: string;
+}
+
+interface LanguageFormErrors {
+  name?: string;
+  native_name?: string;
+  code?: string;
+}
+
+type LanguageTab = "published" | "unpublished" | "all";
+
+const emptyGreetings: LanguageGreetings = {
+  morning: { text: "", translation: "" },
+  afternoon: { text: "", translation: "" },
+  evening: { text: "", translation: "" },
+};
+
 export function CoursesClient({ languages, courses, lessons, initialCourseId }: CoursesClientProps) {
   const router = useRouter();
 
@@ -105,12 +145,16 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   // optimistically before router.refresh() repopulates props.
   const [orderedCourses, setOrderedCourses] = useState<Course[]>(courses);
   const [orderedLessons, setOrderedLessons] = useState<Lesson[]>(lessons);
+  const [orderedLanguages, setOrderedLanguages] = useState<Language[]>(languages);
   useEffect(() => {
     setOrderedCourses(courses);
   }, [courses]);
   useEffect(() => {
     setOrderedLessons(lessons);
   }, [lessons]);
+  useEffect(() => {
+    setOrderedLanguages(languages);
+  }, [languages]);
 
   // View mode state
   const [viewMode, setViewMode] = useState<"list" | "lessons">("list");
@@ -134,6 +178,27 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  // Language tab filter
+  const [languageTab, setLanguageTab] = useState<LanguageTab>("all");
+
+  // Language create/edit modal state
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [editingLanguage, setEditingLanguage] = useState<Language | null>(null);
+  const [languageForm, setLanguageForm] = useState<LanguageFormData>({
+    name: "",
+    native_name: "",
+    code: "",
+  });
+  const [languageErrors, setLanguageErrors] = useState<LanguageFormErrors>({});
+  const [greetingsData, setGreetingsData] = useState<LanguageGreetings>(emptyGreetings);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+
+  // Language delete + visibility-toggle modal state
+  const [isDeleteLanguageModalOpen, setIsDeleteLanguageModalOpen] = useState(false);
+  const [deletingLanguage, setDeletingLanguage] = useState<Language | null>(null);
+  const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
+  const [togglingLanguage, setTogglingLanguage] = useState<Language | null>(null);
+
   // Inline editing state for lessons view
   const [isEditingCourseDetails, setIsEditingCourseDetails] = useState(false);
   const [isSavingCourse, setIsSavingCourse] = useState(false);
@@ -154,6 +219,88 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   // Course publish toggle state
   const [isPublishCourseModalOpen, setIsPublishCourseModalOpen] = useState(false);
   const [courseToTogglePublish, setCourseToTogglePublish] = useState<Course | null>(null);
+
+  // Right-click quick menu state (list view)
+  const [mounted, setMounted] = useState(false);
+  const [menuState, setMenuState] = useState<{ x: number; y: number; course: Course } | null>(null);
+
+  // Quick "edit details" modal state (name + description)
+  const [editDetailsCourse, setEditDetailsCourse] = useState<Course | null>(null);
+  const [editDetailsForm, setEditDetailsForm] = useState<{ name: string; description: string }>({
+    name: "",
+    description: "",
+  });
+  const [isSavingEditDetails, setIsSavingEditDetails] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close the quick menu on outside click, Escape, scroll, or resize.
+  useEffect(() => {
+    if (!menuState) return;
+    const close = () => setMenuState(null);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuState(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", handleKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [menuState]);
+
+  const handleRowContextMenu = (e: React.MouseEvent, course: Course) => {
+    e.preventDefault();
+    // Clamp so the menu stays inside the viewport (menu ~200×80, 2 items).
+    const menuW = 200;
+    const menuH = 80;
+    const x = Math.min(e.clientX, window.innerWidth - menuW - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuH - 8);
+    setMenuState({ x, y, course });
+  };
+
+  const openEditDetailsModal = (course: Course) => {
+    setEditDetailsCourse(course);
+    setEditDetailsForm({ name: course.name, description: course.description || "" });
+  };
+
+  const handleSaveEditDetails = async () => {
+    if (!editDetailsCourse) return;
+    setIsSavingEditDetails(true);
+    try {
+      const name = editDetailsForm.name.trim();
+      const description = editDetailsForm.description.trim();
+      const result = await updateCourse(editDetailsCourse.id, {
+        name,
+        description: description || null,
+      });
+      if (!result.success) {
+        alert(result.error || "Failed to update course");
+        return;
+      }
+      // Reflect the change in the local mirror immediately.
+      setOrderedCourses((prev) =>
+        prev.map((c) =>
+          c.id === editDetailsCourse.id
+            ? { ...c, name, description: description || null }
+            : c
+        )
+      );
+      if (selectedCourse && selectedCourse.id === editDetailsCourse.id) {
+        setSelectedCourse({ ...selectedCourse, name, description: description || null });
+      }
+      setEditDetailsCourse(null);
+      router.refresh();
+    } finally {
+      setIsSavingEditDetails(false);
+    }
+  };
 
   // Handle lesson publish toggle
   const handleToggleLessonPublish = async (lesson: Lesson) => {
@@ -202,12 +349,13 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     }
   };
 
-  // Group courses by language
+  // Group courses by language. Every language is shown (even with no
+  // courses) so it can be managed here; the active tab filters by visibility.
   const coursesByLanguage = useMemo(() => {
     const grouped = new Map<string, { language: Language; courses: Course[] }>();
 
-    // First, add all languages (even those without courses)
-    languages.forEach((lang) => {
+    // Add all languages in sort order (the query already orders by sort_order).
+    orderedLanguages.forEach((lang) => {
       grouped.set(lang.id, { language: lang, courses: [] });
     });
 
@@ -223,8 +371,17 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
       group.courses.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     });
 
-    return Array.from(grouped.values()).filter((g) => g.courses.length > 0);
-  }, [orderedCourses, languages]);
+    return Array.from(grouped.values()).filter(({ language }) => {
+      if (languageTab === "published") return language.is_visible;
+      if (languageTab === "unpublished") return !language.is_visible;
+      return true;
+    });
+  }, [orderedCourses, orderedLanguages, languageTab]);
+
+  // Reordering languages is only enabled on the "All" tab. With a visibility
+  // filter active, newIds would omit hidden languages and reorderLanguages
+  // (which reindexes exactly the ids it receives) would corrupt their order.
+  const canReorderLanguages = languageTab === "all";
 
   // Initialize all languages as expanded on first load
   useEffect(() => {
@@ -263,6 +420,21 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
     if (!result.success) {
       setOrderedCourses(previous);
       alert(result.error || "Failed to reorder courses");
+      return;
+    }
+    router.refresh();
+  };
+
+  // Handle language reordering (drag-and-drop). The language loop renders in
+  // raw orderedLanguages array order, so reorder the array itself (not just
+  // patch sort_order) via reorderById.
+  const handleReorderLanguages = async (newIds: string[]) => {
+    const previous = orderedLanguages;
+    setOrderedLanguages(reorderById(orderedLanguages, newIds));
+    const result = await reorderLanguages(newIds);
+    if (!result.success) {
+      setOrderedLanguages(previous);
+      alert(result.error || "Failed to reorder languages");
       return;
     }
     router.refresh();
@@ -524,6 +696,143 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         setEditingCourse({ ...editingCourse, is_published: !course.is_published });
       }
       router.refresh();
+    }
+  };
+
+  // ==========================================================================
+  // Language management handlers
+  // ==========================================================================
+
+  const resetLanguageForm = () => {
+    setLanguageForm({ name: "", native_name: "", code: "" });
+    setGreetingsData(emptyGreetings);
+    setLanguageErrors({});
+    setEditingLanguage(null);
+  };
+
+  const openCreateLanguageModal = () => {
+    resetLanguageForm();
+    setIsLanguageModalOpen(true);
+  };
+
+  const openEditLanguageModal = (language: Language) => {
+    setEditingLanguage(language);
+    setLanguageForm({
+      name: language.name,
+      native_name: language.native_name,
+      code: language.code,
+    });
+    setGreetingsData(language.greetings ?? emptyGreetings);
+    setLanguageErrors({});
+    setIsLanguageModalOpen(true);
+  };
+
+  const validateLanguageForm = (): boolean => {
+    const newErrors: LanguageFormErrors = {};
+    if (!languageForm.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+    if (!languageForm.native_name.trim()) {
+      newErrors.native_name = "Native name is required";
+    }
+    if (!languageForm.code.trim()) {
+      newErrors.code = "Language code is required";
+    } else if (!/^[a-z]{2,3}$/.test(languageForm.code.toLowerCase())) {
+      newErrors.code = "Code must be 2-3 lowercase letters (ISO 639-1)";
+    }
+    setLanguageErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLanguageSubmit = async () => {
+    if (!validateLanguageForm()) return;
+
+    setIsSavingLanguage(true);
+    try {
+      const hasGreetings =
+        greetingsData.morning.text ||
+        greetingsData.afternoon.text ||
+        greetingsData.evening.text;
+      const payload = hasGreetings
+        ? { ...languageForm, greetings: greetingsData }
+        : languageForm;
+
+      if (editingLanguage) {
+        const result = await updateLanguage(editingLanguage.id, payload);
+        if (!result.success) {
+          setLanguageErrors({ name: result.error || "Failed to update language" });
+          return;
+        }
+      } else {
+        const result = await createLanguage(payload);
+        if (!result.success) {
+          setLanguageErrors({ name: result.error || "Failed to create language" });
+          return;
+        }
+      }
+
+      setIsLanguageModalOpen(false);
+      resetLanguageForm();
+      router.refresh();
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  };
+
+  const openDeleteLanguageModal = (language: Language) => {
+    setDeletingLanguage(language);
+    setIsDeleteLanguageModalOpen(true);
+  };
+
+  const handleDeleteLanguage = async () => {
+    if (!deletingLanguage) return;
+    setIsSavingLanguage(true);
+    try {
+      const result = await deleteLanguage(deletingLanguage.id);
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      setIsDeleteLanguageModalOpen(false);
+      // Also close the edit modal if the delete was triggered from within it.
+      setIsLanguageModalOpen(false);
+      setDeletingLanguage(null);
+      resetLanguageForm();
+      router.refresh();
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  };
+
+  const openVisibilityModal = (language: Language) => {
+    setTogglingLanguage(language);
+    setIsVisibilityModalOpen(true);
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!togglingLanguage) return;
+    setIsSavingLanguage(true);
+    try {
+      const result = await updateLanguage(togglingLanguage.id, {
+        is_visible: !togglingLanguage.is_visible,
+      });
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      // Reflect immediately in the local mirror.
+      setOrderedLanguages((prev) =>
+        prev.map((l) =>
+          l.id === togglingLanguage.id
+            ? { ...l, is_visible: !togglingLanguage.is_visible }
+            : l
+        )
+      );
+      setIsVisibilityModalOpen(false);
+      setTogglingLanguage(null);
+      router.refresh();
+    } finally {
+      setIsSavingLanguage(false);
     }
   };
 
@@ -878,37 +1187,83 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
           <p className="mt-1 text-gray-600">
-            Manage courses for each language.
+            Manage languages and their courses.
           </p>
         </div>
-        <Button onClick={openCreateModal} disabled={languages.length === 0}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Course
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openCreateLanguageModal}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Language
+          </Button>
+          <Button onClick={openCreateModal} disabled={languages.length === 0}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Course
+          </Button>
+        </div>
+      </div>
+
+      {/* Visibility tabs */}
+      <div className="mb-6 flex gap-1 border-b border-gray-200">
+        {(
+          [
+            { key: "all", label: "All" },
+            { key: "published", label: "Published" },
+            { key: "unpublished", label: "Unpublished" },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setLanguageTab(tab.key)}
+            className={`relative -mb-px px-4 py-2.5 text-sm font-medium transition-colors ${
+              languageTab === tab.key
+                ? "border-b-2 border-primary text-primary"
+                : "border-b-2 border-transparent text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Courses grouped by language */}
       {coursesByLanguage.length === 0 ? (
         <div className="rounded-xl bg-white px-6 py-12 text-center text-gray-500 shadow-card">
           {languages.length === 0
-            ? "Add a language first before creating courses."
-            : "No courses yet. Add your first course to get started."}
+            ? "No languages yet. Add your first language to get started."
+            : languageTab === "published"
+            ? "No published languages."
+            : languageTab === "unpublished"
+            ? "No unpublished languages."
+            : "No languages yet. Add your first language to get started."}
         </div>
       ) : (
         <div className="space-y-4">
+          <SortableList
+            ids={coursesByLanguage.map((g) => g.language.id)}
+            onReorder={handleReorderLanguages}
+          >
           {coursesByLanguage.map(({ language, courses: languageCourses }) => {
             const isExpanded = expandedLanguages.has(language.id);
             const totalLessons = languageCourses.reduce((sum, c) => sum + c.lessonCount, 0);
             const totalWords = languageCourses.reduce((sum, c) => sum + (c.word_count ?? 0), 0);
 
             return (
-              <div key={language.id} className="rounded-xl bg-white overflow-hidden shadow-card">
+              <SortableRow key={language.id} id={language.id}>
+                {({ setNodeRef, style, dragHandleProps, isDragging }) => (
+              <div
+                ref={setNodeRef as (node: HTMLDivElement | null) => void}
+                style={style}
+                className={`rounded-xl bg-white overflow-hidden shadow-card ${isDragging ? "shadow-lg" : ""}`}
+              >
                 {/* Accordion Header */}
-                <button
-                  onClick={() => toggleLanguage(language.id)}
-                  className="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                  {canReorderLanguages && (
+                    <DragHandle {...dragHandleProps} className="mr-1 shrink-0" />
+                  )}
+                  <button
+                    onClick={() => toggleLanguage(language.id)}
+                    className="flex flex-1 items-center gap-3 text-left"
+                  >
                     <span className="text-2xl">{getFlagFromCode(language.code)}</span>
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">{language.name}</h2>
@@ -916,13 +1271,33 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                         {languageCourses.length} course{languageCourses.length !== 1 ? "s" : ""} · {totalLessons.toLocaleString("en-US")} lessons · {totalWords.toLocaleString("en-US")} words
                       </p>
                     </div>
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={language.is_visible}
+                      onCheckedChange={() => openVisibilityModal(language)}
+                      aria-label={language.is_visible ? "Hide language" : "Show language"}
+                    />
+                    <button
+                      onClick={() => openEditLanguageModal(language)}
+                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      title="Edit language"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleLanguage(language.id)}
+                      className="rounded-lg p-1 text-gray-400 hover:text-gray-600"
+                      aria-label={isExpanded ? "Collapse" : "Expand"}
+                    >
+                      <ChevronDownIcon
+                        className={`h-5 w-5 transition-transform duration-200 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
                   </div>
-                  <ChevronDownIcon
-                    className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
-                      isExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+                </div>
 
                 {/* Accordion Content */}
                 {isExpanded && (
@@ -954,6 +1329,13 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-bone-hover">
+                        {languageCourses.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">
+                              No courses yet. Use “Add Course” to create one for {language.name}.
+                            </td>
+                          </tr>
+                        )}
                         <SortableList
                           ids={languageCourses.map((c) => c.id)}
                           onReorder={(newIds) => handleReorderCourses(language.id, newIds)}
@@ -965,6 +1347,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                                   ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
                                   style={style}
                                   onClick={() => selectCourse(course)}
+                                  onContextMenu={(e) => handleRowContextMenu(e, course)}
                                   className={`cursor-pointer ${isDragging ? "bg-white shadow-lg" : "hover:bg-gray-50"}`}
                                 >
                                   <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
@@ -1008,10 +1391,109 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                   </div>
                 )}
               </div>
+                )}
+              </SortableRow>
             );
           })}
+          </SortableList>
         </div>
       )}
+
+      {/* Right-click quick menu (portal so the table doesn't clip it) */}
+      {mounted && menuState
+        ? createPortal(
+            <div
+              role="menu"
+              style={{ position: "fixed", top: menuState.y, left: menuState.x }}
+              className="z-[60] min-w-[200px] overflow-hidden rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5"
+              onMouseDown={(e) => e.stopPropagation()}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const course = menuState.course;
+                  setMenuState(null);
+                  handleTogglePublish(course);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+              >
+                {menuState.course.is_published ? (
+                  <>
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    Unpublish
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 text-gray-400" />
+                    Publish
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const course = menuState.course;
+                  setMenuState(null);
+                  openEditDetailsModal(course);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Pencil className="h-4 w-4 text-gray-400" />
+                Edit details
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {/* Quick edit details modal (name + description) */}
+      <AdminModal
+        isOpen={editDetailsCourse !== null}
+        onClose={() => setEditDetailsCourse(null)}
+        title="Edit course details"
+        description="Update the course name and description."
+        footer={
+          <div className="flex w-full items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditDetailsCourse(null)}
+              disabled={isSavingEditDetails}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEditDetails}
+              disabled={isSavingEditDetails || editDetailsForm.name.trim() === ""}
+            >
+              {isSavingEditDetails ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <AdminFormField label="Name" name="edit-details-name" required>
+            <AdminInput
+              value={editDetailsForm.name}
+              onChange={(e) =>
+                setEditDetailsForm({ ...editDetailsForm, name: e.target.value })
+              }
+              placeholder="Course name"
+            />
+          </AdminFormField>
+          <AdminFormField label="Description" name="edit-details-description">
+            <AdminTextarea
+              value={editDetailsForm.description}
+              onChange={(e) =>
+                setEditDetailsForm({ ...editDetailsForm, description: e.target.value })
+              }
+              placeholder="Course description"
+            />
+          </AdminFormField>
+        </div>
+      </AdminModal>
 
       {/* Create Modal */}
       <AdminModal
@@ -1166,6 +1648,194 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
         confirmLabel="Delete"
         confirmVariant="destructive"
         isLoading={isLoading}
+      />
+
+      {/* Language Create/Edit Modal */}
+      <AdminModal
+        isOpen={isLanguageModalOpen}
+        onClose={() => {
+          setIsLanguageModalOpen(false);
+          resetLanguageForm();
+        }}
+        size="lg"
+        title={editingLanguage ? "Edit Language" : "Add Language"}
+        description={
+          editingLanguage
+            ? "Update the language details."
+            : "Add a new language for courses."
+        }
+        footer={
+          <div className="flex w-full items-center justify-between gap-2">
+            <div>
+              {editingLanguage && (
+                <Button
+                  variant="destructive"
+                  onClick={() => openDeleteLanguageModal(editingLanguage)}
+                  disabled={isSavingLanguage}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsLanguageModalOpen(false);
+                  resetLanguageForm();
+                }}
+                disabled={isSavingLanguage}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleLanguageSubmit} disabled={isSavingLanguage}>
+                {isSavingLanguage
+                  ? "Saving..."
+                  : editingLanguage
+                  ? "Save Changes"
+                  : "Add Language"}
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <AdminFormField label="Name" name="lang-name" required error={languageErrors.name}>
+            <AdminInput
+              id="lang-name"
+              name="lang-name"
+              value={languageForm.name}
+              onChange={(e) =>
+                setLanguageForm({ ...languageForm, name: e.target.value })
+              }
+              placeholder="e.g., Italian"
+              error={!!languageErrors.name}
+            />
+          </AdminFormField>
+
+          <AdminFormField
+            label="Native Name"
+            name="lang-native-name"
+            required
+            error={languageErrors.native_name}
+          >
+            <AdminInput
+              id="lang-native-name"
+              name="lang-native-name"
+              value={languageForm.native_name}
+              onChange={(e) =>
+                setLanguageForm({ ...languageForm, native_name: e.target.value })
+              }
+              placeholder="e.g., Italiano"
+              error={!!languageErrors.native_name}
+            />
+          </AdminFormField>
+
+          <AdminFormField
+            label="Language Code (ISO 639-1)"
+            name="lang-code"
+            required
+            error={languageErrors.code}
+            hint="2-3 letter code like 'it', 'es', 'fr', 'de', 'zh'"
+          >
+            <div className="flex items-center gap-3">
+              <AdminInput
+                id="lang-code"
+                name="lang-code"
+                value={languageForm.code}
+                onChange={(e) =>
+                  setLanguageForm({ ...languageForm, code: e.target.value.toLowerCase() })
+                }
+                placeholder="e.g., it"
+                error={!!languageErrors.code}
+                className="w-24"
+              />
+              {languageForm.code && (
+                <span className="text-2xl" title="Flag preview">
+                  {getFlagFromCode(languageForm.code)}
+                </span>
+              )}
+            </div>
+          </AdminFormField>
+
+          {/* Greetings section */}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="mb-3 text-sm font-medium text-gray-700">
+              Schedule Page Greetings
+            </p>
+            <div className="space-y-3">
+              {(["morning", "afternoon", "evening"] as const).map((time) => (
+                <div key={time} className="grid grid-cols-[100px_1fr_1fr] items-center gap-2">
+                  <span className="text-xs font-medium capitalize text-gray-500">
+                    {time}
+                  </span>
+                  <AdminInput
+                    id={`greeting-${time}`}
+                    name={`greeting-${time}`}
+                    value={greetingsData[time].text}
+                    onChange={(e) =>
+                      setGreetingsData({
+                        ...greetingsData,
+                        [time]: { ...greetingsData[time], text: e.target.value },
+                      })
+                    }
+                    placeholder={`e.g., ${time === "morning" ? "Buongiorno" : time === "afternoon" ? "Buon pomeriggio" : "Buonasera"}`}
+                  />
+                  <AdminInput
+                    id={`translation-${time}`}
+                    name={`translation-${time}`}
+                    value={greetingsData[time].translation}
+                    onChange={(e) =>
+                      setGreetingsData({
+                        ...greetingsData,
+                        [time]: { ...greetingsData[time], translation: e.target.value },
+                      })
+                    }
+                    placeholder={`English: Good ${time}`}
+                  />
+                </div>
+              ))}
+              <p className="text-xs text-gray-400">
+                Left: greeting in target language. Right: English translation (shown on hover).
+              </p>
+            </div>
+          </div>
+        </div>
+      </AdminModal>
+
+      {/* Delete Language Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteLanguageModalOpen}
+        onClose={() => {
+          setIsDeleteLanguageModalOpen(false);
+          setDeletingLanguage(null);
+        }}
+        onConfirm={handleDeleteLanguage}
+        title="Delete Language"
+        message={`Are you sure you want to delete "${deletingLanguage?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        isLoading={isSavingLanguage}
+      />
+
+      {/* Language Visibility Toggle Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isVisibilityModalOpen}
+        onClose={() => {
+          setIsVisibilityModalOpen(false);
+          setTogglingLanguage(null);
+        }}
+        onConfirm={handleToggleVisibility}
+        title={togglingLanguage?.is_visible ? "Hide Language" : "Show Language"}
+        message={
+          togglingLanguage?.is_visible
+            ? `Are you sure you want to hide "${togglingLanguage?.name}"? It will no longer be visible to users.`
+            : `Are you sure you want to show "${togglingLanguage?.name}"? It will become visible to users.`
+        }
+        confirmLabel={togglingLanguage?.is_visible ? "Hide" : "Show"}
+        confirmVariant={togglingLanguage?.is_visible ? "destructive" : "default"}
+        isLoading={isSavingLanguage}
       />
     </div>
   );

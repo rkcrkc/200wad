@@ -55,7 +55,7 @@ export async function createLanguage(
       return { success: false, id: null, error: error.message };
     }
 
-    revalidatePath("/admin/languages");
+    revalidatePath("/admin/courses");
     revalidatePath("/dashboard");
 
     return { success: true, id: data.id, error: null };
@@ -93,7 +93,7 @@ export async function updateLanguage(
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/admin/languages");
+    revalidatePath("/admin/courses");
     revalidatePath("/dashboard");
     revalidatePath("/schedule");
 
@@ -134,7 +134,7 @@ export async function deleteLanguage(id: string): Promise<MutationResult> {
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/admin/languages");
+    revalidatePath("/admin/courses");
     revalidatePath("/dashboard");
 
     return { success: true, error: null };
@@ -169,7 +169,7 @@ export async function reorderLanguages(
       return { success: false, error: firstError.error.message };
     }
 
-    revalidatePath("/admin/languages");
+    revalidatePath("/admin/courses");
 
     return { success: true, error: null };
   } catch (err) {

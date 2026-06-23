@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Globe,
   BookOpen,
   GraduationCap,
   Type,
@@ -32,7 +31,6 @@ interface NavItem {
 const navSections: NavItem[][] = [
   // Section 1: Content structure
   [
-    { label: "Languages", href: "/admin/languages", icon: <Globe className="h-5 w-5" /> },
     { label: "Courses", href: "/admin/courses", icon: <BookOpen className="h-5 w-5" /> },
     { label: "Lessons", href: "/admin/lessons", icon: <GraduationCap className="h-5 w-5" /> },
     { label: "Words", href: "/admin/words", icon: <Type className="h-5 w-5" /> },

@@ -1,7 +1,6 @@
 import { BackButton } from "@/components/ui/back-button";
 import { getCourses } from "@/lib/queries";
 import { CourseCard } from "@/components/CourseCard";
-import { SetCourseContext } from "@/components/SetCourseContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { UnlockBundlePromo } from "@/components/UnlockBundlePromo";
@@ -48,7 +47,6 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
   const languageFlag = getFlagFromCode(language.code);
 
   return (
-    <SetCourseContext languageId={languageId} languageFlag={languageFlag} languageName={language.name}>
     <PageContainer size="sm">
       {/* Back Button */}
       <BackButton href="/dashboard?pick=true" label="All Languages" />
@@ -102,6 +100,5 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
         />
       )}
     </PageContainer>
-    </SetCourseContext>
   );
 }

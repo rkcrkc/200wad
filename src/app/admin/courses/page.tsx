@@ -1,13 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { CoursesClient } from "./CoursesClient";
+import type { LanguageGreetings } from "@/types/database";
 
 async function getData() {
   const supabase = await createClient();
 
-  // Fetch languages for the filter dropdown
+  // Fetch languages (full row + course count) for management on this page
   const { data: languages } = await supabase
     .from("languages")
-    .select("id, name, code")
+    .select(`
+      id,
+      name,
+      native_name,
+      code,
+      sort_order,
+      is_visible,
+      greetings,
+      courses:courses(count)
+    `)
     .order("sort_order", { ascending: true });
 
   // Fetch all courses with language info and lesson count
@@ -36,9 +46,21 @@ async function getData() {
     `)
     .order("sort_order", { ascending: true });
 
+  // Transform languages: cast greetings and flatten course count
+  const transformedLanguages = (languages || []).map((lang) => {
+    const { courses: courseCountRows, ...rest } = lang as typeof lang & {
+      courses: { count: number }[];
+    };
+    return {
+      ...rest,
+      greetings: rest.greetings as LanguageGreetings | null,
+      courseCount: courseCountRows?.[0]?.count || 0,
+    };
+  });
+
   if (error) {
     console.error("Error fetching courses:", error);
-    return { languages: languages || [], courses: [], lessons: [] };
+    return { languages: transformedLanguages, courses: [], lessons: [] };
   }
 
   // Transform the data
@@ -49,7 +71,7 @@ async function getData() {
   }));
 
   return {
-    languages: languages || [],
+    languages: transformedLanguages,
     courses: transformedCourses,
     lessons: lessons || [],
   };

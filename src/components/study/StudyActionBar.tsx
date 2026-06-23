@@ -347,7 +347,7 @@ export function StudyActionBar({
   const canRevealClue = isTestMode && clueLevel < 2 && !hasSubmittedAnswer;
 
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
-  const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
+  const genderAbbrev = gender && ["m", "f", "n", "mf", "mn"].includes(gender) ? gender : "";
   // In test mode, hide gender until answer submitted (same as foreign word)
   const showGender = !isTestMode || hasSubmittedAnswer;
   // Show POS abbreviation for words; show category name for facts/phrases/sentences/information
@@ -359,7 +359,7 @@ export function StudyActionBar({
   const posDisplay = label && genderAbbrev && showGender && category === "word"
     ? `${label} ${genderAbbrev}`
     : label;
-  const fullGenderName = gender === "m" ? "masculine" : gender === "f" ? "feminine" : gender === "n" ? "neuter" : gender === "mf" ? "mixed" : null;
+  const fullGenderName = gender === "m" ? "masculine" : gender === "f" ? "feminine" : gender === "n" ? "neuter" : gender === "mf" ? "mixed" : gender === "mn" ? "masculine/neuter" : null;
   const isNoun = partOfSpeech?.toLowerCase().includes("noun");
   const posTooltipLabel = category === "word"
     ? posAbbrev

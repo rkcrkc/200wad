@@ -154,7 +154,7 @@ export function WordDetailActionBar({
   }, [isWordListOpen, isMoreMenuOpen]);
 
   const posAbbrev = abbreviatePartOfSpeech(partOfSpeech);
-  const genderAbbrev = gender && ["m", "f", "n", "mf"].includes(gender) ? gender : "";
+  const genderAbbrev = gender && ["m", "f", "n", "mf", "mn"].includes(gender) ? gender : "";
   // Show POS abbreviation for words; show category name for facts/phrases/sentences/information
   const label = category === "word"
     ? posAbbrev

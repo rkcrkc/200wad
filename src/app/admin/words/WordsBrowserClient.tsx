@@ -353,7 +353,7 @@ export function WordsBrowserClient({
                       <span className="capitalize">{word.part_of_speech || "-"}</span>
                       {word.gender && (
                         <span className="text-xs text-gray-400">
-                          {word.gender === "m" ? "masc" : word.gender === "f" ? "fem" : word.gender === "n" ? "neut" : "m/f"}
+                          {word.gender === "m" ? "masc" : word.gender === "f" ? "fem" : word.gender === "n" ? "neut" : word.gender === "mn" ? "m/n" : "m/f"}
                         </span>
                       )}
                     </div>

@@ -54,6 +54,7 @@ const TAG_COLORS: Record<string, string> = {
   f: genderColor.f,
   n: genderColor.n,
   mf: genderColor.mf,
+  mn: genderColor.mn,
 };
 
 function getHighlight(gender?: string | null): string {

@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
       label: "Languages",
       count: stats.languages,
       icon: <Globe className="h-6 w-6" />,
-      href: "/admin/languages",
+      href: "/admin/courses",
       description: "Manage available languages",
     },
     {
@@ -110,13 +110,6 @@ export default async function AdminDashboard() {
       <div className="mt-12">
         <h2 className="mb-4 text-xl font-semibold text-gray-900">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link
-            href="/admin/languages"
-            className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-card hover:shadow-md"
-          >
-            <Globe className="h-5 w-5 text-primary" />
-            <span className="font-medium">Add a new language</span>
-          </Link>
           <Link
             href="/admin/courses"
             className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-card hover:shadow-md"

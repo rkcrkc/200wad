@@ -130,6 +130,11 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
   const lessonsCompletedByCourse: Record<string, number> = {};
   const wordsMasteredByCourse: Record<string, number> = {};
   const wordsStudiedByCourse: Record<string, number> = {};
+  // Distinct, non-information word count per course — the denominator the
+  // header's getCourseProgress uses. Kept separate from actualWordCount (which
+  // is the stored lessons.word_count sum shown as "X words") so the dropdown
+  // percentage matches the header bar instead of dividing by a larger total.
+  const progressWordCountByCourse: Record<string, number> = {};
 
   if (user && lessons && lessons.length > 0) {
     const lessonIds = lessons.map((l) => l.id);
@@ -229,6 +234,7 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       }
       wordsMasteredByCourse[courseId] = mastered;
       wordsStudiedByCourse[courseId] = studied;
+      progressWordCountByCourse[courseId] = wordSet.size;
     }
   }
 
@@ -240,16 +246,19 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       const actualWordCount = wordCountByCourse[course.id] || 0;
       const wordsMastered = wordsMasteredByCourse[course.id] || 0;
       const wordsStudied = wordsStudiedByCourse[course.id] || 0;
+      // Denominator for progress: distinct, non-information words — matches the
+      // header bar's getCourseProgress so the two never disagree.
+      const progressWordCount = progressWordCountByCourse[course.id] || 0;
 
       // Course progress is always word-based: wordsMastered / totalWords
       const progressPercent =
-        actualWordCount > 0
-          ? Math.round((wordsMastered / actualWordCount) * 100)
+        progressWordCount > 0
+          ? Math.round((wordsMastered / progressWordCount) * 100)
           : 0;
 
       // Status derived from word progress to stay consistent with the percentage
       const status: "not-started" | "learning" | "mastered" =
-        actualWordCount > 0 && wordsMastered >= actualWordCount
+        progressWordCount > 0 && wordsMastered >= progressWordCount
           ? "mastered"
           : wordsStudied > 0
             ? "learning"
