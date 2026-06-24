@@ -2,6 +2,7 @@
 
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
+import { AudioUploadButton } from "./AudioUploadButton";
 import { EditableText, EditableArrayField } from "@/components/admin";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 
@@ -26,6 +27,10 @@ interface WordCardProps {
   isEditMode?: boolean;
   onFieldSave?: (field: string, value: string) => Promise<boolean>;
   onArrayFieldSave?: (field: string, value: string[]) => Promise<boolean>;
+  /** Admin edit mode: replace the English audio file. */
+  onUploadEnglishAudio?: (file: File) => Promise<boolean>;
+  /** Admin edit mode: replace the foreign audio file. */
+  onUploadForeignAudio?: (file: File) => Promise<boolean>;
   alternateAnswers?: string[];
   alternateEnglishAnswers?: string[];
 }
@@ -45,6 +50,8 @@ export function WordCard({
   isEditMode = false,
   onFieldSave,
   onArrayFieldSave,
+  onUploadEnglishAudio,
+  onUploadForeignAudio,
   alternateAnswers = [],
   alternateEnglishAnswers = [],
 }: WordCardProps) {
@@ -80,7 +87,11 @@ export function WordCard({
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
             className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingEnglish} playingColor={englishDarkColor} />
+            {isEditMode && onUploadEnglishAudio ? (
+              <AudioUploadButton onUpload={onUploadEnglishAudio} />
+            ) : (
+              <AudioButton isPlaying={isPlayingEnglish} playingColor={englishDarkColor} />
+            )}
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={englishWord}
@@ -123,7 +134,11 @@ export function WordCard({
             onClick={isEditMode ? undefined : onPlayForeignAudio}
             className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
           >
-            <AudioButton isPlaying={isPlayingForeign} playingColor={darkColor} />
+            {isEditMode && onUploadForeignAudio ? (
+              <AudioUploadButton onUpload={onUploadForeignAudio} />
+            ) : (
+              <AudioButton isPlaying={isPlayingForeign} playingColor={darkColor} />
+            )}
             {isEditMode && wordId && onFieldSave ? (
               <EditableText
                 value={foreignWord}

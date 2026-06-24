@@ -16,6 +16,7 @@ import type { User } from "@supabase/supabase-js";
 interface UserContextType {
   user: User | null;
   avatarUrl: string | null;
+  displayName: string | null;
   isLoading: boolean;
   isGuest: boolean;
   isAdmin: boolean;
@@ -36,15 +37,21 @@ interface UserProviderProps {
   initialUser?: User | null;
   /** Server-prefetched avatar_url, paired with `initialUser`. */
   initialAvatarUrl?: string | null;
+  /** Server-prefetched profile name, paired with `initialUser`. */
+  initialDisplayName?: string | null;
 }
 
 export function UserProvider({
   children,
   initialUser = null,
   initialAvatarUrl = null,
+  initialDisplayName = null,
 }: UserProviderProps) {
   const [user, setUser] = useState<User | null>(initialUser);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
+  const [displayName, setDisplayName] = useState<string | null>(
+    initialDisplayName
+  );
   // We have the user from the server, so we're never in an indeterminate
   // loading state on first paint. The Header skeleton path becomes dead code
   // for hydrated routes, which is the desired UX.
@@ -63,10 +70,11 @@ export function UserProvider({
       lastFetchedUserIdRef.current = userId;
       const { data } = await supabase
         .from("users")
-        .select("avatar_url")
+        .select("avatar_url, name")
         .eq("id", userId)
         .single();
       setAvatarUrl(data?.avatar_url ?? null);
+      setDisplayName(data?.name ?? null);
     },
     [supabase]
   );
@@ -83,6 +91,7 @@ export function UserProvider({
     } else {
       lastFetchedUserIdRef.current = null;
       setAvatarUrl(null);
+      setDisplayName(null);
     }
   }, [supabase.auth, fetchProfile]);
 
@@ -102,6 +111,7 @@ export function UserProvider({
       } else {
         lastFetchedUserIdRef.current = null;
         setAvatarUrl(null);
+        setDisplayName(null);
       }
       setIsLoading(false);
     });
@@ -142,12 +152,14 @@ export function UserProvider({
     await supabase.auth.signOut();
     setUser(null);
     setAvatarUrl(null);
+    setDisplayName(null);
     lastFetchedUserIdRef.current = null;
   }, [supabase.auth]);
 
   const value: UserContextType = {
     user,
     avatarUrl,
+    displayName,
     isLoading,
     isGuest: !user,
     isAdmin: user?.user_metadata?.role === "admin",

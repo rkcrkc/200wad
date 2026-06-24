@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { getUserSettings } from "@/lib/queries/settings";
 import { getUserLevel } from "@/lib/queries/levels";
 import {
@@ -50,7 +51,15 @@ export default async function ProfilePage() {
 
   return (
     <PageContainer size="sm">
-      <h1 className="mb-8 text-3xl font-semibold">Profile</h1>
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-semibold">Profile</h1>
+        <form action="/auth/logout" method="post">
+          <Button type="submit" variant="outline">
+            <LogOut className="h-4 w-4" />
+            Log out
+          </Button>
+        </form>
+      </div>
 
       <ProfileSection settings={settings} />
 

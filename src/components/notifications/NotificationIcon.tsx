@@ -8,31 +8,26 @@ import {
   CreditCard,
   Flame,
   Info,
-  Medal,
   RotateCcw,
   Shield,
   Target,
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { Podium } from "@/components/ui/podium-icon";
 import { cn } from "@/lib/utils";
 
 interface NotificationIconProps {
   type: string;
-  templateKey?: string | null;
   isRead?: boolean | null;
 }
 
 /**
  * Small icon shown inline before a notification's title, picked from the
- * notification's `type` (refined by `template_key` where one type spans several
- * events). Muted grey by default; dimmed further once the notification is read.
+ * notification's `type`. Muted grey by default; dimmed further once the
+ * notification is read.
  */
-export function NotificationIcon({
-  type,
-  templateKey,
-  isRead,
-}: NotificationIconProps) {
+export function NotificationIcon({ type, isRead }: NotificationIconProps) {
   const className = cn(
     "mt-0.5 h-3.5 w-3.5 shrink-0",
     isRead ? "text-gray-300" : "text-muted-foreground"
@@ -50,11 +45,7 @@ export function NotificationIcon({
     case "level":
       return <ChevronsUp className={className} aria-hidden="true" />;
     case "league":
-      return templateKey === "league.reward" ? (
-        <Coins className={className} aria-hidden="true" />
-      ) : (
-        <Medal className={className} aria-hidden="true" />
-      );
+      return <Podium className={className} aria-hidden="true" />;
     case "coins":
       return <Coins className={className} aria-hidden="true" />;
     case "wordprogress":

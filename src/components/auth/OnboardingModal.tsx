@@ -114,6 +114,14 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       return;
     }
 
+    // Already-registered email: Supabase returns a fake success with no identities
+    // and sends no email, so don't show "check your inbox" — the link never arrives.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError("An account with this email already exists. Try signing in instead.");
+      setLoading(false);
+      return;
+    }
+
     // Mark this browser as a fresh signup so the schedule page can auto-open the upgrade modal.
     // Survives the auth/callback round-trip on the email-verification path (same device).
     localStorage.setItem("just_signed_up", "1");

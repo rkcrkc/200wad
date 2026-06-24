@@ -30,14 +30,16 @@ export function AudioButton({
     />
   );
 
-  // If onClick is provided, wrap in button; otherwise just render the icon
+  // If onClick is provided, wrap in button; otherwise just render the icon.
+  // `word-audio-icon` lets the "Hide word audio icons" preference hide it via
+  // a body class without affecting the surrounding click-to-play text.
   if (onClick) {
     return (
-      <button onClick={onClick} className="shrink-0">
+      <button onClick={onClick} className="word-audio-icon shrink-0">
         {icon}
       </button>
     );
   }
 
-  return <span className="shrink-0">{icon}</span>;
+  return <span className="word-audio-icon shrink-0">{icon}</span>;
 }

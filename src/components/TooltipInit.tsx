@@ -13,6 +13,11 @@ export function TooltipInit() {
     if (storedRelated === "false") {
       document.body.classList.add("hide-related-words");
     }
+
+    const storedAudioIcons = localStorage.getItem("hide-audio-icons");
+    if (storedAudioIcons === "true") {
+      document.body.classList.add("hide-audio-icons");
+    }
   }, []);
 
   return null;

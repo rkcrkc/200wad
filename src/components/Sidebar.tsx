@@ -12,7 +12,6 @@ import {
   Trophy,
   Flame,
   Lock,
-  Coins,
   ShoppingBag,
   Settings,
   HelpCircle,
@@ -41,7 +40,6 @@ const getSecondaryNavItems = () => [
 ];
 
 const bottomNavItems = [
-  { path: "/referrals", icon: Coins, label: "Credits" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 

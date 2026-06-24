@@ -9,6 +9,7 @@ import { DailyGoalEditor } from "@/components/header/DailyGoalEditor";
 
 const TOOLTIPS_KEY = "show-tooltips";
 const RELATED_WORDS_KEY = "show-related-words";
+const HIDE_AUDIO_ICONS_KEY = "hide-audio-icons";
 
 interface PreferencesSectionProps {
   /** Current `users.daily_xp_goal` — used to seed the inline editor. */
@@ -21,6 +22,12 @@ function readPref(key: string): boolean {
   return localStorage.getItem(key) !== "false";
 }
 
+/** SSR-safe read of an opt-in "hide" preference (absent / "false" → off). */
+function readHidePref(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(key) === "true";
+}
+
 export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   // `mounted` gates the first client render to null so the localStorage-seeded
   // toggles can't cause a hydration mismatch against the server HTML.
@@ -30,6 +37,9 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   // effect when the user presses "Save changes".
   const [draftTooltips, setDraftTooltips] = useState(() => readPref(TOOLTIPS_KEY));
   const [draftRelated, setDraftRelated] = useState(() => readPref(RELATED_WORDS_KEY));
+  const [draftHideAudioIcons, setDraftHideAudioIcons] = useState(() =>
+    readHidePref(HIDE_AUDIO_ICONS_KEY)
+  );
   const [draftGoal, setDraftGoal] = useState(dailyXpGoal);
   const [goalValid, setGoalValid] = useState(true);
 
@@ -40,6 +50,9 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   // Saved baselines (what's currently persisted), used for dirty detection.
   const [savedTooltips, setSavedTooltips] = useState(() => readPref(TOOLTIPS_KEY));
   const [savedRelated, setSavedRelated] = useState(() => readPref(RELATED_WORDS_KEY));
+  const [savedHideAudioIcons, setSavedHideAudioIcons] = useState(() =>
+    readHidePref(HIDE_AUDIO_ICONS_KEY)
+  );
   const [savedGoal, setSavedGoal] = useState(dailyXpGoal);
 
   const [isSaving, startSaving] = useTransition();
@@ -67,6 +80,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   const dirty =
     draftTooltips !== savedTooltips ||
     draftRelated !== savedRelated ||
+    draftHideAudioIcons !== savedHideAudioIcons ||
     draftGoal !== savedGoal;
 
   const canSave = mounted && dirty && goalValid && !isSaving;
@@ -86,12 +100,15 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
       // Persist the local toggles and apply them live to the document.
       localStorage.setItem(TOOLTIPS_KEY, String(draftTooltips));
       localStorage.setItem(RELATED_WORDS_KEY, String(draftRelated));
+      localStorage.setItem(HIDE_AUDIO_ICONS_KEY, String(draftHideAudioIcons));
       document.body.classList.toggle("hide-tooltips", !draftTooltips);
       document.body.classList.toggle("hide-related-words", !draftRelated);
+      document.body.classList.toggle("hide-audio-icons", draftHideAudioIcons);
 
       // Advance the baselines so the form is no longer dirty.
       setSavedTooltips(draftTooltips);
       setSavedRelated(draftRelated);
+      setSavedHideAudioIcons(draftHideAudioIcons);
       setSavedGoal(draftGoal);
       setSavedDone(true);
     });
@@ -100,6 +117,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   const handleCancel = () => {
     setDraftTooltips(savedTooltips);
     setDraftRelated(savedRelated);
+    setDraftHideAudioIcons(savedHideAudioIcons);
     setDraftGoal(savedGoal);
     setGoalValid(true);
     setSaveError(null);
@@ -122,7 +140,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
 
   return (
     <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex min-h-10 items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Preferences</h2>
         <div className="flex items-center gap-3">
           {saveError && (
@@ -132,24 +150,24 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
             <span className="text-small-regular text-muted-foreground">Saved</span>
           )}
           {dirty && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave}
+              >
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </>
           )}
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSave}
-            disabled={!canSave}
-          >
-            {isSaving ? "Saving…" : "Save changes"}
-          </Button>
         </div>
       </div>
 
@@ -173,14 +191,14 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Show hover descriptions</h3>
+          <h3 className="font-medium">Hide hover descriptions</h3>
           <p className="text-sm text-gray-600">
-            Display tooltip labels when hovering over action bar buttons
+            Hide the tooltip labels that appear when hovering over action bar buttons
           </p>
         </div>
         <Switch
-          checked={draftTooltips}
-          onCheckedChange={setDraftTooltips}
+          checked={!draftTooltips}
+          onCheckedChange={(hide) => setDraftTooltips(!hide)}
         />
       </div>
 
@@ -188,14 +206,29 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Show related words</h3>
+          <h3 className="font-medium">Hide related words</h3>
           <p className="text-sm text-gray-600">
-            Display the related words card in study and test mode
+            Hide the related words card in study and test mode
           </p>
         </div>
         <Switch
-          checked={draftRelated}
-          onCheckedChange={setDraftRelated}
+          checked={!draftRelated}
+          onCheckedChange={(hide) => setDraftRelated(!hide)}
+        />
+      </div>
+
+      <div className="my-4 h-px bg-gray-200" />
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Hide word audio icons</h3>
+          <p className="text-sm text-gray-600">
+            Hide the speaker icons next to words and memory triggers. Tapping the word still plays its audio.
+          </p>
+        </div>
+        <Switch
+          checked={draftHideAudioIcons}
+          onCheckedChange={setDraftHideAudioIcons}
         />
       </div>
 
@@ -210,7 +243,6 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
         </div>
         <Button
           variant="outline"
-          size="sm"
           onClick={handleResetTips}
           disabled={isResettingTips}
         >

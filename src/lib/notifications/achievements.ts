@@ -220,9 +220,16 @@ export async function recordProgressAchievements(
     // from the catalogue.
     const { data: coinRows } = await supabase
       .from("achievements")
-      .select("slug, coin_reward");
+      .select("slug, title, coin_reward");
     const coinBySlug = new Map<string, number>(
       (coinRows ?? []).map((r) => [r.slug, r.coin_reward ?? 0])
+    );
+    // Trophy display name, powering the `{title} unlocked!` notification title.
+    // The SQL unlock path substitutes this itself; the TS-fired templates below
+    // need it passed explicitly. Keyed by slug so copy never drifts from the
+    // catalogue.
+    const titleBySlug = new Map<string, string>(
+      (coinRows ?? []).map((r) => [r.slug, r.title ?? ""])
     );
 
     // First-time achievements. Each fires its notification (idempotent on the
@@ -233,18 +240,21 @@ export async function recordProgressAchievements(
     if (learnedWords >= 1) {
       await fireFirstTimeNotification(userId, "achievement.first_word_learned", {
         coins: coinBySlug.get("first_word_learned"),
+        title: titleBySlug.get("first_word_learned"),
       });
       await creditAchievement(supabase, userId, "first_word_learned");
     }
     if (masteredWords >= 1) {
       await fireFirstTimeNotification(userId, "achievement.first_word_mastered", {
         coins: coinBySlug.get("first_word_mastered"),
+        title: titleBySlug.get("first_word_mastered"),
       });
       await creditAchievement(supabase, userId, "first_word_mastered");
     }
     if (masteredLessons >= 1) {
       await fireFirstTimeNotification(userId, "achievement.first_lesson_complete", {
         coins: coinBySlug.get("first_lesson_mastered"),
+        title: titleBySlug.get("first_lesson_mastered"),
       });
       await creditAchievement(supabase, userId, "first_lesson_mastered");
     }
@@ -255,6 +265,7 @@ export async function recordProgressAchievements(
     ) {
       await fireFirstTimeNotification(userId, "achievement.first_perfect_test", {
         coins: coinBySlug.get("first_perfect_test"),
+        title: titleBySlug.get("first_perfect_test"),
       });
       await creditAchievement(supabase, userId, "first_perfect_test");
     }
@@ -272,7 +283,10 @@ export async function recordProgressAchievements(
         userId,
         "achievement.words_mastered_milestone",
         wordsMilestone,
-        { coins: coinBySlug.get(`words_mastered_${wordsMilestone}`) }
+        {
+          coins: coinBySlug.get(`words_mastered_${wordsMilestone}`),
+          title: titleBySlug.get(`words_mastered_${wordsMilestone}`),
+        }
       );
     }
     for (const milestone of MILESTONES_WORDS_MASTERED) {
@@ -290,7 +304,10 @@ export async function recordProgressAchievements(
         userId,
         "achievement.lessons_complete_milestone",
         lessonsMilestone,
-        { coins: coinBySlug.get(`lessons_complete_${lessonsMilestone}`) }
+        {
+          coins: coinBySlug.get(`lessons_complete_${lessonsMilestone}`),
+          title: titleBySlug.get(`lessons_complete_${lessonsMilestone}`),
+        }
       );
     }
     for (const milestone of MILESTONES_LESSONS_COMPLETE) {
@@ -319,6 +336,7 @@ export async function recordProgressAchievements(
     if ((distinctLessonsTested ?? 0) >= leaguesThreshold) {
       await fireFirstTimeNotification(userId, "achievement.leagues_unlocked", {
         coins: coinBySlug.get("leagues_unlocked"),
+        title: titleBySlug.get("leagues_unlocked"),
         count: distinctLessonsTested ?? leaguesThreshold,
       });
       await creditAchievement(supabase, userId, "leagues_unlocked");
@@ -340,12 +358,14 @@ export async function recordProgressAchievements(
       if (rank <= 20) {
         await fireFirstTimeNotification(userId, "achievement.hall_of_fame_top20", {
           coins: coinBySlug.get("hall_of_fame_top20"),
+          title: titleBySlug.get("hall_of_fame_top20"),
         });
         await creditAchievement(supabase, userId, "hall_of_fame_top20");
       }
       if (rank === 1) {
         await fireFirstTimeNotification(userId, "achievement.alltime_champion", {
           coins: coinBySlug.get("alltime_champion"),
+          title: titleBySlug.get("alltime_champion"),
         });
         await creditAchievement(supabase, userId, "alltime_champion");
       }

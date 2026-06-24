@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
 import { MobileMenu } from "./MobileMenu";
 import { CourseDropdown } from "./CourseDropdown";
+import { ProfileDropdown } from "./ProfileDropdown";
 import { DailyGoalRing } from "./header/DailyGoalRing";
 import type { HeaderStats } from "./DashboardContent";
 import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
@@ -50,7 +51,7 @@ const PREVIEW_STATS: HeaderStats = {
 
 export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons, sidebarCollapsed = false, onToggleSidebar }: HeaderProps) {
   const { t } = useText();
-  const { user, avatarUrl, isLoading, isGuest, isAdmin } = useUser();
+  const { isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
   const courseContext = useCourseContext();
   const { languageFlag, languageId, courseId, courseName } = courseContext;
@@ -103,12 +104,6 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
     }
     return `/course/${courseId}/schedule`;
   })();
-
-  // Get user initials for avatar
-  const getUserInitial = () => {
-    if (!user?.email) return "U";
-    return user.email.charAt(0).toUpperCase();
-  };
 
   // Header is always full-width fixed at top so it stays visible when content scrolls
   const headerClasses = "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
@@ -288,29 +283,29 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     return (
                       <div className="flex flex-col gap-1">
                         <span className="text-foreground text-[14px] leading-[1.4] font-semibold">{t("pop_time_breakdown")}</span>
-                        <table className="border-separate border-spacing-x-3 border-spacing-y-0.5 text-[13px] leading-[1.4]">
+                        <table className="-ml-3 border-separate border-spacing-x-3 border-spacing-y-0.5 text-left text-[13px] leading-[1.4]">
                           <thead>
                             <tr className="text-muted-foreground text-left font-medium">
-                              <th className="font-medium"> </th>
-                              <th className="font-medium whitespace-nowrap">This course</th>
-                              <th className="font-medium whitespace-nowrap">All courses</th>
+                              <th className="text-left font-medium"> </th>
+                              <th className="text-left font-medium whitespace-nowrap">This course</th>
+                              <th className="text-left font-medium whitespace-nowrap">All courses</th>
                             </tr>
                           </thead>
                           <tbody className="text-foreground">
                             <tr>
                               <td className="whitespace-nowrap">Study</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseStudy)}</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(allStudy)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(courseStudy)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(allStudy)}</td>
                             </tr>
                             <tr>
                               <td className="whitespace-nowrap">Test</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseTest)}</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(allTest)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(courseTest)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(allTest)}</td>
                             </tr>
-                            <tr>
+                            <tr className="font-semibold">
                               <td className="whitespace-nowrap">Total</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(courseTotal)}</td>
-                              <td className="whitespace-nowrap font-semibold">{formatDuration(allTotal)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(courseTotal)}</td>
+                              <td className="whitespace-nowrap">{formatDuration(allTotal)}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -341,12 +336,12 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             // Guest state (no preview) - Sign In / Sign Up buttons
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost">
                   Sign In
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm">Sign Up</Button>
+                <Button>Sign Up</Button>
               </Link>
             </>
           ) : (
@@ -355,7 +350,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               {/* Admin Button - Only show for admins */}
               {isAdmin && (
                 <Link href="/admin">
-                  <Button size="sm">
+                  <Button>
                     Admin →
                   </Button>
                 </Link>
@@ -369,21 +364,14 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               {/* Notification Bell */}
               {!isGuest && <NotificationBell />}
 
-              {/* User Account Button */}
-              <Link
-                href={isGuest ? "#" : "/profile"}
-                className="flex h-12 shrink-0 items-center gap-2 px-3"
-                onClick={isGuest ? (e) => e.preventDefault() : undefined}
-              >
-                {/* Avatar — uploaded image if available, otherwise gradient with initial */}
-                {!isGuest && avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar"
-                    className="h-8 w-8 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
+              {/* User Account — dropdown for real users, static avatar for
+                  guests / onboarding preview. */}
+              {isGuest ? (
+                <Link
+                  href="#"
+                  className="flex h-12 shrink-0 items-center gap-2 px-3"
+                  onClick={(e) => e.preventDefault()}
+                >
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                     style={{
@@ -391,11 +379,13 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                     }}
                   >
                     <span className="text-sm leading-5 font-normal tracking-[-0.15px] text-white">
-                      {isGuest ? "?" : getUserInitial()}
+                      ?
                     </span>
                   </div>
-                )}
-              </Link>
+                </Link>
+              ) : (
+                <ProfileDropdown />
+              )}
             </>
           )}
         </div>

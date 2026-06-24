@@ -39,7 +39,7 @@ export function SignupModal({ courseId }: SignupModalProps) {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -49,6 +49,14 @@ export function SignupModal({ courseId }: SignupModalProps) {
 
     if (error) {
       setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Already-registered email: Supabase returns a fake success with no identities
+    // and sends no email, so don't show "check your inbox" — the link never arrives.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError("An account with this email already exists. Try signing in instead.");
       setLoading(false);
       return;
     }

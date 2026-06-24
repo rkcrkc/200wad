@@ -1186,6 +1186,47 @@ export function StudyModeClient({
     return true;
   }, [currentWord.id, imageContext?.masterImageUrl]);
 
+  // Replace one of the word's audio files (english/foreign/trigger). Re-uploads
+  // reuse the same storage path, so append a cache-bust suffix to the saved URL
+  // so the new clip plays immediately instead of a stale CDN copy.
+  const handleAudioUpload = useCallback(
+    async (
+      audioType: "english" | "foreign" | "trigger",
+      file: File
+    ): Promise<boolean> => {
+      const uploadResult = await uploadFileClient(
+        "audio",
+        file,
+        "words",
+        currentWord.id,
+        audioType
+      );
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload audio:", uploadResult.error);
+        return false;
+      }
+      const url = `${uploadResult.url}?v=${Date.now()}`;
+      const column =
+        audioType === "english"
+          ? "audio_url_english"
+          : audioType === "foreign"
+            ? "audio_url_foreign"
+            : "audio_url_trigger";
+
+      const result = await updateWord(currentWord.id, { [column]: url }, lesson.id);
+      if (!result.success) {
+        console.error("Failed to save audio URL:", result.error);
+        return false;
+      }
+
+      setLocalWords((prev) =>
+        prev.map((w) => (w.id === currentWord.id ? { ...w, [column]: url } : w))
+      );
+      return true;
+    },
+    [currentWord.id, lesson.id]
+  );
+
   // Get current word's user notes from progress map
   const currentWordProgress = wordProgressMap.get(currentWord.id);
   const currentUserNotes = currentWordProgress?.userNotes || currentWord.progress?.user_notes || null;
@@ -1291,6 +1332,8 @@ export function StudyModeClient({
                     isEditMode={isEditMode}
                     onFieldSave={handleFieldSave}
                     onArrayFieldSave={handleArrayFieldSave}
+                    onUploadEnglishAudio={(file) => handleAudioUpload("english", file)}
+                    onUploadForeignAudio={(file) => handleAudioUpload("foreign", file)}
                     alternateAnswers={currentWord.alternate_answers || []}
                     alternateEnglishAnswers={currentWord.alternate_english_answers || []}
                   />
@@ -1318,6 +1361,7 @@ export function StudyModeClient({
                         wordId={currentWord.id}
                         isEditMode={isEditMode}
                         onFieldSave={handleFieldSave}
+                        onUploadTriggerAudio={(file) => handleAudioUpload("trigger", file)}
                         imageContext={imageContext}
                         onWordImageUpload={handleWordImageUpload}
                         onConceptImageUpload={handleConceptImageUpload}

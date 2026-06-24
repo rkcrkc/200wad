@@ -27,13 +27,15 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
 
   let avatarUrl: string | null = null;
+  let displayName: string | null = null;
   if (user) {
     const { data } = await supabase
       .from("users")
-      .select("avatar_url")
+      .select("avatar_url, name")
       .eq("id", user.id)
       .single();
     avatarUrl = data?.avatar_url ?? null;
+    displayName = data?.name ?? null;
   }
 
   return (
@@ -42,7 +44,11 @@ export default async function RootLayout({
         <FlagEmojiPolyfill />
         <PostHogProvider>
           <PostHogPageView />
-          <UserProvider initialUser={user} initialAvatarUrl={avatarUrl}>
+          <UserProvider
+            initialUser={user}
+            initialAvatarUrl={avatarUrl}
+            initialDisplayName={displayName}
+          >
             {children}
           </UserProvider>
         </PostHogProvider>

@@ -102,9 +102,8 @@ export function DangerZoneSection() {
           Sign out of your account on this device.
         </p>
         <Button
-          variant="outline"
+          variant="destructive-outline"
           onClick={handleLogout}
-          className="border-red-600 text-red-600 hover:bg-red-50"
         >
           <LogOut className="mr-2 h-4 w-4" />
           Log Out
@@ -128,9 +127,8 @@ export function DangerZoneSection() {
           </div>
         ) : !showResetConfirm ? (
           <Button
-            variant="outline"
+            variant="destructive-outline"
             onClick={() => setShowResetConfirm(true)}
-            className="border-red-600 text-red-600 hover:bg-red-50"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset account
@@ -195,9 +193,8 @@ export function DangerZoneSection() {
 
         {!showDeleteConfirm ? (
           <Button
-            variant="outline"
+            variant="destructive-outline"
             onClick={() => setShowDeleteConfirm(true)}
-            className="border-red-600 text-red-600 hover:bg-red-50"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete account

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
+import { AudioUploadButton } from "./AudioUploadButton";
 import { EditableBodyText } from "@/components/admin/EditableBodyText";
 import { BodyTextSyntaxHelp } from "@/components/admin/BodyTextSyntaxHelp";
 import { MemoryTriggerImageEditor } from "./MemoryTriggerImageEditor";
@@ -63,6 +64,8 @@ interface MemoryTriggerCardProps {
   wordId?: string;
   isEditMode?: boolean;
   onFieldSave?: (field: string, value: string) => Promise<boolean>;
+  /** Admin edit mode: replace the trigger audio file. */
+  onUploadTriggerAudio?: (file: File) => Promise<boolean>;
   /** Group/override context for the current word (admin edit mode). */
   imageContext?: WordImageContext | null;
   /** Set this word's own picture (override). */
@@ -98,6 +101,7 @@ export function MemoryTriggerCard({
   wordId,
   isEditMode = false,
   onFieldSave,
+  onUploadTriggerAudio,
   imageContext,
   onWordImageUpload,
   onConceptImageUpload,
@@ -106,6 +110,14 @@ export function MemoryTriggerCard({
   const isHorizontal = layout === "horizontal";
   const isPlayingTrigger = playingAudioType === "trigger";
   const audioDarkColor = getHighlightColorDark(gender);
+
+  // In edit mode, the trigger speaker icon becomes an upload affordance.
+  const audioControl =
+    isEditMode && onUploadTriggerAudio ? (
+      <AudioUploadButton onUpload={onUploadTriggerAudio} />
+    ) : (
+      <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+    );
 
   // Admin edit mode: the two-tile image editor (this word vs concept pic).
   // Rendered in place of the static image when all image handlers are wired.
@@ -271,7 +283,7 @@ export function MemoryTriggerCard({
           onClick={isEditMode ? undefined : onPlayTriggerAudio}
           className="flex items-center gap-3 text-left cursor-pointer"
         >
-          <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+          {audioControl}
           {isEditMode && wordId && onFieldSave ? (
             <div className="flex-1">
               <EditableBodyText
@@ -309,7 +321,7 @@ export function MemoryTriggerCard({
           onClick={isEditMode ? undefined : onPlayTriggerAudio}
           className="flex cursor-pointer items-center gap-3 text-left"
         >
-          <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+          {audioControl}
           {isEditMode && wordId && onFieldSave ? (
             <div className="flex-1">
               <EditableBodyText
@@ -338,7 +350,7 @@ export function MemoryTriggerCard({
       ) : showTrigger && !triggerText && isEditMode && wordId && onFieldSave ? (
         // Edit mode: allow adding trigger text when none exists
         <div className="flex items-center gap-3">
-          <AudioButton isPlaying={false} />
+          {audioControl}
           <div className="flex-1">
             <EditableBodyText
               value=""

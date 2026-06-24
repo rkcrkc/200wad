@@ -31,9 +31,6 @@ interface NotificationDataShape {
   // seeded templates that may have "info" / "warning" / "critical". Render
   // logic only treats "critical" specially — anything else is normal.
   severity?: "info" | "warning" | "critical" | string;
-  // Stable template key stamped at send time (e.g. "league.reward"); used to
-  // refine the row icon where one `type` spans several events.
-  template_key?: string;
 }
 
 export function NotificationRow({ notification, onAction }: NotificationRowProps) {
@@ -137,7 +134,6 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
           <span className="flex min-w-0 items-start gap-1.5">
             <NotificationIcon
               type={notification.type}
-              templateKey={data?.template_key}
               isRead={notification.is_read}
             />
             <span
