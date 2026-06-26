@@ -803,9 +803,12 @@ export function WordDetailView({
                         </p>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-4" aria-hidden="true">
-                        <AudioButton isPlaying={false} playingColor={audioDarkColor} />
-                        <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
+                      <div className="grid grid-cols-[auto_1fr] items-start gap-y-1" aria-hidden="true">
+                        <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
+                        <span className={`word-audio-icon col-start-1 row-start-2 mr-4 flex items-center ${isSidebar ? "h-[29px]" : "h-[39px]"}`}>
+                          <AudioButton isPlaying={false} playingColor={audioDarkColor} />
+                        </span>
+                        <p className={`col-start-2 row-start-2 ${isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}`}>
                           <span className="box-decoration-clone animate-pulse rounded bg-foreground/10 text-transparent">
                             Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod.
                           </span>
@@ -891,15 +894,20 @@ export function WordDetailView({
                         onClick={handlePlayTrigger}
                         className="flex cursor-pointer items-center gap-4 text-left"
                       >
-                        <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
-                        <p className={isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}>
-                          {parseFormattedText(triggerText, {
-                            gender: word.gender,
-                            headword: word.headword,
-                            isPlaying: isPlayingTrigger,
-                            paragraphs: false,
-                          })}
-                        </p>
+                        <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
+                          <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
+                          <span className={`word-audio-icon col-start-1 row-start-2 mr-4 flex items-center ${isSidebar ? "h-[29px]" : "h-[39px]"}`}>
+                            <AudioButton isPlaying={isPlayingTrigger} playingColor={audioDarkColor} />
+                          </span>
+                          <p className={`col-start-2 row-start-2 ${isSidebar ? "text-lg font-medium leading-relaxed" : "text-2xl font-medium leading-relaxed"}`}>
+                            {parseFormattedText(triggerText, {
+                              gender: word.gender,
+                              headword: word.headword,
+                              isPlaying: isPlayingTrigger,
+                              paragraphs: false,
+                            })}
+                          </p>
+                        </div>
                       </button>
                     )
                   )}

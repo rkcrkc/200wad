@@ -283,30 +283,36 @@ export function MemoryTriggerCard({
           onClick={isEditMode ? undefined : onPlayTriggerAudio}
           className="flex items-center gap-3 text-left cursor-pointer"
         >
-          {audioControl}
           {isEditMode && wordId && onFieldSave ? (
-            <div className="flex-1">
-              <EditableBodyText
-                value={triggerText}
-                field="memory_trigger_text"
-                wordId={wordId}
-                isEditMode={isEditMode}
-                onSave={onFieldSave}
-                className="text-[22px] font-medium leading-normal"
-                textareaClassName="text-[22px] font-medium"
-                rows={3}
-                variant="word"
-                renderPreview={(v) => (
-                  <p className="text-[22px] font-medium leading-normal">
-                    {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
-                  </p>
-                )}
-              />
+            <div className="flex items-center gap-3">
+              {audioControl}
+              <div className="flex-1">
+                <EditableBodyText
+                  value={triggerText}
+                  field="memory_trigger_text"
+                  wordId={wordId}
+                  isEditMode={isEditMode}
+                  onSave={onFieldSave}
+                  className="text-[22px] font-medium leading-normal"
+                  textareaClassName="text-[22px] font-medium"
+                  rows={3}
+                  variant="word"
+                  renderPreview={(v) => (
+                    <p className="text-[22px] font-medium leading-normal">
+                      {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+                    </p>
+                  )}
+                />
+              </div>
             </div>
           ) : (
-            <p className="text-[22px] font-medium leading-normal">
-              {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
-            </p>
+            <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
+              <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
+              <span className="word-audio-icon col-start-1 row-start-2 mr-3 flex h-[33px] items-center">{audioControl}</span>
+              <p className="col-start-2 row-start-2 text-[22px] font-medium leading-normal">
+                {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+              </p>
+            </div>
           )}
         </button>
       ) : showTriggerTextProp !== undefined && triggerText && !showTrigger ? (
@@ -321,30 +327,36 @@ export function MemoryTriggerCard({
           onClick={isEditMode ? undefined : onPlayTriggerAudio}
           className="flex cursor-pointer items-center gap-3 text-left"
         >
-          {audioControl}
           {isEditMode && wordId && onFieldSave ? (
-            <div className="flex-1">
-              <EditableBodyText
-                value={triggerText}
-                field="memory_trigger_text"
-                wordId={wordId}
-                isEditMode={isEditMode}
-                onSave={onFieldSave}
-                className="text-[22px] font-medium leading-normal"
-                textareaClassName="text-[22px] font-medium"
-                rows={3}
-                variant="word"
-                renderPreview={(v) => (
-                  <p className="text-[22px] font-medium leading-normal">
-                    {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
-                  </p>
-                )}
-              />
+            <div className="flex items-center gap-3">
+              {audioControl}
+              <div className="flex-1">
+                <EditableBodyText
+                  value={triggerText}
+                  field="memory_trigger_text"
+                  wordId={wordId}
+                  isEditMode={isEditMode}
+                  onSave={onFieldSave}
+                  className="text-[22px] font-medium leading-normal"
+                  textareaClassName="text-[22px] font-medium"
+                  rows={3}
+                  variant="word"
+                  renderPreview={(v) => (
+                    <p className="text-[22px] font-medium leading-normal">
+                      {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+                    </p>
+                  )}
+                />
+              </div>
             </div>
           ) : (
-            <p className="text-[22px] font-medium leading-normal">
-              {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
-            </p>
+            <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
+              <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
+              <span className="word-audio-icon col-start-1 row-start-2 mr-3 flex h-[33px] items-center">{audioControl}</span>
+              <p className="col-start-2 row-start-2 text-[22px] font-medium leading-normal">
+                {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
+              </p>
+            </div>
           )}
         </button>
       ) : showTrigger && !triggerText && isEditMode && wordId && onFieldSave ? (
