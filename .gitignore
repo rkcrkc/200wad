@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# trigger-marker migration scratch/rollback (local only)
+scripts/.trigger-snapshots/
+
 # Figma export reference (not production code)
 /200WAD
 

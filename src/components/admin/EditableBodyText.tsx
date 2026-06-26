@@ -130,7 +130,7 @@ export function EditableBodyText({
       />
       {variant === "word" && (
         <p className="text-small-regular text-muted-foreground">
-          Wrap the mnemonic in <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px]">{`{{...}}`}</code> to colour-code and capitalise it automatically. Put the English word in italics, regular case.
+          Wrap the mnemonic in <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px]">{`{{...}}`}</code> to colour-code and capitalise it automatically. Put the English word in italics, regular case — wrap it in <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px]">*</code> (e.g. <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px]">*word*</code>).
         </p>
       )}
       <div className="flex items-center gap-1 self-end">

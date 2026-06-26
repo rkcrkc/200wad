@@ -133,9 +133,53 @@ function extractText(rtfContent: string, markers: boolean): string {
   content = content.replace(/\}[\s\x00]*$/, "");
 
   let result = "";
-  let currentColor: "red" | "blue" | "green" | null = null;
-  let inColorSpan = false;
-  let inItalic = false;
+
+  // RTF scopes character formatting by brace groups `{…}`: a `\i`/`\cf` set
+  // inside a group reverts when the group closes, even without an explicit
+  // `\i0`/`\cf0`. The legacy files rely entirely on this group scope, so we
+  // track desired formatting as a STACK of attribute states — `{` pushes a copy
+  // of the top, `}` pops it — rather than as flat booleans that leak past the
+  // closing brace (the old bug: one giant italic / `{{…}}` span per row).
+  type Attr = { italic: boolean; color: "red" | "blue" | "green" | null };
+  const groupStack: Attr[] = [{ italic: false, color: null }];
+  const top = () => groupStack[groupStack.length - 1];
+
+  // Markers already written to `result`, kept separate from the desired
+  // (top-of-stack) state. `reconcile()` diffs the two and emits the minimal
+  // markers needed, with colour nested INSIDE italic so the markdown stays
+  // well-formed (`*{{…}}*`).
+  let emittedItalic = false;
+  let emittedColor: "red" | "blue" | "green" | null = null;
+
+  function reconcile() {
+    if (!markers) return;
+    const want = top();
+    // Colour markers are written nested INSIDE italic when both are active, so
+    // `*…{{…}}…*` always stays well-formed. To keep that invariant we must close
+    // (and later reopen) the inner colour whenever the outer italic has to
+    // close — even if the colour itself is unchanged.
+    const colorChanged = want.color !== emittedColor;
+    const italicClosing = emittedItalic && !want.italic;
+    // Close in reverse nesting order: colour (inner) before italic (outer).
+    if (emittedColor !== null && (colorChanged || italicClosing)) {
+      result += "}}";
+      emittedColor = null;
+    }
+    if (italicClosing) {
+      result += "*";
+      emittedItalic = false;
+    }
+    // Open in nesting order: italic (outer) before colour (inner).
+    if (want.italic && !emittedItalic) {
+      result += "*";
+      emittedItalic = true;
+    }
+    if (want.color !== null && emittedColor !== want.color) {
+      result += "{{";
+      emittedColor = want.color;
+    }
+  }
+
   let i = 0;
 
   while (i < content.length) {
@@ -150,15 +194,7 @@ function extractText(rtfContent: string, markers: boolean): string {
               : colorMap.has(colorIndex)
                 ? getColorCategory(colorMap.get(colorIndex)!)
                 : null;
-          if (inColorSpan && newColor !== currentColor) {
-            result += "}}";
-            inColorSpan = false;
-          }
-          if (newColor && !inColorSpan) {
-            result += "{{";
-            inColorSpan = true;
-          }
-          currentColor = newColor;
+          top().color = newColor;
         }
         i += cfMatch[0].length;
         continue;
@@ -167,11 +203,7 @@ function extractText(rtfContent: string, markers: boolean): string {
       const italicMatch = content.slice(i).match(/^\\i(-?\d+)?(?![a-zA-Z])/);
       if (italicMatch) {
         if (markers) {
-          const newItalic = italicMatch[1] !== "0";
-          if (newItalic !== inItalic) {
-            result += "*";
-            inItalic = newItalic;
-          }
+          top().italic = italicMatch[1] !== "0";
         }
         i += italicMatch[0].length;
         if (i < content.length && content[i] === " ") i += 1;
@@ -192,6 +224,7 @@ function extractText(rtfContent: string, markers: boolean): string {
         if (controlWord === "u" && controlMatch[2]) {
           let codepoint = parseInt(controlMatch[2], 10);
           if (codepoint < 0) codepoint += 65536;
+          reconcile();
           result += String.fromCharCode(codepoint);
           i += controlMatch[0].length;
           if (
@@ -206,33 +239,40 @@ function extractText(rtfContent: string, markers: boolean): string {
         }
 
         if (controlWord === "par") {
-          if (markers && inColorSpan) {
-            result += "}}";
-            inColorSpan = false;
-            currentColor = null;
-          }
-          if (markers && inItalic) {
-            result += "*";
-            inItalic = false;
+          // Paragraph break: a marked span never spans a `\par`. Reset the
+          // group stack to a single empty base and flush any open markers.
+          if (markers) {
+            groupStack.length = 1;
+            groupStack[0] = { italic: false, color: null };
+            reconcile();
           }
           result += "\n";
         } else if (controlWord === "tab") {
+          reconcile();
           result += "\t";
         } else if (controlWord === "line") {
+          reconcile();
           result += "\n";
         } else if (controlWord === "ldblquote") {
+          reconcile();
           result += "\u201C";
         } else if (controlWord === "rdblquote") {
+          reconcile();
           result += "\u201D";
         } else if (controlWord === "lquote") {
+          reconcile();
           result += "\u2018";
         } else if (controlWord === "rquote") {
+          reconcile();
           result += "\u2019";
         } else if (controlWord === "emdash") {
+          reconcile();
           result += "\u2014";
         } else if (controlWord === "endash") {
+          reconcile();
           result += "\u2013";
         } else if (controlWord === "bullet") {
+          reconcile();
           result += "\u2022";
         }
         i += controlMatch[0].length;
@@ -247,18 +287,21 @@ function extractText(rtfContent: string, markers: boolean): string {
       if (content[i + 1] === "'" && content.length > i + 3) {
         const hexCode = content.slice(i + 2, i + 4);
         const charCode = parseInt(hexCode, 16);
+        reconcile();
         result += decodeWin1252Byte(charCode);
         i += 4;
         continue;
       }
 
       if (content[i + 1] === "{" || content[i + 1] === "}" || content[i + 1] === "\\") {
+        reconcile();
         result += content[i + 1];
         i += 2;
         continue;
       }
 
       if (content[i + 1] === "~") {
+        reconcile();
         result += "\u00A0";
         i += 2;
         continue;
@@ -268,6 +311,7 @@ function extractText(rtfContent: string, markers: boolean): string {
         continue;
       }
       if (content[i + 1] === "_") {
+        reconcile();
         result += "-";
         i += 2;
         continue;
@@ -277,7 +321,16 @@ function extractText(rtfContent: string, markers: boolean): string {
       continue;
     }
 
-    if (content[i] === "{" || content[i] === "}") {
+    if (content[i] === "{") {
+      // Open a new group: inherit the current attribute state. Formatting set
+      // inside this group reverts to `top` when the matching `}` pops.
+      if (markers) groupStack.push({ ...top() });
+      i++;
+      continue;
+    }
+    if (content[i] === "}") {
+      // Close the group: revert to the enclosing state (never pop the base).
+      if (markers && groupStack.length > 1) groupStack.pop();
       i++;
       continue;
     }
@@ -290,12 +343,17 @@ function extractText(rtfContent: string, markers: boolean): string {
       continue;
     }
 
+    reconcile();
     result += content[i];
     i++;
   }
 
-  if (markers && inColorSpan) result += "}}";
-  if (markers && inItalic) result += "*";
+  // Flush any markers still open at EOF by reconciling to an empty base state.
+  if (markers) {
+    groupStack.length = 1;
+    groupStack[0] = { italic: false, color: null };
+    reconcile();
+  }
 
   result = result
     .replace(/\r\n/g, "\n")
