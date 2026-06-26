@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Globe } from "lucide-react";
+import { Check, Globe, ChevronRight } from "lucide-react";
 import {
   getGroupedCoursesForDropdown,
   type DropdownLanguageGroup,
@@ -214,7 +214,7 @@ export function CourseDropdown({
             )}
           </div>
 
-          {/* Footer: Manage languages */}
+          {/* Footer: All courses */}
           <div className="shrink-0 border-t border-gray-100">
             <button
               onClick={handleManageLanguages}
@@ -222,8 +222,9 @@ export function CourseDropdown({
             >
               <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.67} />
               <span className="text-foreground text-[14px] font-medium">
-                Manage languages
+                All courses
               </span>
+              <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" strokeWidth={1.67} />
             </button>
           </div>
         </div>

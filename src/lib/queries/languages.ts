@@ -63,13 +63,24 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
 
   // Count testable words per language directly via words.language_id (excludes
   // information pages — they are not part of learnable vocabulary totals).
-  const { data: wordCounts } = await supabase
-    .from("words")
-    .select("id, language_id")
-    .neq("category", "information");
+  // Paginate via .range(): a single request is capped at PostgREST's 1,000-row
+  // max, which silently truncated the count and under-reported newer languages
+  // whose rows sort last (e.g. French/Spanish showing only 1-2 words).
+  const wordCounts = await fetchAllRows<{
+    id: string;
+    language_id: string | null;
+  }>(
+    (from, to) =>
+      supabase
+        .from("words")
+        .select("id, language_id")
+        .neq("category", "information")
+        .range(from, to),
+    { label: "getLanguages:wordCounts" }
+  );
 
   const wordCountByLanguage: Record<string, number> = {};
-  wordCounts?.forEach((word) => {
+  wordCounts.forEach((word) => {
     if (word.language_id) {
       wordCountByLanguage[word.language_id] =
         (wordCountByLanguage[word.language_id] || 0) + 1;
@@ -79,6 +90,10 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
   // Fetch user progress if authenticated
   let userLanguages: UserLanguage[] = [];
   const wordsLearnedByLanguage: Record<string, number> = {};
+  // Mastered words drive the language completion ring, matching the course
+  // cards (course progress = mastered / total). Tracked separately from
+  // wordsLearned so the "learning" status still reflects any studied progress.
+  const wordsMasteredByLanguage: Record<string, number> = {};
   // The "current" language follows the selected course: it is the language that
   // owns users.current_course_id. We fall back to current_language_id only when
   // no course is selected so a brand-new account still highlights something.
@@ -151,6 +166,10 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
       if (w.language_id) {
         wordsLearnedByLanguage[w.language_id] =
           (wordsLearnedByLanguage[w.language_id] || 0) + 1;
+        if (wp.status === "mastered") {
+          wordsMasteredByLanguage[w.language_id] =
+            (wordsMasteredByLanguage[w.language_id] || 0) + 1;
+        }
       }
     });
   }
@@ -160,6 +179,7 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
     (lang) => {
       const totalWords = wordCountByLanguage[lang.id] || 0;
       const wordsLearned = wordsLearnedByLanguage[lang.id] || 0;
+      const wordsMastered = wordsMasteredByLanguage[lang.id] || 0;
       const userLang = userLanguages.find((ul) => ul.language_id === lang.id);
       const isCurrentLanguage = activeLanguageId
         ? lang.id === activeLanguageId
@@ -178,7 +198,7 @@ export async function getLanguages(options: GetLanguagesOptions = { visibleOnly:
         courseCount: courseCountByLanguage[lang.id] || 0,
         totalWords,
         wordsLearned,
-        progressPercent: totalWords > 0 ? Math.round((wordsLearned / totalWords) * 100) : 0,
+        progressPercent: totalWords > 0 ? Math.round((wordsMastered / totalWords) * 100) : 0,
         isCurrentLanguage,
         isEnrolled: !!userLang,
         status,

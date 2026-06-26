@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, BookOpen, MessageCircle } from "lucide-react";
 import { ProgressRingWithLabel } from "@/components/ui/progress-ring-with-label";
 import { StatusPill } from "@/components/ui/status-pill";
+import { CourseLevelBadge } from "@/components/ui/course-level-badge";
 import { CourseWithProgress } from "@/lib/queries";
 import { mapStatus, formatNumber } from "@/lib/utils/helpers";
 import { cn } from "@/lib/utils";
@@ -11,21 +12,7 @@ interface CourseCardProps {
   isActive?: boolean;
 }
 
-const levelStyles = {
-  beginner: "bg-green-100 text-green-700",
-  intermediate: "bg-blue-100 text-blue-700",
-  advanced: "bg-purple-100 text-purple-700",
-};
-
-const levelLabels = {
-  beginner: "Beginner",
-  intermediate: "Intermediate",
-  advanced: "Advanced",
-};
-
 export function CourseCard({ course, isActive = false }: CourseCardProps) {
-  const level = (course.level || "beginner") as keyof typeof levelStyles;
-
   return (
     <Link
       href={`/course/${course.id}/schedule`}
@@ -51,15 +38,7 @@ export function CourseCard({ course, isActive = false }: CourseCardProps) {
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {/* Difficulty Badge */}
-          <span
-            className={cn(
-              "inline-block whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
-              levelStyles[level]
-            )}
-          >
-            {levelLabels[level]}
-            {course.cefr_range && ` • ${course.cefr_range}`}
-          </span>
+          <CourseLevelBadge level={course.level} cefrRange={course.cefr_range} />
 
           {/* Status Pill */}
           <StatusPill status={mapStatus(course.status)} />
