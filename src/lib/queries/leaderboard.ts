@@ -435,14 +435,17 @@ export async function getLeagueConfig(): Promise<{
 }
 
 /**
- * Get the user's XP personal bests. Both values come from the cross-language
- * PB columns the `update_daily_activity` RPC maintains, so the leaderboard's
- * "Best day"/"Best week" match the Progress page (which reads the same
- * columns) and the "XP" label is accurate.
+ * Get the user's leaderboard header stats:
+ * - `bestRank` — best-ever (lowest) position held on the all-time, all-language
+ *   board, maintained by the `track_alltime_rank_pb` trigger. `null` = never ranked.
+ * - `bestWeekXp` / `bestWeekAt` — the cross-language weekly XP PB and the date its
+ *   week began (`update_daily_activity` keeps both; matches the Progress page).
+ * - `lifetimeXp` — total XP, the score the all-time rank is based on.
  */
 export async function getPersonalBests(): Promise<{
-  bestDayXp: number;
+  bestRank: number | null;
   bestWeekXp: number;
+  bestWeekAt: string | null;
   lifetimeXp: number;
 } | null> {
   const supabase = await createClient();
@@ -454,13 +457,14 @@ export async function getPersonalBests(): Promise<{
 
   const { data: userData } = await supabase
     .from("users")
-    .select("pb_day_test_points, pb_week_test_points, lifetime_xp")
+    .select("pb_alltime_rank, pb_week_test_points, pb_week_test_points_at, lifetime_xp")
     .eq("id", user.id)
     .single();
 
   return {
-    bestDayXp: userData?.pb_day_test_points ?? 0,
+    bestRank: userData?.pb_alltime_rank ?? null,
     bestWeekXp: userData?.pb_week_test_points ?? 0,
+    bestWeekAt: userData?.pb_week_test_points_at ?? null,
     lifetimeXp: userData?.lifetime_xp ?? 0,
   };
 }

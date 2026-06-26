@@ -49,8 +49,9 @@ interface LeaderboardClientProps {
   initialAllTime: LeaderboardData;
   rewards: LeagueReward[];
   personalBests: {
-    bestDayXp: number;
+    bestRank: number | null;
     bestWeekXp: number;
+    bestWeekAt: string | null;
     lifetimeXp: number;
   } | null;
   /**
@@ -531,19 +532,24 @@ export function LeaderboardClient({
 /**
  * Personal bests rendered as inline header stats (small label above, icon +
  * value below) — the same header-stat format used on the trophies/lessons
- * pages. Hidden entirely when the learner has no recorded activity yet.
+ * pages. Hidden entirely when the learner has no recorded XP yet.
  */
 function PersonalBestsStats({
   personalBests,
 }: {
   personalBests: LeaderboardClientProps["personalBests"];
 }) {
-  if (
-    !personalBests ||
-    (personalBests.bestDayXp === 0 && personalBests.bestWeekXp === 0)
-  ) {
+  if (!personalBests || personalBests.lifetimeXp === 0) {
     return null;
   }
+
+  const bestWeekAt = personalBests.bestWeekAt
+    ? new Date(personalBests.bestWeekAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
@@ -560,15 +566,36 @@ function PersonalBestsStats({
         <XpBadge value={personalBests.lifetimeXp} variant="default" size="md" />
       </Popover>
 
-      <div className="flex flex-col items-start gap-1.5">
-        <span className="text-xs text-muted-foreground">Best day</span>
-        <XpBadge value={personalBests.bestDayXp} variant="default" size="md" />
-      </div>
+      {bestWeekAt ? (
+        <Popover
+          className="flex flex-col items-start gap-1.5"
+          content={
+            <p className="text-[13px] leading-[1.4] text-foreground">{bestWeekAt}</p>
+          }
+        >
+          <span className="text-xs text-muted-foreground">Best week</span>
+          <XpBadge value={personalBests.bestWeekXp} variant="default" size="md" />
+        </Popover>
+      ) : (
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="text-xs text-muted-foreground">Best week</span>
+          <XpBadge value={personalBests.bestWeekXp} variant="default" size="md" />
+        </div>
+      )}
 
-      <div className="flex flex-col items-start gap-1.5">
-        <span className="text-xs text-muted-foreground">Best week</span>
-        <XpBadge value={personalBests.bestWeekXp} variant="default" size="md" />
-      </div>
+      <Popover
+        className="flex flex-col items-start gap-1.5"
+        content={
+          <p className="max-w-[220px] text-[13px] leading-[1.4] text-foreground">
+            Your highest position on the all-time, all-language leaderboard.
+          </p>
+        }
+      >
+        <span className="text-xs text-muted-foreground">Highest rank</span>
+        <span className="py-0.5 text-regular-semibold text-black">
+          {personalBests.bestRank !== null ? `#${formatNumber(personalBests.bestRank)}` : "—"}
+        </span>
+      </Popover>
     </div>
   );
 }
