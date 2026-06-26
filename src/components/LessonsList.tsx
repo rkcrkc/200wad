@@ -13,6 +13,7 @@ import { useScrollFade } from "@/hooks/useScrollFade";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { PricingPlan } from "@/types/database";
+import type { PricingTierCopyMap } from "@/lib/queries/subscriptions";
 import { useText } from "@/context/TextContext";
 
 type FilterType = "all" | "not-started" | "learning" | "learned" | "mastered";
@@ -27,6 +28,8 @@ interface LessonsListProps {
   milestoneScores?: Map<string, LessonMilestoneScores>;
   plans?: PricingPlan[];
   enabledTiers?: string[];
+  /** Admin-editable upgrade-modal card copy keyed by tier. */
+  copy?: PricingTierCopyMap;
 }
 
 interface SortableHeaderProps {
@@ -70,7 +73,7 @@ function SortableHeader({
   );
 }
 
-export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers }: LessonsListProps) {
+export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers, copy }: LessonsListProps) {
   const { t } = useText();
   const { scrollRef, canScrollRight } = useScrollFade();
   const [filter, setFilter] = useState<FilterType>("all");
@@ -469,6 +472,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         plans={plans || []}
         enabledTiers={enabledTiers || []}
         originLessonId={lockedLesson?.id}
+        copy={copy}
       />
     </>
   );

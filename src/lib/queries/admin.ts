@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PricingPlan, Subscription } from "@/types/database";
+import type { PricingTierCopyRow } from "@/lib/queries/subscriptions";
 
 // ============================================================================
 // Types
@@ -14,6 +15,7 @@ export interface PlatformConfigMap {
 
 export interface AdminSettingsData {
   pricingPlans: PricingPlan[];
+  pricingCopy: PricingTierCopyRow[];
   config: PlatformConfigMap;
   subscriptionStats: {
     totalActive: number;
@@ -38,7 +40,7 @@ export interface GetAdminSettingsResult {
 export async function getAdminSettingsData(): Promise<GetAdminSettingsResult> {
   const supabase = await createClient();
 
-  const [plansResult, configResult, subsResult] = await Promise.all([
+  const [plansResult, configResult, subsResult, copyResult] = await Promise.all([
     supabase
       .from("pricing_plans")
       .select("*")
@@ -49,6 +51,10 @@ export async function getAdminSettingsData(): Promise<GetAdminSettingsResult> {
     supabase
       .from("subscriptions")
       .select("status, amount_cents"),
+    supabase
+      .from("pricing_tier_copy")
+      .select("*")
+      .order("tier_key"),
   ]);
 
   if (plansResult.error) {
@@ -94,6 +100,7 @@ export async function getAdminSettingsData(): Promise<GetAdminSettingsResult> {
   return {
     data: {
       pricingPlans: plansResult.data || [],
+      pricingCopy: copyResult.data || [],
       config: configMap,
       subscriptionStats: stats,
     },

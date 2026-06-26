@@ -153,6 +153,90 @@ export async function getAllPricingPlans(): Promise<GetPricingPlansResult> {
 }
 
 // ============================================================================
+// Pricing Tier Copy (admin-editable upgrade-modal card copy)
+// ============================================================================
+
+export type PricingTierKey = "free" | "course" | "language" | "all-languages";
+
+/** Modal-facing copy: audience subtitle + non-blank benefit bullets in order. */
+export interface PricingTierCopy {
+  audience: string | null;
+  benefits: string[];
+}
+
+export type PricingTierCopyMap = Partial<Record<PricingTierKey, PricingTierCopy>>;
+
+/** Raw row including blank benefit slots — used by the admin edit form. */
+export interface PricingTierCopyRow {
+  tier_key: string;
+  audience: string | null;
+  benefit_1: string | null;
+  benefit_2: string | null;
+  benefit_3: string | null;
+  benefit_4: string | null;
+  benefit_5: string | null;
+}
+
+/**
+ * Get editable upgrade-modal copy keyed by tier.
+ *
+ * Cached for 1 hour; admin edits call `updateTag("pricing-tier-copy")`.
+ * Benefit strings may contain count tokens ({freeLessons}, {courses},
+ * {lessons}, {words}, {languages}) interpolated at render time.
+ */
+export const getPricingTierCopy = unstable_cache(
+  async (): Promise<PricingTierCopyMap> => {
+    const supabase = createStaticClient();
+
+    const { data, error } = await supabase
+      .from("pricing_tier_copy")
+      .select("*");
+
+    if (error || !data) {
+      return {};
+    }
+
+    const map: PricingTierCopyMap = {};
+    for (const row of data) {
+      map[row.tier_key as PricingTierKey] = {
+        audience: row.audience,
+        benefits: [
+          row.benefit_1,
+          row.benefit_2,
+          row.benefit_3,
+          row.benefit_4,
+          row.benefit_5,
+        ].filter((b): b is string => !!b && b.trim().length > 0),
+      };
+    }
+    return map;
+  },
+  ["pricing-tier-copy"],
+  { revalidate: 3600, tags: ["pricing-tier-copy"] }
+);
+
+/**
+ * Get all pricing tier copy rows (for admin), including blank benefit slots.
+ */
+export async function getAllPricingTierCopy(): Promise<{
+  rows: PricingTierCopyRow[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("pricing_tier_copy")
+    .select("*")
+    .order("tier_key");
+
+  if (error) {
+    return { rows: [], error: error.message };
+  }
+
+  return { rows: data || [], error: null };
+}
+
+// ============================================================================
 // Subscription Page Data
 // ============================================================================
 

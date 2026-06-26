@@ -1,10 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { fetchAllRows } from "@/lib/supabase/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { createCheckoutSchema, type CreateCheckoutInput } from "@/lib/validations/admin";
+import { getDefaultFreeLessons } from "@/lib/utils/accessControl";
 import type { MutationResult } from "@/lib/mutations/settings";
 
 // ============================================================================
@@ -168,7 +168,10 @@ export interface LanguageCourse {
   name: string;
   level: string | null;
   totalLessons: number;
-  actualWordCount: number;
+  wordCount: number;
+  thumbnailUrl: string | null;
+  /** Effective free-lesson allowance (course override or platform default). */
+  freeLessons: number;
 }
 
 export interface GetLanguageCoursesResult extends MutationResult {
@@ -177,6 +180,12 @@ export interface GetLanguageCoursesResult extends MutationResult {
 
 /**
  * Fetch courses for a language (used in expandable subscription rows).
+ *
+ * Uses the maintained `total_lessons` / `word_count` aggregate columns on
+ * `courses` rather than counting `lessons` / `lesson_words` at request time.
+ * The latter built a `.in("lesson_id", [...])` filter over every lesson in the
+ * language, which for large languages (e.g. Italian, ~710 lessons) exceeded the
+ * request size limit and silently returned zero words for every course.
  */
 export async function getLanguageCoursesAction(
   languageId: string
@@ -184,10 +193,9 @@ export async function getLanguageCoursesAction(
   try {
     const supabase = await createClient();
 
-    // Fetch published courses for this language
     const { data: courses, error: coursesError } = await supabase
       .from("courses")
-      .select("id, name, level")
+      .select("id, name, level, total_lessons, word_count, thumbnail_url, free_lessons")
       .eq("language_id", languageId)
       .eq("is_published", true)
       .order("sort_order", { ascending: true })
@@ -197,58 +205,16 @@ export async function getLanguageCoursesAction(
       return { success: false, courses: [], error: coursesError?.message || "Failed to fetch courses" };
     }
 
-    if (courses.length === 0) {
-      return { success: true, courses: [], error: null };
-    }
-
-    // Get lesson counts per course
-    const courseIds = courses.map((c) => c.id);
-    const { data: lessons } = await supabase
-      .from("lessons")
-      .select("id, course_id")
-      .in("course_id", courseIds);
-
-    const lessonCountByCourse: Record<string, number> = {};
-    lessons?.forEach((lesson) => {
-      if (lesson.course_id) {
-        lessonCountByCourse[lesson.course_id] =
-          (lessonCountByCourse[lesson.course_id] || 0) + 1;
-      }
-    });
-
-    // Count actual words per course (via lesson_words)
-    const allLessonIds = lessons?.map((l) => l.id) || [];
-    const wordCountByCourse: Record<string, number> = {};
-
-    if (allLessonIds.length > 0) {
-      // Paginate via .range() — PostgREST's 1,000-row max-rows cap silently
-      // truncates single-request responses, which would under-count words
-      // per course for languages with many courses/lessons.
-      const lessonWords = await fetchAllRows<{ lesson_id: string | null }>(
-        (from, to) =>
-          supabase
-            .from("lesson_words")
-            .select("lesson_id")
-            .in("lesson_id", allLessonIds)
-            .range(from, to),
-        { label: "getLanguageCoursesAction:lesson_words" }
-      );
-
-      lessonWords.forEach((lw) => {
-        const lesson = lessons?.find((l) => l.id === lw.lesson_id);
-        if (lesson?.course_id) {
-          wordCountByCourse[lesson.course_id] =
-            (wordCountByCourse[lesson.course_id] || 0) + 1;
-        }
-      });
-    }
+    const defaultFreeLessons = await getDefaultFreeLessons();
 
     const result: LanguageCourse[] = courses.map((course) => ({
       id: course.id,
       name: course.name,
       level: course.level,
-      totalLessons: lessonCountByCourse[course.id] || 0,
-      actualWordCount: wordCountByCourse[course.id] || 0,
+      totalLessons: course.total_lessons ?? 0,
+      wordCount: course.word_count ?? 0,
+      thumbnailUrl: course.thumbnail_url,
+      freeLessons: course.free_lessons ?? defaultFreeLessons,
     }));
 
     return { success: true, courses: result, error: null };

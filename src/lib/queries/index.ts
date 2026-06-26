@@ -25,11 +25,7 @@ export type {
 } from "./words";
 
 export { getUserSettings } from "./settings";
-export type {
-  UserSettings,
-  LearningLanguage,
-  GetUserSettingsResult,
-} from "./settings";
+export type { UserSettings, GetUserSettingsResult } from "./settings";
 
 export { getScheduleData, getDueTestsCount, getCurrentCourse } from "./schedule";
 
@@ -58,8 +54,8 @@ export type { TestForList, GetTestsResult, LessonMilestoneScores, LessonActivity
 export { getDictionaryWords } from "./dictionary";
 export type { DictionaryWord, GetDictionaryResult } from "./dictionary";
 
-export { getUserSubscriptions, hasActiveSubscription, getActivePricingPlans, getAllPricingPlans, getSubscriptionPageData } from "./subscriptions";
-export type { UserSubscription, GetUserSubscriptionsResult, GetPricingPlansResult, SubscriptionPageData, SubscriptionLanguage, GetSubscriptionPageDataResult } from "./subscriptions";
+export { getUserSubscriptions, hasActiveSubscription, getActivePricingPlans, getAllPricingPlans, getSubscriptionPageData, getPricingTierCopy, getAllPricingTierCopy } from "./subscriptions";
+export type { UserSubscription, GetUserSubscriptionsResult, GetPricingPlansResult, SubscriptionPageData, SubscriptionLanguage, GetSubscriptionPageDataResult, PricingTierKey, PricingTierCopy, PricingTierCopyMap, PricingTierCopyRow } from "./subscriptions";
 
 export { getCreditBalance, getReferralStats } from "./credits";
 export type { CreditBalance, GetCreditBalanceResult, GetReferralStatsResult } from "./credits";

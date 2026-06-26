@@ -246,6 +246,31 @@ export type CreatePricingPlanInput = z.input<typeof createPricingPlanSchema>;
 export type UpdatePricingPlanInput = z.input<typeof updatePricingPlanSchema>;
 
 // ============================================================================
+// PRICING TIER COPY SCHEMA (admin-editable upgrade-modal card copy)
+// ============================================================================
+
+// Empty strings are coerced to null so cleared fields blank the benefit slot.
+const copyField = z
+  .string()
+  .trim()
+  .max(120, "Keep it under 120 characters")
+  .transform((v) => (v.length === 0 ? null : v))
+  .nullable()
+  .optional();
+
+export const updatePricingTierCopySchema = z.object({
+  tier_key: z.enum(["free", "course", "language", "all-languages"]),
+  audience: copyField,
+  benefit_1: copyField,
+  benefit_2: copyField,
+  benefit_3: copyField,
+  benefit_4: copyField,
+  benefit_5: copyField,
+});
+
+export type UpdatePricingTierCopyInput = z.input<typeof updatePricingTierCopySchema>;
+
+// ============================================================================
 // PLATFORM CONFIG SCHEMA
 // ============================================================================
 

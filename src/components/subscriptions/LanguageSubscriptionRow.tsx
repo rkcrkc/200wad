@@ -72,15 +72,28 @@ export function LanguageSubscriptionRow({
 
   const isDisabled = hasLangSub || hasAllLangsSub || allLangsInCart;
 
+  // Whether the language is already fully accessible (so no lock affordances).
+  const isUnlocked = hasLangSub || hasAllLangsSub;
+  // Whether adding this language to the upgrade cart is currently possible.
+  const canUpgrade = showSwitch && !!languagePlan && !isDisabled;
+
+  const handleUpgrade = () => {
+    if (!languagePlan || isInCart) return;
+    onToggleItem({
+      pricingPlanId: languagePlan.id,
+      tier: "language",
+      targetId: lang.id,
+      targetName: lang.name,
+      billingModel: billingToggle as "monthly" | "annual" | "lifetime",
+      amountCents: languagePlan.amount_cents,
+    });
+  };
+
   return (
     <div>
       <div
         className={`cursor-default px-6 py-4 transition-colors ${
-          isInCart
-            ? "bg-blue-50/50"
-            : isDisabled || !showSwitch
-              ? ""
-              : "hover:bg-bone-hover"
+          isInCart ? "bg-blue-50/50" : ""
         }`}
       >
         <div className="grid items-center grid-cols-[1fr_160px_1fr_40px]">
@@ -90,7 +103,7 @@ export function LanguageSubscriptionRow({
             <div>
               <span className="text-large-semibold">{lang.name}</span>
               <p className="text-xs text-muted-foreground">
-                {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}, {lang.totalWords} {lang.totalWords === 1 ? "word" : "words"}
+                {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
               </p>
             </div>
           </div>
@@ -99,9 +112,9 @@ export function LanguageSubscriptionRow({
           <div className="flex items-center gap-1.5">
             {hasLangSub ? (
               <>
-                <Badge size="sm">
+                <span className="text-small-medium text-foreground">
                   {getPlanLabel(langSub.plan)}
-                </Badge>
+                </span>
                 {langSub.cancel_at_period_end && langSub.current_period_end ? (
                   <Badge size="sm" variant="warning">
                     Cancels {new Date(langSub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -117,9 +130,9 @@ export function LanguageSubscriptionRow({
                 Included
               </Badge>
             ) : (
-              <Badge size="sm">
+              <span className="text-small-medium text-muted-foreground">
                 Free plan
-              </Badge>
+              </span>
             )}
           </div>
 
@@ -146,14 +159,7 @@ export function LanguageSubscriptionRow({
                       );
                       if (cartItem) onRemoveItem(cartItem.pricingPlanId);
                     } else {
-                      onToggleItem({
-                        pricingPlanId: languagePlan.id,
-                        tier: "language",
-                        targetId: lang.id,
-                        targetName: lang.name,
-                        billingModel: billingToggle as "monthly" | "annual" | "lifetime",
-                        amountCents: languagePlan.amount_cents,
-                      });
+                      handleUpgrade();
                     }
                   }}
                   disabled={isDisabled && !isInCart}
@@ -184,7 +190,14 @@ export function LanguageSubscriptionRow({
       </div>
 
       {/* Expanded course list */}
-      {isExpanded && <ExpandableCourseList languageId={lang.id} />}
+      {isExpanded && (
+        <ExpandableCourseList
+          languageId={lang.id}
+          isUnlocked={isUnlocked}
+          isInCart={isInCart}
+          onUpgrade={canUpgrade ? handleUpgrade : undefined}
+        />
+      )}
     </div>
   );
 }

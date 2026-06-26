@@ -1,8 +1,45 @@
 "use client";
 
 import { Fragment, ReactNode } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
+
+/**
+ * Shared styling for "tab pill" buttons (the page-level filter tabs as well as
+ * smaller inline tab strips). Encodes the pill shape, typography and the
+ * active/inactive colour states as variants so consumers can switch the active
+ * fill (`variant`) and text size (`size`) without re-implementing the styling.
+ */
+export const tabPillVariants = cva(
+  "shrink-0 whitespace-nowrap rounded-full transition-colors",
+  {
+    variants: {
+      /** Active-state fill colour. */
+      variant: {
+        beige: "",
+        bone: "",
+      },
+      size: {
+        default: "px-4 py-1.5 text-sm font-medium leading-[1.35] tracking-[-0.01em]",
+        sm: "px-3 py-1 text-[13px] font-medium leading-[1.35] tracking-[-0.01em]",
+      },
+      active: {
+        true: "text-foreground",
+        false: "text-foreground/50 hover:text-foreground/75",
+      },
+    },
+    compoundVariants: [
+      { variant: "beige", active: true, class: "bg-beige" },
+      { variant: "bone", active: true, class: "bg-bone-hover" },
+    ],
+    defaultVariants: {
+      variant: "beige",
+      size: "default",
+      active: false,
+    },
+  }
+);
 
 export interface Tab {
   id: string;
@@ -12,14 +49,22 @@ export interface Tab {
   separatorAfter?: boolean;
 }
 
-interface TabsProps {
+interface TabsProps
+  extends Pick<VariantProps<typeof tabPillVariants>, "variant" | "size"> {
   tabs: Tab[];
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;
 }
 
-export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
+export function Tabs({
+  tabs,
+  activeTab,
+  onChange,
+  className,
+  variant = "beige",
+  size = "default",
+}: TabsProps) {
   return (
     <div
       role="tablist"
@@ -38,12 +83,8 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
               data-state={isActive ? "active" : "inactive"}
               onClick={() => onChange(tab.id)}
               className={cn(
-                "shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 transition-colors",
-                isActive
-                  ? "bg-beige text-foreground"
-                  : "text-foreground/50 hover:text-foreground/75"
+                tabPillVariants({ variant, size, active: isActive })
               )}
-              style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.35, letterSpacing: '-0.01em' }}
             >
               {tab.label}
               {tab.count !== undefined && (

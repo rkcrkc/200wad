@@ -5,8 +5,10 @@ import { requireAdmin } from "@/lib/utils/adminGuard";
 import {
   createPricingPlanSchema,
   updatePricingPlanSchema,
+  updatePricingTierCopySchema,
   type CreatePricingPlanInput,
   type UpdatePricingPlanInput,
+  type UpdatePricingTierCopyInput,
 } from "@/lib/validations/admin";
 import { revalidatePath, updateTag } from "next/cache";
 
@@ -127,4 +129,38 @@ export async function togglePricingPlanActive(
   isActive: boolean
 ): Promise<MutationResult> {
   return updatePricingPlan(id, { is_active: isActive });
+}
+
+// ============================================================================
+// PRICING TIER COPY (upgrade-modal card copy)
+// ============================================================================
+
+/**
+ * Upsert the editable upgrade-modal copy for a single tier. Benefit strings may
+ * contain count tokens ({freeLessons}, {courses}, {lessons}, {words},
+ * {languages}) interpolated against live content totals at render time.
+ */
+export async function updatePricingTierCopy(
+  input: UpdatePricingTierCopyInput
+): Promise<MutationResult> {
+  try {
+    await requireAdmin();
+    const validated = updatePricingTierCopySchema.parse(input);
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("pricing_tier_copy")
+      .upsert(validated, { onConflict: "tier_key" });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/settings");
+    updateTag("pricing-tier-copy");
+    return { success: true, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
 }

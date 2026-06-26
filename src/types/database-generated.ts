@@ -971,6 +971,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_tier_copy: {
+        Row: {
+          audience: string | null
+          benefit_1: string | null
+          benefit_2: string | null
+          benefit_3: string | null
+          benefit_4: string | null
+          benefit_5: string | null
+          tier_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          audience?: string | null
+          benefit_1?: string | null
+          benefit_2?: string | null
+          benefit_3?: string | null
+          benefit_4?: string | null
+          benefit_5?: string | null
+          tier_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          audience?: string | null
+          benefit_1?: string | null
+          benefit_2?: string | null
+          benefit_3?: string | null
+          benefit_4?: string | null
+          benefit_5?: string | null
+          tier_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           created_at: string | null
@@ -1919,6 +1952,7 @@ export type Database = {
           name: string | null
           nationalities: string[] | null
           notifications_last_seen_at: string | null
+          pb_alltime_rank: number | null
           pb_day_test_points: number | null
           pb_day_test_points_at: string | null
           pb_session_score_at: string | null
@@ -1960,6 +1994,7 @@ export type Database = {
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
+          pb_alltime_rank?: number | null
           pb_day_test_points?: number | null
           pb_day_test_points_at?: string | null
           pb_session_score_at?: string | null
@@ -2001,6 +2036,7 @@ export type Database = {
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
+          pb_alltime_rank?: number | null
           pb_day_test_points?: number | null
           pb_day_test_points_at?: string | null
           pb_session_score_at?: string | null
