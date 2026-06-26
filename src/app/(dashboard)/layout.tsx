@@ -7,6 +7,7 @@ import {
   getUserLearningStats,
   getCourseProgress,
   getActivePricingPlans,
+  getPricingTierCopy,
   getUserLeaderboardPosition,
   getUserSubscriptions,
   getCurrentStreak,
@@ -36,7 +37,7 @@ export default async function DashboardLayout({
   // FAST critical-path queries — children consume these via providers
   // (SubscriptionProvider, TextProvider, CourseProvider) so the layout
   // must await them before rendering.
-  const [plansResult, enabledTiers, textOverridesResult, subsResult, displayInfo] =
+  const [plansResult, enabledTiers, textOverridesResult, subsResult, displayInfo, pricingCopy, langListResult] =
     await Promise.all([
       getActivePricingPlans(),
       getEnabledTiers(),
@@ -45,6 +46,12 @@ export default async function DashboardLayout({
         ? Promise.resolve({ subscriptions: [], error: null })
         : getUserSubscriptions(),
       getSubscriptionDisplayInfo(),
+      getPricingTierCopy(),
+      supabase
+        .from("languages")
+        .select("id, name, code")
+        .eq("is_visible", true)
+        .order("sort_order"),
     ]);
 
   // SLOW header-only stats — bundled into a single Promise that streams via
@@ -104,6 +111,32 @@ export default async function DashboardLayout({
     currentPeriodEnd: s.current_period_end,
   }));
 
+  // Languages selectable in the global upgrade modal's single-language picker:
+  // every visible language the user hasn't already unlocked. Hidden entirely
+  // for all-languages subscribers (they have nothing left to unlock here).
+  const hasAllAccess = subsResult.subscriptions.some(
+    (s) => s.type === "all-languages" && s.isEffective
+  );
+  const unlockedLanguageIds = new Set(
+    subsResult.subscriptions
+      .filter((s) => s.isEffective && s.type === "language" && s.target_id)
+      .map((s) => s.target_id as string)
+  );
+  const upgradeLanguages = hasAllAccess
+    ? []
+    : (langListResult.data ?? [])
+        .filter((l) => !unlockedLanguageIds.has(l.id))
+        .map((l) => ({
+          id: l.id,
+          name: l.name,
+          flag: getFlagFromCode(l.code),
+        }));
+  // Default the picker to the current course's language when it's still
+  // unlocked-able, otherwise the first available language.
+  const upgradeDefaultLanguageId =
+    upgradeLanguages.find((l) => l.id === language?.id)?.id ??
+    upgradeLanguages[0]?.id;
+
   // Prepare default course context for header
   const defaultCourseContext = course && language
     ? {
@@ -125,6 +158,9 @@ export default async function DashboardLayout({
         showPreviewMode={isGuest}
         plans={plansResult.plans}
         enabledTiers={enabledTiers}
+        pricingCopy={pricingCopy}
+        upgradeLanguages={upgradeLanguages}
+        upgradeDefaultLanguageId={upgradeDefaultLanguageId}
         textOverrides={textOverridesResult.overrides}
         subscriptions={subscriptions}
         displayInfo={displayInfo}

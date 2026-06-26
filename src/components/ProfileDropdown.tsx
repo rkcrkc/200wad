@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, LogOut, UserPen } from "lucide-react";
+import { Coins, CreditCard, LogOut, Settings, UserPen } from "lucide-react";
 import { useUser } from "@/context/UserContext";
+import { createClient } from "@/lib/supabase/client";
+import { LevelBadge } from "@/components/levels/LevelBadge";
+import { XpBadge } from "@/components/ui/xp-badge";
 
 /** Gap kept between the dropdown's bottom edge and the viewport bottom. */
 const VIEWPORT_BOTTOM_GAP = 16;
@@ -21,6 +24,47 @@ export function ProfileDropdown() {
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Current rank + lifetime XP, fetched lazily the first time the menu opens so
+  // it stays off the hot path for the (common) case where the avatar is never
+  // clicked. Read from the user's own row (RLS-scoped) plus the enabled `levels`
+  // ladder for the held tier's name/colour.
+  const [rank, setRank] = useState<{
+    name: string;
+    color: string;
+    lifetimeXp: number;
+  } | null>(null);
+  const rankFetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (!open || rankFetchedRef.current || !user) return;
+    rankFetchedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("lifetime_xp, current_level")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled || !userRow) return;
+      const { data: levelRow } = await supabase
+        .from("levels")
+        .select("name, color")
+        .eq("level_number", userRow.current_level ?? 1)
+        .eq("enabled", true)
+        .maybeSingle();
+      if (cancelled || !levelRow) return;
+      setRank({
+        name: levelRow.name,
+        color: levelRow.color,
+        lifetimeXp: userRow.lifetime_xp ?? 0,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, user]);
 
   // Prefer the profile name; fall back to the email local part, then a generic
   // label so the header always has something to show.
@@ -149,9 +193,17 @@ export function ProfileDropdown() {
                 </span>
               </div>
             )}
-            <span className="text-foreground min-w-0 flex-1 truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
-              {name}
-            </span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+                {name}
+              </span>
+              {rank && (
+                <div className="flex items-center gap-2">
+                  <LevelBadge name={rank.name} color={rank.color} size="sm" />
+                  <XpBadge value={rank.lifetimeXp} variant="default" size="sm" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Actions */}
@@ -167,7 +219,37 @@ export function ProfileDropdown() {
                 strokeWidth={1.67}
               />
               <span className="text-foreground text-[14px] font-medium">
-                Edit profile
+                Profile
+              </span>
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => handleNavigate("/settings")}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bone-hover"
+            >
+              <Settings
+                className="h-4 w-4 text-muted-foreground"
+                strokeWidth={1.67}
+              />
+              <span className="text-foreground text-[14px] font-medium">
+                Settings
+              </span>
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => handleNavigate("/account/subscriptions")}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bone-hover"
+            >
+              <CreditCard
+                className="h-4 w-4 text-muted-foreground"
+                strokeWidth={1.67}
+              />
+              <span className="text-foreground text-[14px] font-medium">
+                Subscriptions
               </span>
             </button>
 
@@ -185,6 +267,8 @@ export function ProfileDropdown() {
                 Credits
               </span>
             </button>
+
+            <div className="my-1 h-px bg-gray-100" role="separator" />
 
             <form action="/auth/logout" method="post">
               <button

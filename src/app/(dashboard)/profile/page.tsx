@@ -1,12 +1,7 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
 import { getUserSettings } from "@/lib/queries/settings";
 import { getUserLevel } from "@/lib/queries/levels";
-import {
-  ProfileSection,
-  LearningLanguagesSection,
-  ErrorState,
-} from "@/components/settings";
+import { ProfileSection, ErrorState } from "@/components/settings";
 import { LevelCard } from "@/components/levels/LevelCard";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -51,15 +46,7 @@ export default async function ProfilePage() {
 
   return (
     <PageContainer size="sm">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold">Profile</h1>
-        <form action="/auth/logout" method="post">
-          <Button type="submit" variant="outline">
-            <LogOut className="h-4 w-4" />
-            Log out
-          </Button>
-        </form>
-      </div>
+      <h1 className="mb-8 text-3xl font-semibold">Profile</h1>
 
       <ProfileSection settings={settings} />
 
@@ -68,8 +55,6 @@ export default async function ProfilePage() {
           <LevelCard data={levelData} />
         </div>
       )}
-
-      <LearningLanguagesSection languages={settings.learningLanguages} />
     </PageContainer>
   );
 }

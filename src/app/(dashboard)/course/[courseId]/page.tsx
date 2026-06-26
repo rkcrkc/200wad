@@ -1,4 +1,4 @@
-import { getLessons, getLessonMilestoneScores, getActivePricingPlans } from "@/lib/queries";
+import { getLessons, getLessonMilestoneScores, getActivePricingPlans, getPricingTierCopy } from "@/lib/queries";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
 import { LessonsList } from "@/components/LessonsList";
 import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
@@ -17,11 +17,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
 
   // Fetch lessons, milestone scores, and pricing data in parallel
-  const [lessonsResult, milestoneScores, plansResult, enabledTiers] = await Promise.all([
+  const [lessonsResult, milestoneScores, plansResult, enabledTiers, pricingCopy] = await Promise.all([
     getLessons(courseId),
     getLessonMilestoneScores(courseId),
     getActivePricingPlans(),
     getEnabledTiers(),
+    getPricingTierCopy(),
   ]);
 
   const { language, course, lessons, stats, isGuest } = lessonsResult;
@@ -70,6 +71,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           milestoneScores={milestoneScores}
           plans={plansResult.plans}
           enabledTiers={enabledTiers}
+          copy={pricingCopy}
         />
       )}
 

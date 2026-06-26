@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { UpgradeModal } from "./UpgradeModal";
+import { UpgradeModal, type UpgradeLanguageOption } from "./UpgradeModal";
 import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
 import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context/CourseContext";
 import { SubscriptionProvider, type SimpleSubscription } from "@/context/SubscriptionContext";
@@ -19,6 +19,7 @@ import {
   type HeaderStatsBundle,
 } from "@/context/HeaderStatsContext";
 import type { PricingPlan } from "@/types/database";
+import type { PricingTierCopyMap } from "@/lib/queries/subscriptions";
 import type { SubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 import type { DailyGoalProgress } from "@/lib/queries/daily-goal";
 
@@ -66,6 +67,12 @@ interface DashboardContentProps {
   showPreviewMode?: boolean;
   plans?: PricingPlan[];
   enabledTiers?: string[];
+  /** Admin-editable upgrade-modal card copy keyed by tier. */
+  pricingCopy?: PricingTierCopyMap;
+  /** Not-yet-unlocked languages for the global upgrade modal's picker. */
+  upgradeLanguages?: UpgradeLanguageOption[];
+  /** Language pre-selected in the picker (defaults to the current course's). */
+  upgradeDefaultLanguageId?: string;
   textOverrides?: Record<string, string>;
   subscriptions?: SimpleSubscription[];
   displayInfo?: SubscriptionDisplayInfo;
@@ -96,14 +103,28 @@ function UpgradeModalWithContext({
   plans,
   enabledTiers,
   freeLessons,
+  copy,
+  languages,
+  defaultLanguageId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   plans: PricingPlan[];
   enabledTiers: string[];
   freeLessons?: number;
+  copy?: PricingTierCopyMap;
+  languages?: UpgradeLanguageOption[];
+  defaultLanguageId?: string;
 }) {
   const { languageName, languageFlag, languageId } = useCourseContext();
+  // Seed the picker with the current course's language when it's selectable,
+  // otherwise the layout-provided default (first available language).
+  const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(
+    () =>
+      (languageId && languages?.some((l) => l.id === languageId)
+        ? languageId
+        : defaultLanguageId) ?? null
+  );
 
   return (
     <UpgradeModal
@@ -112,9 +133,13 @@ function UpgradeModalWithContext({
       languageName={languageName}
       languageFlag={languageFlag}
       languageId={languageId}
+      languages={languages}
+      selectedLanguageId={selectedLanguageId}
+      onSelectLanguage={setSelectedLanguageId}
       plans={plans}
       enabledTiers={enabledTiers}
       freeLessons={freeLessons}
+      copy={copy}
     />
   );
 }
@@ -134,6 +159,9 @@ export function DashboardContent({
   showPreviewMode,
   plans = [],
   enabledTiers = [],
+  pricingCopy,
+  upgradeLanguages,
+  upgradeDefaultLanguageId,
   textOverrides = {},
   subscriptions = [],
   displayInfo,
@@ -145,6 +173,9 @@ export function DashboardContent({
         showPreviewMode={showPreviewMode}
         plans={plans}
         enabledTiers={enabledTiers}
+        pricingCopy={pricingCopy}
+        upgradeLanguages={upgradeLanguages}
+        upgradeDefaultLanguageId={upgradeDefaultLanguageId}
         textOverrides={textOverrides}
         subscriptions={subscriptions}
         displayInfo={displayInfo}
@@ -161,6 +192,9 @@ interface DashboardShellProps {
   showPreviewMode?: boolean;
   plans: PricingPlan[];
   enabledTiers: string[];
+  pricingCopy?: PricingTierCopyMap;
+  upgradeLanguages?: UpgradeLanguageOption[];
+  upgradeDefaultLanguageId?: string;
   textOverrides: Record<string, string>;
   subscriptions: SimpleSubscription[];
   displayInfo?: SubscriptionDisplayInfo;
@@ -172,6 +206,9 @@ function DashboardShell({
   showPreviewMode,
   plans,
   enabledTiers,
+  pricingCopy,
+  upgradeLanguages,
+  upgradeDefaultLanguageId,
   textOverrides,
   subscriptions,
   displayInfo,
@@ -239,8 +276,8 @@ function DashboardShell({
     );
   }
 
-  // At top-level dashboard and courses page, no sidebar
-  const showSidebar = pathname !== "/dashboard" && !pathname.startsWith("/courses/");
+  // Courses page renders full width; everything else gets the sidebar.
+  const showSidebar = !pathname.startsWith("/courses/");
 
   if (!showSidebar) {
     // No sidebar - full width content with fixed header; only main scrolls
@@ -286,6 +323,9 @@ function DashboardShell({
                   plans={plans}
                   enabledTiers={enabledTiers}
                   freeLessons={displayInfo?.freeLessons}
+                  copy={pricingCopy}
+                  languages={upgradeLanguages}
+                  defaultLanguageId={upgradeDefaultLanguageId}
                 />
                 {!showPreviewMode && <EmailVerificationReminder />}
               </WordPreviewProvider>

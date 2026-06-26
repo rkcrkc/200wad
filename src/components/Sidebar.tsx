@@ -13,7 +13,6 @@ import {
   Flame,
   Lock,
   ShoppingBag,
-  Settings,
   HelpCircle,
 } from "lucide-react";
 import { Podium } from "@/components/ui/podium-icon";
@@ -37,10 +36,6 @@ const getSecondaryNavItems = () => [
   { path: "/trophies", icon: Trophy, label: "Trophies" },
   { path: "/streak", icon: Flame, label: "Streaks" },
   { path: "/shop", icon: ShoppingBag, label: "Shop" },
-];
-
-const bottomNavItems = [
-  { path: "/settings", icon: Settings, label: "Settings" },
 ];
 
 interface SidebarNavItemProps {
@@ -292,15 +287,6 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
 
       {/* Bottom Section */}
       <div className="flex flex-col gap-1 px-4 pb-5">
-        {bottomNavItems.map((item) => (
-          <SidebarNavItem
-            key={item.path}
-            href={item.path}
-            icon={item.icon}
-            label={item.label}
-            collapsed={collapsed}
-          />
-        ))}
         <SidebarNavItem href="/help" icon={HelpCircle} label="Help" collapsed={collapsed} />
       </div>
     </div>
