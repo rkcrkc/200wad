@@ -14,6 +14,7 @@ import {
   calculateScorePercent,
   getCharacterDiff,
   canonicalizeUserGender,
+  hasGenderMarker,
   languageRequiresCase,
   type AnswerGrade,
   type ScoreLetter,
@@ -106,8 +107,8 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
     preserveCase,
   };
 
-  // Check if any valid answer contains a gender marker (m) or (f)
-  const hasGender = validAnswers.some((a) => /\((m|f)\)\s*$/.test(a));
+  // Check if any valid answer contains a gender marker (m), (f) or (m/f)
+  const hasGender = validAnswers.some(hasGenderMarker);
 
   // Use existing result if provided (word already answered), otherwise use local result
   const result = existingResult ?? localResult;

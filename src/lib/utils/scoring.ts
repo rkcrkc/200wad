@@ -53,11 +53,46 @@ export interface NormalizeOptions {
   preserveCase?: boolean;
 }
 
-/** Gender marker pattern including preceding space: " (m)" or " (f)" at end of string */
-const GENDER_MARKER = /\s+\((?:m|f)\)\s*$/;
+/**
+ * Gender marker at the end of a correct answer, including the preceding space:
+ * " (m)", " (f)", or the dual " (m/f)". Capture group 1 is the gender token.
+ */
+const GENDER_MARKER = /\s+\((m\/f|f\/m|m|f)\)\s*$/;
 
-/** Flexible gender marker for user input: space + optional ( + m/f + optional ) */
-const FLEXIBLE_GENDER_MARKER = /\s+\(?([mf])\)?\s*$/i;
+/**
+ * Flexible gender marker for user input: a preceding space, optional brackets,
+ * slash and spaces, and one or two gender letters in any order — e.g. "m", "(f",
+ * "mf", "fm", "m/f", "(f/m)". Capture group 1 is the raw token; pass it to
+ * genderSet() to interpret it.
+ */
+const FLEXIBLE_GENDER_MARKER = /\s+\(?\s*([mf](?:\s*\/?\s*[mf])?)\s*\)?\s*$/i;
+
+/** Parse a gender token (e.g. "m", "M/F", "fm") into the set of genders it names. */
+function genderSet(token: string): Set<"m" | "f"> {
+  const set = new Set<"m" | "f">();
+  for (const ch of token.toLowerCase()) {
+    if (ch === "m" || ch === "f") set.add(ch);
+  }
+  return set;
+}
+
+/** True when two gender sets name exactly the same genders. */
+function genderSetsEqual(a: Set<"m" | "f">, b: Set<"m" | "f">): boolean {
+  return a.size === b.size && [...a].every((g) => b.has(g));
+}
+
+/** Canonical " (m)", " (f)", or " (m/f)" marker for a gender set, or "" if empty. */
+function canonicalGenderMarker(set: Set<"m" | "f">): string {
+  if (set.has("m") && set.has("f")) return " (m/f)";
+  if (set.has("m")) return " (m)";
+  if (set.has("f")) return " (f)";
+  return "";
+}
+
+/** True when an answer carries a trailing gender marker: (m), (f), or (m/f). */
+export function hasGenderMarker(answer: string): boolean {
+  return GENDER_MARKER.test(answer.trim());
+}
 
 /**
  * Decorative punctuation that isn't pedagogically meaningful for vocab learning.
@@ -90,6 +125,7 @@ export function getNormalizedIndexMap(answer: string, options: NormalizeOptions 
   const isDecorative = (ch: string) => !strictPunctuation && /[,.;:!?"“”«»…]/.test(ch);
 
   const indexMap: number[] = [];
+  let lastKeptWasSpace = false;
   for (let i = 0; i < trimmed.length; i++) {
     // Skip gender marker chars (including preceding space)
     if (genderStartIdx >= 0 && i >= genderStartIdx) {
@@ -99,7 +135,25 @@ export function getNormalizedIndexMap(answer: string, options: NormalizeOptions 
     if (isDecorative(trimmed[i])) {
       continue;
     }
+    // Collapse whitespace runs to a single space (non-strict only), mirroring
+    // normalizeAnswer. Stripped chars above don't reset the run, so "word ... word"
+    // (space, dots, space) collapses to one space just like the normalized string.
+    if (!strictPunctuation && /\s/.test(trimmed[i])) {
+      if (lastKeptWasSpace) continue;
+      lastKeptWasSpace = true;
+    } else {
+      lastKeptWasSpace = false;
+    }
     indexMap.push(trimOffset + i);
+  }
+  // Mirror normalizeAnswer's trailing trim: drop a trailing kept space that a strip
+  // may have exposed near the end (e.g. "word ." -> "word").
+  while (
+    !strictPunctuation &&
+    indexMap.length > 0 &&
+    /\s/.test(trimmed[indexMap[indexMap.length - 1] - trimOffset])
+  ) {
+    indexMap.pop();
   }
   return indexMap;
 }
@@ -134,13 +188,18 @@ export function normalizeAnswer(answer: string, options: NormalizeOptions | bool
   const { strictPunctuation = false, preserveCase = false } = options;
 
   let normalized = answer.trim();
-  // Strip gender marker and decorative punctuation so they don't affect edit distance.
-  // Use trimEnd only (not trim) so leading-whitespace cases stay aligned with
-  // getNormalizedIndexMap, which emits indices for every non-stripped char.
+  // Strip gender marker and decorative punctuation so they don't affect edit distance,
+  // then collapse internal whitespace runs to a single space. The collapse makes
+  // placeholder ellipses optional: for "ne ... personne" the dots are stripped as
+  // decorative punctuation, and without the collapse the leftover double space would
+  // count as a mistake against a natural "ne personne".
+  // getNormalizedIndexMap mirrors both the stripping and the collapse so character
+  // diffs stay aligned.
   if (!strictPunctuation) {
     normalized = normalized
       .replace(GENDER_MARKER, "")
       .replace(DECORATIVE_PUNCT, "")
+      .replace(/\s+/g, " ")
       .trimEnd();
   }
   if (!preserveCase) {
@@ -173,15 +232,18 @@ export function getMistakeCount(
 
   const { strictPunctuation = false, preserveCase = false } = options;
 
-  // Check if correct answer has a gender marker
+  // Check if correct answer has a gender marker: (m), (f), or (m/f)
   const correctTrimmed = correctAnswer.trim();
   const correctGenderMatch = !strictPunctuation
-    ? correctTrimmed.match(/\s+\(([mf])\)\s*$/)
+    ? correctTrimmed.match(GENDER_MARKER)
     : null;
 
   if (correctGenderMatch) {
-    // GENDERED WORD: score word and gender separately
-    const expectedGender = correctGenderMatch[1];
+    // GENDERED WORD: score word and gender separately.
+    // Gender is correct only when the user names exactly the same set of genders,
+    // so a dual "(m/f)" word needs both m and f (any order/format: mf, fm, m/f,
+    // (f/m)...), while a single-gender word needs just that one.
+    const expectedGender = genderSet(correctGenderMatch[1]);
 
     // Strip gender from correct answer
     const correctWordOnly = correctTrimmed.replace(GENDER_MARKER, "");
@@ -191,10 +253,10 @@ export function getMistakeCount(
     const userFlexMatch = userTrimmed.match(FLEXIBLE_GENDER_MARKER);
 
     let userWordOnly: string;
-    let userGender: string | null = null;
+    let userGender = new Set<"m" | "f">();
 
     if (userFlexMatch && userFlexMatch.index !== undefined) {
-      userGender = userFlexMatch[1].toLowerCase();
+      userGender = genderSet(userFlexMatch[1]);
       userWordOnly = userTrimmed.slice(0, userFlexMatch.index);
     } else {
       userWordOnly = userTrimmed;
@@ -214,8 +276,8 @@ export function getMistakeCount(
         ? 0
         : levenshteinDistance(normalizedUserWord, normalizedCorrectWord);
 
-    // Gender mistake: missing or wrong = 1
-    const genderMistake = !userGender || userGender !== expectedGender ? 1 : 0;
+    // Gender mistake: missing, incomplete, or wrong set = 1
+    const genderMistake = genderSetsEqual(userGender, expectedGender) ? 0 : 1;
 
     return wordMistakes + genderMistake;
   }
@@ -253,8 +315,9 @@ export function canonicalizeUserGender(
   const userFlexMatch = userTrimmed.match(FLEXIBLE_GENDER_MARKER);
 
   if (userFlexMatch && userFlexMatch.index !== undefined) {
-    const gender = userFlexMatch[1].toLowerCase();
-    return userTrimmed.slice(0, userFlexMatch.index) + ` (${gender})`;
+    const canonical = canonicalGenderMarker(genderSet(userFlexMatch[1]));
+    if (!canonical) return userAnswer;
+    return userTrimmed.slice(0, userFlexMatch.index) + canonical;
   }
 
   return userAnswer;

@@ -10,6 +10,7 @@ import {
   getAnswerGrade,
   getCharacterDiff,
   canonicalizeUserGender,
+  hasGenderMarker,
   languageRequiresCase,
   type AnswerGrade,
   type NormalizeOptions,
@@ -77,8 +78,8 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     preserveCase,
   };
 
-  // Check if any valid answer contains a gender marker (m) or (f)
-  const hasGender = validAnswers.some((a) => /\((m|f)\)\s*$/.test(a));
+  // Check if any valid answer contains a gender marker (m), (f) or (m/f)
+  const hasGender = validAnswers.some(hasGenderMarker);
 
   // Expose insertCharacter method to parent
   useImperativeHandle(ref, () => ({
