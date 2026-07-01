@@ -2,8 +2,8 @@ import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createStaticClient } from "@/lib/supabase/static";
 import type { Subscription, PricingPlan, Language } from "@/types/database";
-import { getCreditBalance, type CreditBalance } from "./credits";
-import { getEnabledTiers } from "@/lib/utils/accessControl";
+import { getCreditBalance } from "./credits";
+import { getEnabledTiers, getDefaultFreeLessons } from "@/lib/utils/accessControl";
 
 // ============================================================================
 // Types
@@ -161,6 +161,10 @@ export type PricingTierKey = "free" | "course" | "language" | "all-languages";
 /** Modal-facing copy: audience subtitle + non-blank benefit bullets in order. */
 export interface PricingTierCopy {
   audience: string | null;
+  /** Subscription-page header "Access" line template (with {token}s). */
+  access: string | null;
+  /** Optional second line under the "Access" value; hidden when blank. */
+  accessSubtext: string | null;
   benefits: string[];
 }
 
@@ -170,6 +174,8 @@ export type PricingTierCopyMap = Partial<Record<PricingTierKey, PricingTierCopy>
 export interface PricingTierCopyRow {
   tier_key: string;
   audience: string | null;
+  access: string | null;
+  access_subtext: string | null;
   benefit_1: string | null;
   benefit_2: string | null;
   benefit_3: string | null;
@@ -200,6 +206,8 @@ export const getPricingTierCopy = unstable_cache(
     for (const row of data) {
       map[row.tier_key as PricingTierKey] = {
         audience: row.audience,
+        access: row.access,
+        accessSubtext: row.access_subtext,
         benefits: [
           row.benefit_1,
           row.benefit_2,
@@ -240,12 +248,30 @@ export async function getAllPricingTierCopy(): Promise<{
 // Subscription Page Data
 // ============================================================================
 
+/** A published course within a language, prefetched for the expandable list. */
+export interface LanguageCourse {
+  id: string;
+  name: string;
+  level: string | null;
+  totalLessons: number;
+  wordCount: number;
+  thumbnailUrl: string | null;
+  /** Effective free-lesson allowance (course override or platform default). */
+  freeLessons: number;
+}
+
 export interface SubscriptionLanguage {
   id: string;
   name: string;
   code: string;
   courseCount: number;
   totalWords: number;
+  /** Sum of published-course lesson counts across the language. */
+  totalLessons: number;
+  /** Free-lesson allowance summed across the language's published courses. */
+  freeLessons: number;
+  /** Published courses, prefetched so row expansion renders instantly. */
+  courses: LanguageCourse[];
 }
 
 export interface SubscriptionPageData {
@@ -255,6 +281,13 @@ export interface SubscriptionPageData {
   userLanguageIds: string[];
   enabledTiers: string[];
   creditBalanceCents: number;
+  /** Platform default free-lesson allowance per course (for header copy). */
+  defaultFreeLessons: number;
+  /**
+   * Admin-editable "Access" copy per plan kind: the main line template plus an
+   * optional sub-text line (both may contain {token}s). Sub-text hides when blank.
+   */
+  accessCopy: Partial<Record<PricingTierKey, { template: string | null; subtext: string | null }>>;
   isGuest: boolean;
 }
 
@@ -281,13 +314,15 @@ export async function getSubscriptionPageData(): Promise<GetSubscriptionPageData
         userLanguageIds: [],
         enabledTiers: [],
         creditBalanceCents: 0,
+        defaultFreeLessons: 0,
+        accessCopy: {},
         isGuest: true,
       },
       error: null,
     };
   }
 
-  const [subsResult, plansResult, languagesResult, userLangsResult, userProfileResult, enabledTiers, creditResult, coursesResult, wordCountsResult] =
+  const [subsResult, plansResult, languagesResult, userLangsResult, userProfileResult, enabledTiers, creditResult, coursesResult, defaultFreeLessons, tierCopy] =
     await Promise.all([
       getUserSubscriptions(),
       getActivePricingPlans(),
@@ -307,32 +342,53 @@ export async function getSubscriptionPageData(): Promise<GetSubscriptionPageData
         .single(),
       getEnabledTiers(),
       getCreditBalance(),
-      // Course counts per language
+      // Full published course rows: drive per-language aggregates AND the
+      // prefetched course lists so row expansion is instant (no per-click fetch).
       supabase
         .from("courses")
-        .select("id, language_id")
-        .eq("is_published", true),
-      // Word counts per language (via words -> lessons -> courses)
-      supabase
-        .from("words")
-        .select(`id, lessons!inner( courses!inner( language_id ) )`),
+        .select("id, language_id, name, level, total_lessons, word_count, thumbnail_url, free_lessons")
+        .eq("is_published", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      getDefaultFreeLessons(),
+      getPricingTierCopy(),
     ]);
 
-  // Build course count map
+  // Editable "Access" copy (main line + optional sub-text), keyed by the plan
+  // kinds the header uses. A missing row falls back to the built-in template.
+  const accessCopy: Partial<Record<PricingTierKey, { template: string | null; subtext: string | null }>> = {};
+  for (const key of ["free", "language", "all-languages"] as const) {
+    const entry = tierCopy[key];
+    if (entry) accessCopy[key] = { template: entry.access, subtext: entry.accessSubtext };
+  }
+
+  // Build course count + lesson/free maps, plus the prefetched course lists.
   const courseCountByLanguage: Record<string, number> = {};
+  const lessonsByLanguage: Record<string, number> = {};
+  const freeLessonsByLanguage: Record<string, number> = {};
+  const wordCountByLanguage: Record<string, number> = {};
+  const coursesByLanguage: Record<string, LanguageCourse[]> = {};
   coursesResult.data?.forEach((course) => {
     if (course.language_id) {
       courseCountByLanguage[course.language_id] =
         (courseCountByLanguage[course.language_id] || 0) + 1;
-    }
-  });
-
-  // Build word count map
-  const wordCountByLanguage: Record<string, number> = {};
-  wordCountsResult.data?.forEach((word) => {
-    const langId = (word.lessons as any)?.courses?.language_id;
-    if (langId) {
-      wordCountByLanguage[langId] = (wordCountByLanguage[langId] || 0) + 1;
+      const total = course.total_lessons ?? 0;
+      const free = Math.min(course.free_lessons ?? defaultFreeLessons, total);
+      lessonsByLanguage[course.language_id] =
+        (lessonsByLanguage[course.language_id] || 0) + total;
+      freeLessonsByLanguage[course.language_id] =
+        (freeLessonsByLanguage[course.language_id] || 0) + free;
+      wordCountByLanguage[course.language_id] =
+        (wordCountByLanguage[course.language_id] || 0) + (course.word_count ?? 0);
+      (coursesByLanguage[course.language_id] ||= []).push({
+        id: course.id,
+        name: course.name,
+        level: course.level,
+        totalLessons: total,
+        wordCount: course.word_count ?? 0,
+        thumbnailUrl: course.thumbnail_url,
+        freeLessons: course.free_lessons ?? defaultFreeLessons,
+      });
     }
   });
 
@@ -343,6 +399,9 @@ export async function getSubscriptionPageData(): Promise<GetSubscriptionPageData
       code: lang.code,
       courseCount: courseCountByLanguage[lang.id] || 0,
       totalWords: wordCountByLanguage[lang.id] || 0,
+      totalLessons: lessonsByLanguage[lang.id] || 0,
+      freeLessons: freeLessonsByLanguage[lang.id] || 0,
+      courses: coursesByLanguage[lang.id] || [],
     })
   );
 
@@ -364,6 +423,8 @@ export async function getSubscriptionPageData(): Promise<GetSubscriptionPageData
       userLanguageIds,
       enabledTiers,
       creditBalanceCents: creditResult.balance.availableCents,
+      defaultFreeLessons,
+      accessCopy,
       isGuest: false,
     },
     error: subsResult.error || plansResult.error || languagesResult.error?.message || null,

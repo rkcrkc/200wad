@@ -108,6 +108,8 @@ interface PlanContent {
 // count tokens that are interpolated against live content totals at render time.
 const DEFAULT_FREE_COPY: PricingTierCopy = {
   audience: "For curious beginners",
+  access: null,
+  accessSubtext: null,
   benefits: [
     "First {freeLessons} lessons of every language",
     "Study & test sessions to try it out",
@@ -116,6 +118,8 @@ const DEFAULT_FREE_COPY: PricingTierCopy = {
 };
 const DEFAULT_LANGUAGE_COPY: PricingTierCopy = {
   audience: "For focused learners",
+  access: null,
+  accessSubtext: null,
   benefits: [
     "{courses} courses · {lessons} lessons",
     "Learn {words} words",
@@ -124,6 +128,8 @@ const DEFAULT_LANGUAGE_COPY: PricingTierCopy = {
 };
 const DEFAULT_ALL_LANGUAGES_COPY: PricingTierCopy = {
   audience: "For polyglots",
+  access: null,
+  accessSubtext: null,
   benefits: [
     "{languages} languages · {courses} courses",
     "{lessons} lessons · {words} words",
@@ -361,7 +367,7 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, audienc
           )}
           {billingModel === "lifetime" && (
             <span className="ml-2 self-center rounded-full bg-green-500 px-2 py-0.5 text-xs font-semibold text-white">
-              Own forever
+              Yours forever
             </span>
           )}
         </div>
@@ -371,7 +377,7 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, audienc
           </p>
         )}
         {billingModel === "lifetime" && (
-          <p className="mt-1 text-xs text-muted-foreground">Pay once</p>
+          <p className="mt-1 text-xs text-muted-foreground">Pay once, access forever</p>
         )}
       </div>
 
@@ -581,9 +587,9 @@ export function UpgradeModal({
                   tabs={availableOptions.map((opt) => {
                     const badge =
                       opt.value === "annual"
-                        ? "save $"
+                        ? "save $$"
                         : opt.value === "lifetime"
-                          ? "save $$"
+                          ? "best value"
                           : null;
                     const isActive = opt.value === billingModel;
                     return {

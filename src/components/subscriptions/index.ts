@@ -1,7 +1,11 @@
 export { SubscriptionsPageClient } from "./SubscriptionsPageClient";
-export type { CartItem } from "./SubscriptionsPageClient";
+export type { CurrentPlan, PlanKind } from "./SubscriptionsPageClient";
+export { SubscriptionHeader } from "./SubscriptionHeader";
 export { LanguageSubscriptionsList } from "./LanguageSubscriptionsList";
 export { LanguageSubscriptionRow } from "./LanguageSubscriptionRow";
 export { ExpandableCourseList } from "./ExpandableCourseList";
 export { AllLanguagesCallout } from "./AllLanguagesCallout";
-export { StickyCartBar } from "./StickyCartBar";
+export { CheckoutFooterBar } from "./CheckoutFooterBar";
+export { SwitchLanguageModal } from "./SwitchLanguageModal";
+export { ActionMenu } from "./ActionMenu";
+export { ManageBillingButton } from "./ManageBillingButton";

@@ -1,10 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { createCheckoutSchema, type CreateCheckoutInput } from "@/lib/validations/admin";
-import { getDefaultFreeLessons } from "@/lib/utils/accessControl";
 import type { MutationResult } from "@/lib/mutations/settings";
 
 // ============================================================================
@@ -160,67 +160,89 @@ export async function createCheckoutSession(
 }
 
 // ============================================================================
-// Language Courses (for expandable rows)
+// Switch Unlocked Language
 // ============================================================================
 
-export interface LanguageCourse {
-  id: string;
-  name: string;
-  level: string | null;
-  totalLessons: number;
-  wordCount: number;
-  thumbnailUrl: string | null;
-  /** Effective free-lesson allowance (course override or platform default). */
-  freeLessons: number;
-}
-
-export interface GetLanguageCoursesResult extends MutationResult {
-  courses: LanguageCourse[];
-}
-
 /**
- * Fetch courses for a language (used in expandable subscription rows).
- *
- * Uses the maintained `total_lessons` / `word_count` aggregate columns on
- * `courses` rather than counting `lessons` / `lesson_words` at request time.
- * The latter built a `.in("lesson_id", [...])` filter over every lesson in the
- * language, which for large languages (e.g. Italian, ~710 lessons) exceeded the
- * request size limit and silently returned zero words for every course.
+ * Re-target the user's active individual-language subscription to a different
+ * language. The "language" pricing tier is language-agnostic (one price for any
+ * language), so this is a pure re-pointing of the paid slot — no Stripe change.
  */
-export async function getLanguageCoursesAction(
-  languageId: string
-): Promise<GetLanguageCoursesResult> {
+export async function switchLanguageSubscription(
+  subscriptionId: string,
+  newLanguageId: string
+): Promise<MutationResult> {
   try {
     const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const { data: courses, error: coursesError } = await supabase
-      .from("courses")
-      .select("id, name, level, total_lessons, word_count, thumbnail_url, free_lessons")
-      .eq("language_id", languageId)
-      .eq("is_published", true)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (coursesError || !courses) {
-      return { success: false, courses: [], error: coursesError?.message || "Failed to fetch courses" };
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
     }
 
-    const defaultFreeLessons = await getDefaultFreeLessons();
+    const adminSupabase = createAdminClient();
 
-    const result: LanguageCourse[] = courses.map((course) => ({
-      id: course.id,
-      name: course.name,
-      level: course.level,
-      totalLessons: course.total_lessons ?? 0,
-      wordCount: course.word_count ?? 0,
-      thumbnailUrl: course.thumbnail_url,
-      freeLessons: course.free_lessons ?? defaultFreeLessons,
-    }));
+    // Load the subscription and verify it belongs to the user, is a language
+    // sub, and is still effective (active, or cancelled within the paid period).
+    const { data: sub, error: subError } = await adminSupabase
+      .from("subscriptions")
+      .select("id, user_id, type, status, current_period_end, target_id")
+      .eq("id", subscriptionId)
+      .single();
 
-    return { success: true, courses: result, error: null };
+    if (subError || !sub) {
+      return { success: false, error: "Subscription not found" };
+    }
+    if (sub.user_id !== user.id) {
+      return { success: false, error: "Not authorized" };
+    }
+    if (sub.type !== "language") {
+      return { success: false, error: "Only individual-language plans can be switched" };
+    }
+
+    const isEffective =
+      sub.status === "active" ||
+      (sub.status === "cancelled" &&
+        sub.current_period_end !== null &&
+        new Date(sub.current_period_end) > new Date());
+    if (!isEffective) {
+      return { success: false, error: "This plan is no longer active" };
+    }
+
+    if (newLanguageId === sub.target_id) {
+      return { success: false, error: "That language is already unlocked" };
+    }
+
+    // Verify the target language exists and is visible.
+    const { data: lang } = await adminSupabase
+      .from("languages")
+      .select("id")
+      .eq("id", newLanguageId)
+      .eq("is_visible", true)
+      .single();
+
+    if (!lang) {
+      return { success: false, error: "Language not available" };
+    }
+
+    const { error: updateError } = await adminSupabase
+      .from("subscriptions")
+      .update({ target_id: newLanguageId, updated_at: new Date().toISOString() })
+      .eq("id", subscriptionId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    revalidatePath("/account/subscriptions");
+    revalidatePath("/dashboard");
+
+    return { success: true, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return { success: false, courses: [], error: message };
+    return { success: false, error: message };
   }
 }
 

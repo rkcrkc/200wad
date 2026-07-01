@@ -146,6 +146,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
+  /* Small button corner radius (generates the `rounded-btn-sm` utility). */
+  --radius-btn-sm: 10px;
 
   /* Custom font. "Twemoji Country Flags" only contains flag glyphs (injected at
      runtime by the FlagEmojiPolyfill on platforms like Windows that lack them);

@@ -1,202 +1,108 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronRight, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getFlagFromCode } from "@/lib/utils/flags";
-import type { PricingPlan } from "@/types/database";
-import type { UserSubscription, SubscriptionLanguage } from "@/lib/queries/subscriptions";
-import type { CartItem } from "./SubscriptionsPageClient";
+import type { SubscriptionLanguage } from "@/lib/queries/subscriptions";
 import { ExpandableCourseList } from "./ExpandableCourseList";
 
 interface LanguageSubscriptionRowProps {
   lang: SubscriptionLanguage;
-  subscriptions: UserSubscription[];
-  hasAllLangsSub: boolean;
-  allLangsInCart: boolean;
-  cartItems: CartItem[];
-  languagePlan: PricingPlan | undefined;
-  billingToggle: string;
-  showSwitch: boolean;
+  /** Language is already fully accessible (individual or all-languages sub). */
+  accessUnlocked: boolean;
+  /** Whether to show the per-row "Unlock all lessons" CTA (free plan only). */
+  showUnlockCta: boolean;
+  /** Whether this language is the plan currently in the checkout cart. */
+  isSelected: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onToggleItem: (item: CartItem) => void;
-  onRemoveItem: (pricingPlanId: string) => void;
-  onManage: () => void;
-  portalLoading: boolean;
-}
-
-function formatPrice(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function getBillingSuffix(model: string): string {
-  if (model === "monthly") return "/mo";
-  if (model === "annual") return "/yr";
-  return "";
-}
-
-function getPlanLabel(plan: string): string {
-  if (plan === "monthly") return "Monthly";
-  if (plan === "annual") return "Annual";
-  if (plan === "lifetime") return "Lifetime";
-  return plan;
+  onUnlock: () => void;
 }
 
 export function LanguageSubscriptionRow({
   lang,
-  subscriptions,
-  hasAllLangsSub,
-  allLangsInCart,
-  cartItems,
-  languagePlan,
-  billingToggle,
-  showSwitch,
+  accessUnlocked,
+  showUnlockCta,
+  isSelected,
   isExpanded,
   onToggleExpand,
-  onToggleItem,
-  onRemoveItem,
-  onManage,
-  portalLoading,
+  onUnlock,
 }: LanguageSubscriptionRowProps) {
-  const langSub = subscriptions.find(
-    (sub) =>
-      sub.type === "language" &&
-      sub.target_id === lang.id &&
-      sub.isEffective
-  );
-  const hasLangSub = !!langSub;
-
-  const isInCart = cartItems.some(
-    (item) => item.tier === "language" && item.targetId === lang.id
-  );
-
-  const isDisabled = hasLangSub || hasAllLangsSub || allLangsInCart;
-
-  // Whether the language is already fully accessible (so no lock affordances).
-  const isUnlocked = hasLangSub || hasAllLangsSub;
-  // Whether adding this language to the upgrade cart is currently possible.
-  const canUpgrade = showSwitch && !!languagePlan && !isDisabled;
-
-  const handleUpgrade = () => {
-    if (!languagePlan || isInCart) return;
-    onToggleItem({
-      pricingPlanId: languagePlan.id,
-      tier: "language",
-      targetId: lang.id,
-      targetName: lang.name,
-      billingModel: billingToggle as "monthly" | "annual" | "lifetime",
-      amountCents: languagePlan.amount_cents,
-    });
-  };
+  const lockedLessons = Math.max(0, lang.totalLessons - lang.freeLessons);
 
   return (
     <div>
-      <div
-        className={`cursor-default px-6 py-4 transition-colors ${
-          isInCart ? "bg-blue-50/50" : ""
-        }`}
-      >
-        <div className="grid items-center grid-cols-[1fr_160px_1fr_40px]">
+      <div className={`px-8 py-5 ${isExpanded ? "border-b border-bone-hover" : ""}`}>
+        <div className="grid items-center grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px]">
           {/* Language */}
           <div className="flex items-center gap-3">
             <span className="text-xl">{getFlagFromCode(lang.code)}</span>
-            <div>
-              <span className="text-large-semibold">{lang.name}</span>
-              <p className="text-xs text-muted-foreground">
-                {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
-              </p>
-            </div>
+            <span className="text-medium-semibold">{lang.name}</span>
           </div>
 
-          {/* Current Plan */}
-          <div className="flex items-center gap-1.5">
-            {hasLangSub ? (
-              <>
-                <span className="text-small-medium text-foreground">
-                  {getPlanLabel(langSub.plan)}
-                </span>
-                {langSub.cancel_at_period_end && langSub.current_period_end ? (
-                  <Badge size="sm" variant="warning">
-                    Cancels {new Date(langSub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </Badge>
-                ) : (
-                  <Badge size="sm" variant="success">
-                    Active
-                  </Badge>
-                )}
-              </>
-            ) : hasAllLangsSub ? (
-              <Badge size="sm" variant="success">
-                Included
-              </Badge>
+          {/* Courses */}
+          <div className="text-small-regular text-muted-foreground">
+            {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
+          </div>
+
+          {/* Access */}
+          <div className="flex items-center">
+            {accessUnlocked ? (
+              <span className="text-small-medium text-green-600">Unlocked</span>
             ) : (
-              <span className="text-small-medium text-muted-foreground">
-                Free plan
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-small-regular text-muted-foreground">
+                  {lang.totalLessons} {lang.totalLessons === 1 ? "lesson" : "lessons"}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-small-medium text-warning">
+                  <Lock className="h-3 w-3 shrink-0" />
+                  {lockedLessons} locked
+                </span>
+              </div>
             )}
           </div>
 
           {/* Action */}
-          <div className="flex items-center justify-end gap-3">
-            {hasLangSub && langSub.stripe_subscription_id ? (
-              <button
-                onClick={onManage}
-                disabled={portalLoading}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-              >
-                {portalLoading ? "Loading..." : "Manage plan"}
-              </button>
-            ) : showSwitch && languagePlan ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {formatPrice(languagePlan.amount_cents)}{getBillingSuffix(billingToggle)}
-                </span>
-                <button
-                  onClick={() => {
-                    if (isInCart) {
-                      const cartItem = cartItems.find(
-                        (item) => item.tier === "language" && item.targetId === lang.id
-                      );
-                      if (cartItem) onRemoveItem(cartItem.pricingPlanId);
-                    } else {
-                      handleUpgrade();
-                    }
-                  }}
-                  disabled={isDisabled && !isInCart}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
-                    isInCart
-                      ? "border border-gray-200 text-gray-700 hover:bg-gray-50"
-                      : "bg-primary text-white hover:bg-primary/90"
-                  }`}
+          <div className="flex items-center pr-4">
+            {showUnlockCta &&
+              (isSelected ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onUnlock}
+                  className="w-full text-primary"
                 >
-                  {isInCart ? "Remove" : "Upgrade plan"}
-                </button>
-              </>
-            ) : null}
+                  Selected
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={onUnlock}
+                  className="group w-full"
+                >
+                  Unlock {lang.name}
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              ))}
           </div>
 
           {/* Chevron */}
           <div className="flex items-center justify-end">
             <button
               onClick={onToggleExpand}
-              className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-gray-100 hover:text-foreground"
+              aria-label={isExpanded ? "Collapse courses" : "Expand courses"}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
             >
               <ChevronDown
-                className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
               />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Expanded course list */}
       {isExpanded && (
-        <ExpandableCourseList
-          languageId={lang.id}
-          isUnlocked={isUnlocked}
-          isInCart={isInCart}
-          onUpgrade={canUpgrade ? handleUpgrade : undefined}
-        />
+        <ExpandableCourseList courses={lang.courses} isUnlocked={accessUnlocked} />
       )}
     </div>
   );

@@ -973,6 +973,8 @@ export type Database = {
       }
       pricing_tier_copy: {
         Row: {
+          access: string | null
+          access_subtext: string | null
           audience: string | null
           benefit_1: string | null
           benefit_2: string | null
@@ -983,6 +985,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          access?: string | null
+          access_subtext?: string | null
           audience?: string | null
           benefit_1?: string | null
           benefit_2?: string | null
@@ -993,6 +997,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          access?: string | null
+          access_subtext?: string | null
           audience?: string | null
           benefit_1?: string | null
           benefit_2?: string | null

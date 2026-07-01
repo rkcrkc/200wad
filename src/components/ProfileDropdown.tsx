@@ -249,7 +249,7 @@ export function ProfileDropdown() {
                 strokeWidth={1.67}
               />
               <span className="text-foreground text-[14px] font-medium">
-                Subscriptions
+                My Subscription
               </span>
             </button>
 

@@ -261,6 +261,8 @@ const copyField = z
 export const updatePricingTierCopySchema = z.object({
   tier_key: z.enum(["free", "course", "language", "all-languages"]),
   audience: copyField,
+  access: copyField,
+  access_subtext: copyField,
   benefit_1: copyField,
   benefit_2: copyField,
   benefit_3: copyField,

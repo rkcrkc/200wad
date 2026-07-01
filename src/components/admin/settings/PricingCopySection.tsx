@@ -18,6 +18,14 @@ const TIER_TOKENS: Record<string, string[]> = {
   "all-languages": ["{languages}", "{courses}", "{lessons}", "{words}"],
 };
 
+/** Tokens the subscription-page "Access" line may reference, per tier. */
+const ACCESS_TOKENS: Record<string, string[]> = {
+  free: ["{freeLessons}"],
+  course: [],
+  language: ["{language}", "{otherLanguages}", "{freeLessons}"],
+  "all-languages": ["{languages}"],
+};
+
 function tierLabel(tier: string): string {
   if (tier === "all-languages") return "All Languages";
   return tier.charAt(0).toUpperCase() + tier.slice(1);
@@ -39,6 +47,8 @@ export function PricingCopySection({ copy }: PricingCopySectionProps) {
     const result = await updatePricingTierCopy({
       tier_key: updated.tier_key as "free" | "course" | "language" | "all-languages",
       audience: updated.audience ?? "",
+      access: updated.access ?? "",
+      access_subtext: updated.access_subtext ?? "",
       benefit_1: updated.benefit_1 ?? "",
       benefit_2: updated.benefit_2 ?? "",
       benefit_3: updated.benefit_3 ?? "",
@@ -62,8 +72,8 @@ export function PricingCopySection({ copy }: PricingCopySectionProps) {
           Upgrade Modal Copy
         </h2>
         <p className="mt-1 text-sm text-gray-600">
-          Edit the audience line and benefit bullets shown on each plan card.
-          Plan titles and prices stay automatic.
+          Edit the audience line, subscription-page access line, and benefit
+          bullets shown on each plan card. Plan titles and prices stay automatic.
         </p>
       </div>
 
@@ -124,11 +134,17 @@ function EditCopyModal({
   onSubmit: (updated: PricingTierCopyRow) => void;
 }) {
   const [audience, setAudience] = useState(row.audience ?? "");
+  const [access, setAccess] = useState(row.access ?? "");
+  const [accessSubtext, setAccessSubtext] = useState(row.access_subtext ?? "");
   const [benefits, setBenefits] = useState<string[]>(
     BENEFIT_KEYS.map((k) => row[k] ?? "")
   );
 
   const tokens = TIER_TOKENS[row.tier_key] ?? [];
+  const accessTokens = ACCESS_TOKENS[row.tier_key] ?? [];
+  // The "Access" line only appears in the subscription-page header for the
+  // free / language / all-languages plans (there is no course-plan header).
+  const showAccess = row.tier_key !== "course";
 
   function setBenefit(index: number, value: string) {
     setBenefits((prev) => prev.map((b, i) => (i === index ? value : b)));
@@ -138,6 +154,8 @@ function EditCopyModal({
     onSubmit({
       tier_key: row.tier_key,
       audience: audience.trim() || null,
+      access: access.trim() || null,
+      access_subtext: accessSubtext.trim() || null,
       benefit_1: benefits[0]?.trim() || null,
       benefit_2: benefits[1]?.trim() || null,
       benefit_3: benefits[2]?.trim() || null,
@@ -189,6 +207,52 @@ function EditCopyModal({
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
         </div>
+
+        {showAccess && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Access line
+            </label>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Shown in the subscription page header for this plan.
+              {accessTokens.length > 0 && (
+                <>
+                  {" "}Tokens:{" "}
+                  {accessTokens.map((t, i) => (
+                    <span key={t}>
+                      {i > 0 && ", "}
+                      <code className="rounded bg-bone px-1 py-0.5 text-gray-800">
+                        {t}
+                      </code>
+                    </span>
+                  ))}
+                </>
+              )}
+            </p>
+            <input
+              type="text"
+              value={access}
+              onChange={(e) => setAccess(e.target.value)}
+              placeholder="All languages unlocked"
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+
+            <label className="mt-3 block text-sm font-medium text-gray-700">
+              Access sub-text
+            </label>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Optional smaller second line under the access value. Leave blank to
+              hide it.
+            </p>
+            <input
+              type="text"
+              value={accessSubtext}
+              onChange={(e) => setAccessSubtext(e.target.value)}
+              placeholder="e.g. Italian, French, German & Spanish"
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
