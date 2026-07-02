@@ -94,7 +94,7 @@ export async function getCourseExpansion(
 
   const { data: lessonsData, error: lessonsError } = await supabase
     .from("lessons")
-    .select("id, title, emoji, number")
+    .select("id, title, emoji, number, word_count")
     .eq("course_id", courseId)
     .eq("is_published", true)
     .order("sort_order")
@@ -109,6 +109,7 @@ export async function getCourseExpansion(
     title: l.title,
     emoji: l.emoji,
     isLocked: lockedFromNumber !== null && l.number > lockedFromNumber,
+    wordCount: l.word_count ?? 0,
   }));
 
   if (baseLessons.length === 0) {

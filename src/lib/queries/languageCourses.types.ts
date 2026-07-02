@@ -43,6 +43,8 @@ export interface CourseExpansionLesson {
   emoji: string | null;
   /** True when gated behind a subscription: its words render blurred + locked. */
   isLocked: boolean;
+  /** Total words in the lesson; drives the available-XP chip (`× 3`). */
+  wordCount: number;
   words: CourseExpansionWord[];
 }
 

@@ -8,7 +8,9 @@ import { ScrollFadeRow } from "@/components/ui/scroll-fade-row";
 import { CourseLevelBadge } from "@/components/ui/course-level-badge";
 import { Button } from "@/components/ui/button";
 import { tabPillVariants } from "@/components/ui/tabs";
+import { XpIcon } from "@/components/ui/xp-icon";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils/helpers";
 import type {
   LanguageCourseRow,
   CourseExpansion,
@@ -129,6 +131,15 @@ export function CourseAccordionCard({
                     {lesson.emoji && <span>{lesson.emoji}</span>}
                     {lesson.isLocked && <Lock className="h-3 w-3" />}
                     {lesson.title}
+                    {lesson.wordCount > 0 && (
+                      <>
+                        <span aria-hidden="true" className="opacity-50">
+                          ·
+                        </span>
+                        <XpIcon className="size-3 fill-current text-current" />
+                        {formatNumber(lesson.wordCount * 3)}
+                      </>
+                    )}
                   </button>
                 );
               })}
