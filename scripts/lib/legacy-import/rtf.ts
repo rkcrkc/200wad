@@ -144,40 +144,46 @@ function extractText(rtfContent: string, markers: boolean): string {
   const groupStack: Attr[] = [{ italic: false, color: null }];
   const top = () => groupStack[groupStack.length - 1];
 
-  // Markers already written to `result`, kept separate from the desired
-  // (top-of-stack) state. `reconcile()` diffs the two and emits the minimal
-  // markers needed, with colour nested INSIDE italic so the markdown stays
-  // well-formed (`*{{…}}*`).
-  let emittedItalic = false;
-  let emittedColor: "red" | "blue" | "green" | null = null;
+  // Markers already written to `result`, kept as an ordered NESTING STACK so the
+  // diff against the desired (top-of-stack) state is unambiguous. The desired
+  // stack is always built italic-outer / colour-inner, so a `*` can never be
+  // emitted inside a `{{…}}` span — the markdown stays well-formed (`*{{…}}*`)
+  // even when the RTF turns colour on before italic, or formats a whitespace run
+  // as both italic and coloured at a colour/italic boundary (the old bug that
+  // produced `{{CALM*}} *of`).
+  type Mark = "italic" | "color";
+  const emitted: Mark[] = [];
+  let emittedColorCat: "red" | "blue" | "green" | null = null;
 
   function reconcile() {
     if (!markers) return;
     const want = top();
-    // Colour markers are written nested INSIDE italic when both are active, so
-    // `*…{{…}}…*` always stays well-formed. To keep that invariant we must close
-    // (and later reopen) the inner colour whenever the outer italic has to
-    // close — even if the colour itself is unchanged.
-    const colorChanged = want.color !== emittedColor;
-    const italicClosing = emittedItalic && !want.italic;
-    // Close in reverse nesting order: colour (inner) before italic (outer).
-    if (emittedColor !== null && (colorChanged || italicClosing)) {
-      result += "}}";
-      emittedColor = null;
+    // Desired nesting: italic (outer) then colour (inner).
+    const desired: Mark[] = [];
+    if (want.italic) desired.push("italic");
+    if (want.color !== null) desired.push("color");
+
+    // Longest common prefix that also agrees on the active colour category.
+    let common = 0;
+    while (
+      common < emitted.length &&
+      common < desired.length &&
+      emitted[common] === desired[common] &&
+      (emitted[common] !== "color" || emittedColorCat === want.color)
+    ) {
+      common++;
     }
-    if (italicClosing) {
-      result += "*";
-      emittedItalic = false;
+    // Close the divergent suffix in reverse (inner-most first).
+    for (let k = emitted.length - 1; k >= common; k--) {
+      result += emitted[k] === "italic" ? "*" : "}}";
     }
-    // Open in nesting order: italic (outer) before colour (inner).
-    if (want.italic && !emittedItalic) {
-      result += "*";
-      emittedItalic = true;
+    emitted.length = common;
+    // Open the newly desired suffix in nesting order (outer-most first).
+    for (let k = common; k < desired.length; k++) {
+      result += desired[k] === "italic" ? "*" : "{{";
+      emitted.push(desired[k]);
     }
-    if (want.color !== null && emittedColor !== want.color) {
-      result += "{{";
-      emittedColor = want.color;
-    }
+    emittedColorCat = want.color;
   }
 
   let i = 0;
@@ -368,7 +374,17 @@ function extractText(rtfContent: string, markers: boolean): string {
       .replace(/  +/g, " ")
       .replace(/^ /, "")
       .replace(/\{\{\}\}/g, "")
-      .replace(/\*[\dA-Fa-f]+[^;]*;/g, "");
+      .replace(/\*[\dA-Fa-f]+[^;]*;/g, "")
+      // A whitespace run formatted as BOTH italic and coloured (common at a
+      // colour/italic boundary) reconciles to a stray empty italic hugging the
+      // colour span: `{{CALM}}* *of` or `plain* *{{WORD`. Collapse those empty
+      // `* *` pairs back to plain space. The required `}}`/`{{` neighbour means
+      // this can never touch a genuine `*word* *word2*` sequence.
+      .replace(/\}\}\*(\s*)\*/g, "}}$1")
+      .replace(/\*(\s*)\*\{\{/g, "$1{{")
+      // The boundary collapse above can leave a doubled space where it removed
+      // an empty italic between two spaces (`{{,}} * {{DAD` → `{{,}}  {{DAD`).
+      .replace(/  +/g, " ");
   }
 
   result = result.trim();

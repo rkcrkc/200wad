@@ -26,6 +26,7 @@
 
 # trigger-marker migration scratch/rollback (local only)
 scripts/.trigger-snapshots/
+scripts/.trigger-fix-backups/
 
 # Figma export reference (not production code)
 /200WAD
