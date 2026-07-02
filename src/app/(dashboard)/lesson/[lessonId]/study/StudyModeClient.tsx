@@ -1091,7 +1091,8 @@ export function StudyModeClient({
         console.error("Failed to upload image:", uploadResult.error);
         return false;
       }
-      const url = uploadResult.url;
+      // reuse the same storage path, so append a cache-bust suffix to the saved URL
+      const url = `${uploadResult.url}?v=${Date.now()}`;
 
       const result = await setWordImageOverride(currentWord.id, url);
       if (!result.success) {
@@ -1133,7 +1134,8 @@ export function StudyModeClient({
         console.error("Failed to upload concept image:", uploadResult.error);
         return false;
       }
-      const url = uploadResult.url;
+      // reuse the same storage path, so append a cache-bust suffix to the saved URL
+      const url = `${uploadResult.url}?v=${Date.now()}`;
 
       const result = await updateImageGroup(groupId, { master_image_url: url });
       if (!result.success) {

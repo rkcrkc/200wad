@@ -78,15 +78,19 @@ export async function uploadAvatar(
       return { success: false, error: uploadError.message };
     }
 
-    // Get public URL
+    // Get public URL. The storage path is fixed (avatar.{ext}) and uploaded with
+    // upsert, so replacing with the same extension keeps an identical URL and the
+    // CDN/browser serve the stale image. Append a cache-bust suffix so the new
+    // avatar is fetched immediately.
     const {
       data: { publicUrl },
     } = supabase.storage.from("avatars").getPublicUrl(fileName);
+    const avatarUrl = `${publicUrl}?v=${Date.now()}`;
 
     // Update user's avatar_url in database
     const { error: updateError } = await supabase
       .from("users")
-      .update({ avatar_url: publicUrl })
+      .update({ avatar_url: avatarUrl })
       .eq("id", user.id);
 
     if (updateError) {
@@ -96,7 +100,7 @@ export async function uploadAvatar(
 
     revalidatePath("/profile");
     revalidatePath("/settings");
-    return { success: true, error: null, avatarUrl: publicUrl };
+    return { success: true, error: null, avatarUrl };
   } catch (error) {
     console.error("Unexpected error uploading avatar:", error);
     return {

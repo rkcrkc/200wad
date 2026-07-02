@@ -566,8 +566,15 @@ export function AdminWordEditModal({
               );
               return;
             }
+            // Image uploads reuse a fixed storage path (words/{id}/trigger.webp),
+            // so the public URL is identical on replace. Append a cache-bust
+            // suffix for word-images so the CDN/browser fetches the new file.
+            const url =
+              bucket === "word-images"
+                ? `${res.url}?v=${Date.now()}`
+                : res.url;
             const updateResult = await updateWord(wordId!, {
-              [column]: res.url,
+              [column]: url,
             });
             if (!updateResult.success) {
               uploadFailures.push(

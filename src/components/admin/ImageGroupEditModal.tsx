@@ -138,7 +138,8 @@ export function ImageGroupEditModal({
           setIsSaving(false);
           return;
         }
-        newMasterUrl = res.url;
+        // reuse the same storage path, so append a cache-bust suffix to the saved URL
+        newMasterUrl = `${res.url}?v=${Date.now()}`;
       }
 
       // 2. Save the group fields (master change fans out to inheriting members).
