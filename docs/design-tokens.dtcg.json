@@ -1,0 +1,149 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "$description": "200 Words a Day design tokens (W3C DTCG format). Current app tokens only, no marketing extensions. All values reflect what the app actually renders (source of truth: src/app/globals.css). Duplicate/dead token definitions were removed from the codebase, so there are no source conflicts to reconcile.",
+  "color": {
+    "$type": "color",
+    "brand": {
+      "primary": { "$value": "#0b6cff", "$description": "Primary brand blue. Actions, links, focus ring." },
+      "blueHover": { "$value": "#005ff0", "$description": "Primary button hover (--color-blue-hover)." },
+      "blueDark": { "$value": "#0955cc", "$description": "Pressed / darker blue." },
+      "background": { "$value": "#faf8f3", "$description": "Bone/cream page background." },
+      "beige": { "$value": "#f2ead9", "$description": "Secondary/accent surface; ghost-button hover." },
+      "foreground": { "$value": "#141515", "$description": "Near-black body text and headings." },
+      "white": { "$value": "#ffffff" }
+    },
+    "neutral": {
+      "black80": { "$value": "#141515cc", "$description": "rgba(20,21,21,0.8)" },
+      "black75": { "$value": "#141515bf", "$description": "rgba(20,21,21,0.75) — muted text" },
+      "black50": { "$value": "#14151580", "$description": "rgba(20,21,21,0.5)" },
+      "black20": { "$value": "#14151533", "$description": "rgba(20,21,21,0.2)" },
+      "grayDark": { "$value": "#101828" },
+      "grayMid": { "$value": "#4a5565" },
+      "muted": { "$value": "#f5f5f5", "$description": "Muted surface." },
+      "border": { "$value": "#e5e7eb", "$description": "Default border color (rendered at 1px)." },
+      "boneHover": { "$value": "#f6f3eb" },
+      "yellowLight": { "$value": "#fff6da" }
+    },
+    "status": {
+      "success": { "$value": "#00c950" },
+      "successForeground": { "$value": "#ffffff" },
+      "warning": { "$value": "#ff9224" },
+      "warningForeground": { "$value": "#ffffff" },
+      "destructive": { "$value": "#fb2c36", "$description": "Hex approximation of oklch(0.577 0.245 27.325) used in CSS." },
+      "destructiveForeground": { "$value": "#ffffff" }
+    },
+    "statusSurface": {
+      "$description": "Word-progress chip surfaces (bg + accent pairs). Useful reference for badge styling.",
+      "masteredBg": { "$value": "#e6f9f0" },
+      "masteredAccent": { "$value": "#00c950" },
+      "learnedBg": { "$value": "#d5f3e5" },
+      "learnedAccent": { "$value": "#06ab48" },
+      "learningBg": { "$value": "#fff6da" },
+      "learningAccent": { "$value": "#ff9224" },
+      "notStartedBg": { "$value": "#faf8f3" },
+      "notStartedAccent": { "$value": "#14151580", "$description": "rgba(20,21,21,0.5)" },
+      "lockedBg": { "$value": "#f5f5f5" },
+      "lockedAccent": { "$value": "#1415154d", "$description": "rgba(20,21,21,0.3)" }
+    },
+    "chart": {
+      "$description": "OKLCH values as authored in globals.css; kept as raw CSS strings.",
+      "chart1": { "$value": "oklch(0.646 0.222 41.116)" },
+      "chart2": { "$value": "oklch(0.6 0.118 184.704)" },
+      "chart3": { "$value": "oklch(0.398 0.07 227.392)" },
+      "chart4": { "$value": "oklch(0.828 0.189 84.429)" },
+      "chart5": { "$value": "oklch(0.769 0.188 70.08)" }
+    }
+  },
+  "fontFamily": {
+    "$type": "fontFamily",
+    "sans": {
+      "$value": ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+      "$description": "Inter variable font (wght 100-900, opsz 14-32). 'Twemoji Country Flags' is prepended at runtime as a flag-glyph polyfill only and is omitted here."
+    }
+  },
+  "fontWeight": {
+    "$type": "fontWeight",
+    "regular": { "$value": 400 },
+    "medium": { "$value": 500 },
+    "semibold": { "$value": 600 }
+  },
+  "letterSpacing": {
+    "$type": "dimension",
+    "body": { "$value": "-0.005em" },
+    "tight1": { "$value": "-0.01em" },
+    "tight15": { "$value": "-0.015em" },
+    "tight2": { "$value": "-0.02em" },
+    "tight25": { "$value": "-0.025em" }
+  },
+  "typography": {
+    "$type": "typography",
+    "$description": "Composite type styles mirroring the .text-* utilities in globals.css. All use lineHeight 1.35. Sizes >=20px use Inter Display (opsz 32).",
+    "pageHeader": { "$value": { "fontFamily": "Inter", "fontSize": "40px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xxlSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "32px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xxl2Semibold": { "$value": { "fontFamily": "Inter", "fontSize": "28px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xlMedium": { "$value": { "fontFamily": "Inter", "fontSize": "24px", "fontWeight": 500, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xlSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "24px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "largeMedium": { "$value": { "fontFamily": "Inter", "fontSize": "20px", "fontWeight": 500, "letterSpacing": "-0.02em", "lineHeight": 1.35 } },
+    "largeSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "20px", "fontWeight": 600, "letterSpacing": "-0.02em", "lineHeight": 1.35 } },
+    "mediumMedium": { "$value": { "fontFamily": "Inter", "fontSize": "18px", "fontWeight": 500, "letterSpacing": "-0.015em", "lineHeight": 1.35 } },
+    "mediumSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "18px", "fontWeight": 600, "letterSpacing": "-0.015em", "lineHeight": 1.35 } },
+    "regularMedium": { "$value": { "fontFamily": "Inter", "fontSize": "15px", "fontWeight": 500, "letterSpacing": "-0.015em", "lineHeight": 1.35 } },
+    "regularSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "15px", "fontWeight": 600, "letterSpacing": "-0.015em", "lineHeight": 1.35 } },
+    "smallRegular": { "$value": { "fontFamily": "Inter", "fontSize": "14px", "fontWeight": 400, "letterSpacing": "-0.005em", "lineHeight": 1.35 } },
+    "smallMedium": { "$value": { "fontFamily": "Inter", "fontSize": "14px", "fontWeight": 500, "letterSpacing": "-0.01em", "lineHeight": 1.35 } },
+    "smallSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "14px", "fontWeight": 600, "letterSpacing": "-0.01em", "lineHeight": 1.35 } },
+    "xsMedium": { "$value": { "fontFamily": "Inter", "fontSize": "13px", "fontWeight": 500, "letterSpacing": "-0.01em", "lineHeight": 1.35 } },
+    "studyCardLabel": { "$value": { "fontFamily": "Inter", "fontSize": "12px", "fontWeight": 500, "letterSpacing": "-0.01em", "lineHeight": 1.35 } }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "$description": "Tailwind v4 default spacing scale (base --spacing = 0.25rem = 4px). This is what the app actually uses; keys match Tailwind's numeric utilities (p-4 = 16px, etc.).",
+    "1": { "$value": "4px" },
+    "2": { "$value": "8px" },
+    "3": { "$value": "12px" },
+    "4": { "$value": "16px" },
+    "5": { "$value": "20px" },
+    "6": { "$value": "24px" },
+    "8": { "$value": "32px" },
+    "10": { "$value": "40px" },
+    "12": { "$value": "48px" },
+    "16": { "$value": "64px" },
+    "20": { "$value": "80px" },
+    "24": { "$value": "96px" }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Tailwind radius ramp actually rendered by the app. Base --radius = 0.625rem = 10px; each step is a calc() offset from that. Maps to rounded-sm/md/lg/xl/2xl/3xl/4xl utilities.",
+    "sm": { "$value": "6px" },
+    "md": { "$value": "8px" },
+    "lg": { "$value": "10px", "$description": "Base (--radius). Most common: cards, panels, general UI." },
+    "xl": { "$value": "14px" },
+    "2xl": { "$value": "18px" },
+    "3xl": { "$value": "22px" },
+    "4xl": { "$value": "26px" },
+    "btnSm": { "$value": "10px", "$description": "Small-button radius (rounded-btn-sm)." },
+    "full": { "$value": "9999px", "$description": "Pills and circular elements." }
+  },
+  "layoutWidth": {
+    "$type": "dimension",
+    "$description": "Content max-width containers (.max-w-content-* utilities).",
+    "sm": { "$value": "840px" },
+    "ms": { "$value": "960px" },
+    "md": { "$value": "1080px" },
+    "lg": { "$value": "1280px" }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "$description": "Shadow set rendered by the app (shadow-card/card-hover/panel/bar utilities).",
+    "card": { "$value": { "offsetX": "0px", "offsetY": "2px", "blur": "20px", "spread": "-8px", "color": "#00000014" } },
+    "cardHover": { "$value": { "offsetX": "0px", "offsetY": "12px", "blur": "32px", "spread": "-8px", "color": "#0000002e" } },
+    "panel": { "$value": { "offsetX": "0px", "offsetY": "5px", "blur": "40px", "spread": "-10px", "color": "#00000040" } },
+    "bar": { "$value": { "offsetX": "0px", "offsetY": "-8px", "blur": "30px", "spread": "-15px", "color": "#0000001a" } }
+  },
+  "duration": {
+    "$type": "duration",
+    "fast": { "$value": "150ms" },
+    "default": { "$value": "200ms" },
+    "slow": { "$value": "300ms" }
+  }
+}
