@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
+import { TriggerMedia } from "@/components/ui/TriggerMedia";
 import { cn } from "@/lib/utils";
 
 interface EditableImageProps {
   src: string | null;
+  /** Optional silent looping MP4; the image (`src`) serves as its poster. */
+  videoSrc?: string | null;
   alt: string;
   field: string;
   wordId: string;
@@ -20,6 +22,7 @@ interface EditableImageProps {
 
 export function EditableImage({
   src,
+  videoSrc = null,
   alt,
   field,
   wordId,
@@ -35,8 +38,10 @@ export function EditableImage({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setUploadError("Please select an image file");
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type === "video/mp4";
+    if (!isImage && !isVideo) {
+      setUploadError("Please select an image or MP4 video");
       return;
     }
 
@@ -83,9 +88,9 @@ export function EditableImage({
     }
   };
 
-  // Not in edit mode - show plain image
+  // Not in edit mode - show plain media (video if present, else image)
   if (!isEditMode) {
-    if (!src) {
+    if (!src && !videoSrc) {
       return (
         <div
           className={cn(
@@ -104,10 +109,10 @@ export function EditableImage({
         className={cn("relative overflow-hidden rounded-lg", className)}
         style={{ height }}
       >
-        <Image
-          src={src}
+        <TriggerMedia
+          imageUrl={src}
+          videoUrl={videoSrc}
           alt={alt}
-          fill
           className={cn("object-contain", imageClassName)}
           sizes="(max-width: 768px) 100vw, 730px"
         />
@@ -132,17 +137,17 @@ export function EditableImage({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4"
         onChange={handleInputChange}
         className="hidden"
       />
 
-      {/* Image or placeholder */}
-      {src ? (
-        <Image
-          src={src}
+      {/* Media or placeholder */}
+      {src || videoSrc ? (
+        <TriggerMedia
+          imageUrl={src}
+          videoUrl={videoSrc}
           alt={alt}
-          fill
           className={cn("object-contain", imageClassName)}
           sizes="(max-width: 768px) 100vw, 730px"
         />
@@ -173,9 +178,12 @@ export function EditableImage({
               className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-colors hover:bg-gray-50"
             >
               <Upload className="h-4 w-4" />
-              {src ? "Replace image" : "Upload image"}
+              {src || videoSrc ? "Replace" : "Upload"} image or video
             </button>
             <span className="text-xs text-white/80">or drag and drop</span>
+            <span className="max-w-[90%] text-center text-xs text-white/70">
+              Image, or MP4 video up to 5 MB (plays silently &amp; loops)
+            </span>
             {uploadError && (
               <span className="max-w-[80%] rounded bg-destructive px-2 py-1 text-center text-xs font-medium text-white">
                 {uploadError}

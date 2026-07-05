@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, X, Image as ImageIcon, Volume2 } from "lucide-react";
+import { X, Image as ImageIcon, Volume2, Film } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdminFileUploadProps {
-  type: "image" | "audio";
+  type: "image" | "audio" | "video";
   value: string | null;
   onChange: (file: File | null, previewUrl: string | null) => void;
   accept?: string;
@@ -26,7 +26,8 @@ export function AdminFileUpload({
   const [localFile, setLocalFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const defaultAccept = type === "image" ? "image/*" : "audio/*";
+  const defaultAccept =
+    type === "image" ? "image/*" : type === "video" ? "video/mp4" : "audio/*";
 
   // Sync previewUrl with value prop when editing different items
   useEffect(() => {
@@ -102,6 +103,18 @@ export function AdminFileUpload({
                 className="max-w-full max-h-[500px] object-contain"
               />
             </div>
+          ) : type === "video" ? (
+            <div className="relative max-w-[500px] max-h-[500px] overflow-hidden rounded-lg bg-gray-100">
+              {/* Silent looping preview mirroring how the trigger renders in-app. */}
+              <video
+                src={displayUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="max-h-[500px] max-w-full object-contain"
+              />
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -140,12 +153,20 @@ export function AdminFileUpload({
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             {type === "image" ? (
               <ImageIcon className="h-6 w-6 text-gray-400" />
+            ) : type === "video" ? (
+              <Film className="h-6 w-6 text-gray-400" />
             ) : (
               <Volume2 className="h-6 w-6 text-gray-400" />
             )}
           </div>
           <p className="mt-3 text-sm font-medium text-gray-700">
-            Drop {type === "image" ? "an image" : "an audio file"} here
+            Drop{" "}
+            {type === "image"
+              ? "an image"
+              : type === "video"
+                ? "an MP4 video"
+                : "an audio file"}{" "}
+            here
           </p>
           <p className="mt-1 text-xs text-gray-500">or click to browse</p>
         </div>

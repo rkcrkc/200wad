@@ -10,6 +10,8 @@ interface MemoryTriggerImageEditorProps {
   wordId: string;
   /** The effective image the learner currently sees for this word. */
   effectiveImageUrl: string | null;
+  /** The effective trigger video (if any); the image serves as its poster. */
+  effectiveVideoUrl?: string | null;
   /** Group/override context; null while loading. */
   context: WordImageContext | null;
   /** Set this word's own picture (override). */
@@ -32,6 +34,7 @@ const TILE_HEIGHT = 240;
 export function MemoryTriggerImageEditor({
   wordId,
   effectiveImageUrl,
+  effectiveVideoUrl = null,
   context,
   onWordUpload,
   onConceptUpload,
@@ -47,7 +50,8 @@ export function MemoryTriggerImageEditor({
   const conceptResolveRef = useRef<((ok: boolean) => void) | null>(null);
 
   const inGroup = !!context?.imageGroupId;
-  const hasOverride = !!context?.imageOverrideUrl;
+  const hasOverride =
+    !!context?.imageOverrideUrl || !!context?.videoOverrideUrl;
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -91,6 +95,7 @@ export function MemoryTriggerImageEditor({
     return (
       <EditableImage
         src={effectiveImageUrl}
+        videoSrc={effectiveVideoUrl}
         alt="Memory trigger"
         field="word"
         wordId={wordId}
@@ -109,6 +114,7 @@ export function MemoryTriggerImageEditor({
         <p className="text-small-semibold text-foreground">This word</p>
         <EditableImage
           src={effectiveImageUrl}
+          videoSrc={effectiveVideoUrl}
           alt="This word's picture"
           field="word"
           wordId={wordId}
@@ -144,6 +150,7 @@ export function MemoryTriggerImageEditor({
         </p>
         <EditableImage
           src={context?.masterImageUrl ?? null}
+          videoSrc={context?.masterVideoUrl ?? null}
           alt="Concept picture"
           field="concept"
           wordId={wordId}

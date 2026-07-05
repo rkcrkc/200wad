@@ -5,8 +5,22 @@
 
 import { createClient } from "./client";
 
-export type StorageBucket = "word-images" | "audio";
+export type StorageBucket = "word-images" | "audio" | "word-videos";
 export type EntityType = "languages" | "words" | "sentences" | "image-groups";
+
+/** Max size for a memory-trigger MP4 (mirrors the word-videos bucket file_size_limit). */
+export const WORD_VIDEO_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/**
+ * Client-side guard for trigger videos before upload. The word-videos bucket
+ * also enforces mp4-only + the size cap at the platform layer; this just gives
+ * a friendly error first.
+ */
+export function validateTriggerVideo(file: File): string | null {
+  if (file.type !== "video/mp4") return "Please choose an MP4 video.";
+  if (file.size > WORD_VIDEO_MAX_BYTES) return "Video must be under 5 MB.";
+  return null;
+}
 
 export interface UploadResult {
   url: string | null;
@@ -72,6 +86,94 @@ async function processWordImage(file: File): Promise<File> {
     console.warn("processWordImage: falling back to original file", err);
     return file;
   }
+}
+
+/**
+ * Grab a poster/still from a trigger MP4 entirely in the browser (no ffmpeg):
+ * decode one frame ~1s in (midpoint for very short clips) and re-encode it as
+ * WebP with the SAME MAX_WIDTH/QUALITY/format as processWordImage. Used so a
+ * single video upload also yields a matching thumbnail/fallback image.
+ *
+ * Resolves to `null` on any failure (unsupported decode, no frame, etc.) so the
+ * caller can fall back to a manual still without blocking the video upload.
+ */
+export async function generatePosterFromVideo(file: File): Promise<File | null> {
+  const MAX_WIDTH = 1000;
+  const QUALITY = 0.85;
+
+  return new Promise<File | null>((resolve) => {
+    let settled = false;
+    let objectUrl: string | null = null;
+
+    const finish = (result: File | null) => {
+      if (settled) return;
+      settled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    try {
+      objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      // Guard against a hung decode.
+      const timeout = setTimeout(() => finish(null), 10000);
+
+      const onSeeked = () => {
+        clearTimeout(timeout);
+        try {
+          const scale =
+            video.videoWidth > MAX_WIDTH ? MAX_WIDTH / video.videoWidth : 1;
+          const w = Math.round(video.videoWidth * scale);
+          const h = Math.round(video.videoHeight * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx || w === 0 || h === 0) {
+            finish(null);
+            return;
+          }
+          ctx.drawImage(video, 0, 0, w, h);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                finish(null);
+                return;
+              }
+              const baseName = file.name.replace(/\.[^.]+$/, "") || "poster";
+              finish(
+                new File([blob], `${baseName}.webp`, { type: "image/webp" })
+              );
+            },
+            "image/webp",
+            QUALITY
+          );
+        } catch (err) {
+          console.warn("generatePosterFromVideo: draw failed", err);
+          finish(null);
+        }
+      };
+
+      video.onloadedmetadata = () => {
+        const dur = isFinite(video.duration) ? video.duration : 0;
+        const target = Math.min(1, dur / 2);
+        video.onseeked = onSeeked;
+        try {
+          video.currentTime = target;
+        } catch {
+          finish(null);
+        }
+      };
+      video.onerror = () => finish(null);
+      video.src = objectUrl;
+    } catch (err) {
+      console.warn("generatePosterFromVideo: setup failed", err);
+      finish(null);
+    }
+  });
 }
 
 /**

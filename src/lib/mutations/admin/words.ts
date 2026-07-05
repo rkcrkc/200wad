@@ -80,6 +80,9 @@ export async function createWord(
         // carries its image as an override.
         image_group_id: validated.image_group_id ?? null,
         image_override_url: validated.image_override_url ?? null,
+        // Video mirrors the image override model; the same trigger materializes
+        // `memory_trigger_video_url`.
+        video_override_url: validated.video_override_url ?? null,
         audio_url_english: validated.audio_url_english,
         audio_url_foreign: validated.audio_url_foreign,
         audio_url_trigger: validated.audio_url_trigger,
@@ -165,6 +168,7 @@ export async function updateWord(
         // values so a partial form save never clobbers membership.
         image_group_id: validated.image_group_id ?? undefined,
         image_override_url: validated.image_override_url ?? undefined,
+        video_override_url: validated.video_override_url ?? undefined,
         audio_url_english: validated.audio_url_english ?? undefined,
         audio_url_foreign: validated.audio_url_foreign ?? undefined,
         audio_url_trigger: validated.audio_url_trigger ?? undefined,
@@ -206,9 +210,10 @@ export async function deleteWord(id: string, lessonId?: string): Promise<Mutatio
 
     const supabase = await createClient();
 
-    // Delete storage files for this word (both images and audio)
+    // Delete storage files for this word (images, videos, and audio)
     await Promise.all([
       deleteEntityFiles("word-images", "words", id),
+      deleteEntityFiles("word-videos", "words", id),
       deleteEntityFiles("audio", "words", id),
     ]);
 

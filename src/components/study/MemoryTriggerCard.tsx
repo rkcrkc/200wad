@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { TriggerMedia } from "@/components/ui/TriggerMedia";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { AudioUploadButton } from "./AudioUploadButton";
@@ -13,6 +13,8 @@ import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 
 interface MemoryTriggerCardProps {
   imageUrl: string | null;
+  /** Optional silent looping MP4 trigger clip; the image serves as its poster. */
+  videoUrl?: string | null;
   triggerText: string | null;
   foreignWord: string;
   /** Word gender for color-coded highlighting (f=red, m=blue, n=purple) */
@@ -86,6 +88,7 @@ function getHighlightColorDark(gender?: string | null): string {
 
 export function MemoryTriggerCard({
   imageUrl,
+  videoUrl = null,
   triggerText,
   foreignWord,
   gender,
@@ -130,6 +133,7 @@ export function MemoryTriggerCard({
       <MemoryTriggerImageEditor
         wordId={wordId}
         effectiveImageUrl={imageUrl}
+        effectiveVideoUrl={videoUrl}
         context={imageContext ?? null}
         onWordUpload={onWordImageUpload}
         onConceptUpload={onConceptImageUpload}
@@ -137,8 +141,10 @@ export function MemoryTriggerCard({
       />
     ) : null;
 
+  const hasMedia = !!imageUrl || !!videoUrl;
+
   // If there's no memory trigger content at all, hide the entire card
-  const hasNoContent = !triggerText && !imageUrl;
+  const hasNoContent = !triggerText && !hasMedia;
   if (hasNoContent) {
     return null;
   }
@@ -244,18 +250,18 @@ export function MemoryTriggerCard({
 
     const factImageBlock = imageEditor ? (
       imageEditor
-    ) : showImage && imageUrl ? (
+    ) : showImage && hasMedia ? (
       <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
-        <Image
-          src={imageUrl}
+        <TriggerMedia
+          imageUrl={imageUrl}
+          videoUrl={videoUrl}
           alt="Memory trigger"
-          fill
           priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
         />
       </div>
-    ) : showImage && !imageUrl ? (
+    ) : showImage && !hasMedia ? (
       <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">
         <span className="text-6xl">🖼️</span>
       </div>
@@ -397,13 +403,13 @@ export function MemoryTriggerCard({
   const imageBlock = imageEditor ? (
     // Edit mode: two-tile image editor (this word vs concept pic)
     imageEditor
-  ) : showImage && imageUrl ? (
+  ) : showImage && hasMedia ? (
     imageOnly ? (
       <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
-        <Image
-          src={imageUrl}
+        <TriggerMedia
+          imageUrl={imageUrl}
+          videoUrl={videoUrl}
           alt="Memory trigger"
-          fill
           priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
@@ -414,17 +420,17 @@ export function MemoryTriggerCard({
         onClick={onPlayTriggerAudio}
         className="relative h-[400px] w-full cursor-pointer overflow-hidden rounded-lg"
       >
-        <Image
-          src={imageUrl}
+        <TriggerMedia
+          imageUrl={imageUrl}
+          videoUrl={videoUrl}
           alt="Memory trigger"
-          fill
           priority
           className="object-contain"
           sizes="(max-width: 768px) 100vw, 730px"
         />
       </button>
     )
-  ) : showImage && !imageUrl ? (
+  ) : showImage && !hasMedia ? (
     // No image but should show - show placeholder
     <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">
       <span className="text-6xl">🖼️</span>

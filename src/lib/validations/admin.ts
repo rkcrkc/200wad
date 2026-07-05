@@ -99,6 +99,9 @@ export const createWordSchema = z.object({
   // trigger from these and must not be written directly going forward.
   image_group_id: z.string().uuid("Invalid image group ID").optional().nullable(),
   image_override_url: z.string().url().optional().nullable(),
+  // Per-word memory-trigger video (MP4) override. `memory_trigger_video_url` is
+  // materialized by the same DB trigger and must not be written directly.
+  video_override_url: z.string().url().optional().nullable(),
   audio_url_english: z.string().url().optional().nullable(),
   audio_url_foreign: z.string().url().optional().nullable(),
   audio_url_trigger: z.string().url().optional().nullable(),
@@ -193,6 +196,7 @@ export const createImageGroupSchema = z.object({
   key: z.string().min(1, "Key is required").max(200),
   label: z.string().min(1, "Label is required").max(200),
   master_image_url: z.string().url().optional().nullable(),
+  master_video_url: z.string().url().optional().nullable(),
   is_exception: z.boolean().optional().default(false),
   english_suffix: z.string().max(100).optional().nullable(),
   italian_suffix: z.string().max(100).optional().nullable(),

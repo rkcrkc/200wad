@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { WordWithDetails } from "@/lib/queries/words";
 import { StatusPill, type StatusType } from "@/components/ui/status-pill";
+import { TriggerMedia } from "@/components/ui/TriggerMedia";
 
 export type WordGridImageMode = "memory-trigger" | "flashcard";
 export type WordGridColumns = 4 | 5;
@@ -54,7 +54,10 @@ export function WordGrid({
           imageMode === "memory-trigger"
             ? word.memory_trigger_image_url
             : word.flashcard_image_url;
-        const hasImage = !!imageUrl;
+        // Only the memory-trigger surface carries an optional video clip.
+        const videoUrl =
+          imageMode === "memory-trigger" ? word.memory_trigger_video_url : null;
+        const hasImage = !!imageUrl || !!videoUrl;
         const result = wordResults?.get(word.id);
 
         return (
@@ -66,10 +69,10 @@ export function WordGrid({
             {/* Image */}
             <div className={`relative ${imageHeightClass} w-full`}>
               {hasImage ? (
-                <Image
-                  src={imageUrl!}
+                <TriggerMedia
+                  imageUrl={imageUrl}
+                  videoUrl={videoUrl}
                   alt={word.english}
-                  fill
                   className="object-contain"
                   sizes="200px"
                 />

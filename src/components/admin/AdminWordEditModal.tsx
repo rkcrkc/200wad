@@ -26,10 +26,15 @@ import {
   createSentence,
   deleteSentence,
 } from "@/lib/mutations/admin/sentences";
-import { uploadFileClient } from "@/lib/supabase/storage.client";
+import {
+  uploadFileClient,
+  validateTriggerVideo,
+  generatePosterFromVideo,
+} from "@/lib/supabase/storage.client";
 import {
   assignWordToGroup,
   setWordImageOverride,
+  setWordVideoOverride,
   listImageGroupsForCourse,
   type ImageGroupOption,
 } from "@/lib/mutations/admin/imageGroups";
@@ -74,10 +79,14 @@ export interface WordWithDetails {
   memory_trigger_text: string | null;
   /** Materialized effective image URL (owned by DB trigger). Read-only here. */
   memory_trigger_image_url: string | null;
+  /** Materialized effective video URL (owned by DB trigger). Read-only here. */
+  memory_trigger_video_url?: string | null;
   /** Group membership; NULL = one-off. */
   image_group_id?: string | null;
-  /** Per-word override; NULL = inherit the group master. */
+  /** Per-word image override; NULL = inherit the group master. */
   image_override_url?: string | null;
+  /** Per-word video override; NULL = inherit the group master video. */
+  video_override_url?: string | null;
   audio_url_english: string | null;
   audio_url_foreign: string | null;
   audio_url_trigger: string | null;
@@ -192,6 +201,7 @@ interface FormErrors {
 
 interface FileUploads {
   triggerImage: File | null;
+  triggerVideo: File | null;
   audioEnglish: File | null;
   audioForeign: File | null;
   audioTrigger: File | null;
@@ -218,6 +228,7 @@ const INITIAL_FORM_DATA: FormData = {
 
 const INITIAL_FILE_UPLOADS: FileUploads = {
   triggerImage: null,
+  triggerVideo: null,
   audioEnglish: null,
   audioForeign: null,
   audioTrigger: null,
@@ -225,6 +236,7 @@ const INITIAL_FILE_UPLOADS: FileUploads = {
 
 const INITIAL_PREVIEW_URLS = {
   triggerImage: null as string | null,
+  triggerVideo: null as string | null,
   audioEnglish: null as string | null,
   audioForeign: null as string | null,
   audioTrigger: null as string | null,
@@ -261,6 +273,7 @@ export function AdminWordEditModal({
   // ---- Image group membership ----
   const [imageGroupId, setImageGroupId] = useState<string | null>(null);
   const [imageOverrideUrl, setImageOverrideUrl] = useState<string | null>(null);
+  const [videoOverrideUrl, setVideoOverrideUrl] = useState<string | null>(null);
   const [courseGroups, setCourseGroups] = useState<ImageGroupOption[]>([]);
   const [isGroupBusy, setIsGroupBusy] = useState(false);
 
@@ -316,18 +329,21 @@ export function AdminWordEditModal({
       });
       setPreviewUrls({
         triggerImage: editingWord.memory_trigger_image_url,
+        triggerVideo: editingWord.memory_trigger_video_url ?? null,
         audioEnglish: editingWord.audio_url_english,
         audioForeign: editingWord.audio_url_foreign,
         audioTrigger: editingWord.audio_url_trigger,
       });
       setImageGroupId(editingWord.image_group_id ?? null);
       setImageOverrideUrl(editingWord.image_override_url ?? null);
+      setVideoOverrideUrl(editingWord.video_override_url ?? null);
       setWordLessons(wordLessonsProp || []);
     } else {
       setFormData(INITIAL_FORM_DATA);
       setPreviewUrls(INITIAL_PREVIEW_URLS);
       setImageGroupId(null);
       setImageOverrideUrl(null);
+      setVideoOverrideUrl(null);
       setWordLessons([]);
     }
     setErrors({});
@@ -585,6 +601,61 @@ export function AdminWordEditModal({
             }
           })
         );
+
+        // Trigger video is a two-step upload (poster still + MP4) with its own
+        // bucket/column, so it runs outside the generic image/audio loop above.
+        if (fileUploads.triggerVideo) {
+          const video = fileUploads.triggerVideo;
+          const validationError = validateTriggerVideo(video);
+          if (validationError) {
+            uploadFailures.push(`trigger video: ${validationError}`);
+          } else {
+            // 1. Auto-poster — only when the admin hasn't also supplied a manual
+            // still this save (a manual image always wins as the poster).
+            if (!fileUploads.triggerImage) {
+              const poster = await generatePosterFromVideo(video);
+              if (poster) {
+                const posterRes = await uploadFileClient(
+                  "word-images",
+                  poster,
+                  "words",
+                  wordId,
+                  "trigger"
+                );
+                if (posterRes.url) {
+                  await updateWord(wordId, {
+                    image_override_url: `${posterRes.url}?v=${Date.now()}`,
+                  });
+                }
+                // A failed poster never blocks the video — admin can add a still.
+              }
+            }
+            // 2. The MP4 itself → word-videos, materialized via video_override_url.
+            const videoRes = await uploadFileClient(
+              "word-videos",
+              video,
+              "words",
+              wordId,
+              "trigger"
+            );
+            if (!videoRes.url) {
+              uploadFailures.push(
+                `trigger video${videoRes.error ? `: ${videoRes.error}` : ""}`
+              );
+            } else {
+              const updateResult = await updateWord(wordId, {
+                video_override_url: `${videoRes.url}?v=${Date.now()}`,
+              });
+              if (!updateResult.success) {
+                uploadFailures.push(
+                  `trigger video URL save failed${
+                    updateResult.error ? `: ${updateResult.error}` : ""
+                  }`
+                );
+              }
+            }
+          }
+        }
       }
 
       if (uploadFailures.length > 0) {
@@ -612,13 +683,24 @@ export function AdminWordEditModal({
       setErrors({ general: result.error || "Failed to change group" });
       return;
     }
-    const master = groupId
-      ? courseGroups.find((g) => g.id === groupId)?.master_image_url ?? null
-      : null;
+    const group = groupId
+      ? courseGroups.find((g) => g.id === groupId)
+      : undefined;
+    const master = group?.master_image_url ?? null;
+    const masterVideo = group?.master_video_url ?? null;
     setImageGroupId(groupId);
     setImageOverrideUrl(null);
-    setPreviewUrls((prev) => ({ ...prev, triggerImage: master }));
-    setFileUploads((prev) => ({ ...prev, triggerImage: null }));
+    setVideoOverrideUrl(null);
+    setPreviewUrls((prev) => ({
+      ...prev,
+      triggerImage: master,
+      triggerVideo: masterVideo,
+    }));
+    setFileUploads((prev) => ({
+      ...prev,
+      triggerImage: null,
+      triggerVideo: null,
+    }));
     router.refresh();
   };
 
@@ -638,6 +720,27 @@ export function AdminWordEditModal({
     setImageOverrideUrl(null);
     setPreviewUrls((prev) => ({ ...prev, triggerImage: master }));
     setFileUploads((prev) => ({ ...prev, triggerImage: null }));
+    router.refresh();
+  };
+
+  // Remove the per-word trigger video. Clears video_override_url; the poster
+  // image is left in place. If the word is in a group it re-inherits the group's
+  // master video (if any).
+  const handleRemoveVideo = async () => {
+    if (!editingWord) return;
+    setIsGroupBusy(true);
+    const result = await setWordVideoOverride(editingWord.id, null);
+    setIsGroupBusy(false);
+    if (!result.success) {
+      setErrors({ general: result.error || "Failed to remove video" });
+      return;
+    }
+    const masterVideo = imageGroupId
+      ? courseGroups.find((g) => g.id === imageGroupId)?.master_video_url ?? null
+      : null;
+    setVideoOverrideUrl(null);
+    setPreviewUrls((prev) => ({ ...prev, triggerVideo: masterVideo }));
+    setFileUploads((prev) => ({ ...prev, triggerVideo: null }));
     router.refresh();
   };
 
@@ -1685,6 +1788,42 @@ export function AdminWordEditModal({
                     ? "Uploading a new image overrides the concept pic for this word only."
                     : "This image is stored as the word's own picture."}
                 </p>
+
+                {/* Trigger video (optional) — MP4, silent, loops. The image above
+                    is its poster/fallback. */}
+                <div className="mt-4 space-y-3 border-t border-gray-200 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Trigger Video (optional)
+                    </label>
+                    {videoOverrideUrl && editingWord && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        disabled={isGroupBusy}
+                        className="text-sm font-medium text-destructive hover:underline disabled:opacity-50"
+                      >
+                        Remove video
+                      </button>
+                    )}
+                  </div>
+                  <AdminFileUpload
+                    type="video"
+                    value={previewUrls.triggerVideo}
+                    onChange={(file, url) => {
+                      setFileUploads({ ...fileUploads, triggerVideo: file });
+                      setPreviewUrls({ ...previewUrls, triggerVideo: url });
+                    }}
+                  />
+                  <p className="text-xs text-gray-500">
+                    MP4 only, max 5 MB. Plays silently and loops automatically. A
+                    thumbnail is generated from the video unless you upload your own
+                    image above.
+                    {imageGroupId
+                      ? " Uploading a video overrides the concept video for this word only."
+                      : ""}
+                  </p>
+                </div>
               </div>
             </div>
           )}

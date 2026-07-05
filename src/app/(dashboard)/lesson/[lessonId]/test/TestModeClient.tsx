@@ -38,11 +38,16 @@ import { saveSystemNotes, saveUserNotes } from "@/lib/mutations/study";
 import { updateWord } from "@/lib/mutations/admin/words";
 import {
   setWordImageOverride,
+  setWordVideoOverride,
   updateImageGroup,
   getWordImageContext,
   type WordImageContext,
 } from "@/lib/mutations/admin/imageGroups";
-import { uploadFileClient } from "@/lib/supabase/storage.client";
+import {
+  uploadFileClient,
+  validateTriggerVideo,
+  generatePosterFromVideo,
+} from "@/lib/supabase/storage.client";
 import {
   initSessionProgress,
   saveSessionProgress,
@@ -1598,11 +1603,97 @@ export function TestModeClient({
     };
   }, [isEditMode, isAdmin, currentWord]);
 
-  // Set this word's own picture (override). Only the current word changes.
+  // Set this word's own picture/video (override). Only the current word changes.
   const handleWordImageUpload = useCallback(
     async (file: File): Promise<boolean> => {
       if (!currentWord) return false;
       const wordId = currentWord.id;
+
+      // MP4: upload the clip to word-videos and derive a poster still into
+      // word-images so the image column keeps serving as the fallback/poster.
+      if (file.type === "video/mp4") {
+        const validationError = validateTriggerVideo(file);
+        if (validationError) {
+          console.error("Invalid trigger video:", validationError);
+          return false;
+        }
+
+        const videoResult = await uploadFileClient(
+          "word-videos",
+          file,
+          "words",
+          wordId,
+          "trigger"
+        );
+        if (videoResult.error || !videoResult.url) {
+          console.error("Failed to upload video:", videoResult.error);
+          return false;
+        }
+        const videoUrl = `${videoResult.url}?v=${Date.now()}`;
+
+        let posterUrl: string | null = null;
+        try {
+          const poster = await generatePosterFromVideo(file);
+          if (poster) {
+            const posterResult = await uploadFileClient(
+              "word-images",
+              poster,
+              "words",
+              wordId,
+              "trigger"
+            );
+            if (!posterResult.error && posterResult.url) {
+              posterUrl = `${posterResult.url}?v=${Date.now()}`;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate poster:", err);
+        }
+
+        const videoRes = await setWordVideoOverride(wordId, videoUrl);
+        if (!videoRes.success) {
+          console.error("Failed to set word video override:", videoRes.error);
+          return false;
+        }
+        if (posterUrl) {
+          const posterRes = await setWordImageOverride(wordId, posterUrl);
+          if (!posterRes.success) {
+            console.error("Failed to set poster override:", posterRes.error);
+          }
+        }
+
+        setActiveWords((prev) =>
+          prev.map((w) =>
+            w.id === wordId
+              ? {
+                  ...w,
+                  memory_trigger_video_url: videoUrl,
+                  video_override_url: videoUrl,
+                  ...(posterUrl
+                    ? {
+                        memory_trigger_image_url: posterUrl,
+                        image_override_url: posterUrl,
+                      }
+                    : {}),
+                }
+              : w
+          )
+        );
+        setImageContext((ctx) =>
+          ctx
+            ? {
+                ...ctx,
+                videoOverrideUrl: videoUrl,
+                effectiveVideoUrl: videoUrl,
+                ...(posterUrl
+                  ? { imageOverrideUrl: posterUrl, effectiveImageUrl: posterUrl }
+                  : {}),
+              }
+            : ctx
+        );
+        return true;
+      }
+
       const uploadResult = await uploadFileClient(
         "word-images",
         file,
@@ -1645,6 +1736,91 @@ export function TestModeClient({
       const groupId = imageContext?.imageGroupId;
       if (!groupId) return false;
 
+      // MP4: master video fans out to every member without a video override;
+      // its auto-poster becomes the group's master image.
+      if (file.type === "video/mp4") {
+        const validationError = validateTriggerVideo(file);
+        if (validationError) {
+          console.error("Invalid concept video:", validationError);
+          return false;
+        }
+
+        const videoResult = await uploadFileClient(
+          "word-videos",
+          file,
+          "image-groups",
+          groupId,
+          "master"
+        );
+        if (videoResult.error || !videoResult.url) {
+          console.error("Failed to upload concept video:", videoResult.error);
+          return false;
+        }
+        const videoUrl = `${videoResult.url}?v=${Date.now()}`;
+
+        let posterUrl: string | null = null;
+        try {
+          const poster = await generatePosterFromVideo(file);
+          if (poster) {
+            const posterResult = await uploadFileClient(
+              "word-images",
+              poster,
+              "image-groups",
+              groupId,
+              "master"
+            );
+            if (!posterResult.error && posterResult.url) {
+              posterUrl = `${posterResult.url}?v=${Date.now()}`;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate poster:", err);
+        }
+
+        const result = await updateImageGroup(groupId, {
+          master_video_url: videoUrl,
+          ...(posterUrl ? { master_image_url: posterUrl } : {}),
+        });
+        if (!result.success) {
+          console.error("Failed to update concept video:", result.error);
+          return false;
+        }
+
+        setActiveWords((prev) =>
+          prev.map((w) =>
+            w.image_group_id === groupId && !w.video_override_url
+              ? {
+                  ...w,
+                  memory_trigger_video_url: videoUrl,
+                  ...(posterUrl && !w.image_override_url
+                    ? { memory_trigger_image_url: posterUrl }
+                    : {}),
+                }
+              : w
+          )
+        );
+        setImageContext((ctx) =>
+          ctx
+            ? {
+                ...ctx,
+                masterVideoUrl: videoUrl,
+                effectiveVideoUrl: ctx.videoOverrideUrl
+                  ? ctx.effectiveVideoUrl
+                  : videoUrl,
+                ...(posterUrl
+                  ? {
+                      masterImageUrl: posterUrl,
+                      effectiveImageUrl: ctx.imageOverrideUrl
+                        ? ctx.effectiveImageUrl
+                        : posterUrl,
+                    }
+                  : {}),
+              }
+            : ctx
+        );
+        return true;
+      }
+
       const uploadResult = await uploadFileClient(
         "word-images",
         file,
@@ -1686,29 +1862,53 @@ export function TestModeClient({
     [imageContext?.imageGroupId]
   );
 
-  // Clear this word's override so it re-inherits the concept picture.
+  // Clear this word's overrides so it re-inherits the concept picture/video.
   const handleResetImageToConcept = useCallback(async (): Promise<boolean> => {
     if (!currentWord) return false;
     const wordId = currentWord.id;
-    const result = await setWordImageOverride(wordId, null);
-    if (!result.success) {
-      console.error("Failed to reset word image:", result.error);
+    const imageRes = await setWordImageOverride(wordId, null);
+    if (!imageRes.success) {
+      console.error("Failed to reset word image:", imageRes.error);
+      return false;
+    }
+    const videoRes = await setWordVideoOverride(wordId, null);
+    if (!videoRes.success) {
+      console.error("Failed to reset word video:", videoRes.error);
       return false;
     }
 
     const master = imageContext?.masterImageUrl ?? null;
+    const masterVideo = imageContext?.masterVideoUrl ?? null;
     setActiveWords((prev) =>
       prev.map((w) =>
         w.id === wordId
-          ? { ...w, memory_trigger_image_url: master, image_override_url: null }
+          ? {
+              ...w,
+              memory_trigger_image_url: master,
+              image_override_url: null,
+              memory_trigger_video_url: masterVideo,
+              video_override_url: null,
+            }
           : w
       )
     );
     setImageContext((ctx) =>
-      ctx ? { ...ctx, imageOverrideUrl: null, effectiveImageUrl: master } : ctx
+      ctx
+        ? {
+            ...ctx,
+            imageOverrideUrl: null,
+            effectiveImageUrl: master,
+            videoOverrideUrl: null,
+            effectiveVideoUrl: masterVideo,
+          }
+        : ctx
     );
     return true;
-  }, [currentWord, imageContext?.masterImageUrl]);
+  }, [
+    currentWord,
+    imageContext?.masterImageUrl,
+    imageContext?.masterVideoUrl,
+  ]);
 
   // Replace one of the word's audio files (english/foreign/trigger). Re-uploads
   // reuse the same storage path, so append a cache-bust suffix to the saved URL
@@ -1927,6 +2127,7 @@ export function TestModeClient({
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         imageUrl={currentWord?.memory_trigger_image_url}
+                        videoUrl={currentWord?.memory_trigger_video_url}
                         triggerText={currentWord?.memory_trigger_text}
                         foreignWord={currentWord?.headword || ""}
                         gender={currentWord?.gender}

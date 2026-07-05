@@ -2158,6 +2158,7 @@ export type Database = {
           key: string
           label: string
           master_image_url: string | null
+          master_video_url: string | null
           notes: string | null
           updated_at: string
         }
@@ -2171,6 +2172,7 @@ export type Database = {
           key: string
           label: string
           master_image_url?: string | null
+          master_video_url?: string | null
           notes?: string | null
           updated_at?: string
         }
@@ -2184,6 +2186,7 @@ export type Database = {
           key?: string
           label?: string
           master_image_url?: string | null
+          master_video_url?: string | null
           notes?: string | null
           updated_at?: string
         }
@@ -2266,6 +2269,7 @@ export type Database = {
           lemma: string
           memory_trigger_image_url: string | null
           memory_trigger_text: string | null
+          memory_trigger_video_url: string | null
           notes: string | null
           notes_in_memory_trigger: boolean | null
           part_of_speech: string | null
@@ -2279,6 +2283,7 @@ export type Database = {
           transitivity: string | null
           updated_at: string | null
           updated_by: string | null
+          video_override_url: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -2309,6 +2314,7 @@ export type Database = {
           lemma: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
+          memory_trigger_video_url?: string | null
           notes?: string | null
           notes_in_memory_trigger?: boolean | null
           part_of_speech?: string | null
@@ -2322,6 +2328,7 @@ export type Database = {
           transitivity?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          video_override_url?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -2352,6 +2359,7 @@ export type Database = {
           lemma?: string
           memory_trigger_image_url?: string | null
           memory_trigger_text?: string | null
+          memory_trigger_video_url?: string | null
           notes?: string | null
           notes_in_memory_trigger?: boolean | null
           part_of_speech?: string | null
@@ -2365,6 +2373,7 @@ export type Database = {
           transitivity?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          video_override_url?: string | null
         }
         Relationships: [
           {
@@ -2700,3 +2709,4 @@ export const Constants = {
     },
   },
 } as const
+

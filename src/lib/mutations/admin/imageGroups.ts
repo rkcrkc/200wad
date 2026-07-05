@@ -69,8 +69,10 @@ export interface WordEditModalData {
     alternate_english_answers: string[] | null;
     memory_trigger_text: string | null;
     memory_trigger_image_url: string | null;
+    memory_trigger_video_url: string | null;
     image_group_id: string | null;
     image_override_url: string | null;
+    video_override_url: string | null;
     audio_url_english: string | null;
     audio_url_foreign: string | null;
     audio_url_trigger: string | null;
@@ -101,9 +103,9 @@ export async function getWordForEditModal(
         id, headword, lemma, english, language_id, category, part_of_speech,
         gender, transitivity, is_irregular, grammatical_number, notes,
         developer_notes, alternate_answers, alternate_english_answers,
-        memory_trigger_text, memory_trigger_image_url, image_group_id,
-        image_override_url, audio_url_english, audio_url_foreign,
-        audio_url_trigger,
+        memory_trigger_text, memory_trigger_image_url, memory_trigger_video_url,
+        image_group_id, image_override_url, video_override_url,
+        audio_url_english, audio_url_foreign, audio_url_trigger,
         language:languages(name),
         example_sentences(id, foreign_sentence, english_sentence, thumbnail_image_url, sort_order)
       `
@@ -154,6 +156,8 @@ export async function getWordForEditModal(
  * - `masterImageUrl`   — the group's shared concept pic.
  * - `imageOverrideUrl` — the word's own override; non-null means it does NOT inherit.
  * - `effectiveImageUrl`— the materialized URL the learner currently sees.
+ *
+ * The `*Video*` fields mirror the image ones for the optional memory-trigger MP4.
  */
 export interface WordImageContext {
   imageGroupId: string | null;
@@ -162,6 +166,9 @@ export interface WordImageContext {
   masterImageUrl: string | null;
   imageOverrideUrl: string | null;
   effectiveImageUrl: string | null;
+  masterVideoUrl: string | null;
+  videoOverrideUrl: string | null;
+  effectiveVideoUrl: string | null;
 }
 
 /**
@@ -176,7 +183,9 @@ export async function getWordImageContext(
 
   const { data: word, error } = await supabase
     .from("words")
-    .select("image_group_id, image_override_url, memory_trigger_image_url")
+    .select(
+      "image_group_id, image_override_url, memory_trigger_image_url, video_override_url, memory_trigger_video_url"
+    )
     .eq("id", wordId)
     .single();
 
@@ -187,6 +196,9 @@ export async function getWordImageContext(
     masterImageUrl: null,
     imageOverrideUrl: null,
     effectiveImageUrl: null,
+    masterVideoUrl: null,
+    videoOverrideUrl: null,
+    effectiveVideoUrl: null,
   };
 
   if (error || !word) {
@@ -198,13 +210,15 @@ export async function getWordImageContext(
       ...empty,
       imageOverrideUrl: word.image_override_url,
       effectiveImageUrl: word.memory_trigger_image_url,
+      videoOverrideUrl: word.video_override_url,
+      effectiveVideoUrl: word.memory_trigger_video_url,
     };
   }
 
   const [{ data: group }, { count }] = await Promise.all([
     supabase
       .from("word_image_groups")
-      .select("label, master_image_url")
+      .select("label, master_image_url, master_video_url")
       .eq("id", word.image_group_id)
       .single(),
     supabase
@@ -220,6 +234,9 @@ export async function getWordImageContext(
     masterImageUrl: group?.master_image_url ?? null,
     imageOverrideUrl: word.image_override_url,
     effectiveImageUrl: word.memory_trigger_image_url,
+    masterVideoUrl: group?.master_video_url ?? null,
+    videoOverrideUrl: word.video_override_url,
+    effectiveVideoUrl: word.memory_trigger_video_url,
   };
 }
 
@@ -229,6 +246,7 @@ export interface ImageGroupOption {
   key: string;
   label: string;
   master_image_url: string | null;
+  master_video_url: string | null;
 }
 
 /**
@@ -243,7 +261,7 @@ export async function listImageGroupsForCourse(
 
   const { data, error } = await supabase
     .from("word_image_groups")
-    .select("id, key, label, master_image_url")
+    .select("id, key, label, master_image_url, master_video_url")
     .eq("course_id", courseId)
     .order("label", { ascending: true });
 
@@ -269,6 +287,7 @@ export async function createImageGroup(input: CreateImageGroupInput) {
         key: validated.key,
         label: validated.label,
         master_image_url: validated.master_image_url ?? null,
+        master_video_url: validated.master_video_url ?? null,
         is_exception: validated.is_exception,
         english_suffix: validated.english_suffix ?? null,
         italian_suffix: validated.italian_suffix ?? null,
@@ -316,6 +335,8 @@ export async function updateImageGroup(id: string, input: UpdateImageGroupInput)
     if (validated.label !== undefined) updatePayload.label = validated.label;
     if (validated.master_image_url !== undefined)
       updatePayload.master_image_url = validated.master_image_url;
+    if (validated.master_video_url !== undefined)
+      updatePayload.master_video_url = validated.master_video_url;
     if (validated.is_exception !== undefined)
       updatePayload.is_exception = validated.is_exception;
     if (validated.english_suffix !== undefined)
@@ -384,7 +405,9 @@ export async function assignWordToGroup(wordId: string, groupId: string | null) 
     .update({
       image_group_id: groupId,
       // Joining a group means inherit the master; detaching clears the link too.
+      // Clear both image and video overrides so the word fully inherits.
       image_override_url: null,
+      video_override_url: null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", wordId);
@@ -410,6 +433,31 @@ export async function setWordImageOverride(wordId: string, url: string | null) {
     .from("words")
     .update({
       image_override_url: url,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", wordId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidateImageGroups();
+  return { success: true, error: null };
+}
+
+/**
+ * Set or clear a word's per-word memory-trigger video override. `null` re-inherits
+ * the group master video (if the word is in a group) or clears the video (if it is
+ * a one-off). The BEFORE trigger re-materializes `memory_trigger_video_url`.
+ */
+export async function setWordVideoOverride(wordId: string, url: string | null) {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("words")
+    .update({
+      video_override_url: url,
       updated_at: new Date().toISOString(),
     })
     .eq("id", wordId);

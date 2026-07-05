@@ -13,7 +13,11 @@ import {
   type WordWithDetails,
   type WordLessonInfo,
 } from "./AdminWordEditModal";
-import { uploadFileClient } from "@/lib/supabase/storage.client";
+import {
+  uploadFileClient,
+  validateTriggerVideo,
+  generatePosterFromVideo,
+} from "@/lib/supabase/storage.client";
 import {
   updateImageGroup,
   listImageGroupMembers,
@@ -43,6 +47,8 @@ export function ImageGroupEditModal({
   const [notes, setNotes] = useState("");
   const [masterUrl, setMasterUrl] = useState<string | null>(null);
   const [masterFile, setMasterFile] = useState<File | null>(null);
+  const [masterVideoUrl, setMasterVideoUrl] = useState<string | null>(null);
+  const [masterVideoFile, setMasterVideoFile] = useState<File | null>(null);
 
   const [members, setMembers] = useState<ImageGroupMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -68,6 +74,8 @@ export function ImageGroupEditModal({
       setNotes(editingGroup.notes ?? "");
       setMasterUrl(editingGroup.master_image_url);
       setMasterFile(null);
+      setMasterVideoUrl(editingGroup.master_video_url);
+      setMasterVideoFile(null);
       setActiveTab("content");
       setError(null);
     }
@@ -142,11 +150,55 @@ export function ImageGroupEditModal({
         newMasterUrl = `${res.url}?v=${Date.now()}`;
       }
 
-      // 2. Save the group fields (master change fans out to inheriting members).
+      // 2. If a new master video was picked, upload it (two-step: poster + MP4).
+      let newMasterVideoUrl = editingGroup.master_video_url;
+      if (masterVideoFile) {
+        const validationError = validateTriggerVideo(masterVideoFile);
+        if (validationError) {
+          setError(`Concept video: ${validationError}`);
+          setIsSaving(false);
+          return;
+        }
+        // Auto-poster → master image, but only if the group has no image and the
+        // admin didn't pick one manually (a manual image always wins as poster).
+        if (!newMasterUrl && !masterFile) {
+          const poster = await generatePosterFromVideo(masterVideoFile);
+          if (poster) {
+            const posterRes = await uploadFileClient(
+              "word-images",
+              poster,
+              "image-groups",
+              editingGroup.id,
+              "master"
+            );
+            if (posterRes.url) {
+              newMasterUrl = `${posterRes.url}?v=${Date.now()}`;
+            }
+          }
+        }
+        const videoRes = await uploadFileClient(
+          "word-videos",
+          masterVideoFile,
+          "image-groups",
+          editingGroup.id,
+          "master"
+        );
+        if (!videoRes.url) {
+          setError(
+            `Concept video upload failed${videoRes.error ? `: ${videoRes.error}` : ""}`
+          );
+          setIsSaving(false);
+          return;
+        }
+        newMasterVideoUrl = `${videoRes.url}?v=${Date.now()}`;
+      }
+
+      // 3. Save the group fields (master change fans out to inheriting members).
       const result = await updateImageGroup(editingGroup.id, {
         key: key.trim(),
         label: label.trim(),
         master_image_url: newMasterUrl,
+        master_video_url: newMasterVideoUrl,
         is_exception: isException,
         english_suffix: englishSuffix.trim() || null,
         italian_suffix: italianSuffix.trim() || null,
@@ -219,6 +271,23 @@ export function ImageGroupEditModal({
             onChange={(file, preview) => {
               setMasterFile(file);
               setMasterUrl(preview);
+            }}
+          />
+        </AdminFormField>
+
+        {/* Concept video (group master video) — optional MP4, silent, loops.
+            The concept pic above is its poster/fallback. */}
+        <AdminFormField
+          label="Concept Video (optional)"
+          name="master_video_url"
+          hint="MP4 only, silent, loops. A thumbnail is generated from the video unless a concept pic is set above. Replacing this updates every inheriting member word."
+        >
+          <AdminFileUpload
+            type="video"
+            value={masterVideoUrl}
+            onChange={(file, preview) => {
+              setMasterVideoFile(file);
+              setMasterVideoUrl(preview);
             }}
           />
         </AdminFormField>

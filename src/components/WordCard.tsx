@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { StatusPill } from "@/components/ui/status-pill";
+import { TriggerMedia } from "@/components/ui/TriggerMedia";
 import { WordWithDetails } from "@/lib/queries/words";
 import { mapStatus } from "@/lib/utils/helpers";
 
@@ -10,7 +10,8 @@ interface WordCardProps {
 }
 
 export function WordCard({ word, index, onClick }: WordCardProps) {
-  const hasImage = !!word.memory_trigger_image_url;
+  const hasMedia =
+    !!word.memory_trigger_image_url || !!word.memory_trigger_video_url;
 
   return (
     <div
@@ -27,11 +28,11 @@ export function WordCard({ word, index, onClick }: WordCardProps) {
     >
       {/* Thumbnail */}
       <div className="relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-transparent">
-        {hasImage ? (
-          <Image
-            src={word.memory_trigger_image_url!}
+        {hasMedia ? (
+          <TriggerMedia
+            imageUrl={word.memory_trigger_image_url}
+            videoUrl={word.memory_trigger_video_url}
             alt={word.english}
-            fill
             className="object-cover"
             sizes="(max-width: 640px) 50vw, 33vw"
           />

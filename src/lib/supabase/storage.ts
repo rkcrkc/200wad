@@ -5,7 +5,7 @@
 
 import { createClient } from "./server";
 
-export type StorageBucket = "word-images" | "audio";
+export type StorageBucket = "word-images" | "audio" | "word-videos";
 export type EntityType = "languages" | "words" | "sentences";
 
 export interface UploadResult {

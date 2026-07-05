@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,9 @@ export function AdminModal({
 
   if (!isOpen) return null;
 
+  // Portals only work in the browser; bail out on the server render pass.
+  if (typeof document === "undefined") return null;
+
   const sizeClasses = {
     sm: "max-w-md",
     md: "max-w-lg",
@@ -57,7 +61,7 @@ export function AdminModal({
     "2xl": "max-w-6xl",
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -103,7 +107,8 @@ export function AdminModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { saveUserNotes, saveSystemNotes, saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
+import { TriggerMedia } from "@/components/ui/TriggerMedia";
 import { Tabs } from "@/components/ui/tabs";
 import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
@@ -912,14 +913,14 @@ export function WordDetailView({
                     )
                   )}
 
-                  {/* Trigger image */}
-                  {word.memory_trigger_image_url && (
+                  {/* Trigger media (silent looping video when present, else image) */}
+                  {(word.memory_trigger_image_url || word.memory_trigger_video_url) && (
                     word.category === "fact" ? (
                       <div className="relative h-[300px] w-full overflow-hidden rounded-lg">
-                        <Image
-                          src={word.memory_trigger_image_url}
+                        <TriggerMedia
+                          imageUrl={word.memory_trigger_image_url}
+                          videoUrl={word.memory_trigger_video_url}
                           alt="Memory trigger"
-                          fill
                           className="object-contain"
                           sizes="(max-width: 768px) 100vw, 500px"
                         />
@@ -929,10 +930,10 @@ export function WordDetailView({
                         onClick={handlePlayTrigger}
                         className="relative h-[300px] w-full cursor-pointer overflow-hidden rounded-lg"
                       >
-                        <Image
-                          src={word.memory_trigger_image_url}
+                        <TriggerMedia
+                          imageUrl={word.memory_trigger_image_url}
+                          videoUrl={word.memory_trigger_video_url}
                           alt="Memory trigger"
-                          fill
                           className="object-contain"
                           sizes="(max-width: 768px) 100vw, 500px"
                         />
