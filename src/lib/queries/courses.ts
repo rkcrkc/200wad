@@ -143,37 +143,60 @@ export async function getCourses(languageId: string): Promise<GetCoursesResult> 
       if (l.course_id) lessonIdToCourse[l.id] = l.course_id;
     });
 
-    // Fetch lesson_progress + lesson_words in parallel; user_word_progress is
-    // sequenced after. Both `lesson_words` and `user_word_progress` use .range()
-    // pagination because PostgREST's server-side max-rows cap (1,000) silently
-    // truncates single-request responses — that caused later lessons in large
-    // courses to show 0 learned/mastered even when data existed.
-    const [lessonProgressResult, lessonWordsRows] = await Promise.all([
-      // Lesson-level mastered counts (for the lessonsCompleted field, kept for UI consumers)
-      supabase
-        .from("user_lesson_progress")
-        .select("lesson_id, status")
-        .eq("user_id", user.id)
-        .in("lesson_id", lessonIds)
-        .eq("status", "mastered"),
-      // Full lesson → word map so we can bucket user progress by course
-      fetchAllRows<{
-        lesson_id: string;
-        word_id: string | null;
-        words: { category: string | null } | null;
-      }>(
+    // A language has 400–700 lessons, so a single `.in("lesson_id", lessonIds)`
+    // builds a >16KB request URL that the gateway rejects with HTTP 400 — which
+    // fetchAllRows turns into an empty result, silently zeroing all course
+    // progress. So chunk lesson_words by lesson id, and scope
+    // user_lesson_progress by user only (bucketed to this language's lessons via
+    // lessonIdToCourse below). Both paginate via .range() for the 1,000-row cap;
+    // `.order()` keeps pagination stable across pages.
+    const LESSON_ID_CHUNK = 100;
+    const lessonIdChunks: string[][] = [];
+    for (let i = 0; i < lessonIds.length; i += LESSON_ID_CHUNK) {
+      lessonIdChunks.push(lessonIds.slice(i, i + LESSON_ID_CHUNK));
+    }
+
+    const [lessonProgressRows, lessonWordsChunks] = await Promise.all([
+      // Lesson-level mastered counts (for the lessonsCompleted field, kept for UI
+      // consumers). Scoped by user only — other languages' lessons are dropped by
+      // the lessonIdToCourse lookup below.
+      fetchAllRows<{ lesson_id: string | null; status: string | null }>(
         (from, to) =>
           supabase
-            .from("lesson_words")
-            .select("lesson_id, word_id, words(category)")
-            .in("lesson_id", lessonIds)
+            .from("user_lesson_progress")
+            .select("lesson_id, status")
+            .eq("user_id", user.id)
+            .eq("status", "mastered")
+            .order("lesson_id")
             .range(from, to),
-        { label: "getCourses:lesson_words" }
+        { label: "getCourses:user_lesson_progress" }
+      ),
+      // Full lesson → word map so we can bucket user progress by course, fetched
+      // in per-chunk parallel to keep each request URL small.
+      Promise.all(
+        lessonIdChunks.map((chunk) =>
+          fetchAllRows<{
+            lesson_id: string;
+            word_id: string | null;
+            words: { category: string | null } | null;
+          }>(
+            (from, to) =>
+              supabase
+                .from("lesson_words")
+                .select("lesson_id, word_id, words(category)")
+                .in("lesson_id", chunk)
+                .order("lesson_id")
+                .order("word_id")
+                .range(from, to),
+            { label: "getCourses:lesson_words" }
+          )
+        )
       ),
     ]);
+    const lessonWordsRows = lessonWordsChunks.flat();
 
     // lessonsCompleted per course
-    lessonProgressResult.data?.forEach((lp) => {
+    lessonProgressRows.forEach((lp) => {
       if (!lp.lesson_id) return;
       const courseId = lessonIdToCourse[lp.lesson_id];
       if (courseId) {
