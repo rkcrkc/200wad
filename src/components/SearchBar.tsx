@@ -353,8 +353,8 @@ export function SearchBar() {
                             />
                           </div>
                         </div>
-                        <span className="text-muted-foreground shrink-0 text-[12px]">
-                          Lesson {word.lessonNumber}
+                        <span className="text-muted-foreground max-w-[40%] shrink-0 truncate text-[12px]">
+                          #{word.lessonNumber} {word.lessonTitle}
                         </span>
                       </button>
                     );

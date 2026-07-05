@@ -8,6 +8,10 @@ export interface ActionMenuItem {
   onClick: () => void;
   /** Render in the destructive colour (e.g. Cancel plan). */
   destructive?: boolean;
+  /** Greyed out and non-clickable; pair with `title` to explain why. */
+  disabled?: boolean;
+  /** Native tooltip, typically the reason a disabled item can't be used. */
+  title?: string;
 }
 
 interface ActionMenuProps {
@@ -67,11 +71,13 @@ export function ActionMenu({ items, label = "Plan actions" }: ActionMenuProps) {
               key={item.label}
               type="button"
               role="menuitem"
+              disabled={item.disabled}
+              title={item.title}
               onClick={() => {
                 setOpen(false);
                 item.onClick();
               }}
-              className={`block w-full px-4 py-2.5 text-left text-small-medium transition-colors hover:bg-bone-hover ${
+              className={`block w-full px-4 py-2.5 text-left text-small-medium transition-colors hover:bg-bone-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
                 item.destructive ? "text-destructive" : "text-foreground"
               }`}
             >
