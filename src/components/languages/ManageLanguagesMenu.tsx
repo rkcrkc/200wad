@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Check, Loader2 } from "lucide-react";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { ConfirmModal } from "@/components/admin/AdminModal";
+import { removeLanguageConfirmCopy } from "@/components/languages/enrollmentCopy";
 import { addLanguage, removeLanguage } from "@/lib/mutations/settings";
 import type { LanguageWithProgress } from "@/lib/queries";
 
@@ -24,6 +26,9 @@ export function ManageLanguagesMenu({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Removing a language is confirmed first; adding applies immediately.
+  const [confirmingRemove, setConfirmingRemove] =
+    useState<LanguageWithProgress | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const enrolledCount = languages.filter((l) => l.isEnrolled).length;
@@ -43,8 +48,7 @@ export function ManageLanguagesMenu({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const toggle = (language: LanguageWithProgress) => {
-    if (isPending) return;
+  const runMutation = (language: LanguageWithProgress) => {
     setError(null);
     setPendingId(language.id);
     startTransition(async () => {
@@ -53,11 +57,23 @@ export function ManageLanguagesMenu({
         : await addLanguage(language.id);
       setPendingId(null);
       if (result.success) {
+        setConfirmingRemove(null);
         router.refresh();
       } else {
         setError(result.error || "Something went wrong");
       }
     });
+  };
+
+  const toggle = (language: LanguageWithProgress) => {
+    if (isPending) return;
+    setError(null);
+    // Unchecking removes the language, which is confirmed before applying.
+    if (language.isEnrolled) {
+      setConfirmingRemove(language);
+    } else {
+      runMutation(language);
+    }
   };
 
   return (
@@ -67,7 +83,7 @@ export function ManageLanguagesMenu({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex h-full min-h-[7.5rem] w-44 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-black/15 px-3 text-muted-foreground transition-colors hover:border-black/30 hover:bg-bone-hover"
+        className="flex h-full min-h-[7.5rem] w-52 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-black/15 px-3 text-muted-foreground transition-colors hover:border-black/30 hover:bg-bone-hover"
       >
         <Plus className="h-6 w-6" />
         <span className="text-sm font-medium">Add languages</span>
@@ -117,6 +133,18 @@ export function ManageLanguagesMenu({
             <p className="px-4 py-2 text-sm text-destructive">{error}</p>
           )}
         </div>
+      )}
+
+      {confirmingRemove && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setConfirmingRemove(null)}
+          onConfirm={() => runMutation(confirmingRemove)}
+          isLoading={isPending}
+          confirmLabel="Remove"
+          confirmVariant="destructive"
+          {...removeLanguageConfirmCopy(confirmingRemove.name)}
+        />
       )}
     </div>
   );

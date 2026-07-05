@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { CourseAccordionCard } from "@/components/languages/CourseAccordionCard";
+import { LanguageCardActions } from "@/components/languages/LanguageCardActions";
 import { ManageLanguagesMenu } from "@/components/languages/ManageLanguagesMenu";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,10 @@ export function LanguageCardStack({
   const [view, setView] = useState<"list" | "grid">("list");
   const selected = items.find((i) => i.language.id === selectedId) ?? null;
 
+  // Enrolled languages can't drop below one (removal is blocked server-side),
+  // so gate the per-card "Remove" action on there being a spare.
+  const enrolledCount = items.filter((i) => i.language.isEnrolled).length;
+
   return (
     <div>
       <div className="flex flex-wrap items-stretch gap-3">
@@ -45,38 +50,57 @@ export function LanguageCardStack({
           const flag = getFlagFromCode(language.code);
           const isSelected = language.id === selectedId;
           return (
-            <button
+            // The whole card selects the language via a full-bleed overlay
+            // button; the trailing actions control sits above it so the two
+            // interactive targets never nest.
+            <div
               key={language.id}
-              type="button"
-              onClick={() =>
-                setSelectedId((current) =>
-                  current === language.id ? null : language.id
-                )
-              }
-              aria-pressed={isSelected}
               className={cn(
-                "flex w-44 shrink-0 flex-col gap-3 rounded-2xl border bg-white p-4 text-left shadow-card transition-all",
+                "relative flex w-52 shrink-0 flex-col rounded-2xl border bg-white shadow-card transition-all",
                 isSelected
                   ? "border-primary ring-2 ring-primary"
                   : "border-black/5 hover:border-black/15 hover:shadow-card-hover"
               )}
             >
-              <div className="flex items-start justify-between">
-                <span className="text-3xl leading-none">{flag}</span>
-                <ProgressRing
-                  value={language.progressPercent}
-                  size={44}
-                  showValue
-                />
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedId((current) =>
+                    current === language.id ? null : language.id
+                  )
+                }
+                aria-pressed={isSelected}
+                aria-label={`Show ${language.name} courses`}
+                className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              />
+              <div className="pointer-events-none relative z-10 flex flex-col gap-3 p-4">
+                <div className="flex items-start justify-between">
+                  <span className="text-3xl leading-none">{flag}</span>
+                  <div className="flex items-center gap-1">
+                    <ProgressRing
+                      value={language.progressPercent}
+                      size={44}
+                      showValue
+                    />
+                    <div className="pointer-events-auto">
+                      <LanguageCardActions
+                        language={language}
+                        canRemove={enrolledCount > 1}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-large-semibold">
+                    {language.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {language.courseCount}{" "}
+                    {language.courseCount === 1 ? "course" : "courses"}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h3 className="truncate text-large-semibold">{language.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {language.courseCount}{" "}
-                  {language.courseCount === 1 ? "course" : "courses"}
-                </p>
-              </div>
-            </button>
+            </div>
           );
         })}
 
