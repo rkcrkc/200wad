@@ -8,7 +8,7 @@ import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageContainer } from "@/components/PageContainer";
 import { PageShell } from "@/components/PageShell";
-import type { TimeOfDay } from "@/components/PageTopBar";
+import { getTimeOfDay } from "@/lib/greeting";
 import { createClient } from "@/lib/supabase/server";
 import type { LanguageGreetings } from "@/types/database";
 
@@ -85,11 +85,11 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
   // Fetch languages for onboarding modal (only for guests)
   const languages = isGuest ? await getLanguagesWithCourses() : [];
 
-  // Generate greeting based on language and time
-  const { greeting, translation, timeOfDay } = getGreeting(
-    language?.greetings as LanguageGreetings | null,
-    userName
-  );
+  // Greeting: pass raw per-language greetings + name to the client, which picks
+  // morning/afternoon/evening from the browser clock. The server-computed
+  // timeOfDay is only the pre-hydration default.
+  const greetings = (language?.greetings as LanguageGreetings | null) ?? null;
+  const initialTimeOfDay = getTimeOfDay();
 
   // Check if we have any content to show
   const hasContent =
@@ -127,7 +127,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     : needsReviewLessons;
 
   return (
-    <PageShell greeting={greeting} greetingTranslation={translation} greetingTimeOfDay={timeOfDay} withTopPadding={false} className="pt-12 pb-20">
+    <PageShell greetings={greetings} greetingUserName={userName} initialTimeOfDay={initialTimeOfDay} withTopPadding={false} className="pt-12 pb-20">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}
@@ -167,39 +167,4 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
         />
     </PageShell>
   );
-}
-
-/**
- * Generate a greeting based on language greetings from DB and time of day.
- * Returns both the foreign-language greeting and its English translation.
- */
-function getGreeting(
-  greetings: LanguageGreetings | null,
-  userName: string | null
-): { greeting: string; translation: string | undefined; timeOfDay: TimeOfDay } {
-  const hour = new Date().getHours();
-  const timeOfDay: TimeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
-  const suffix = userName ? `, ${userName}` : "";
-
-  if (greetings?.[timeOfDay]) {
-    const entry = greetings[timeOfDay];
-    return {
-      greeting: `${entry.text}${suffix}`,
-      translation: entry.translation ? `${entry.translation}${suffix}` : undefined,
-      timeOfDay,
-    };
-  }
-
-  // Fallback: English only (no translation needed)
-  const english: Record<TimeOfDay, string> = {
-    morning: "Good morning",
-    afternoon: "Good afternoon",
-    evening: "Good evening",
-  };
-
-  return {
-    greeting: `${english[timeOfDay]}${suffix}`,
-    translation: undefined,
-    timeOfDay,
-  };
 }

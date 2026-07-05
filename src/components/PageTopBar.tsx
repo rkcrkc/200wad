@@ -4,8 +4,10 @@ import Link from "next/link";
 import { ChevronLeft, ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useText } from "@/context/TextContext";
+import { getTimeOfDay, type TimeOfDay } from "@/lib/greeting";
+import type { LanguageGreetings } from "@/types/database";
 
-export type TimeOfDay = "morning" | "afternoon" | "evening";
+export type { TimeOfDay };
 
 const TIME_OF_DAY_EMOJI: Record<TimeOfDay, string> = {
   morning: "👋",
@@ -13,11 +15,19 @@ const TIME_OF_DAY_EMOJI: Record<TimeOfDay, string> = {
   evening: "🌙",
 };
 
+const ENGLISH_FALLBACK: Record<TimeOfDay, string> = {
+  morning: "Good morning",
+  afternoon: "Good afternoon",
+  evening: "Good evening",
+};
+
 interface PageTopBarProps {
   backLink?: { href: string; label: string };
-  greeting?: string;
-  greetingTranslation?: string;
-  greetingTimeOfDay?: TimeOfDay;
+  /** Per-language greetings from the DB; `null` uses the English fallback. Omit for pages without a greeting. */
+  greetings?: LanguageGreetings | null;
+  greetingUserName?: string | null;
+  /** Server-computed time-of-day, used only for the first (pre-hydration) render. */
+  initialTimeOfDay?: TimeOfDay;
   width: "md" | "lg";
   onToggleWidth: () => void;
   mounted: boolean;
@@ -25,15 +35,30 @@ interface PageTopBarProps {
 
 export function PageTopBar({
   backLink,
-  greeting,
-  greetingTranslation,
-  greetingTimeOfDay = "afternoon",
+  greetings,
+  greetingUserName,
+  initialTimeOfDay = "afternoon",
   width,
   onToggleWidth,
   mounted,
 }: PageTopBarProps) {
   const { t } = useText();
-  const greetingEmoji = TIME_OF_DAY_EMOJI[greetingTimeOfDay];
+
+  // Before hydration we render the server-computed time-of-day (deterministic,
+  // so no hydration mismatch). Once mounted, `getTimeOfDay()` reads the browser
+  // clock so the greeting matches the user's local time, not the server's.
+  const timeOfDay = mounted ? getTimeOfDay() : initialTimeOfDay;
+
+  const hasGreeting = greetings !== undefined;
+  const suffix = greetingUserName ? `, ${greetingUserName}` : "";
+  const entry = greetings?.[timeOfDay];
+  const greeting = hasGreeting
+    ? entry
+      ? `${entry.text}${suffix}`
+      : `${ENGLISH_FALLBACK[timeOfDay]}${suffix}`
+    : undefined;
+  const greetingTranslation = entry?.translation ? `${entry.translation}${suffix}` : undefined;
+  const greetingEmoji = TIME_OF_DAY_EMOJI[timeOfDay];
   return (
     <div className="mb-6 flex items-center justify-between">
       {/* Left: greeting or back link */}

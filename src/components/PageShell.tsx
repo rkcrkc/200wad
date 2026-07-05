@@ -3,12 +3,13 @@
 import { usePageWidth } from "@/hooks/usePageWidth";
 import { PageTopBar, type TimeOfDay } from "@/components/PageTopBar";
 import { PageContainer } from "@/components/PageContainer";
+import type { LanguageGreetings } from "@/types/database";
 
 interface PageShellProps {
   backLink?: { href: string; label: string };
-  greeting?: string;
-  greetingTranslation?: string;
-  greetingTimeOfDay?: TimeOfDay;
+  greetings?: LanguageGreetings | null;
+  greetingUserName?: string | null;
+  initialTimeOfDay?: TimeOfDay;
   className?: string;
   withTopPadding?: boolean;
   children: React.ReactNode;
@@ -16,9 +17,9 @@ interface PageShellProps {
 
 export function PageShell({
   backLink,
-  greeting,
-  greetingTranslation,
-  greetingTimeOfDay,
+  greetings,
+  greetingUserName,
+  initialTimeOfDay,
   className,
   withTopPadding,
   children,
@@ -29,9 +30,9 @@ export function PageShell({
     <PageContainer size={width} className={className} withTopPadding={withTopPadding}>
       <PageTopBar
         backLink={backLink}
-        greeting={greeting}
-        greetingTranslation={greetingTranslation}
-        greetingTimeOfDay={greetingTimeOfDay}
+        greetings={greetings}
+        greetingUserName={greetingUserName}
+        initialTimeOfDay={initialTimeOfDay}
         width={width}
         onToggleWidth={toggle}
         mounted={mounted}
