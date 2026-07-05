@@ -73,7 +73,7 @@ export function TriggerMedia({
         preload="metadata"
         aria-label={alt}
         onError={() => setVideoFailed(true)}
-        className="absolute inset-0 h-full w-full object-contain"
+        className="absolute inset-0 h-full w-full bg-transparent object-contain"
       />
     );
   }
