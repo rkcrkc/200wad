@@ -49,7 +49,26 @@ export async function updateSession(request: NextRequest) {
   // Allow guests to reach the default course schedule (root redirects there for onboarding)
   const DEFAULT_COURSE_ID = "6d60eb7e-7317-4c18-a0a9-6123cc37d5b8";
   const isGuestSchedule = pathname === `/course/${DEFAULT_COURSE_ID}/schedule`;
-  const isPublicRoute = pathname === "/" || isAuthRoute || isGuestSchedule;
+  // Public marketing site — logged-out visitors are the audience, so these must
+  // never bounce to the app onboarding flow.
+  const MARKETING_PREFIXES = [
+    "/home",
+    "/how-it-works",
+    "/pricing",
+    "/learn",
+    "/with",
+    "/for",
+    "/guides",
+    "/about",
+    "/welcome-back",
+    "/go",
+    "/lp",
+  ];
+  const isMarketingRoute = MARKETING_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  const isPublicRoute =
+    pathname === "/" || isAuthRoute || isGuestSchedule || isMarketingRoute;
 
   // Admin routes require both authentication AND admin role
   const isAdminRoute = pathname.startsWith("/admin");
