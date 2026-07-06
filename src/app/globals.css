@@ -48,33 +48,6 @@
   --sidebar-border: #e5e7eb;
   --sidebar-ring: #0b6cff;
 
-  /* 200WAD custom colors */
-  --color-black: #141515;
-  --color-black-80: rgba(20, 21, 21, 0.8);
-  --color-black-75: rgba(20, 21, 21, 0.75);
-  --color-black-50: rgba(20, 21, 21, 0.5);
-  --color-black-20: rgba(20, 21, 21, 0.2);
-  --color-gray-dark: #101828;
-  --color-gray-mid: #4A5565;
-  --color-blue: #0b6cff;
-  --color-blue-dark: #0955cc;
-  --color-beige: #f2ead9;
-  --color-bone: #faf8f3;
-  --color-bone-50: rgba(250, 248, 243, 0.5);
-  --color-bone-hover: #f6f3eb;
-  --color-white: #ffffff;
-  --color-orange: #ff9224;
-  --color-yellow-light: #fff6da;
-  --color-green: #00c950;
-
-  /* Status backgrounds */
-  --status-mastered-bg: #e6f9f0;
-  --status-mastered-color: #00c950;
-  --status-learning-bg: #fff6da;
-  --status-learning-color: #ff9224;
-  --status-not-started-bg: #faf8f3;
-  --status-not-started-color: rgba(20, 21, 21, 0.5);
-
   /* Page Max Width */
   --max-width-s: 840px;
   --max-width-m: 1080px;
@@ -124,6 +97,7 @@
   --color-bone-hover: #f6f3eb;
   --color-gray-dark: #101828;
   --color-gray-mid: #4A5565;
+  --color-black: #141515;
   --color-black-80: rgba(20, 21, 21, 0.8);
   --color-black-75: rgba(20, 21, 21, 0.75);
   --color-black-50: rgba(20, 21, 21, 0.5);

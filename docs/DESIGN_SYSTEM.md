@@ -10,7 +10,15 @@
 - Components: `src/components/ui/`
 - Machine-readable export: `docs/design-tokens.dtcg.json`
 
-> ✅ **Single source of truth.** Duplicate/dead token definitions were removed from `design-tokens.ts` (it now holds only the gender-highlight and status colors that are used at runtime). Every value below reflects what the app actually renders. There are no source conflicts to reconcile.
+> ✅ **Single source of truth.** Every value below reflects what the app actually renders; there are no duplicate/conflicting token definitions.
+>
+> **Token ownership rule (one owner per token):**
+> - **Semantic / themeable tokens** (`--primary`, `--background`, `--card`, `--border`, `--ring`, sidebar, chart…): defined once as raw values in `:root`, referenced by `@theme inline` via `var()`. The two-tier split is intentional — it lets `.dark` override them. *Not* duplicates.
+> - **Flat brand colors** (`blue`, `beige`, `bone`, grays, black-opacities) + **radius / shadows**: defined **once in `@theme`** (Tailwind v4 emits these as `:root` custom properties, so `var(--color-bone)` still works). No `:root` copy.
+> - **JS-only colors** (gender-highlight colors, the `status` pill object): defined **once in `src/lib/design-tokens.ts`**, because they're applied through inline `style={}` logic and CSS variables can't be imported into JS.
+> - **Spacing**: Tailwind v4 defaults (no custom scale).
+>
+> When adding a token, put it in exactly one of these homes based on how it's consumed.
 
 ---
 
@@ -71,10 +79,10 @@ Status-state surfaces (used for word-progress chips in-app — useful reference 
 
 | State | Background | Text/Accent |
 |---|---|---|
-| Mastered | `#e6f9f0` | `#00c950` |
+| Mastered | `#00c950` | `#ffffff` (star icon) |
 | Learned | `#D5F3E5` | `#06AB48` |
-| Learning | `#fff6da` | `#ff9224` |
-| Not started | `#faf8f3` | `rgba(20,21,21,0.5)` |
+| Learning | `#fff6da` | `#ff9224` (+ dot `#ff9224`) |
+| Not started | `#faf8f3` | `rgba(20,21,21,0.5)` (+ dot `rgba(20,21,21,0.2)`) |
 | Locked | `#f5f5f5` | `rgba(20,21,21,0.3)` |
 
 ### Chart palette (OKLCH)

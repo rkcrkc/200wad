@@ -33,17 +33,19 @@
       "destructiveForeground": { "$value": "#ffffff" }
     },
     "statusSurface": {
-      "$description": "Word-progress chip surfaces (bg + accent pairs). Useful reference for badge styling.",
-      "masteredBg": { "$value": "#e6f9f0" },
-      "masteredAccent": { "$value": "#00c950" },
+      "$description": "Word-progress status pills, as actually rendered by StatusPill (source: status object in design-tokens.ts). Each status has a fill (bg) + a text/icon color; 'learning' and 'notStarted' also carry a separate dot color.",
+      "masteredBg": { "$value": "#00c950" },
+      "masteredText": { "$value": "#ffffff" },
       "learnedBg": { "$value": "#d5f3e5" },
-      "learnedAccent": { "$value": "#06ab48" },
+      "learnedText": { "$value": "#06ab48" },
       "learningBg": { "$value": "#fff6da" },
-      "learningAccent": { "$value": "#ff9224" },
+      "learningText": { "$value": "#ff9224" },
+      "learningDot": { "$value": "#ff9224" },
       "notStartedBg": { "$value": "#faf8f3" },
-      "notStartedAccent": { "$value": "#14151580", "$description": "rgba(20,21,21,0.5)" },
+      "notStartedText": { "$value": "#14151580", "$description": "rgba(20,21,21,0.5)" },
+      "notStartedDot": { "$value": "#14151533", "$description": "rgba(20,21,21,0.2)" },
       "lockedBg": { "$value": "#f5f5f5" },
-      "lockedAccent": { "$value": "#1415154d", "$description": "rgba(20,21,21,0.3)" }
+      "lockedText": { "$value": "#1415154d", "$description": "rgba(20,21,21,0.3)" }
     },
     "chart": {
       "$description": "OKLCH values as authored in globals.css; kept as raw CSS strings.",
