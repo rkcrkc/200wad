@@ -2023,6 +2023,33 @@ export function TestModeClient({
     }
   }
 
+  // Thumbnails follow a different rule from the text answer. The image is a
+  // soft memory clue, so we reward it on answering rather than suppressing it
+  // like the literal text. In testTwice mode: reveal a word's thumbnail once
+  // answered in round 1, re-hide every round-1 thumbnail the moment round 2
+  // begins, and reveal both entries once the word is answered again in round 2.
+  const revealThumbnailIndices = new Set<number>();
+  if (testTwice) {
+    const roundTwoStarted = currentWordIndex >= activeWords.length;
+    const answeredRound2Ids = new Set<string>();
+    for (let i = activeWords.length; i < testSequence.length; i++) {
+      if (testResults.has(i)) answeredRound2Ids.add(testSequence[i].id);
+    }
+    testSequence.forEach((w, index) => {
+      if (!testResults.has(index)) return;
+      const isRound1 = index < activeWords.length;
+      if (isRound1) {
+        if (!roundTwoStarted || answeredRound2Ids.has(w.id)) {
+          revealThumbnailIndices.add(index);
+        }
+      } else {
+        revealThumbnailIndices.add(index);
+      }
+    });
+  } else {
+    testResults.forEach((_v, index) => revealThumbnailIndices.add(index));
+  }
+
   // In testTwice mode, label the start of each round in the sidebar.
   const roundLabels = testTwice
     ? new Map<number, string>([
@@ -2090,6 +2117,7 @@ export function TestModeClient({
         mode="test"
         testResults={testResults}
         hideSecondaryIndices={hideSecondaryIndices}
+        revealThumbnailIndices={revealThumbnailIndices}
         primaryField={testType === "foreign-to-english" ? "foreign" : "english"}
         roundLabels={roundLabels}
       />

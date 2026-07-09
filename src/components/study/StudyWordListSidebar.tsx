@@ -27,6 +27,15 @@ interface StudyWordListSidebarProps {
    * upcoming round-2 occurrence of the same word.
    */
   hideSecondaryIndices?: Set<number>;
+  /**
+   * For test mode: indices whose thumbnail image should be revealed. Kept
+   * separate from `hideSecondaryIndices` because the thumbnail (a soft memory
+   * clue) follows a different rule from the literal text answer. In testTwice
+   * mode a word's thumbnail is revealed on answering in round 1, hidden again
+   * when round 2 starts, and revealed once it's answered in round 2. When
+   * omitted (e.g. study mode) the thumbnail falls back to "reveal when answered".
+   */
+  revealThumbnailIndices?: Set<number>;
   /** Which word to show first: "foreign" (default) or "english" */
   primaryField?: "foreign" | "english";
   /** Category per word index — information pages get no number */
@@ -47,6 +56,7 @@ export function StudyWordListSidebar({
   mode = "study",
   testResults,
   hideSecondaryIndices,
+  revealThumbnailIndices,
   primaryField = "foreign",
   categories,
   roundLabels,
@@ -124,12 +134,16 @@ export function StudyWordListSidebar({
               // In test mode, disable words not yet reached
               const isDisabled = isTestMode && index > maxReachedIndex;
 
-              // The thumbnail follows the same reveal rule as the secondary
-              // text: always shown in study, but in test mode only once the
-              // word's answer is revealed (answered, and not suppressed for an
-              // upcoming Test-Twice occurrence). Otherwise it would leak a clue.
+              // The thumbnail has its own reveal rule (see revealThumbnailIndices):
+              // always shown in study, and in test mode driven by the caller's
+              // set — which handles the Test-Twice reward/re-hide cadence — with
+              // a fallback of "reveal when answered" when no set is supplied.
               const revealThumb =
-                !isDisabled && (!isTestMode || (!!testResult && !hideSecondary));
+                !isDisabled &&
+                (!isTestMode ||
+                  (revealThumbnailIndices
+                    ? revealThumbnailIndices.has(index)
+                    : !!testResult));
 
               const roundLabel = roundLabels?.get(index);
 

@@ -322,10 +322,19 @@ export function MemoryTriggerCard({
           )}
         </button>
       ) : showTriggerTextProp !== undefined && triggerText && !showTrigger ? (
-        // Study mode: show skeleton when trigger not yet revealed
-        <div className="flex items-center gap-3">
-          <div className="h-5 w-5 flex-shrink-0 animate-pulse rounded-full bg-gray-100" />
-          <div className="h-[33px] flex-1 animate-pulse rounded-lg bg-gray-100" />
+        // Study mode: skeleton mirrors the revealed grid (Imagine… label row +
+        // audio-icon/text row) so revealing the trigger swaps in place instead of
+        // pushing the image below it down.
+        <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
+          <div className="col-start-2 row-start-1 flex h-[19px] items-center">
+            <div className="h-2.5 w-16 animate-pulse rounded bg-gray-100" />
+          </div>
+          <span className="col-start-1 row-start-2 mr-3 flex h-[33px] items-center">
+            <div className="h-5 w-5 flex-shrink-0 animate-pulse rounded-full bg-gray-100" />
+          </span>
+          <div className="col-start-2 row-start-2 flex h-[33px] items-center">
+            <div className="h-[22px] w-full animate-pulse rounded-lg bg-gray-100" />
+          </div>
         </div>
       ) : showTrigger && triggerText ? (
         // Test mode / edit mode: render normally when visible
@@ -390,10 +399,19 @@ export function MemoryTriggerCard({
           </div>
         </div>
       ) : showTriggerTextProp === undefined && (!pictureOnlyMode || showTrigger) ? (
-        // Test mode: show animated skeleton when trigger text not yet revealed
-        <div className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-pulse rounded-full bg-gray-100" />
-          <div className="h-[33px] flex-1 animate-pulse rounded bg-gray-100" />
+        // Test mode: skeleton mirrors the revealed grid (Imagine… label row +
+        // audio-icon/text row) so revealing the trigger swaps in place instead of
+        // pushing the image below it down.
+        <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
+          <div className="col-start-2 row-start-1 flex h-[19px] items-center">
+            <div className="h-2.5 w-16 animate-pulse rounded bg-gray-100" />
+          </div>
+          <span className="col-start-1 row-start-2 mr-3 flex h-[33px] items-center">
+            <div className="h-5 w-5 flex-shrink-0 animate-pulse rounded-full bg-gray-100" />
+          </span>
+          <div className="col-start-2 row-start-2 flex h-[33px] items-center">
+            <div className="h-[22px] w-full animate-pulse rounded-lg bg-gray-100" />
+          </div>
         </div>
       ) : null}
     </>

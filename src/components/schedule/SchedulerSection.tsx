@@ -183,7 +183,7 @@ export function SchedulerSection({
       {/* Test folder tabs — beige wrapper spans the full card width with a
           white "notch" for the active tab. Tabs distribute equally via
           flex-1 so they fill the available space. When many tabs are due,
-          min-w-[44px] forces overflow and the strip scrolls (chevrons +
+          min-w-[160px] forces overflow and the strip scrolls (chevrons +
           edge fades appear on demand). Inactive tabs show just the number;
           the active tab shows the number plus the lesson title (truncated
           to fit). relative z-10 keeps tabs above the SchedulerCard's drop
@@ -209,7 +209,7 @@ export function SchedulerSection({
                     aria-label={`Test ${i + 1} of ${dueTests.length}: ${test.title}`}
                     data-tab-index={i}
                     onClick={() => setActiveTestIndex(i)}
-                    className={`text-small-semibold min-w-[80px] flex-1 truncate rounded-t-xl px-3 py-3 text-center transition-colors ${
+                    className={`text-small-semibold min-w-[160px] flex-1 truncate rounded-t-xl px-3 py-3 text-center transition-colors ${
                       isActive
                         ? "bg-white text-foreground"
                         : "text-muted-foreground hover:text-foreground"

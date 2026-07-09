@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Check, ChevronRight, Lock } from "lucide-react";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { ScrollFadeRow } from "@/components/ui/scroll-fade-row";
@@ -86,10 +87,10 @@ export function CourseAccordionCard({
 
         {/* Course CTA */}
         <Button asChild className="group shrink-0">
-          <a href="#">
+          <Link href={`/course/${course.id}/schedule`}>
             {course.isCurrent ? "Continue studying" : "Study Now"}
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
+          </Link>
         </Button>
       </div>
 
