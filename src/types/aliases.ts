@@ -48,6 +48,8 @@ export type UserNotificationPreference = Database["public"]["Tables"]["user_noti
 export type UserNotificationPreferenceInsert = Database["public"]["Tables"]["user_notification_preferences"]["Insert"];
 export type UserNotificationPreferenceUpdate = Database["public"]["Tables"]["user_notification_preferences"]["Update"];
 export type StudyMusicTrack = Database["public"]["Tables"]["study_music_tracks"]["Row"];
+export type AnswerFeedbackSound = Database["public"]["Tables"]["answer_feedback_sounds"]["Row"];
+export type AnswerFeedbackSoundUpdate = Database["public"]["Tables"]["answer_feedback_sounds"]["Update"];
 
 // Insert types
 export type LanguageInsert = Database["public"]["Tables"]["languages"]["Insert"];

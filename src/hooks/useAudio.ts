@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-export type AudioType = "english" | "foreign" | "trigger";
+export type AudioType = "english" | "foreign" | "trigger" | "sfx";
 
 const STORAGE_KEY_WORD_VOLUME = "word-audio-volume";
+const STORAGE_KEY_SOUND_EFFECTS = "sound-effects-enabled";
 
 interface UseAudioReturn {
   /** Play audio from URL, returns a promise that resolves when audio ends */
@@ -25,6 +26,10 @@ interface UseAudioReturn {
   volume: number;
   /** Set word audio volume (0-1) */
   setVolume: (volume: number) => void;
+  /** Whether answer-feedback sound effects are enabled (persisted). */
+  soundEffectsEnabled: boolean;
+  /** Toggle answer-feedback sound effects on/off (persisted). */
+  setSoundEffectsEnabled: (enabled: boolean) => void;
 }
 
 export function useAudio(): UseAudioReturn {
@@ -40,6 +45,11 @@ export function useAudio(): UseAudioReturn {
       if (!isNaN(vol) && vol >= 0 && vol <= 1) return vol;
     }
     return 1;
+  });
+  const [soundEffectsEnabled, setSoundEffectsEnabledState] = useState(() => {
+    if (typeof window === "undefined") return true;
+    // Default ON; only an explicit "false" opts out.
+    return localStorage.getItem(STORAGE_KEY_SOUND_EFFECTS) !== "false";
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -57,6 +67,13 @@ export function useAudio(): UseAudioReturn {
     }
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_WORD_VOLUME, String(clamped));
+    }
+  }, []);
+
+  const setSoundEffectsEnabled = useCallback((enabled: boolean) => {
+    setSoundEffectsEnabledState(enabled);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_SOUND_EFFECTS, String(enabled));
     }
   }, []);
 
@@ -230,5 +247,7 @@ export function useAudio(): UseAudioReturn {
     error,
     volume,
     setVolume,
+    soundEffectsEnabled,
+    setSoundEffectsEnabled,
   };
 }

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { createClient } from "@/lib/supabase/server";
 import { getToastTemplates } from "@/lib/queries/notification-config";
+import { getAnswerFeedbackSounds } from "@/lib/queries/answer-sounds";
 import { TestModeClient } from "./TestModeClient";
 import { TestType, DEFAULT_TEST_TYPE } from "@/types/test";
 
@@ -110,6 +111,9 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       ])
     : {};
 
+  // Admin-managed answer feedback sounds. Public-read, so fetched for guests too.
+  const answerFeedbackSounds = await getAnswerFeedbackSounds();
+
   // For guests, we still allow testing but won't save progress
   return (
     <TestModeClient
@@ -126,6 +130,7 @@ export default async function TestPage({ params, searchParams }: TestPageProps) 
       priorLearnedCount={priorLearnedCount}
       priorMasteredCount={priorMasteredCount}
       toastTemplates={toastTemplates}
+      answerFeedbackSounds={answerFeedbackSounds}
     />
   );
 }

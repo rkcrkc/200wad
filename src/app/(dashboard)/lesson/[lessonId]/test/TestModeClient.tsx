@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { showAchievementToast } from "@/lib/toast/achievement";
 import { Course, Language, Lesson } from "@/types/database";
 import type { ToastTemplate } from "@/lib/queries/notification-config";
+import type { AnswerFeedbackSoundMap } from "@/lib/queries/answer-sounds";
 import { WordWithDetails, type WordStatus } from "@/lib/queries/words";
 import type { UserWordProgress } from "@/types/database";
 import { useAudio } from "@/hooks/useAudio";
@@ -255,6 +256,11 @@ interface TestModeClientProps {
    * configured for toast; empty/falsy values = falls back to title/message.
    */
   toastTemplates?: Record<string, ToastTemplate>;
+  /**
+   * Admin-managed answer feedback sounds fetched server-side. Map of grade →
+   * audio URL; only enabled sounds are present. Missing grade = no SFX.
+   */
+  answerFeedbackSounds?: AnswerFeedbackSoundMap;
 }
 
 export function TestModeClient({
@@ -271,13 +277,23 @@ export function TestModeClient({
   priorLearnedCount = 0,
   priorMasteredCount = 0,
   toastTemplates = {},
+  answerFeedbackSounds = {},
 }: TestModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { openWord } = useWordPreview();
   const exitGuard = useStudyExitGuard();
-  const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
+  const {
+    playAudio,
+    stopAudio,
+    preloadAudio,
+    currentAudioType,
+    volume: wordVolume,
+    setVolume: setWordVolume,
+    soundEffectsEnabled,
+    setSoundEffectsEnabled,
+  } = useAudio();
   const {
     isEnabled: musicEnabled,
     selectedTrack,
@@ -588,6 +604,12 @@ export function TestModeClient({
     preloadAudio(englishUrls);
   }, [words, preloadAudio]);
 
+  // Preload the answer feedback sounds so the first result plays without a
+  // network hitch.
+  useEffect(() => {
+    preloadAudio(Object.values(answerFeedbackSounds));
+  }, [answerFeedbackSounds, preloadAudio]);
+
   // Preload memory trigger + flashcard images for every word on mount so the
   // clue reveal (and any image swap) is instant rather than waiting on the
   // network. Same pattern as audio preloading above.
@@ -861,10 +883,22 @@ export function TestModeClient({
         }
       }
 
-      // Play foreign word audio after answer is marked
-      if (currentWord.audio_url_foreign) {
-        playAudio(currentWord.audio_url_foreign, "foreign");
-      }
+      // After marking the answer, play the grade's feedback sound (when the
+      // user hasn't muted them and one is configured for this grade), then the
+      // foreign-word pronunciation. They share the single audio channel, so
+      // awaiting the SFX keeps the sequence ordered (feedback first). playAudio
+      // resolves on error too, so a missing/broken SFX never blocks the word.
+      const sfxUrl = soundEffectsEnabled
+        ? answerFeedbackSounds[result.grade]
+        : undefined;
+      void (async () => {
+        if (sfxUrl) {
+          await playAudio(sfxUrl, "sfx");
+        }
+        if (currentWord.audio_url_foreign) {
+          playAudio(currentWord.audio_url_foreign, "foreign");
+        }
+      })();
     },
     [
       progressKey,
@@ -877,6 +911,8 @@ export function TestModeClient({
       testTwice,
       testProgressMap,
       toastTemplates,
+      soundEffectsEnabled,
+      answerFeedbackSounds,
     ]
   );
 
@@ -2255,6 +2291,8 @@ export function TestModeClient({
             onMusicVolumeChange={setMusicVolume}
             wordVolume={wordVolume}
             onWordVolumeChange={setWordVolume}
+            soundEffectsEnabled={soundEffectsEnabled}
+            onSoundEffectsChange={setSoundEffectsEnabled}
             isAdmin={isAdmin}
             isEditMode={isEditMode}
             onEditModeToggle={() => setIsEditMode(!isEditMode)}

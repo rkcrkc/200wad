@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
+import type { AnswerFeedbackSoundMap } from "@/lib/queries/answer-sounds";
 import { useAudio, AudioType } from "@/hooks/useAudio";
 import { useStudyMusic } from "@/hooks/useStudyMusic";
 import {
@@ -87,6 +88,8 @@ interface StudyModeClientProps {
   nextMilestone?: string | null;
   /** When true, this session only contains the user's previously incorrect words. */
   incorrectWords?: boolean;
+  /** CMS-managed answer feedback sounds, keyed by grade. */
+  answerFeedbackSounds?: AnswerFeedbackSoundMap;
 }
 
 export function StudyModeClient({
@@ -99,13 +102,33 @@ export function StudyModeClient({
   dismissedTipIds: initialDismissedTipIds = [],
   nextMilestone = null,
   incorrectWords = false,
+  answerFeedbackSounds = {},
 }: StudyModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin } = useUser();
   const { openWord } = useWordPreview();
   const exitGuard = useStudyExitGuard();
-  const { playAudio, stopAudio, preloadAudio, currentAudioType, volume: wordVolume, setVolume: setWordVolume } = useAudio();
+  const {
+    playAudio,
+    stopAudio,
+    preloadAudio,
+    currentAudioType,
+    volume: wordVolume,
+    setVolume: setWordVolume,
+    soundEffectsEnabled,
+    setSoundEffectsEnabled,
+  } = useAudio();
+  // Snapshot of the most recent submission, consumed by the feedback-sound
+  // effect. Study mode is binary, so grade is only ever "correct"/"incorrect"
+  // (never "half-correct"). Bumping feedbackNonce re-fires the effect on EVERY
+  // submit, including "Try again" retries (which don't change the phase).
+  const lastSubmitRef = useRef<{
+    grade: "correct" | "incorrect";
+    foreignUrl: string | null;
+    sfxEnabled: boolean;
+  } | null>(null);
+  const [feedbackNonce, setFeedbackNonce] = useState(0);
   const {
     isEnabled: musicEnabled,
     selectedTrack,
@@ -511,6 +534,39 @@ export function StudyModeClient({
     };
   }, [phase, currentWord, playAudio, stopAudio, breathingModeEnabled, isInformationPage, isFactPage, imageMode]);
 
+  // Preload the answer-feedback sounds so they play instantly on submit.
+  useEffect(() => {
+    preloadAudio(Object.values(answerFeedbackSounds));
+  }, [answerFeedbackSounds, preloadAudio]);
+
+  // On every submit (bumped via feedbackNonce), play the grade's feedback sound
+  // (when enabled and configured) then replay the foreign-word pronunciation —
+  // feedback first, then pronunciation. They share the single audio channel, so
+  // awaiting the SFX keeps the order; playAudio resolves on error too, so a
+  // missing SFX never blocks the word. Keyed off the nonce (not the phase) so
+  // "Try again" retries replay too, and snapshotting at submit time avoids
+  // replaying when only the word changes. Runs after the main phase effect's
+  // cleanup (which calls stopAudio on phase change) and works in breathing mode.
+  useEffect(() => {
+    if (feedbackNonce === 0) return;
+    const submit = lastSubmitRef.current;
+    if (!submit) return;
+    const sfxUrl = submit.sfxEnabled ? answerFeedbackSounds[submit.grade] : undefined;
+    let cancelled = false;
+    void (async () => {
+      if (sfxUrl) {
+        await playAudio(sfxUrl, "sfx");
+      }
+      if (cancelled) return;
+      if (submit.foreignUrl) {
+        playAudio(submit.foreignUrl, "foreign");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [feedbackNonce, answerFeedbackSounds, playAudio]);
+
   // Breathing mode phase control (only when breathing mode is ON)
   // Uses a ref for cancellation to persist across effect re-runs
   const breathingCancelledRef = useRef(false);
@@ -650,6 +706,15 @@ export function StudyModeClient({
     (isCorrect: boolean, userAnswer: string) => {
       const existingNotes = wordProgressMap.get(currentWord.id)?.userNotes || null;
 
+      // Snapshot this submission and bump the nonce so the feedback sound plays
+      // on every submit — including retries, which keep the phase unchanged.
+      lastSubmitRef.current = {
+        grade: isCorrect ? "correct" : "incorrect",
+        foreignUrl: currentWord.audio_url_foreign,
+        sfxEnabled: soundEffectsEnabled,
+      };
+      setFeedbackNonce((n) => n + 1);
+
       setWordProgressMap((prev) => {
         const newMap = new Map(prev);
         newMap.set(currentWord.id, {
@@ -673,7 +738,7 @@ export function StudyModeClient({
 
       setPhase("show-feedback");
     },
-    [currentWord.id, currentWordIndex, sessionId, wordProgressMap]
+    [currentWord.id, currentWord.audio_url_foreign, currentWordIndex, sessionId, wordProgressMap, soundEffectsEnabled]
   );
 
   // Track viewed words when navigating
@@ -1677,6 +1742,8 @@ export function StudyModeClient({
             onMusicVolumeChange={setMusicVolume}
             wordVolume={wordVolume}
             onWordVolumeChange={setWordVolume}
+            soundEffectsEnabled={soundEffectsEnabled}
+            onSoundEffectsChange={setSoundEffectsEnabled}
             isAdmin={isAdmin}
             isEditMode={isEditMode}
             onEditModeToggle={() => setIsEditMode(!isEditMode)}

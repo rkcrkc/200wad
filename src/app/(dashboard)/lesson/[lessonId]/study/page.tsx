@@ -2,6 +2,7 @@ import { getWords, isAutoLesson } from "@/lib/queries";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { createClient } from "@/lib/supabase/server";
+import { getAnswerFeedbackSounds } from "@/lib/queries/answer-sounds";
 import { StudyModeClient } from "./StudyModeClient";
 
 interface StudyPageProps {
@@ -57,6 +58,8 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
     nextMilestone = progress?.next_milestone ?? null;
   }
 
+  const answerFeedbackSounds = await getAnswerFeedbackSounds();
+
   // For guests, we still allow studying but won't save progress
   return (
     <StudyModeClient
@@ -69,6 +72,7 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
       dismissedTipIds={dismissedTipIds}
       nextMilestone={nextMilestone}
       incorrectWords={isIncorrectWordsSession}
+      answerFeedbackSounds={answerFeedbackSounds}
     />
   );
 }

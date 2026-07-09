@@ -19,6 +19,7 @@ import {
   Sparkles,
   Images,
   Shield,
+  Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,7 @@ const navSections: NavItem[][] = [
   [
     { label: "Billing", href: "/admin/settings", icon: <CreditCard className="h-5 w-5" /> },
     { label: "Music", href: "/admin/music", icon: <Music className="h-5 w-5" /> },
+    { label: "Answer Sounds", href: "/admin/answer-sounds", icon: <Volume2 className="h-5 w-5" /> },
     { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
   ],
   // Section 4: Gamification

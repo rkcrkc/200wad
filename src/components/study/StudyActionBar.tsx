@@ -193,6 +193,10 @@ interface StudyActionBarProps {
   wordVolume?: number;
   /** Callback when word volume changes */
   onWordVolumeChange?: (volume: number) => void;
+  /** Whether answer feedback sounds are enabled (study + test modes) */
+  soundEffectsEnabled?: boolean;
+  /** Callback when answer feedback sounds are toggled (study + test modes) */
+  onSoundEffectsChange?: (enabled: boolean) => void;
   /** Whether user is an admin */
   isAdmin?: boolean;
   /** Whether admin edit mode is active */
@@ -285,6 +289,8 @@ export function StudyActionBar({
   onMusicVolumeChange,
   wordVolume = 1,
   onWordVolumeChange,
+  soundEffectsEnabled = true,
+  onSoundEffectsChange,
   isAdmin = false,
   isEditMode = false,
   onEditModeToggle,
@@ -795,6 +801,24 @@ export function StudyActionBar({
                           </div>
                         </div>
                       </div>
+
+                      {/* Answer feedback sounds toggle */}
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={soundEffectsEnabled}
+                          onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            {t("msg_answer_sounds")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("msg_answer_sounds_desc")}
+                          </div>
+                        </div>
+                      </label>
                     </div>
                   ) : (
                     /* Study mode settings */
@@ -831,6 +855,24 @@ export function StudyActionBar({
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {t("msg_breathing_mode_desc")}
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Answer feedback sounds toggle */}
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={soundEffectsEnabled}
+                          onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            {t("msg_answer_sounds")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("msg_answer_sounds_desc")}
                           </div>
                         </div>
                       </label>

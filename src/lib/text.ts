@@ -780,6 +780,18 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     group: "Study Action Bar",
     defaultValue: "Punctuation and capitalization must be correct for full XP",
   },
+  msg_answer_sounds: {
+    label: "Answer sounds label",
+    category: "greetings_messages",
+    group: "Study Action Bar",
+    defaultValue: "Answer sounds",
+  },
+  msg_answer_sounds_desc: {
+    label: "Answer sounds description",
+    category: "greetings_messages",
+    group: "Study Action Bar",
+    defaultValue: "Play a sound for correct, half, and wrong answers",
+  },
   msg_breathing_mode: {
     label: "Breathing mode label",
     category: "greetings_messages",

@@ -112,6 +112,27 @@ export type Database = {
           },
         ]
       }
+      answer_feedback_sounds: {
+        Row: {
+          audio_url: string
+          enabled: boolean
+          grade: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url: string
+          enabled?: boolean
+          grade: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string
+          enabled?: boolean
+          grade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           amount: number
@@ -2709,4 +2730,3 @@ export const Constants = {
     },
   },
 } as const
-
