@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MARKETING_LANGUAGES } from "@/lib/marketing/content";
+import { CookieSettingsButton } from "@/components/consent/CookieSettingsButton";
 
 const productLinks = [
   { href: "/how-it-works", label: "How it works" },
@@ -52,9 +53,12 @@ export function MarketingFooter() {
           <p className="text-small-regular text-foreground/50">
             © {new Date().getFullYear()} 200 Words a Day. All rights reserved.
           </p>
-          <p className="text-small-regular text-foreground/50">
-            Made for people who want to actually remember.
-          </p>
+          <div className="flex items-center gap-4">
+            <CookieSettingsButton className="text-small-regular text-foreground/50 transition-colors hover:text-foreground" />
+            <p className="text-small-regular text-foreground/50">
+              Made for people who want to actually remember.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

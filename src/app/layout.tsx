@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
+import { ConsentProvider } from "@/context/ConsentContext";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { PostHogPageView } from "@/components/providers/PostHogPageView";
+import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { FlagEmojiPolyfill } from "@/components/providers/FlagEmojiPolyfill";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,16 +44,19 @@ export default async function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased">
         <FlagEmojiPolyfill />
-        <PostHogProvider>
-          <PostHogPageView />
-          <UserProvider
-            initialUser={user}
-            initialAvatarUrl={avatarUrl}
-            initialDisplayName={displayName}
-          >
-            {children}
-          </UserProvider>
-        </PostHogProvider>
+        <ConsentProvider>
+          <PostHogProvider>
+            <PostHogPageView />
+            <UserProvider
+              initialUser={user}
+              initialAvatarUrl={avatarUrl}
+              initialDisplayName={displayName}
+            >
+              {children}
+            </UserProvider>
+          </PostHogProvider>
+          <ConsentBanner />
+        </ConsentProvider>
       </body>
     </html>
   );

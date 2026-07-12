@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ModalShell, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal-shell";
 import { SocialLoginButtons } from "./SocialLoginButtons";
+import { getPasswordError } from "@/lib/validations/auth";
 import type { LanguageWithCourses } from "@/lib/queries/onboarding";
 
 // Flag emoji mapping by language code
@@ -54,6 +56,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -94,8 +97,9 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    const passwordError = getPasswordError(password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }
@@ -105,6 +109,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/course/${selectedCourseId}/schedule`,
+        data: { marketing_consent: marketingConsent },
       },
     });
 
@@ -380,6 +385,20 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 />
               </div>
             )}
+
+            {authMode === "signup" && (
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="border-border text-primary focus:ring-primary/20 mt-0.5 h-4 w-4 shrink-0 rounded"
+                />
+                <span className="text-small-regular text-muted-foreground">
+                  Email me learning tips and product news. Optional — you can unsubscribe anytime.
+                </span>
+              </label>
+            )}
           </div>
 
           <div className="relative">
@@ -410,6 +429,19 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 ? "Create account"
                 : "Sign in"}
           </PrimaryButton>
+          {authMode === "signup" && (
+            <p className="text-muted-foreground text-center text-xs leading-relaxed">
+              By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
+              <Link href="/terms" className="text-primary hover:underline">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
           <div className="flex w-full items-center justify-between text-sm">
             <button
               type="button"

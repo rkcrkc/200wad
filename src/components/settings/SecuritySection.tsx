@@ -4,25 +4,19 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { Mail, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   updateEmail,
   updatePassword,
   verifyCurrentPassword,
-  toggleTwoFactor,
 } from "@/lib/mutations/settings";
+import { getPasswordError } from "@/lib/validations/auth";
 
 interface SecuritySectionProps {
   email: string;
-  twoFactorEnabled: boolean;
 }
 
-export function SecuritySection({
-  email,
-  twoFactorEnabled: initialTwoFactor,
-}: SecuritySectionProps) {
+export function SecuritySection({ email }: SecuritySectionProps) {
   const [isPending, startTransition] = useTransition();
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(initialTwoFactor);
 
   // Email form state
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -39,9 +33,6 @@ export function SecuritySection({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 2FA state
-  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -89,8 +80,9 @@ export function SecuritySection({
     setPasswordSuccess(false);
 
     // Validate passwords
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+    const validationError = getPasswordError(newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
       return;
     }
 
@@ -122,19 +114,6 @@ export function SecuritySection({
         successTimeoutRef.current = setTimeout(() => setPasswordSuccess(false), 3000);
       } else {
         setPasswordError(updateResult.error || "Failed to update password");
-      }
-    });
-  };
-
-  const handleTwoFactorToggle = (enabled: boolean) => {
-    setTwoFactorError(null);
-
-    startTransition(async () => {
-      const result = await toggleTwoFactor(enabled);
-      if (result.success) {
-        setTwoFactorEnabled(enabled);
-      } else {
-        setTwoFactorError(result.error || "Failed to update 2FA setting");
       }
     });
   };
@@ -297,24 +276,14 @@ export function SecuritySection({
             <Shield className="h-5 w-5 text-gray-500" />
             <h3 className="font-medium">Two-factor authentication</h3>
           </div>
-          <Switch
-            checked={twoFactorEnabled}
-            onCheckedChange={handleTwoFactorToggle}
-            disabled={isPending}
-          />
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+            Coming soon
+          </span>
         </div>
         <p className="text-sm text-gray-600">
-          2FA is {twoFactorEnabled ? "enabled" : "disabled"} on your account.
+          Two-factor authentication isn&apos;t available yet. We&apos;ll let you
+          know when you can add an authenticator app to your account.
         </p>
-        {twoFactorError && (
-          <p className="mt-2 text-sm text-red-600">{twoFactorError}</p>
-        )}
-        {twoFactorEnabled && (
-          <p className="mt-2 text-sm text-gray-500">
-            Note: Full 2FA implementation requires additional setup with an
-            authenticator app.
-          </p>
-        )}
       </div>
 
       {/* Connected Accounts - Coming Soon */}

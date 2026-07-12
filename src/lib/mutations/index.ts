@@ -32,7 +32,6 @@ export {
   updateProfile,
   updatePassword,
   verifyCurrentPassword,
-  toggleTwoFactor,
   setCurrentLanguage,
   setCurrentCourse,
   removeLanguage,

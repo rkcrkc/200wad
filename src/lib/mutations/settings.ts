@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getPasswordError } from "@/lib/validations/auth";
 
 // ============================================
 // Types
@@ -120,6 +121,13 @@ export async function updatePassword(
     return { success: false, error: "Not authenticated" };
   }
 
+  // Enforce the password policy server-side too — the client checks can be
+  // bypassed by calling the action directly.
+  const validationError = getPasswordError(newPassword);
+  if (validationError) {
+    return { success: false, error: validationError };
+  }
+
   const { error } = await supabase.auth.updateUser({
     password: newPassword,
   });
@@ -148,37 +156,6 @@ export async function verifyCurrentPassword(
     return { success: false, error: "Current password is incorrect" };
   }
 
-  return { success: true, error: null };
-}
-
-// ============================================
-// Security Mutations
-// ============================================
-
-export async function toggleTwoFactor(
-  enabled: boolean
-): Promise<MutationResult> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Not authenticated" };
-  }
-
-  const { error } = await supabase
-    .from("users")
-    .update({ two_factor_enabled: enabled })
-    .eq("id", user.id);
-
-  if (error) {
-    console.error("Error toggling 2FA:", error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath("/settings");
   return { success: true, error: null };
 }
 
@@ -494,6 +471,46 @@ export async function updateDailyXpGoalAction(
 
   // Revalidate the dashboard (every page renders <Header>) and settings.
   revalidatePath("/", "layout");
+  revalidatePath("/settings");
+  return { success: true, error: null };
+}
+
+// ============================================
+// Marketing email consent (GDPR/PECR — C4)
+// ============================================
+
+/**
+ * Record the user's promotional-email consent decision. Writes the flag and a
+ * proof-of-consent timestamp (GDPR Art. 7 — must be able to demonstrate consent
+ * *and when*). The user id comes only from the session, so a user can only set
+ * their own consent. `true` = opt in, `false` = withdraw/decline.
+ */
+export async function updateMarketingConsent(
+  consent: boolean
+): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({
+      marketing_email_consent: consent,
+      marketing_consent_updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Error updating marketing consent:", error);
+    return { success: false, error: error.message };
+  }
+
   revalidatePath("/settings");
   return { success: true, error: null };
 }

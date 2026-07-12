@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { getPasswordError } from "@/lib/validations/auth";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -38,8 +39,9 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    const passwordError = getPasswordError(password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }

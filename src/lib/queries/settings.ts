@@ -14,7 +14,8 @@ export interface UserSettings {
   wordsPerDay: number;
   /** Daily XP goal used by the header ring + 50/100% threshold toasts. */
   dailyXpGoal: number;
-  twoFactorEnabled: boolean;
+  /** Promotional-email consent: true = opted in, false = declined, null = undecided. */
+  marketingEmailConsent: boolean | null;
   createdAt: string;
 }
 
@@ -61,7 +62,7 @@ export async function getUserSettings(): Promise<GetUserSettingsResult> {
     nationalities: profile.nationalities || [],
     wordsPerDay: profile.words_per_day || 10,
     dailyXpGoal: profile.daily_xp_goal ?? 30,
-    twoFactorEnabled: profile.two_factor_enabled || false,
+    marketingEmailConsent: profile.marketing_email_consent ?? null,
     createdAt: profile.created_at || new Date().toISOString(),
   };
 

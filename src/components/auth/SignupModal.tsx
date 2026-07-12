@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SocialLoginButtons } from "./SocialLoginButtons";
+import { getPasswordError } from "@/lib/validations/auth";
 
 interface SignupModalProps {
   courseId: string;
@@ -16,6 +17,7 @@ export function SignupModal({ courseId }: SignupModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,8 +35,9 @@ export function SignupModal({ courseId }: SignupModalProps) {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    const passwordError = getPasswordError(password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }
@@ -44,6 +47,7 @@ export function SignupModal({ courseId }: SignupModalProps) {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/course/${courseId}/schedule`,
+        data: { marketing_consent: marketingConsent },
       },
     });
 
@@ -208,6 +212,20 @@ export function SignupModal({ courseId }: SignupModalProps) {
             </div>
           )}
 
+          {mode === "signup" && (
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={marketingConsent}
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                className="border-border text-primary focus:ring-primary/20 mt-0.5 h-4 w-4 shrink-0 rounded"
+              />
+              <span className="text-small-regular text-muted-foreground">
+                Email me learning tips and product news. Optional — you can unsubscribe anytime.
+              </span>
+            </label>
+          )}
+
           <Button type="submit" disabled={loading} className="w-full">
             {loading
               ? mode === "signup"
@@ -217,6 +235,20 @@ export function SignupModal({ courseId }: SignupModalProps) {
                 ? "Create account"
                 : "Sign in"}
           </Button>
+
+          {mode === "signup" && (
+            <p className="text-muted-foreground text-center text-xs leading-relaxed">
+              By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
+              <Link href="/terms" className="text-primary hover:underline">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
         </form>
 
         <p className="text-muted-foreground text-center text-sm">

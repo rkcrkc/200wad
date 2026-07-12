@@ -46,8 +46,8 @@ export default async function SettingsPage() {
     <PageContainer size="sm">
       <SettingsClient
         email={settings.email}
-        twoFactorEnabled={settings.twoFactorEnabled}
         dailyXpGoal={settings.dailyXpGoal}
+        marketingEmailConsent={settings.marketingEmailConsent}
       />
     </PageContainer>
   );
