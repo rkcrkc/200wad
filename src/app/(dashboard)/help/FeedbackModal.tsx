@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   ModalShell,

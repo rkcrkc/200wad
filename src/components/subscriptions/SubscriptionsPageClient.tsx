@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { SubscriptionHeader } from "./SubscriptionHeader";
 import { LanguageSubscriptionsList } from "./LanguageSubscriptionsList";
 import { AllLanguagesCallout } from "./AllLanguagesCallout";

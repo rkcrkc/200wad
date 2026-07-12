@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { ActionMenu } from "@/components/subscriptions/ActionMenu";
 import { ConfirmModal } from "@/components/admin/AdminModal";
 import {

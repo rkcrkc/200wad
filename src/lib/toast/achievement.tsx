@@ -39,8 +39,6 @@ export function showAchievementToast({
         onDismiss={() => toast.dismiss(id)}
       />
     ),
-    // `unstyled` strips Sonner's global wrapper styling (white bg / border set
-    // in <Toaster>) so only our own cream/gold card shows.
-    { unstyled: true, ...(duration !== undefined ? { duration } : {}) }
+    duration !== undefined ? { duration } : undefined
   );
 }

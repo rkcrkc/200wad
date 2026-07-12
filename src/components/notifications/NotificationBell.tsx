@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
   fetchInbox,

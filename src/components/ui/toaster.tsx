@@ -20,10 +20,13 @@ export function Toaster() {
       position="bottom-right"
       offset={hasActionFooter ? { bottom: FOOTER_CLEARANCE } : undefined}
       toastOptions={{
+        // Transparent, borderless wrapper by default so each toast's own card
+        // (e.g. <AchievementToast>) is the only visible surface.
+        unstyled: true,
         style: {
-          background: "#ffffff",
-          color: "#1a1a1a",
-          border: "1px solid #e7e2d6",
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
         },
       }}
     />
