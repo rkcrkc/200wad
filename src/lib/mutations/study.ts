@@ -194,6 +194,8 @@ export interface DeveloperData {
   picture_wrong_notes: string | null;
   picture_missing: boolean;
   picture_bad_svg: boolean;
+  picture_mp4_defect: boolean;
+  audio_rerecord: boolean;
   notes_in_memory_trigger: boolean;
 }
 
@@ -228,6 +230,8 @@ export async function saveDeveloperData(
       picture_wrong_notes: data.picture_wrong ? data.picture_wrong_notes : null,
       picture_missing: data.picture_missing,
       picture_bad_svg: data.picture_bad_svg,
+      picture_mp4_defect: data.picture_mp4_defect,
+      audio_rerecord: data.audio_rerecord,
       notes_in_memory_trigger: data.notes_in_memory_trigger,
     })
     .eq("id", wordId);

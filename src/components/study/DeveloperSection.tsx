@@ -12,6 +12,8 @@ interface DeveloperSectionProps {
   pictureWrongNotes?: string | null;
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
+  pictureMp4Defect?: boolean | null;
+  audioRerecord?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /** Optional: dim/disable when parent context is disabled */
   isEnabled?: boolean;
@@ -26,6 +28,8 @@ export function DeveloperSection({
   pictureWrongNotes: initialPictureWrongNotes,
   pictureMissing: initialPictureMissing,
   pictureBadSvg: initialPictureBadSvg,
+  pictureMp4Defect: initialPictureMp4Defect,
+  audioRerecord: initialAudioRerecord,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
   isEnabled = true,
   onSaved,
@@ -38,6 +42,8 @@ export function DeveloperSection({
   const [pictureWrongNotes, setPictureWrongNotes] = useState(initialPictureWrongNotes || null);
   const [pictureMissing, setPictureMissing] = useState(initialPictureMissing || false);
   const [pictureBadSvg, setPictureBadSvg] = useState(initialPictureBadSvg || false);
+  const [pictureMp4Defect, setPictureMp4Defect] = useState(initialPictureMp4Defect || false);
+  const [audioRerecord, setAudioRerecord] = useState(initialAudioRerecord || false);
   const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(initialNotesInMemoryTrigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
 
@@ -54,6 +60,8 @@ export function DeveloperSection({
       setPictureWrongNotes(initialPictureWrongNotes || null);
       setPictureMissing(initialPictureMissing || false);
       setPictureBadSvg(initialPictureBadSvg || false);
+      setPictureMp4Defect(initialPictureMp4Defect || false);
+      setAudioRerecord(initialAudioRerecord || false);
       setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
       prevWordIdRef.current = wordId;
     }
@@ -64,6 +72,8 @@ export function DeveloperSection({
     initialPictureWrongNotes,
     initialPictureMissing,
     initialPictureBadSvg,
+    initialPictureMp4Defect,
+    initialAudioRerecord,
     initialNotesInMemoryTrigger,
   ]);
 
@@ -78,6 +88,8 @@ export function DeveloperSection({
       picture_wrong_notes: pictureWrongNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      picture_mp4_defect: pictureMp4Defect,
+      audio_rerecord: audioRerecord,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -93,7 +105,7 @@ export function DeveloperSection({
   };
 
   const handlePictureCheckboxChange = async (
-    field: "wrong" | "missing" | "bad_svg",
+    field: "wrong" | "missing" | "bad_svg" | "mp4_defect",
     checked: boolean,
   ) => {
     if (field === "wrong") {
@@ -106,6 +118,8 @@ export function DeveloperSection({
       setPictureMissing(checked);
     } else if (field === "bad_svg") {
       setPictureBadSvg(checked);
+    } else if (field === "mp4_defect") {
+      setPictureMp4Defect(checked);
     }
 
     setIsSavingDeveloperData(true);
@@ -115,6 +129,8 @@ export function DeveloperSection({
       picture_wrong_notes: field === "wrong" && !checked ? null : pictureWrongNotes,
       picture_missing: field === "missing" ? checked : pictureMissing,
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
+      picture_mp4_defect: field === "mp4_defect" ? checked : pictureMp4Defect,
+      audio_rerecord: audioRerecord,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -134,6 +150,8 @@ export function DeveloperSection({
       picture_wrong_notes: trimmedNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      picture_mp4_defect: pictureMp4Defect,
+      audio_rerecord: audioRerecord,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -155,7 +173,29 @@ export function DeveloperSection({
       picture_wrong_notes: pictureWrongNotes,
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
+      picture_mp4_defect: pictureMp4Defect,
+      audio_rerecord: audioRerecord,
       notes_in_memory_trigger: checked,
+    };
+    const result = await saveDeveloperData(wordId, data);
+    setIsSavingDeveloperData(false);
+    if (result.success) {
+      onSaved?.(data);
+    }
+  };
+
+  const handleAudioCheckboxChange = async (checked: boolean) => {
+    setAudioRerecord(checked);
+    setIsSavingDeveloperData(true);
+    const data: DeveloperData = {
+      developer_notes: developerNotes,
+      picture_wrong: pictureWrong,
+      picture_wrong_notes: pictureWrongNotes,
+      picture_missing: pictureMissing,
+      picture_bad_svg: pictureBadSvg,
+      picture_mp4_defect: pictureMp4Defect,
+      audio_rerecord: checked,
+      notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
     setIsSavingDeveloperData(false);
@@ -284,6 +324,35 @@ export function DeveloperSection({
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="text-small-regular text-foreground">Bad SVG</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pictureMp4Defect}
+                onChange={(e) => handlePictureCheckboxChange("mp4_defect", e.target.checked)}
+                disabled={isSavingDeveloperData}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-small-regular text-foreground">MP4 defect</span>
+            </label>
+          </div>
+
+          <div className="h-px w-full bg-black/10" />
+
+          {/* Audio Section */}
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-medium text-foreground/70">Audio</span>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioRerecord}
+                onChange={(e) => handleAudioCheckboxChange(e.target.checked)}
+                disabled={isSavingDeveloperData}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-small-regular text-foreground">Re-record audio</span>
             </label>
           </div>
 

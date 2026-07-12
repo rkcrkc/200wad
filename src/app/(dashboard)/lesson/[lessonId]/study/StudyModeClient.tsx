@@ -874,6 +874,8 @@ export function StudyModeClient({
                 picture_wrong_notes: data.picture_wrong ? data.picture_wrong_notes : null,
                 picture_missing: data.picture_missing,
                 picture_bad_svg: data.picture_bad_svg,
+                picture_mp4_defect: data.picture_mp4_defect,
+                audio_rerecord: data.audio_rerecord,
                 notes_in_memory_trigger: data.notes_in_memory_trigger,
               }
             : w,
@@ -1571,6 +1573,8 @@ export function StudyModeClient({
                 pictureWrongNotes={currentWord.picture_wrong_notes}
                 pictureMissing={currentWord.picture_missing}
                 pictureBadSvg={currentWord.picture_bad_svg}
+                pictureMp4Defect={currentWord.picture_mp4_defect}
+                audioRerecord={currentWord.audio_rerecord}
                 notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                 onDeveloperDataChange={handleDeveloperDataChange}
               />
@@ -1670,6 +1674,8 @@ export function StudyModeClient({
                       pictureWrongNotes={currentWord.picture_wrong_notes}
                       pictureMissing={currentWord.picture_missing}
                       pictureBadSvg={currentWord.picture_bad_svg}
+                      pictureMp4Defect={currentWord.picture_mp4_defect}
+                      audioRerecord={currentWord.audio_rerecord}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                       onDeveloperDataChange={handleDeveloperDataChange}
                       tips={currentWord.tips}

@@ -41,6 +41,8 @@ interface StudySidebarProps {
   pictureWrongNotes?: string | null;
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
+  pictureMp4Defect?: boolean | null;
+  audioRerecord?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /** Callback when developer data is saved (so parent can update its cached word) */
   onDeveloperDataChange?: (data: DeveloperData) => void;
@@ -67,6 +69,8 @@ export function StudySidebar({
   pictureWrongNotes,
   pictureMissing,
   pictureBadSvg,
+  pictureMp4Defect,
+  audioRerecord,
   notesInMemoryTrigger,
   onDeveloperDataChange,
   tips = [],
@@ -364,6 +368,8 @@ export function StudySidebar({
           pictureWrongNotes={pictureWrongNotes}
           pictureMissing={pictureMissing}
           pictureBadSvg={pictureBadSvg}
+          pictureMp4Defect={pictureMp4Defect}
+          audioRerecord={audioRerecord}
           notesInMemoryTrigger={notesInMemoryTrigger}
           isEnabled={isEnabled}
           onSaved={onDeveloperDataChange}

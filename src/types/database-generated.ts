@@ -1976,6 +1976,8 @@ export type Database = {
           lifetime_xp: number
           location: string | null
           longest_streak: number | null
+          marketing_consent_updated_at: string | null
+          marketing_email_consent: boolean | null
           name: string | null
           nationalities: string[] | null
           notifications_last_seen_at: string | null
@@ -2018,6 +2020,8 @@ export type Database = {
           lifetime_xp?: number
           location?: string | null
           longest_streak?: number | null
+          marketing_consent_updated_at?: string | null
+          marketing_email_consent?: boolean | null
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
@@ -2060,6 +2064,8 @@ export type Database = {
           lifetime_xp?: number
           location?: string | null
           longest_streak?: number | null
+          marketing_consent_updated_at?: string | null
+          marketing_email_consent?: boolean | null
           name?: string | null
           nationalities?: string[] | null
           notifications_last_seen_at?: string | null
@@ -2265,6 +2271,7 @@ export type Database = {
           admin_notes: string | null
           alternate_answers: string[] | null
           alternate_english_answers: string[] | null
+          audio_rerecord: boolean | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -2297,6 +2304,7 @@ export type Database = {
           phrase_type: string | null
           picture_bad_svg: boolean | null
           picture_missing: boolean | null
+          picture_mp4_defect: boolean | null
           picture_wrong: boolean | null
           picture_wrong_notes: string | null
           related_word_ids: string[] | null
@@ -2310,6 +2318,7 @@ export type Database = {
           admin_notes?: string | null
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
+          audio_rerecord?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -2342,6 +2351,7 @@ export type Database = {
           phrase_type?: string | null
           picture_bad_svg?: boolean | null
           picture_missing?: boolean | null
+          picture_mp4_defect?: boolean | null
           picture_wrong?: boolean | null
           picture_wrong_notes?: string | null
           related_word_ids?: string[] | null
@@ -2355,6 +2365,7 @@ export type Database = {
           admin_notes?: string | null
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
+          audio_rerecord?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -2387,6 +2398,7 @@ export type Database = {
           phrase_type?: string | null
           picture_bad_svg?: boolean | null
           picture_missing?: boolean | null
+          picture_mp4_defect?: boolean | null
           picture_wrong?: boolean | null
           picture_wrong_notes?: string | null
           related_word_ids?: string[] | null

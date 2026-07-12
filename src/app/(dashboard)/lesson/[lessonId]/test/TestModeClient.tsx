@@ -2251,6 +2251,8 @@ export function TestModeClient({
                       pictureWrongNotes={currentWord?.picture_wrong_notes}
                       pictureMissing={currentWord?.picture_missing}
                       pictureBadSvg={currentWord?.picture_bad_svg}
+                      pictureMp4Defect={currentWord?.picture_mp4_defect}
+                      audioRerecord={currentWord?.audio_rerecord}
                       notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
                       onRelatedClick={openWord}
                     />
