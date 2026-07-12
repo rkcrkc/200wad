@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Record user activity at the end of a study or test session.
@@ -32,7 +33,12 @@ export async function recordActivity(params: {
     return { success: false, error: "User not authenticated" };
   }
 
-  const { error } = await supabase.rpc("update_daily_activity", {
+  // update_daily_activity is a SECURITY DEFINER RPC no longer callable by the
+  // anon/authenticated roles (it writes streaks, XP and coin rewards). Invoke it
+  // via the service-role client so only validated server code — passing the
+  // authenticated user's own id — can run it. See docs/SECURITY_AUDIT.md (S1).
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("update_daily_activity", {
     p_user_id: user.id,
     p_language_id: params.languageId,
     p_words_studied: params.wordsStudied || 0,

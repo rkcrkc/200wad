@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface RecoverStreakResult {
   success: boolean;
@@ -32,7 +33,12 @@ export async function recoverStreakAction(
     return { success: false, error: "User not authenticated" };
   }
 
-  const { data, error } = await supabase.rpc("recover_streak", {
+  // recover_streak is a SECURITY DEFINER RPC no longer callable by the
+  // anon/authenticated roles (it spends the target user's coins). Invoke it via
+  // the service-role client so only this validated action — passing the
+  // authenticated user's own id — can run it. See docs/SECURITY_AUDIT.md (S1).
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("recover_streak", {
     p_user_id: user.id,
     p_days_missed: daysMissed,
   });
@@ -83,7 +89,12 @@ export async function setStreakFreezeAutoAction(
     return { success: false, error: "User not authenticated" };
   }
 
-  const { error } = await supabase.rpc("set_streak_freeze_auto", {
+  // set_streak_freeze_auto is a SECURITY DEFINER RPC no longer callable by the
+  // anon/authenticated roles. Invoke it via the service-role client so only this
+  // validated action — passing the authenticated user's own id — can run it.
+  // See docs/SECURITY_AUDIT.md (S1).
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("set_streak_freeze_auto", {
     p_user_id: user.id,
     p_enabled: enabled,
   });

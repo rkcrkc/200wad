@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface PurchaseResult {
   success: boolean;
@@ -33,7 +34,12 @@ export async function purchaseItemAction(
     return { success: false, error: "User not authenticated" };
   }
 
-  const { data, error } = await supabase.rpc("purchase_shop_item", {
+  // purchase_shop_item is a SECURITY DEFINER RPC no longer callable by the
+  // anon/authenticated roles (it spends the target user's coins). Invoke it via
+  // the service-role client so only this validated action — passing the
+  // authenticated user's own id — can run it. See docs/SECURITY_AUDIT.md (S1).
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("purchase_shop_item", {
     p_user_id: user.id,
     p_item_id: itemId,
     p_quantity: quantity,
