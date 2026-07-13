@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Volume2,
   X,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,6 +128,7 @@ export function LessonsClient({
   // Lesson list state
   const [filterLanguageId, setFilterLanguageId] = useState<string>("");
   const [filterCourseId, setFilterCourseId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortField, setSortField] = useState<"number" | "title">("number");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
@@ -164,7 +166,7 @@ export function LessonsClient({
     return courses.filter((c) => c.language_id === filterLanguageId);
   }, [courses, filterLanguageId]);
 
-  // Filter and sort lessons by language and course
+  // Filter and sort lessons by language, course, and search query
   const filteredLessons = useMemo(() => {
     let result = lessons;
     if (filterLanguageId) {
@@ -174,6 +176,13 @@ export function LessonsClient({
     }
     if (filterCourseId) {
       result = result.filter((l) => l.course_id === filterCourseId);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (l) =>
+          l.title.toLowerCase().includes(q) || String(l.number).includes(q)
+      );
     }
     // Sort
     result = [...result].sort((a, b) => {
@@ -186,7 +195,7 @@ export function LessonsClient({
       return sortDirection === "asc" ? comparison : -comparison;
     });
     return result;
-  }, [lessons, filterLanguageId, filterCourseId, sortField, sortDirection]);
+  }, [lessons, filterLanguageId, filterCourseId, searchQuery, sortField, sortDirection]);
 
   // Handle sort toggle
   const handleSort = (field: "number" | "title") => {
@@ -1074,6 +1083,29 @@ export function LessonsClient({
             ))}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Search:</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search lessons..."
+              className="rounded-lg border border-gray-300 py-2 pl-9 pr-8 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                title="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Lessons Table */}
@@ -1113,7 +1145,9 @@ export function LessonsClient({
             {filteredLessons.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                  {courses.length === 0
+                  {searchQuery.trim()
+                    ? `No lessons match "${searchQuery.trim()}".`
+                    : courses.length === 0
                     ? "Add a course first before creating lessons."
                     : "No lessons yet. Add your first lesson to get started."}
                 </td>

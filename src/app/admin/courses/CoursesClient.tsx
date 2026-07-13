@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil, X, ChevronDown as ChevronDownIcon } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ChevronRight, ChevronLeft, Pencil, X, Search, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdminModal,
@@ -159,6 +159,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   // View mode state
   const [viewMode, setViewMode] = useState<"list" | "lessons">("list");
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [lessonSearch, setLessonSearch] = useState<string>("");
 
   // List view state
   const [expandedLanguages, setExpandedLanguages] = useState<Set<string>>(new Set());
@@ -448,6 +449,17 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
       .sort((a, b) => (a.sort_order ?? a.number) - (b.sort_order ?? b.number));
   }, [orderedLessons, selectedCourse]);
 
+  // Narrow the course's lessons by the search query (title + number).
+  // Drag-reorder is disabled while this filter is active (see below).
+  const isLessonSearchActive = lessonSearch.trim() !== "";
+  const visibleLessons = useMemo(() => {
+    const q = lessonSearch.trim().toLowerCase();
+    if (!q) return courseLessons;
+    return courseLessons.filter(
+      (l) => l.title.toLowerCase().includes(q) || String(l.number).includes(q)
+    );
+  }, [courseLessons, lessonSearch]);
+
   // Handle lesson reordering (drag-and-drop)
   const handleReorderLessons = async (newIds: string[]) => {
     if (!selectedCourse) return;
@@ -501,6 +513,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   const selectCourse = (course: Course) => {
     setSelectedCourse(course);
     setViewMode("lessons");
+    setLessonSearch("");
     setInlineCourseForm({
       name: course.name,
       description: course.description || "",
@@ -512,6 +525,7 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
   const goBackToCourses = () => {
     setViewMode("list");
     setSelectedCourse(null);
+    setLessonSearch("");
     setIsEditingCourseDetails(false);
   };
 
@@ -1012,8 +1026,30 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                 <Switch
                   checked={courseLessons.every((l) => l.is_published)}
                   onCheckedChange={(checked) => handleToggleAllLessonsPublish(checked)}
-                  disabled={isLoading}
+                  disabled={isLoading || isLessonSearchActive}
                 />
+              </div>
+            )}
+            {courseLessons.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={lessonSearch}
+                  onChange={(e) => setLessonSearch(e.target.value)}
+                  placeholder="Search lessons..."
+                  className="rounded-lg border border-gray-300 py-2 pl-9 pr-8 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                {lessonSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLessonSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                    title="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1054,19 +1090,21 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
               </tr>
             </thead>
             <tbody className="divide-y divide-bone-hover">
-              {courseLessons.length === 0 ? (
+              {visibleLessons.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                    No lessons yet. Add your first lesson to this course.
+                    {isLessonSearchActive
+                      ? `No lessons match "${lessonSearch.trim()}".`
+                      : "No lessons yet. Add your first lesson to this course."}
                   </td>
                 </tr>
               ) : (
                 <SortableList
-                  ids={courseLessons.map((l) => l.id)}
+                  ids={visibleLessons.map((l) => l.id)}
                   onReorder={handleReorderLessons}
                 >
-                  {courseLessons.map((lesson, index) => (
-                    <SortableRow key={lesson.id} id={lesson.id}>
+                  {visibleLessons.map((lesson, index) => (
+                    <SortableRow key={lesson.id} id={lesson.id} disabled={isLessonSearchActive}>
                       {({ setNodeRef, style, dragHandleProps, isDragging }) => (
                         <tr
                           ref={setNodeRef as (node: HTMLTableRowElement | null) => void}
@@ -1076,8 +1114,12 @@ export function CoursesClient({ languages, courses, lessons, initialCourseId }: 
                         >
                           <td className="whitespace-nowrap px-4 py-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-2">
-                              <DragHandle {...dragHandleProps} />
-                              <span className="w-6 text-center text-sm text-gray-500">{index + 1}</span>
+                              <DragHandle {...dragHandleProps} disabled={isLessonSearchActive} />
+                              <span className="w-6 text-center text-sm text-gray-500">
+                                {isLessonSearchActive
+                                  ? courseLessons.findIndex((l) => l.id === lesson.id) + 1
+                                  : index + 1}
+                              </span>
                             </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-4 text-gray-600">

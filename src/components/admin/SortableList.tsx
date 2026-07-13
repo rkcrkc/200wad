@@ -133,6 +133,11 @@ export interface SortableRowRenderArgs {
 export interface SortableRowProps {
   id: string;
   /**
+   * When true, drag-and-drop is disabled for this row (e.g. while a search
+   * filter is active and reordering a filtered subset would be ambiguous).
+   */
+  disabled?: boolean;
+  /**
    * Render-prop that receives the drag state and provides refs/styles/handle
    * props. The caller is responsible for rendering their row element
    * (e.g. <tr>, <div>) and placing the drag handle where desired.
@@ -140,7 +145,7 @@ export interface SortableRowProps {
   children: (args: SortableRowRenderArgs) => ReactNode;
 }
 
-export function SortableRow({ id, children }: SortableRowProps) {
+export function SortableRow({ id, disabled = false, children }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -148,7 +153,7 @@ export function SortableRow({ id, children }: SortableRowProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id });
+  } = useSortable({ id, disabled });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -175,11 +180,14 @@ export interface DragHandleProps extends HTMLAttributes<HTMLButtonElement> {
   className?: string;
   /** Size of the grip icon. Defaults to 16px. */
   iconSize?: number;
+  /** When true, the handle is inert and shows no grab affordance. */
+  disabled?: boolean;
 }
 
 export function DragHandle({
   className,
   iconSize = 16,
+  disabled = false,
   onClick,
   ...props
 }: DragHandleProps) {
@@ -187,13 +195,17 @@ export function DragHandle({
     <button
       type="button"
       aria-label="Drag to reorder"
+      disabled={disabled}
       // Stop click-on-handle from bubbling to a clickable parent row.
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(e);
       }}
       className={cn(
-        "flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing",
+        "flex h-7 w-7 items-center justify-center rounded text-gray-400 transition-colors",
+        disabled
+          ? "cursor-default text-gray-200"
+          : "cursor-grab touch-none hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing",
         className
       )}
       {...props}
