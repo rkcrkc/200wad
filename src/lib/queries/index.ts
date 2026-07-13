@@ -17,6 +17,18 @@ export type {
 export { isAutoLesson, parseAutoLessonId, createAutoLessonId } from "./auto-lessons";
 export type { AutoLessonType } from "./auto-lessons";
 
+// Pure (no server imports) admin QA-lesson helpers — same client-safety
+// rationale as the auto-lesson helpers above.
+export {
+  isQaLesson,
+  parseQaLessonId,
+  createQaLessonId,
+  getAllQaLessonIds,
+  QA_FLAG_DEFINITIONS,
+  QA_FLAG_META,
+} from "./qa-lessons";
+export type { QaFlag } from "./qa-lessons";
+
 export { getWords, getWord } from "./words";
 export type {
   WordStatus,

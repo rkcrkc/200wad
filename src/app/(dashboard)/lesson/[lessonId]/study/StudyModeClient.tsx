@@ -39,6 +39,7 @@ import {
 } from "@/lib/mutations/study";
 import { dismissTip } from "@/lib/mutations/tips";
 import { updateWord } from "@/lib/mutations/admin/words";
+import { isQaLesson } from "@/lib/queries/qa-lessons";
 import {
   setWordImageOverride,
   setWordVideoOverride,
@@ -150,6 +151,10 @@ export function StudyModeClient({
     courseId: course?.id,
     courseName: course?.name,
   });
+
+  // Admin-only QA lesson (`qa-{flag}-{courseId}`): study-only and fully
+  // ephemeral. No session/progress/notes writes; completion offers no test.
+  const isQa = isQaLesson(lesson.id);
 
   // Local copy of words (allows admin edits to reflect immediately)
   const [localWords, setLocalWords] = useState(words);
@@ -848,15 +853,16 @@ export function StudyModeClient({
         updateWordProgressStorage("study", sessionId, currentWord.id, progressEntry, currentWordIndex);
       }
 
-      // Save notes to database immediately (for authenticated users)
-      if (!isGuest) {
+      // Save notes to database immediately (for authenticated users). Skipped
+      // for QA lessons: user_word_progress must stay untouched (ephemeral).
+      if (!isGuest && !isQa) {
         const result = await saveUserNotes(currentWord.id, notes);
         if (!result.success) {
           console.error("Failed to save notes to database:", result.error);
         }
       }
     },
-    [currentWord.id, currentWordIndex, sessionId, wordProgressMap, isGuest]
+    [currentWord.id, currentWordIndex, sessionId, wordProgressMap, isGuest, isQa]
   );
 
   // Handle developer data save (admin only) — keep localWords in sync so
@@ -1038,14 +1044,17 @@ export function StudyModeClient({
     }
   }, [sessionId, lesson.id, isGuest, stopAudio]);
 
-  // Handle modal "Not now" action - go to schedule
+  // Handle modal "Not now" action - go to schedule. QA lessons are ephemeral
+  // (nothing "completed"), so return to the course's All Lessons page instead.
   const handleDismissModal = useCallback(() => {
-    if (course?.id) {
+    if (isQa && course?.id) {
+      router.push(`/course/${course.id}`);
+    } else if (course?.id) {
       router.push(`/course/${course.id}/schedule?completed=lesson`);
     } else {
       router.push(`/lesson/${lesson.id}`);
     }
-  }, [router, lesson.id, course?.id]);
+  }, [router, lesson.id, course?.id, isQa]);
 
   // Handle exit lesson - show confirmation modal
   const handleExitLesson = useCallback(() => {
@@ -1063,9 +1072,11 @@ export function StudyModeClient({
       clearSessionProgress("study", sessionId, lesson.id);
     }
     // Navigate to the pending destination (e.g. upgrade page) when an external
-    // request triggered the dialog, otherwise back to the lesson page.
-    router.push(pendingExitDestination ?? `/lesson/${lesson.id}`);
-  }, [sessionId, lesson.id, router, pendingExitDestination]);
+    // request triggered the dialog, otherwise back to the lesson page. QA
+    // lessons have no lesson landing, so exit to the course page instead.
+    const fallback = isQa && course?.id ? `/course/${course.id}` : `/lesson/${lesson.id}`;
+    router.push(pendingExitDestination ?? fallback);
+  }, [sessionId, lesson.id, router, pendingExitDestination, isQa, course?.id]);
 
   // Let in-lesson navigations (e.g. a locked word's "Upgrade to view" CTA)
   // route through the exit-confirmation dialog instead of leaving silently.
@@ -1772,6 +1783,7 @@ export function StudyModeClient({
           onStartTest={handleStartTest}
           onStudyAgain={handleStudyAgain}
           onDismiss={handleDismissModal}
+          hideStartTest={isQa}
         />
       )}
 

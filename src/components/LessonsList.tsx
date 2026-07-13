@@ -5,8 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronUp, ChevronDown, ClipboardCheck } from "lucide-react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { LessonRow } from "@/components/LessonRow";
+import { QaLessonRow } from "@/components/QaLessonRow";
 import { InlineSearch } from "@/components/InlineSearch";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import {
+  QA_FLAG_DEFINITIONS,
+  createQaLessonId,
+  type QaFlag,
+} from "@/lib/queries/qa-lessons";
 import type { LessonWithProgress } from "@/lib/queries/lessons";
 import type { LessonMilestoneScores } from "@/lib/queries/tests";
 import { useScrollFade } from "@/hooks/useScrollFade";
@@ -16,7 +22,7 @@ import type { PricingPlan } from "@/types/database";
 import type { PricingTierCopyMap } from "@/lib/queries/subscriptions";
 import { useText } from "@/context/TextContext";
 
-type FilterType = "all" | "not-started" | "learning" | "learned" | "mastered";
+type FilterType = "all" | "not-started" | "learning" | "learned" | "mastered" | "developer_notes";
 type SortColumn = "number" | "title" | "word_count" | "wordsLearned" | "wordsMastered" | "initial" | "day" | "week" | "month" | "qtr" | "year" | "other" | "overall";
 type SortDirection = "asc" | "desc";
 
@@ -30,6 +36,14 @@ interface LessonsListProps {
   enabledTiers?: string[];
   /** Admin-editable upgrade-modal card copy keyed by tier. */
   copy?: PricingTierCopyMap;
+  /**
+   * Per-flag count of developer-flagged words in this course. Passed ONLY for
+   * admins (the server component gates on this), which is what surfaces the
+   * admin-only "Developer notes" filter pill and its QA lesson rows.
+   */
+  qaFlagCounts?: Record<QaFlag, number>;
+  /** Course id, needed to build QA study hrefs. */
+  courseId?: string;
 }
 
 interface SortableHeaderProps {
@@ -73,7 +87,7 @@ function SortableHeader({
   );
 }
 
-export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers, copy }: LessonsListProps) {
+export function LessonsList({ lessons, languageFlag, languageName, languageId, milestoneScores, plans, enabledTiers, copy, qaFlagCounts, courseId }: LessonsListProps) {
   const { t } = useText();
   const { scrollRef, canScrollRight } = useScrollFade();
   const [filter, setFilter] = useState<FilterType>("all");
@@ -192,6 +206,26 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
     return filtered;
   }, [lessons, filter, searchQuery, sortColumn, sortDirection, milestoneScores]);
 
+  // Admin-only QA lessons (one per developer-QA flag). Present only when the
+  // server passed `qaFlagCounts` (i.e. the viewer is an admin). Study-only and
+  // ephemeral; zero-count rows render greyed.
+  const qaLessons = useMemo(() => {
+    if (!qaFlagCounts || !courseId) return [];
+    return QA_FLAG_DEFINITIONS.map((def) => {
+      const count = qaFlagCounts[def.key] ?? 0;
+      return {
+        key: def.key,
+        emoji: def.emoji,
+        label: def.label,
+        count,
+        href: count > 0 ? `/lesson/${createQaLessonId(def.key, courseId)}/study` : undefined,
+      };
+    });
+  }, [qaFlagCounts, courseId]);
+
+  const showQaTab = qaLessons.length > 0;
+  const isQaView = filter === "developer_notes";
+
   const allTabs: Tab[] = [
     { id: "all", label: "All lessons", count: counts.all },
     { id: "not-started", label: "Not started", count: counts["not-started"] },
@@ -201,7 +235,20 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
   ];
 
   // Hide tabs with zero items (except "all" which always shows)
-  const tabs = allTabs.filter((tab) => tab.id === "all" || (tab.count ?? 0) > 0);
+  const visibleTabs = allTabs.filter((tab) => tab.id === "all" || (tab.count ?? 0) > 0);
+
+  // Append the admin-only QA pill last. Count = number of QA lessons that have
+  // words; always shown for admins (even at 0) so the section is discoverable.
+  const tabs: Tab[] = showQaTab
+    ? [
+        ...visibleTabs,
+        {
+          id: "developer_notes",
+          label: "Developer notes",
+          count: qaLessons.filter((q) => q.count > 0).length,
+        },
+      ]
+    : visibleTabs;
 
   return (
     <>
@@ -213,36 +260,50 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
           onChange={(tabId) => setFilter(tabId as FilterType)}
         />
 
-        <div className="flex items-center gap-3">
-          <InlineSearch
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Filter lessons..."
-          />
-          {/* Stats toggle button */}
-          <Tooltip label={showStats ? t("tip_show_progress_view") : t("tip_show_test_scores")}>
-            <button
-              onClick={() => setShowStats(!showStats)}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-                showStats
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-beige"
-              )}
-            >
-              <ClipboardCheck className="h-5 w-5" />
-            </button>
-          </Tooltip>
-        </div>
+        {/* Search + stats toggle don't apply to the QA view (7 static rows). */}
+        {!isQaView && (
+          <div className="flex items-center gap-3">
+            <InlineSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Filter lessons..."
+            />
+            {/* Stats toggle button */}
+            <Tooltip label={showStats ? t("tip_show_progress_view") : t("tip_show_test_scores")}>
+              <button
+                onClick={() => setShowStats(!showStats)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                  showStats
+                    ? "bg-primary text-white"
+                    : "text-foreground hover:bg-beige"
+                )}
+              >
+                <ClipboardCheck className="h-5 w-5" />
+              </button>
+            </Tooltip>
+          </div>
+        )}
       </div>
 
       {/* Lessons Table */}
       <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
-        <table className={cn("w-full table-fixed border-separate border-spacing-0", showStats ? "min-w-[900px]" : "min-w-[800px]")}>
+        <table className={cn("w-full table-fixed border-separate border-spacing-0", isQaView ? "min-w-[600px]" : showStats ? "min-w-[900px]" : "min-w-[800px]")}>
           {/* Table Header */}
           <thead>
             <tr className="cursor-default whitespace-nowrap">
-              {showStats ? (
+              {isQaView ? (
+                <>
+                  {/* QA View Header (admin-only developer-flag lessons) */}
+                  <th className="w-[50px] px-6 py-3 text-left text-xs-medium font-medium text-muted-foreground">#</th>
+                  <th className="px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Lesson</th>
+                  <th className="w-[90px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground"># Words</th>
+                  <th className={cn(
+                    "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
+                    canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
+                  )}></th>
+                </>
+              ) : showStats ? (
                 <>
                   {/* Stats View Header */}
                   <th className="w-[50px] px-6 py-3 text-left">
@@ -429,7 +490,31 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
           {/* Table Body */}
           <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
-            {filteredAndSortedLessons.length === 0 ? (
+            {isQaView ? (
+              qaLessons.every((q) => q.count === 0) ? (
+                <tr>
+                  <td colSpan={4} className="bg-white px-6 py-12 text-center">
+                    <p className="text-muted-foreground">
+                      No flagged words in this course.
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                qaLessons.map((q, index) => (
+                  <QaLessonRow
+                    key={q.key}
+                    index={index + 1}
+                    emoji={q.emoji}
+                    title={q.label}
+                    count={q.count}
+                    href={q.href}
+                    isFirst={index === 0}
+                    isLast={index === qaLessons.length - 1}
+                    showScrollFade={canScrollRight}
+                  />
+                ))
+              )
+            ) : filteredAndSortedLessons.length === 0 ? (
               <tr>
                 <td colSpan={showStats ? 11 : 8} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">

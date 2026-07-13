@@ -1,4 +1,4 @@
-import { getWords, isAutoLesson } from "@/lib/queries";
+import { getWords, isAutoLesson, isQaLesson } from "@/lib/queries";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { createClient } from "@/lib/supabase/server";
@@ -19,8 +19,9 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
     notFound();
   }
 
-  // Access gate: redirect to course page if lesson is locked
-  if (course && !isAutoLesson(lessonId)) {
+  // Access gate: redirect to course page if lesson is locked. Auto-lessons
+  // and admin QA lessons are virtual (no lesson_words access rules).
+  if (course && !isAutoLesson(lessonId) && !isQaLesson(lessonId)) {
     const access = await canAccessLesson(
       userId,
       { lessonNumber: lesson.number },
@@ -46,8 +47,10 @@ export default async function StudyPage({ params, searchParams }: StudyPageProps
   // Fetch the currently scheduled milestone so the completion modal's
   // "Start Test" link advances the schedule correctly (instead of always
   // hardcoding "initial", which silently froze milestone progression).
+  // QA lessons are study-only (no "Start Test"), and their `qa-…` id isn't a
+  // real `lesson_id` UUID, so skip the milestone lookup entirely.
   let nextMilestone: string | null = null;
-  if (userId) {
+  if (userId && !isQaLesson(lessonId)) {
     const supabase = await createClient();
     const { data: progress } = await supabase
       .from("user_lesson_progress")

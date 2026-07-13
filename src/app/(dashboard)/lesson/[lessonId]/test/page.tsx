@@ -1,4 +1,4 @@
-import { getWords, isAutoLesson } from "@/lib/queries";
+import { getWords, isAutoLesson, isQaLesson, parseQaLessonId } from "@/lib/queries";
 import { notFound, redirect } from "next/navigation";
 import { canAccessLesson } from "@/lib/utils/accessControl";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,15 @@ interface TestPageProps {
 
 export default async function TestPage({ params, searchParams }: TestPageProps) {
   const { lessonId } = await params;
+
+  // QA lessons are study-only (admin flag review). There is no Test for them —
+  // and a `qa-` id would be rejected by the test_sessions CHECK constraint —
+  // so bounce any hand-crafted /test/qa-… URL back to the QA study flow.
+  if (isQaLesson(lessonId)) {
+    const parsed = parseQaLessonId(lessonId);
+    redirect(parsed ? `/course/${parsed.courseId}` : "/");
+  }
+
   const { type, twice, random, milestone } = await searchParams;
   const testTwice = twice === "true";
   const randomOrder = random === "true";

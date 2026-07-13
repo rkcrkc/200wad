@@ -8,6 +8,7 @@ import {
   parseAutoLessonId,
   resolveLessonIdRef,
 } from "@/lib/queries/lessons";
+import { isQaLesson } from "@/lib/queries/qa-lessons";
 
 // ============================================================================
 // STUDY SESSION ACTIONS
@@ -24,6 +25,15 @@ export interface CreateStudySessionResult {
 export async function createStudySession(
   lessonId: string
 ): Promise<CreateStudySessionResult> {
+  // Admin QA lessons are fully ephemeral: never create a session row. The
+  // caller (StudyModeClient) falls back to a local, in-memory session id when
+  // this returns null. A `qa-` id also matches neither side of the
+  // study_sessions split-column CHECK constraint, so the DB would reject the
+  // row anyway — this short-circuit avoids even attempting the write.
+  if (isQaLesson(lessonId)) {
+    return { sessionId: null, error: null };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -633,6 +643,14 @@ export async function completeStudySession(
   }>,
   answeredWordIds: string[] = []
 ): Promise<{ success: boolean; error: string | null }> {
+  // Admin QA lessons are fully ephemeral: no session, progress, activity, or
+  // notes-batch writes. Inline DeveloperSection flag edits persist separately
+  // via saveDeveloperData and are unaffected. Return success so the client
+  // shows its normal (celebration-free) completion.
+  if (isQaLesson(lessonId)) {
+    return { success: true, error: null };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

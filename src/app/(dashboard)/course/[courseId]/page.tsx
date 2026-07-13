@@ -8,6 +8,8 @@ import { PageShell } from "@/components/PageShell";
 import { CourseStatsBar } from "@/components/CourseStatsBar";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
+import { getAdminUser } from "@/lib/utils/adminGuard";
+import { getQaFlagCounts } from "@/lib/queries/qa";
 
 interface CoursePageProps {
   params: Promise<{ courseId: string }>;
@@ -17,12 +19,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
 
   // Fetch lessons, milestone scores, and pricing data in parallel
-  const [lessonsResult, milestoneScores, plansResult, enabledTiers, pricingCopy] = await Promise.all([
+  const [lessonsResult, milestoneScores, plansResult, enabledTiers, pricingCopy, adminUser] = await Promise.all([
     getLessons(courseId),
     getLessonMilestoneScores(courseId),
     getActivePricingPlans(),
     getEnabledTiers(),
     getPricingTierCopy(),
+    getAdminUser(),
   ]);
 
   const { language, course, lessons, stats, isGuest } = lessonsResult;
@@ -30,6 +33,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
   if (!course) {
     notFound();
   }
+
+  // Admin-only QA section: per-flag counts of developer-flagged words. Only
+  // queried for admins so non-admins never pay for the scan.
+  const qaFlagCounts = adminUser ? await getQaFlagCounts(courseId) : null;
 
   // Lesson-level stats (exclude auto-lessons: My Notes, Best Words, Worst Words)
   const realLessons = lessons.filter((l) => !l.isAutoLesson);
@@ -72,6 +79,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
           plans={plansResult.plans}
           enabledTiers={enabledTiers}
           copy={pricingCopy}
+          qaFlagCounts={qaFlagCounts ?? undefined}
+          courseId={courseId}
         />
       )}
 

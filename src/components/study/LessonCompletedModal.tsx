@@ -38,6 +38,8 @@ interface LessonCompletedModalProps {
   onStartTest: () => void;
   onStudyAgain: () => void;
   onDismiss: () => void;
+  /** Hide the "Start test" action (e.g. study-only admin QA lessons). */
+  hideStartTest?: boolean;
 }
 
 export function LessonCompletedModal({
@@ -47,6 +49,7 @@ export function LessonCompletedModal({
   onStartTest,
   onStudyAgain,
   onDismiss,
+  hideStartTest = false,
 }: LessonCompletedModalProps) {
   const [showForeign, setShowForeign] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -265,13 +268,15 @@ export function LessonCompletedModal({
       ) : (
         <CompletedModalShell.Footer>
           <div className="flex justify-center gap-4">
-            <CompletedModalActionButton
-              icon={<Play className="h-6 w-6" />}
-              label="Start test"
-              onClick={onStartTest}
-              primary
-              iconHover="shift"
-            />
+            {!hideStartTest && (
+              <CompletedModalActionButton
+                icon={<Play className="h-6 w-6" />}
+                label="Start test"
+                onClick={onStartTest}
+                primary
+                iconHover="shift"
+              />
+            )}
             <CompletedModalActionButton
               icon={<RotateCcw className="h-6 w-6" />}
               label="Study again"

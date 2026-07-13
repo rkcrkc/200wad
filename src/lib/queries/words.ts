@@ -18,6 +18,14 @@ import {
 } from "./lessons";
 import { getAutoLessonWordLimit } from "./platformConfig";
 import { getTipsForWords, type TipForWord } from "./tips";
+import {
+  isQaLesson,
+  parseQaLessonId,
+  QA_FLAG_META,
+  QA_FLAG_DEFINITIONS,
+  type QaFlag,
+} from "./qa-lessons";
+import { getQaFlaggedWordIds } from "./qa";
 
 // Helper function to extract course without nested relations
 function extractCourse(course: Course & { languages?: unknown }): Course {
@@ -197,6 +205,17 @@ export async function getWords(lessonId: string): Promise<GetWordsResult> {
       data: { user: autoUser },
     } = await supabase.auth.getUser();
     return getAutoLessonWords(supabase, lessonId, autoUser?.id || null);
+  }
+
+  // Admin-only QA lesson path (ephemeral study of flagged words). Like
+  // auto-lessons it doesn't use the standard lessons/lesson_words fetch, and
+  // it is admin-gated: non-admins get an empty result even if they craft the
+  // URL directly.
+  if (isQaLesson(lessonId)) {
+    const {
+      data: { user: qaUser },
+    } = await supabase.auth.getUser();
+    return getQaLessonWords(supabase, lessonId, qaUser ?? null);
   }
 
   // Phase 1: three independent reads in parallel — the previous serial
@@ -1282,6 +1301,202 @@ function buildAutoLessonResult(
     nextLesson: null,
     courseLessons,
     stats: stats || { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+    isGuest: false,
+    userId,
+    dismissedTipIds: [],
+  };
+}
+
+/** Empty QA result shared by the admin-gate and no-data early returns. */
+function emptyQaResult(userId: string | null): GetWordsResult {
+  return {
+    language: null,
+    course: null,
+    lesson: null,
+    words: [],
+    previousLesson: null,
+    nextLesson: null,
+    courseLessons: [],
+    stats: { totalWords: 0, wordsStudied: 0, wordsLearned: 0, wordsMastered: 0, totalTimeSeconds: 0, studyTimeSeconds: 0, testTimeSeconds: 0, averageTestScore: null },
+    isGuest: false,
+    userId,
+    dismissedTipIds: [],
+  };
+}
+
+/**
+ * Words for an admin-only QA lesson (`qa-{flag}-{courseId}`): every word in
+ * the course carrying one developer-QA flag, for ephemeral Study review.
+ *
+ * Admin-gated here as a hard backstop — even though the QA tiles are only
+ * rendered for admins, a non-admin who crafts the URL gets an empty result.
+ * No progress/stat writes happen anywhere on this path (see the short-circuits
+ * in mutations/study.ts); the DeveloperSection edits persist independently.
+ */
+async function getQaLessonWords(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lessonId: string,
+  user: { id: string; user_metadata?: { role?: string } | null } | null,
+): Promise<GetWordsResult> {
+  const parsed = parseQaLessonId(lessonId);
+  const isAdmin = user?.user_metadata?.role === "admin";
+  if (!parsed || !user || !isAdmin) {
+    return emptyQaResult(user?.id ?? null);
+  }
+
+  const { flag, courseId } = parsed;
+  const userId = user.id;
+
+  const [courseResp, courseLessonsResp, flaggedWordIds] = await Promise.all([
+    supabase.from("courses").select("*, languages(*)").eq("id", courseId).single(),
+    supabase
+      .from("lessons")
+      .select("id, number, title")
+      .eq("course_id", courseId)
+      .order("sort_order")
+      .order("number"),
+    getQaFlaggedWordIds(courseId, flag),
+  ]);
+
+  const course = courseResp.data;
+  if (!course) return emptyQaResult(userId);
+
+  const language = (course.languages as Language | null) ?? null;
+  const courseLessons = courseLessonsResp.data ?? [];
+
+  if (flaggedWordIds.length === 0) {
+    return buildQaLessonResult(flag, courseId, course, language, courseLessons, [], userId);
+  }
+
+  // Full word rows + example sentences, then related words and progress for
+  // the study cards. Order is preserved from flaggedWordIds (course order).
+  const { data: words } = await supabase
+    .from("words")
+    .select("*, example_sentences(*)")
+    .in("id", flaggedWordIds);
+
+  if (!words || words.length === 0) {
+    return buildQaLessonResult(flag, courseId, course, language, courseLessons, [], userId);
+  }
+
+  const wordMap = new Map(words.map((w) => [w.id, w]));
+  const orderedWords = flaggedWordIds
+    .map((id) => wordMap.get(id))
+    .filter((w): w is NonNullable<typeof w> => w !== undefined);
+
+  const orderedWordIds = orderedWords.map((w) => w.id);
+  const [relatedWordsResp, wordProgressResp] = await Promise.all([
+    orderedWordIds.length > 0
+      ? supabase
+          .from("word_relationships")
+          .select(
+            `word_id, relationship_type, related:words!word_relationships_related_word_id_fkey(id, english, headword, memory_trigger_image_url)`,
+          )
+          .in("word_id", orderedWordIds)
+      : Promise.resolve(null),
+    supabase
+      .from("user_word_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .in("word_id", orderedWordIds),
+  ]);
+
+  const relatedGroupsByWord: Record<string, RelatedEntryGroups> = {};
+  (relatedWordsResp?.data ?? []).forEach((row) => {
+    const sourceId = row.word_id;
+    const related = row.related as RelatedEntry | null;
+    if (!sourceId || !related) return;
+    if (!isKnownRelationshipType(row.relationship_type)) return;
+    let groups = relatedGroupsByWord[sourceId];
+    if (!groups) {
+      groups = { compound: [], sentence: [], grammar: [] };
+      relatedGroupsByWord[sourceId] = groups;
+    }
+    groups[row.relationship_type].push(related);
+  });
+
+  const progressByWord: Record<string, UserWordProgress> = {};
+  (wordProgressResp.data ?? []).forEach((wp) => {
+    if (wp.word_id) progressByWord[wp.word_id] = wp;
+  });
+
+  const defaultScoreStats: WordScoreStats = {
+    totalPointsEarned: 0,
+    totalMaxPoints: 0,
+    scorePercent: 0,
+    timesTested: 0,
+  };
+
+  const wordsWithDetails: WordWithDetails[] = orderedWords.map((word, index) => {
+    const progress = progressByWord[word.id];
+    const exampleSentences = (word.example_sentences || []) as ExampleSentence[];
+    return {
+      ...word,
+      sort_order: index,
+      example_sentences: undefined,
+      exampleSentences,
+      relatedWords: relatedGroupsByWord[word.id] ?? EMPTY_RELATED_GROUPS,
+      progress: progress || null,
+      status: effectiveWordStatus(progress),
+      // QA study is a flag-review flow, not a scored session — traffic-light
+      // history is intentionally omitted.
+      testHistory: [],
+      scoreStats: defaultScoreStats,
+      tips: [],
+    };
+  });
+
+  return buildQaLessonResult(flag, courseId, course, language, courseLessons, wordsWithDetails, userId);
+}
+
+/** Build the GetWordsResult for a QA lesson (mirrors buildAutoLessonResult). */
+function buildQaLessonResult(
+  flag: QaFlag,
+  courseId: string,
+  course: Course & { languages?: unknown },
+  language: Language | null,
+  courseLessons: AdjacentLesson[],
+  words: WordWithDetails[],
+  userId: string | null,
+): GetWordsResult {
+  const meta = QA_FLAG_META[flag];
+  const flagIndex = QA_FLAG_DEFINITIONS.findIndex((d) => d.key === flag);
+  const now = new Date().toISOString();
+
+  const virtualLesson: Lesson = {
+    id: `qa-${flag}-${courseId}`,
+    course_id: courseId,
+    number: 900 + (flagIndex >= 0 ? flagIndex : 0),
+    title: `QA · ${meta.label}`,
+    emoji: meta.emoji,
+    word_count: words.length,
+    is_published: true,
+    sort_order: 900 + (flagIndex >= 0 ? flagIndex : 0),
+    legacy_lesson_id: null,
+    created_at: now,
+    updated_at: now,
+    created_by: null,
+    updated_by: null,
+  };
+
+  return {
+    language,
+    course: extractCourse(course),
+    lesson: virtualLesson,
+    words,
+    previousLesson: null,
+    nextLesson: null,
+    courseLessons,
+    stats: {
+      totalWords: words.length,
+      wordsStudied: 0,
+      wordsLearned: 0,
+      wordsMastered: 0,
+      totalTimeSeconds: 0,
+      studyTimeSeconds: 0,
+      testTimeSeconds: 0,
+      averageTestScore: null,
+    },
     isGuest: false,
     userId,
     dismissedTipIds: [],
