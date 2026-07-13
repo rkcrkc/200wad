@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+
 /**
  * Per-word score for the test tracker dots. Coloured by points (not grade)
  * so a clue-aided "correct" answer at 2/3 reads as partial, matching all the
@@ -103,8 +105,49 @@ export function WordTrackerDots({
     }
   }
 
+  // Fade the edge(s) that have clipped dots, so the user can see there's more
+  // to scroll to before they actually scroll.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fadeLeft, setFadeLeft] = useState(false);
+  const [fadeRight, setFadeRight] = useState(false);
+
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setFadeLeft(el.scrollLeft > 1);
+    setFadeRight(el.scrollLeft < maxScroll - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateFades();
+    el.addEventListener("scroll", updateFades, { passive: true });
+    const observer = new ResizeObserver(updateFades);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateFades);
+      observer.disconnect();
+    };
+  }, [updateFades, totalWords]);
+
+  const fade = "24px";
+  const maskImage =
+    fadeLeft && fadeRight
+      ? `linear-gradient(to right, transparent 0, #000 ${fade}, #000 calc(100% - ${fade}), transparent 100%)`
+      : fadeLeft
+        ? `linear-gradient(to right, transparent 0, #000 ${fade})`
+        : fadeRight
+          ? `linear-gradient(to right, #000 calc(100% - ${fade}), transparent 100%)`
+          : undefined;
+
   return (
-    <div className="flex min-w-0 max-w-full items-center overflow-x-auto">
+    <div
+      ref={scrollRef}
+      className="flex min-w-0 max-w-full items-center overflow-x-auto"
+      style={maskImage ? { maskImage, WebkitMaskImage: maskImage } : undefined}
+    >
       <div className="flex shrink-0 items-center gap-1 py-0.5">
         {groups.map((group) => {
           if (group.isInfo) {

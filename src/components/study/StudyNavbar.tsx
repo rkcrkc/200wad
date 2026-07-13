@@ -68,9 +68,9 @@ export function StudyNavbar({
   const showWordProgress = totalWords > 0 && onJumpToWord;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-20 flex h-[72px] items-center justify-between bg-white px-6 pr-8">
+    <div className="fixed top-0 left-0 right-0 z-20 flex h-[72px] items-center justify-between gap-4 bg-white px-6 pr-8">
       {/* Left side - Mode badge, lesson, word progress, timer */}
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 grow items-center gap-4">
         {/* Mode badge */}
         <div className={`flex items-center gap-1.5 rounded-lg ${badgeBgColor} px-3 py-1.5`}>
           <BadgeIcon className={`h-4 w-4 shrink-0 ${badgeTextColor}`} />
@@ -79,14 +79,17 @@ export function StudyNavbar({
 
         {/* Lesson name and number */}
         {lessonNumber != null && lessonTitle && (
-          <span className="text-small-semibold text-foreground">
+          <span
+            className="min-w-0 shrink truncate text-small-semibold text-foreground"
+            title={`Lesson #${lessonNumber} · ${lessonTitle}`}
+          >
             Lesson #{lessonNumber} · {lessonTitle}
           </span>
         )}
 
         {/* Divider between lesson title and word progress */}
         {lessonNumber != null && lessonTitle && showWordProgress && (
-          <span className="text-small-semibold text-foreground/25">|</span>
+          <span className="shrink-0 text-small-semibold text-foreground/25">|</span>
         )}
 
         {/* Word progress with dots */}
@@ -103,19 +106,21 @@ export function StudyNavbar({
           const isCurrentInfo = categories?.[currentWordIndex] === "information";
 
           return (
-            <div className="flex items-center gap-1.5">
-              <span className="w-[100px] text-small-semibold text-foreground">
+            <div className="flex min-w-0 grow shrink-[5] items-center gap-1.5">
+              <span className="w-[100px] shrink-0 text-small-semibold text-foreground">
                 {isCurrentInfo ? `Word – of ${nonInfoCount}` : `Word ${wordNumber} of ${nonInfoCount}`}
               </span>
-              <WordTrackerDots
-                totalWords={totalWords}
-                currentIndex={currentWordIndex}
-                completedIndices={completedWordIndices}
-                onDotClick={onJumpToWord}
-                disabled={isTestMode}
-                testResults={testResults}
-                categories={categories}
-              />
+              <div className="min-w-0 grow">
+                <WordTrackerDots
+                  totalWords={totalWords}
+                  currentIndex={currentWordIndex}
+                  completedIndices={completedWordIndices}
+                  onDotClick={onJumpToWord}
+                  disabled={isTestMode}
+                  testResults={testResults}
+                  categories={categories}
+                />
+              </div>
             </div>
           );
         })()}
@@ -123,8 +128,8 @@ export function StudyNavbar({
         {/* Test score (test mode only) */}
         {isTestMode && (
           <>
-            <span className="text-small-semibold text-foreground/25">|</span>
-            <span className="inline-flex items-center gap-1 text-small-semibold text-foreground">
+            <span className="shrink-0 text-small-semibold text-foreground/25">|</span>
+            <span className="inline-flex shrink-0 items-center gap-1 text-small-semibold text-foreground">
               Test score
               <XpIcon className="size-3.5" />
               {testPointsEarned}/{testMaxPoints} XP ({testScorePercent}%)
