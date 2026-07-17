@@ -1,6 +1,6 @@
 # Security & Compliance Audit
 
-_Last updated: 2026-07-09_
+_Last updated: 2026-07-10_
 
 Audit of the 200WAD app's data-security posture and regulatory (UK/EU GDPR) compliance.
 Covers auth, RLS, privileged operations, secrets, storage, and compliance paperwork.
@@ -27,6 +27,42 @@ An initial automated scan claimed production secrets (`STRIPE_SECRET_KEY`,
 - No `.env` file appears anywhere in git history.
 
 Secrets exist only in the local/hosting environment. No rotation required on these grounds.
+
+---
+
+## Outstanding — owner-only (start here on return)
+
+**All S1–S6 and C1–C6 engineering work is complete and shipped.** Nothing in the codebase
+is blocking. Everything left needs dashboard access, company/legal facts, or a decision —
+none of it is code. Full context for each lives in its item below and in the progress log.
+
+**Supabase dashboard (S3):**
+- [ ] Enable **leaked-password protection** — Auth → Attack Protection. **Pro-plan gated**
+      (shows DISABLED + "Configure in email provider" on Free); enable after upgrading. App-layer
+      min-8 policy is the fallback until then.
+- [ ] Confirm **server-side minimum password length = 8** — Auth → Providers → Email.
+
+**Fill the facts in `src/lib/legal/company.ts` (every `[PLACEHOLDER]`):**
+- [ ] Legal entity name, registered address, HK Business Registration number.
+- [ ] Privacy + support inbox addresses.
+- [ ] `BACKUP_RETENTION` — the real Supabase backup/PITR window.
+
+**Decisions / confirmations:**
+- [ ] **Art. 27 UK/EU representative** — appoint + set `UK_EU_REPRESENTATIVE`, or record why not.
+- [ ] Confirm **PostHog** project data-retention period.
+- [ ] Confirm **support-correspondence** retention (once an email provider is chosen).
+
+**Review:**
+- [ ] Have the legal pages (`/privacy`, `/terms`, `/refunds`) + `DATA_PROTECTION_RECORDS.md`
+      **reviewed by a qualified adviser** (HK PDPO + UK/EU GDPR). All shipped copy is a good-faith
+      template, explicitly not legal advice.
+
+**Deferred (not blocking):**
+- [ ] C4 email-embedded one-click unsubscribe link — build with the promotional-email system
+      (doesn't exist yet). Settings toggle is the working unsubscribe until then.
+
+_Resolved this pass: Stripe customer deletion on account erasure; billing/tax retention decided
+(Option A — rely on Stripe); marketing opt-in popup removed. See progress log._
 
 ---
 
@@ -117,9 +153,13 @@ Severity: 🔴 High · 🟠 Medium · 🟡 Low
     rate-limit responses from one IP/for one email. Reviewed the last 24h at implementation time —
     all `200`, no failed-login or 429 pattern. Revisit app-level throttling only if the logs show
     sustained abuse.
-  - [ ] **Enable leaked-password protection** (owner, ~1 click): Dashboard → Authentication →
-    Providers → Email → toggle **"Prevent use of leaked passwords"** (HaveIBeenPwned check). Not
-    exposed to the MCP tooling, so it must be flipped in the dashboard.
+  - [ ] **Enable leaked-password protection** (owner): Dashboard → Authentication → **Attack
+    Protection** → **"Prevent use of leaked passwords"** (HaveIBeenPwned check). Not exposed to the
+    MCP tooling, so it must be flipped in the dashboard. **Note (2026-07-10):** verified in the
+    dashboard this shows **DISABLED** with a "Configure in email provider" button rather than a plain
+    toggle — it's **gated behind the Pro plan**. On Free it can't be enabled; on Pro, enable + Save.
+    Until then the app-layer min-8 policy is the fallback, so this becomes a "turn on after upgrading"
+    item, not a blocker.
   - [ ] **Set server-side minimum password length = 8** (owner, ~1 click): Dashboard →
     Authentication → Providers → Email → **Minimum password length → 8** (closes the direct
     `/auth` API path; our app layers already enforce 8).
