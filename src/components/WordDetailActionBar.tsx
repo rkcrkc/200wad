@@ -13,6 +13,7 @@ import {
   ChevronsRight,
   Zap,
   MoreHorizontal,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -72,6 +73,12 @@ interface WordDetailActionBarProps {
   variant?: "page" | "sidebar";
   /** Collapse nav + image toggle into ellipsis menu */
   compact?: boolean;
+  /** Whether the current user is an admin (shows the edit-mode toggle). */
+  isAdmin?: boolean;
+  /** Whether admin edit mode is active. */
+  isEditMode?: boolean;
+  /** Toggle admin edit mode on/off. */
+  onEditModeToggle?: () => void;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -129,6 +136,9 @@ export function WordDetailActionBar({
   fromDictionary = false,
   variant = "page",
   compact = false,
+  isAdmin = false,
+  isEditMode = false,
+  onEditModeToggle,
 }: WordDetailActionBarProps) {
   const { t, tt } = useText();
   const sidebarCollapsed = useSidebarCollapsed();
@@ -309,6 +319,21 @@ export function WordDetailActionBar({
                 <RefreshCw className="h-5 w-5" />
               </button>
             </Tooltip>
+
+            {/* Admin edit-mode toggle */}
+            {isAdmin && onEditModeToggle && (
+              <Tooltip label={isEditMode ? "Done editing" : "Edit word"}>
+                <button
+                  onClick={onEditModeToggle}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center transition-opacity hover:opacity-70",
+                    isEditMode ? "text-primary" : "text-foreground"
+                  )}
+                >
+                  <Pencil className="h-5 w-5" />
+                </button>
+              </Tooltip>
+            )}
 
             {/* Compact: ellipsis menu for nav + image toggle */}
             {compact && !fromDictionary && (

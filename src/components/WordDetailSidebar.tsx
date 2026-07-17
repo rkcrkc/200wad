@@ -11,6 +11,19 @@ import { useText } from "@/context/TextContext";
 import { useWordPreview } from "@/context/WordPreviewContext";
 import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
 import { cn } from "@/lib/utils";
+import { updateWord } from "@/lib/mutations/admin/words";
+import {
+  setWordImageOverride,
+  setWordVideoOverride,
+  updateImageGroup,
+  getWordImageContext,
+  type WordImageContext,
+} from "@/lib/mutations/admin/imageGroups";
+import {
+  uploadFileClient,
+  validateTriggerVideo,
+  generatePosterFromVideo,
+} from "@/lib/supabase/storage.client";
 
 interface WordListItem {
   id: string;
@@ -85,6 +98,314 @@ export function WordDetailSidebar({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<(() => void) | null>(null);
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+
+  // Admin edit mode: keep a local optimistic copy of the word so field/audio/
+  // image saves reflect in the preview immediately (the prop isn't re-fetched).
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [localWord, setLocalWord] = useState<WordWithDetails>(word);
+  const [imageContext, setImageContext] = useState<WordImageContext | null>(null);
+
+  // Reset the local copy whenever the previewed word changes.
+  useEffect(() => {
+    setLocalWord(word);
+  }, [word]);
+
+  // Load the group/override image context when edit mode is on (admin only) so
+  // the two-tile image editor can offer the shared-concept control.
+  useEffect(() => {
+    if (!isEditMode || !isAdmin) {
+      setImageContext(null);
+      return;
+    }
+    let cancelled = false;
+    setImageContext(null);
+    getWordImageContext(word.id).then((ctx) => {
+      if (!cancelled) setImageContext(ctx);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, isAdmin, word.id]);
+
+  const handleFieldSave = useCallback(
+    async (field: string, value: string): Promise<boolean> => {
+      const result = await updateWord(word.id, { [field]: value }, lessonId);
+      if (result.success) {
+        setLocalWord((w) => ({ ...w, [field]: value }));
+        return true;
+      }
+      console.error("Failed to update word field:", result.error);
+      return false;
+    },
+    [word.id, lessonId]
+  );
+
+  const handleArrayFieldSave = useCallback(
+    async (field: string, value: string[]): Promise<boolean> => {
+      const result = await updateWord(word.id, { [field]: value }, lessonId);
+      if (result.success) {
+        setLocalWord((w) => ({ ...w, [field]: value }));
+        return true;
+      }
+      console.error("Failed to update word array field:", result.error);
+      return false;
+    },
+    [word.id, lessonId]
+  );
+
+  const handleAudioUpload = useCallback(
+    async (
+      audioType: "english" | "foreign" | "trigger",
+      file: File
+    ): Promise<boolean> => {
+      const uploadResult = await uploadFileClient("audio", file, "words", word.id, audioType);
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload audio:", uploadResult.error);
+        return false;
+      }
+      const url = `${uploadResult.url}?v=${Date.now()}`;
+      const column =
+        audioType === "english"
+          ? "audio_url_english"
+          : audioType === "foreign"
+            ? "audio_url_foreign"
+            : "audio_url_trigger";
+
+      const result = await updateWord(word.id, { [column]: url }, lessonId);
+      if (!result.success) {
+        console.error("Failed to save audio URL:", result.error);
+        return false;
+      }
+      setLocalWord((w) => ({ ...w, [column]: url }));
+      return true;
+    },
+    [word.id, lessonId]
+  );
+
+  // Set this word's own picture/video (override). Only this word changes.
+  const handleWordImageUpload = useCallback(
+    async (file: File): Promise<boolean> => {
+      // MP4: upload the clip to word-videos and derive a poster still into
+      // word-images so the image column keeps serving as the fallback/poster.
+      if (file.type === "video/mp4") {
+        const validationError = validateTriggerVideo(file);
+        if (validationError) {
+          console.error("Invalid trigger video:", validationError);
+          return false;
+        }
+        const videoResult = await uploadFileClient("word-videos", file, "words", word.id, "trigger");
+        if (videoResult.error || !videoResult.url) {
+          console.error("Failed to upload video:", videoResult.error);
+          return false;
+        }
+        const videoUrl = `${videoResult.url}?v=${Date.now()}`;
+
+        let posterUrl: string | null = null;
+        try {
+          const poster = await generatePosterFromVideo(file);
+          if (poster) {
+            const posterResult = await uploadFileClient("word-images", poster, "words", word.id, "trigger");
+            if (!posterResult.error && posterResult.url) {
+              posterUrl = `${posterResult.url}?v=${Date.now()}`;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate poster:", err);
+        }
+
+        const videoRes = await setWordVideoOverride(word.id, videoUrl);
+        if (!videoRes.success) {
+          console.error("Failed to set word video override:", videoRes.error);
+          return false;
+        }
+        if (posterUrl) {
+          const posterRes = await setWordImageOverride(word.id, posterUrl);
+          if (!posterRes.success) {
+            console.error("Failed to set poster override:", posterRes.error);
+          }
+        }
+
+        setLocalWord((w) => ({
+          ...w,
+          memory_trigger_video_url: videoUrl,
+          video_override_url: videoUrl,
+          ...(posterUrl
+            ? { memory_trigger_image_url: posterUrl, image_override_url: posterUrl }
+            : {}),
+        }));
+        setImageContext((ctx) =>
+          ctx
+            ? {
+                ...ctx,
+                videoOverrideUrl: videoUrl,
+                effectiveVideoUrl: videoUrl,
+                ...(posterUrl
+                  ? { imageOverrideUrl: posterUrl, effectiveImageUrl: posterUrl }
+                  : {}),
+              }
+            : ctx
+        );
+        return true;
+      }
+
+      const uploadResult = await uploadFileClient("word-images", file, "words", word.id, "trigger");
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload image:", uploadResult.error);
+        return false;
+      }
+      const url = `${uploadResult.url}?v=${Date.now()}`;
+
+      const result = await setWordImageOverride(word.id, url);
+      if (!result.success) {
+        console.error("Failed to set word image override:", result.error);
+        return false;
+      }
+      setLocalWord((w) => ({ ...w, memory_trigger_image_url: url, image_override_url: url }));
+      setImageContext((ctx) =>
+        ctx ? { ...ctx, imageOverrideUrl: url, effectiveImageUrl: url } : ctx
+      );
+      return true;
+    },
+    [word.id]
+  );
+
+  // Replace the shared concept picture (group master). Fans out to member words
+  // that have no override.
+  const handleConceptImageUpload = useCallback(
+    async (file: File): Promise<boolean> => {
+      const groupId = imageContext?.imageGroupId;
+      if (!groupId) return false;
+
+      if (file.type === "video/mp4") {
+        const validationError = validateTriggerVideo(file);
+        if (validationError) {
+          console.error("Invalid concept video:", validationError);
+          return false;
+        }
+        const videoResult = await uploadFileClient("word-videos", file, "image-groups", groupId, "master");
+        if (videoResult.error || !videoResult.url) {
+          console.error("Failed to upload concept video:", videoResult.error);
+          return false;
+        }
+        const videoUrl = `${videoResult.url}?v=${Date.now()}`;
+
+        let posterUrl: string | null = null;
+        try {
+          const poster = await generatePosterFromVideo(file);
+          if (poster) {
+            const posterResult = await uploadFileClient("word-images", poster, "image-groups", groupId, "master");
+            if (!posterResult.error && posterResult.url) {
+              posterUrl = `${posterResult.url}?v=${Date.now()}`;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate poster:", err);
+        }
+
+        const result = await updateImageGroup(groupId, {
+          master_video_url: videoUrl,
+          ...(posterUrl ? { master_image_url: posterUrl } : {}),
+        });
+        if (!result.success) {
+          console.error("Failed to update concept video:", result.error);
+          return false;
+        }
+
+        setLocalWord((w) =>
+          w.image_group_id === groupId && !w.video_override_url
+            ? {
+                ...w,
+                memory_trigger_video_url: videoUrl,
+                ...(posterUrl && !w.image_override_url
+                  ? { memory_trigger_image_url: posterUrl }
+                  : {}),
+              }
+            : w
+        );
+        setImageContext((ctx) =>
+          ctx
+            ? {
+                ...ctx,
+                masterVideoUrl: videoUrl,
+                effectiveVideoUrl: ctx.videoOverrideUrl ? ctx.effectiveVideoUrl : videoUrl,
+                ...(posterUrl
+                  ? {
+                      masterImageUrl: posterUrl,
+                      effectiveImageUrl: ctx.imageOverrideUrl ? ctx.effectiveImageUrl : posterUrl,
+                    }
+                  : {}),
+              }
+            : ctx
+        );
+        return true;
+      }
+
+      const uploadResult = await uploadFileClient("word-images", file, "image-groups", groupId, "master");
+      if (uploadResult.error || !uploadResult.url) {
+        console.error("Failed to upload concept image:", uploadResult.error);
+        return false;
+      }
+      const url = `${uploadResult.url}?v=${Date.now()}`;
+
+      const result = await updateImageGroup(groupId, { master_image_url: url });
+      if (!result.success) {
+        console.error("Failed to update concept image:", result.error);
+        return false;
+      }
+
+      setLocalWord((w) =>
+        w.image_group_id === groupId && !w.image_override_url
+          ? { ...w, memory_trigger_image_url: url }
+          : w
+      );
+      setImageContext((ctx) =>
+        ctx
+          ? {
+              ...ctx,
+              masterImageUrl: url,
+              effectiveImageUrl: ctx.imageOverrideUrl ? ctx.effectiveImageUrl : url,
+            }
+          : ctx
+      );
+      return true;
+    },
+    [imageContext?.imageGroupId]
+  );
+
+  // Clear this word's overrides so it re-inherits the concept picture/video.
+  const handleResetImageToConcept = useCallback(async (): Promise<boolean> => {
+    const imageRes = await setWordImageOverride(word.id, null);
+    if (!imageRes.success) {
+      console.error("Failed to reset word image:", imageRes.error);
+      return false;
+    }
+    const videoRes = await setWordVideoOverride(word.id, null);
+    if (!videoRes.success) {
+      console.error("Failed to reset word video:", videoRes.error);
+      return false;
+    }
+    const master = imageContext?.masterImageUrl ?? null;
+    const masterVideo = imageContext?.masterVideoUrl ?? null;
+    setLocalWord((w) => ({
+      ...w,
+      memory_trigger_image_url: master,
+      image_override_url: null,
+      memory_trigger_video_url: masterVideo,
+      video_override_url: null,
+    }));
+    setImageContext((ctx) =>
+      ctx
+        ? {
+            ...ctx,
+            imageOverrideUrl: null,
+            effectiveImageUrl: master,
+            videoOverrideUrl: null,
+            effectiveVideoUrl: masterVideo,
+          }
+        : ctx
+    );
+    return true;
+  }, [word.id, imageContext?.masterImageUrl, imageContext?.masterVideoUrl]);
 
   const [sizeKey, setSizeKey] = useState<SidebarSizeKey>(() => {
     if (typeof window === "undefined") return DEFAULT_SIZE;
@@ -237,7 +558,7 @@ export function WordDetailSidebar({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 pb-24">
           <WordDetailView
-            word={word}
+            word={localWord}
             lessonTitle={lessonTitle}
             lessonNumber={lessonNumber}
             lessons={lessons}
@@ -258,6 +579,16 @@ export function WordDetailSidebar({
             imageMode={imageMode}
             onImageModeChange={setImageMode}
             onRelatedClick={openWord}
+            isEditMode={isEditMode}
+            onFieldSave={handleFieldSave}
+            onArrayFieldSave={handleArrayFieldSave}
+            onUploadEnglishAudio={(file) => handleAudioUpload("english", file)}
+            onUploadForeignAudio={(file) => handleAudioUpload("foreign", file)}
+            onUploadTriggerAudio={(file) => handleAudioUpload("trigger", file)}
+            imageContext={imageContext}
+            onWordImageUpload={handleWordImageUpload}
+            onConceptImageUpload={handleConceptImageUpload}
+            onResetImageToConcept={handleResetImageToConcept}
           />
         </div>
 
@@ -265,25 +596,28 @@ export function WordDetailSidebar({
         <WordDetailActionBar
           currentWordIndex={currentIndex}
           totalWords={totalWords}
-          englishWord={word.english}
-          foreignWord={word.headword}
-          partOfSpeech={word.part_of_speech}
-          gender={word.gender}
-          category={word.category}
+          englishWord={localWord.english}
+          foreignWord={localWord.headword}
+          partOfSpeech={localWord.part_of_speech}
+          gender={localWord.gender}
+          category={localWord.category}
           wordList={wordList}
-          testHistory={word.testHistory}
-          scoreStats={word.scoreStats}
+          testHistory={localWord.testHistory}
+          scoreStats={localWord.scoreStats}
           onJumpToWord={onJumpToWord ?? (() => {})}
           onPreviousWord={onPrevious ?? (() => {})}
           onNextWord={onNext ?? (() => {})}
           onReplay={() => replayRef.current?.()}
           hasPrevious={hasPrevious}
           hasNext={hasNext}
-          wordStatus={word.status}
+          wordStatus={localWord.status}
           variant="sidebar"
           compact={sizeKey === "sm"}
           imageMode={imageMode}
           onImageModeChange={setImageMode}
+          isAdmin={isAdmin}
+          isEditMode={isEditMode}
+          onEditModeToggle={() => setIsEditMode((v) => !v)}
         />
       </div>
     </>

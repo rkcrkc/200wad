@@ -4,7 +4,8 @@ import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { AudioUploadButton } from "./AudioUploadButton";
 import { EditableText, EditableArrayField } from "@/components/admin";
-import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
+import { GenderedHeadword } from "@/components/ui/GenderedHeadword";
+import { genderColorDark, defaultHighlightColorDark } from "@/lib/design-tokens";
 
 interface WordCardProps {
   englishWord: string;
@@ -68,13 +69,6 @@ export function WordCard({
   const getEnglishWordColor = () => {
     if (isPlayingEnglish) return englishDarkColor;
     return "#141515"; // Default black
-  };
-
-  // Get color for Foreign word (color-coded by gender)
-  const getForeignWordColor = () => {
-    if (isPlayingForeign) return darkColor;
-    if (gender && gender in genderColor) return genderColor[gender];
-    return defaultHighlightColor;
   };
 
   return (
@@ -150,12 +144,12 @@ export function WordCard({
                 inputClassName="text-xl-semibold tracking-tight"
               />
             ) : (
-              <span
+              <GenderedHeadword
+                text={foreignWord}
+                gender={gender}
+                isPlaying={isPlayingForeign}
                 className="text-xl-semibold"
-                style={{ color: getForeignWordColor() }}
-              >
-                {foreignWord}
-              </span>
+              />
             )}
           </button>
         ) : (

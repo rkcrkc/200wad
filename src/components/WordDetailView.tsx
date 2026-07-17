@@ -14,10 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { saveUserNotes, saveSystemNotes } from "@/lib/mutations";
 import { WordDetailActionBar } from "@/components/WordDetailActionBar";
 import { FlashcardCard } from "@/components/study/FlashcardCard";
+import { WordCard } from "@/components/study/WordCard";
+import { MemoryTriggerCard } from "@/components/study/MemoryTriggerCard";
+import type { WordImageContext } from "@/lib/mutations/admin/imageGroups";
 import { DeveloperSection } from "@/components/study/DeveloperSection";
 import { TriggerMedia } from "@/components/ui/TriggerMedia";
 import { Tabs } from "@/components/ui/tabs";
-import { genderColor, genderColorDark, defaultHighlightColor, defaultHighlightColorDark } from "@/lib/design-tokens";
+import { GenderedHeadword } from "@/components/ui/GenderedHeadword";
+import { genderColorDark, defaultHighlightColorDark } from "@/lib/design-tokens";
 import { parseFormattedText } from "@/lib/utils/parseFormattedText";
 import { useUpgradeModal } from "@/context/UpgradeModalContext";
 import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
@@ -70,14 +74,27 @@ interface WordDetailViewProps {
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
   /** Open another entry in the global word preview sidebar. */
   onRelatedClick?: (wordId: string) => void;
-}
-
-/** Determine the highlight color based on word's gender. */
-function getHighlightColor(gender?: string | null): string {
-  if (gender && gender in genderColor) {
-    return genderColor[gender];
-  }
-  return defaultHighlightColor;
+  /** Admin edit mode — when true (and isAdmin), the word card and memory
+   *  trigger render their editable variants (same as study/test mode). */
+  isEditMode?: boolean;
+  /** Persist a single text field (headword/english/memory_trigger_text). */
+  onFieldSave?: (field: string, value: string) => Promise<boolean>;
+  /** Persist an array field (alternate answers). */
+  onArrayFieldSave?: (field: string, value: string[]) => Promise<boolean>;
+  /** Replace the English audio file. */
+  onUploadEnglishAudio?: (file: File) => Promise<boolean>;
+  /** Replace the foreign audio file. */
+  onUploadForeignAudio?: (file: File) => Promise<boolean>;
+  /** Replace the trigger audio file. */
+  onUploadTriggerAudio?: (file: File) => Promise<boolean>;
+  /** Group/override image context for the current word (edit mode). */
+  imageContext?: WordImageContext | null;
+  /** Set this word's own picture (override). */
+  onWordImageUpload?: (file: File) => Promise<boolean>;
+  /** Replace the shared concept picture for the whole group. */
+  onConceptImageUpload?: (file: File) => Promise<boolean>;
+  /** Clear this word's override so it re-inherits the concept picture. */
+  onResetImageToConcept?: () => Promise<boolean>;
 }
 
 /** Get darker shade of gender color for audio playback highlighting */
@@ -112,6 +129,16 @@ export function WordDetailView({
   imageMode: imageModeProp,
   onImageModeChange,
   onRelatedClick,
+  isEditMode = false,
+  onFieldSave,
+  onArrayFieldSave,
+  onUploadEnglishAudio,
+  onUploadForeignAudio,
+  onUploadTriggerAudio,
+  imageContext,
+  onWordImageUpload,
+  onConceptImageUpload,
+  onResetImageToConcept,
 }: WordDetailViewProps) {
   const router = useRouter();
   const { playAudio, stopAudio, preloadAudio, currentAudioType } = useAudio();
@@ -181,6 +208,11 @@ export function WordDetailView({
   const [isPlayingSequence, setIsPlayingSequence] = useState(false);
   const audioSequenceCancelledRef = useRef(false);
 
+  // Admin can remove a bad trigger video in place; track it locally so the still
+  // image takes over immediately (the prop `word` isn't re-fetched here).
+  const [videoRemoved, setVideoRemoved] = useState(false);
+  const effectiveVideoUrl = videoRemoved ? null : word.memory_trigger_video_url;
+
   // Reset notes state when word changes
   useEffect(() => {
     setUserNotesInput(word.progress?.user_notes || "");
@@ -189,6 +221,7 @@ export function WordDetailView({
     setSystemNotesInput(word.notes || "");
     setSystemNotes(word.notes || null);
     setIsEditingSystemNotes(false);
+    setVideoRemoved(false);
     // Reset sidebar tab to "word" when navigating to a new word
     setSidebarTab("word");
   }, [word.id, word.progress?.user_notes, word.notes]);
@@ -534,6 +567,26 @@ export function WordDetailView({
 
       {/* Word Card — only on the Word tab in sidebar (or always in page layout) */}
       {(!isSidebar || sidebarTab === "word") && (
+        isEditMode ? (
+          <WordCard
+            englishWord={word.english}
+            foreignWord={word.headword}
+            gender={word.gender}
+            showEnglish
+            showForeign
+            playingAudioType={currentAudioType}
+            onPlayEnglishAudio={handlePlayEnglish}
+            onPlayForeignAudio={handlePlayForeign}
+            wordId={word.id}
+            isEditMode
+            onFieldSave={onFieldSave}
+            onArrayFieldSave={onArrayFieldSave}
+            onUploadEnglishAudio={onUploadEnglishAudio}
+            onUploadForeignAudio={onUploadForeignAudio}
+            alternateAnswers={word.alternate_answers || []}
+            alternateEnglishAnswers={word.alternate_english_answers || []}
+          />
+        ) : (
         <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
           <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-3"}>
             {/* English word */}
@@ -556,15 +609,16 @@ export function WordDetailView({
               className="flex cursor-pointer items-center gap-4 rounded-lg text-left"
             >
               <AudioButton isPlaying={isPlayingForeign} playingColor={audioDarkColor} />
-              <span
+              <GenderedHeadword
+                text={word.headword}
+                gender={word.gender}
+                isPlaying={isPlayingForeign}
                 className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
-                style={{ color: isPlayingForeign ? getHighlightColorDark(word.gender) : getHighlightColor(word.gender) }}
-              >
-                {word.headword}
-              </span>
+              />
             </button>
           </div>
         </div>
+        )
       )}
 
       {/* Two columns layout (page) or always-stacked single column (sidebar —
@@ -690,7 +744,30 @@ export function WordDetailView({
         {/* Left column - Memory Trigger or Flashcard */}
         <div className={isSidebar ? "flex w-full flex-col gap-4" : "flex w-[55%] flex-col gap-6"}>
           {imageMode === "memory-trigger" ? (
-            isLocked && hasMemoryTrigger ? (
+            isEditMode ? (
+              // Admin edit mode — reuse the study/test editable card so headword,
+              // trigger text, audio, and the two-tile image editor all work here.
+              <MemoryTriggerCard
+                imageUrl={word.memory_trigger_image_url}
+                videoUrl={effectiveVideoUrl}
+                triggerText={triggerText}
+                foreignWord={word.headword}
+                gender={word.gender}
+                playingAudioType={currentAudioType}
+                onPlayTriggerAudio={handlePlayTrigger}
+                showImage
+                showTriggerText
+                layout={word.category === "fact" ? "horizontal" : "stacked"}
+                wordId={word.id}
+                isEditMode
+                onFieldSave={onFieldSave}
+                onUploadTriggerAudio={onUploadTriggerAudio}
+                imageContext={imageContext}
+                onWordImageUpload={onWordImageUpload}
+                onConceptImageUpload={onConceptImageUpload}
+                onResetImageToConcept={onResetImageToConcept}
+              />
+            ) : isLocked && hasMemoryTrigger ? (
               // Locked state — trigger text is fully visible; only the image is
               // blurred behind the upgrade CTA.
               <div className="w-full rounded-2xl bg-white shadow-card">
@@ -822,12 +899,12 @@ export function WordDetailView({
                   )}
 
                   {/* Trigger media (silent looping video when present, else image) */}
-                  {(word.memory_trigger_image_url || word.memory_trigger_video_url) && (
+                  {(word.memory_trigger_image_url || effectiveVideoUrl) && (
                     word.category === "fact" ? (
                       <div className="relative h-[300px] w-full overflow-hidden rounded-lg">
                         <TriggerMedia
                           imageUrl={word.memory_trigger_image_url}
-                          videoUrl={word.memory_trigger_video_url}
+                          videoUrl={effectiveVideoUrl}
                           alt="Memory trigger"
                           className="object-contain"
                           sizes="(max-width: 768px) 100vw, 500px"
@@ -840,7 +917,7 @@ export function WordDetailView({
                       >
                         <TriggerMedia
                           imageUrl={word.memory_trigger_image_url}
-                          videoUrl={word.memory_trigger_video_url}
+                          videoUrl={effectiveVideoUrl}
                           alt="Memory trigger"
                           className="object-contain"
                           sizes="(max-width: 768px) 100vw, 500px"
@@ -984,6 +1061,8 @@ export function WordDetailView({
               pictureMp4Defect={word.picture_mp4_defect}
               audioRerecord={word.audio_rerecord}
               notesInMemoryTrigger={word.notes_in_memory_trigger}
+              videoUrl={effectiveVideoUrl}
+              onVideoRemoved={() => setVideoRemoved(true)}
             />
           )}
 
