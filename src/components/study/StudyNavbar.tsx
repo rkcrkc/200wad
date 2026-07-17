@@ -70,7 +70,7 @@ export function StudyNavbar({
   return (
     <div className="fixed top-0 left-0 right-0 z-20 flex h-[72px] items-center justify-between gap-4 bg-white px-6 pr-8">
       {/* Left side - Mode badge, lesson, word progress, timer */}
-      <div className="flex min-w-0 grow items-center gap-4">
+      <div className="flex min-w-0 items-center gap-4">
         {/* Mode badge */}
         <div className={`flex items-center gap-1.5 rounded-lg ${badgeBgColor} px-3 py-1.5`}>
           <BadgeIcon className={`h-4 w-4 shrink-0 ${badgeTextColor}`} />
@@ -106,11 +106,11 @@ export function StudyNavbar({
           const isCurrentInfo = categories?.[currentWordIndex] === "information";
 
           return (
-            <div className="flex min-w-0 grow shrink-[5] items-center gap-1.5">
+            <div className="flex min-w-0 shrink-[5] items-center gap-1.5">
               <span className="w-[100px] shrink-0 text-small-semibold text-foreground">
                 {isCurrentInfo ? `Word – of ${nonInfoCount}` : `Word ${wordNumber} of ${nonInfoCount}`}
               </span>
-              <div className="min-w-0 grow">
+              <div className="min-w-0">
                 <WordTrackerDots
                   totalWords={totalWords}
                   currentIndex={currentWordIndex}
