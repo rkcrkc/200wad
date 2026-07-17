@@ -46,6 +46,10 @@ interface StudySidebarProps {
   notesInMemoryTrigger?: boolean | null;
   /** Callback when developer data is saved (so parent can update its cached word) */
   onDeveloperDataChange?: (data: DeveloperData) => void;
+  /** Effective trigger video URL — enables the admin "Remove video" action. */
+  videoUrl?: string | null;
+  /** Callback once the trigger video override is cleared. */
+  onVideoRemoved?: () => void;
   /** Contextual tips for this word */
   tips?: TipForWord[];
   /** Tip IDs the user has already dismissed */
@@ -73,6 +77,8 @@ export function StudySidebar({
   audioRerecord,
   notesInMemoryTrigger,
   onDeveloperDataChange,
+  videoUrl,
+  onVideoRemoved,
   tips = [],
   dismissedTipIds = [],
   onDismissTip,
@@ -373,6 +379,8 @@ export function StudySidebar({
           notesInMemoryTrigger={notesInMemoryTrigger}
           isEnabled={isEnabled}
           onSaved={onDeveloperDataChange}
+          videoUrl={videoUrl}
+          onVideoRemoved={onVideoRemoved}
         />
       )}
     </div>

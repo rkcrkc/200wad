@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { saveDeveloperData, type DeveloperData } from "@/lib/mutations";
+import { setWordVideoOverride } from "@/lib/mutations/admin/imageGroups";
 
 interface DeveloperSectionProps {
   /** Current word ID - used to detect word changes and reset local state */
@@ -15,6 +16,15 @@ interface DeveloperSectionProps {
   pictureMp4Defect?: boolean | null;
   audioRerecord?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
+  /**
+   * Effective trigger video URL for this word. When present, a "Remove video"
+   * action is shown so admins can strip a bad MP4 in place (it clears the
+   * per-word `video_override_url`, so the still image takes over).
+   */
+  videoUrl?: string | null;
+  /** Notify parent once the video override is cleared, so it can drop the
+   * cached video URL and re-render the still. */
+  onVideoRemoved?: () => void;
   /** Optional: dim/disable when parent context is disabled */
   isEnabled?: boolean;
   /** Notify parent of successful saves so it can update its cached word data */
@@ -31,6 +41,8 @@ export function DeveloperSection({
   pictureMp4Defect: initialPictureMp4Defect,
   audioRerecord: initialAudioRerecord,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
+  videoUrl,
+  onVideoRemoved,
   isEnabled = true,
   onSaved,
 }: DeveloperSectionProps) {
@@ -46,6 +58,8 @@ export function DeveloperSection({
   const [audioRerecord, setAudioRerecord] = useState(initialAudioRerecord || false);
   const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(initialNotesInMemoryTrigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
+  const [videoRemoved, setVideoRemoved] = useState(false);
+  const [isRemovingVideo, setIsRemovingVideo] = useState(false);
 
   const prevWordIdRef = useRef(wordId);
 
@@ -63,6 +77,7 @@ export function DeveloperSection({
       setPictureMp4Defect(initialPictureMp4Defect || false);
       setAudioRerecord(initialAudioRerecord || false);
       setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
+      setVideoRemoved(false);
       prevWordIdRef.current = wordId;
     }
   }, [
@@ -204,6 +219,18 @@ export function DeveloperSection({
     }
   };
 
+  // Clear the per-word trigger video override in place. The still image (poster)
+  // is left untouched and takes over as the displayed media.
+  const handleRemoveVideo = async () => {
+    setIsRemovingVideo(true);
+    const result = await setWordVideoOverride(wordId, null);
+    setIsRemovingVideo(false);
+    if (result.success) {
+      setVideoRemoved(true);
+      onVideoRemoved?.();
+    }
+  };
+
   const cardClasses = cn(
     "w-full rounded-2xl bg-white shadow-card transition-opacity",
     !isEnabled && "pointer-events-none opacity-30",
@@ -336,6 +363,17 @@ export function DeveloperSection({
               />
               <span className="text-small-regular text-foreground">MP4 defect</span>
             </label>
+
+            {videoUrl && !videoRemoved && (
+              <button
+                type="button"
+                onClick={handleRemoveVideo}
+                disabled={isRemovingVideo}
+                className="self-start text-small-semibold text-destructive transition-colors hover:underline disabled:opacity-50"
+              >
+                {isRemovingVideo ? "Removing video…" : "Remove video"}
+              </button>
+            )}
           </div>
 
           <div className="h-px w-full bg-black/10" />

@@ -1946,6 +1946,31 @@ export function TestModeClient({
     imageContext?.masterVideoUrl,
   ]);
 
+  // Admin removed the trigger video in place (DeveloperSection cleared the
+  // override). Drop it from the cached word so the still image takes over
+  // immediately; a grouped word re-inherits its concept video.
+  const handleVideoRemoved = useCallback(() => {
+    if (!currentWord) return;
+    const wordId = currentWord.id;
+    const masterVideo = imageContext?.masterVideoUrl ?? null;
+    setActiveWords((prev) =>
+      prev.map((w) =>
+        w.id === wordId
+          ? {
+              ...w,
+              memory_trigger_video_url: masterVideo,
+              video_override_url: null,
+            }
+          : w
+      )
+    );
+    setImageContext((ctx) =>
+      ctx
+        ? { ...ctx, videoOverrideUrl: null, effectiveVideoUrl: masterVideo }
+        : ctx
+    );
+  }, [currentWord, imageContext?.masterVideoUrl]);
+
   // Replace one of the word's audio files (english/foreign/trigger). Re-uploads
   // reuse the same storage path, so append a cache-bust suffix to the saved URL
   // so the new clip plays immediately instead of a stale CDN copy.
@@ -2254,6 +2279,8 @@ export function TestModeClient({
                       pictureMp4Defect={currentWord?.picture_mp4_defect}
                       audioRerecord={currentWord?.audio_rerecord}
                       notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
+                      videoUrl={currentWord?.memory_trigger_video_url}
+                      onVideoRemoved={handleVideoRemoved}
                       onRelatedClick={openWord}
                     />
                   </div>

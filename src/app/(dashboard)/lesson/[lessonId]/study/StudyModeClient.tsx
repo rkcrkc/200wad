@@ -891,6 +891,19 @@ export function StudyModeClient({
     [currentWord.id],
   );
 
+  // Admin removed the trigger video in place — clear it from the cached word so
+  // the still image takes over immediately without a reload.
+  const handleVideoRemoved = useCallback(() => {
+    const wordId = currentWord.id;
+    setLocalWords((prev) =>
+      prev.map((w) =>
+        w.id === wordId
+          ? { ...w, memory_trigger_video_url: null, video_override_url: null }
+          : w,
+      ),
+    );
+  }, [currentWord.id]);
+
   // Handle system notes change (admin only)
   const handleSystemNotesChange = useCallback(
     async (notes: string | null) => {
@@ -1689,6 +1702,8 @@ export function StudyModeClient({
                       audioRerecord={currentWord.audio_rerecord}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                       onDeveloperDataChange={handleDeveloperDataChange}
+                      videoUrl={currentWord.memory_trigger_video_url}
+                      onVideoRemoved={handleVideoRemoved}
                       tips={currentWord.tips}
                       dismissedTipIds={Array.from(dismissedTipIds)}
                       onDismissTip={handleDismissTip}

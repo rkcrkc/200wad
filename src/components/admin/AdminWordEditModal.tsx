@@ -602,6 +602,27 @@ export function AdminWordEditModal({
           })
         );
 
+        // A newly uploaded still replaces any existing per-word trigger video:
+        // the admin is choosing a static picture, so clear the stale MP4 (unless
+        // they're also uploading a new video in this same save). Skip if the
+        // image upload itself failed, so we never strip the video without a
+        // replacement picture in place.
+        if (
+          fileUploads.triggerImage &&
+          !fileUploads.triggerVideo &&
+          videoOverrideUrl &&
+          !uploadFailures.some((f) => f.startsWith("trigger image"))
+        ) {
+          const clearRes = await setWordVideoOverride(wordId, null);
+          if (!clearRes.success) {
+            uploadFailures.push(
+              `clear existing video${
+                clearRes.error ? `: ${clearRes.error}` : ""
+              }`
+            );
+          }
+        }
+
         // Trigger video is a two-step upload (poster still + MP4) with its own
         // bucket/column, so it runs outside the generic image/audio loop above.
         if (fileUploads.triggerVideo) {
