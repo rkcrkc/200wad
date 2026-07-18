@@ -151,7 +151,7 @@ export function LessonPageContent({
 
         {/* Row 2: Title + Stats */}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between xl:gap-8">
-          <h1 className="flex items-center gap-4 text-xxl-semibold">
+          <h1 className="flex items-center gap-4 text-xxxl-semibold">
             {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
             {lesson.title}
           </h1>

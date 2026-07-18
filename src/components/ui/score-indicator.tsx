@@ -29,6 +29,11 @@ interface ScoreIndicatorProps {
   scoreStats: WordScoreStats;
   /** Word learning status */
   wordStatus?: "not-started" | "learning" | "learned" | "mastered";
+  /** Authoritative current correct streak (from `correct_streak`, or the live
+   *  in-session value in Test mode). When provided, this — not row-walking over
+   *  `testHistory` — drives the leading green run, stars and stacking, so the
+   *  dots always agree with the mastery toast. */
+  correctStreak?: number;
   /** Size variant */
   size?: "sm" | "md";
   /** Show popover on hover */
@@ -39,6 +44,7 @@ export function ScoreIndicator({
   testHistory: testHistoryProp,
   scoreStats: scoreStatsProp,
   wordStatus,
+  correctStreak,
   size = "md",
   showPopover = true,
 }: ScoreIndicatorProps) {
@@ -106,11 +112,22 @@ export function ScoreIndicator({
     );
   }
 
-  // Compute leading correct streak: consecutive full-mark attempts from most recent
-  let leadingStreak = 0;
-  for (const a of testHistory) {
-    if (a.pointsEarned >= a.maxPoints) leadingStreak++;
-    else break;
+  // Leading correct streak. Prefer the authoritative `correctStreak` (persisted
+  // `correct_streak` or the live in-session value) so the dots agree with the
+  // mastery toast; fall back to walking row history only when it's not supplied.
+  let leadingStreak: number;
+  if (correctStreak != null) {
+    leadingStreak = correctStreak;
+  } else {
+    leadingStreak = 0;
+    for (const a of testHistory) {
+      if (a.pointsEarned >= a.maxPoints) leadingStreak++;
+      else break;
+    }
+  }
+  // A mastered word is >= 3 by definition; floor so display never contradicts it.
+  if (wordStatus === "mastered") {
+    leadingStreak = Math.max(leadingStreak, 3);
   }
 
   // Stack dots when streak exceeds 3, capped at 6 visible dots
@@ -140,6 +157,9 @@ export function ScoreIndicator({
           // Stacked dots are all part of the leading streak → all full marks
           let bgColor: string;
           if (isStacked) {
+            bgColor = "bg-success";
+          } else if (i < leadingStreak) {
+            // Part of the authoritative leading streak → full-mark by definition
             bgColor = "bg-success";
           } else {
             const attempt = testHistory[i];

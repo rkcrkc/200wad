@@ -293,6 +293,8 @@ export function TestModeClient({
     setVolume: setWordVolume,
     soundEffectsEnabled,
     setSoundEffectsEnabled,
+    replayTriggerEnabled,
+    setReplayTriggerEnabled,
   } = useAudio();
   const {
     isEnabled: musicEnabled,
@@ -500,6 +502,24 @@ export function TestModeClient({
       scorePercent: newTotalMax > 0 ? Math.round((newTotalPoints / newTotalMax) * 100) : 0,
       timesTested: historicalStats.timesTested + currentWordSessionAttempts.length,
     };
+  })();
+
+  // Live correct streak for the current word: prior persisted streak advanced by
+  // this session's answered attempts, in attempt order. Mirrors the streak math
+  // in handleSubmit that drives the mastery toast, so the traffic-light green run
+  // stays in sync with it. Unanswered attempts don't count yet; any non-perfect
+  // attempt resets to 0.
+  const currentWordLiveStreak = (() => {
+    if (!currentWord) return undefined;
+    let streak = currentWord.progress?.correct_streak || 0;
+    const keys = testTwice ? [`${currentWord.id}_1`, `${currentWord.id}_2`] : [currentWord.id];
+    for (const key of keys) {
+      const p = testProgressMap.get(key);
+      if (p?.hasAnswered) {
+        streak = p.mistakeCount === 0 && p.clueLevel === 0 ? streak + 1 : 0;
+      }
+    }
+    return streak;
   })();
 
   // Initialize test session (always fresh - tests are sandboxed)
@@ -888,13 +908,35 @@ export function TestModeClient({
       // foreign-word pronunciation. They share the single audio channel, so
       // awaiting the SFX keeps the sequence ordered (feedback first). playAudio
       // resolves on error too, so a missing/broken SFX never blocks the word.
+      // When "replay with memory trigger" is on, extend the sequence with the
+      // memory trigger and a final repeat of the word (foreign -> trigger ->
+      // foreign). Capture the word-sequence id and bail between awaits if the
+      // user navigates on, so a fast "Next" click doesn't bleed audio into the
+      // following word (same guard as handleRestart).
       const sfxUrl = soundEffectsEnabled
         ? answerFeedbackSounds[result.grade]
         : undefined;
+      const seq = wordSequenceRef.current;
       void (async () => {
         if (sfxUrl) {
           await playAudio(sfxUrl, "sfx");
+          if (wordSequenceRef.current !== seq) return;
         }
+        // Only extend the sequence when the setting is on AND this word
+        // actually has a memory trigger to play — otherwise fall back to the
+        // default single foreign play (no pointless double-play of the word).
+        if (!replayTriggerEnabled || !currentWord.audio_url_trigger) {
+          if (currentWord.audio_url_foreign) {
+            playAudio(currentWord.audio_url_foreign, "foreign");
+          }
+          return;
+        }
+        if (currentWord.audio_url_foreign) {
+          await playAudio(currentWord.audio_url_foreign, "foreign");
+          if (wordSequenceRef.current !== seq) return;
+        }
+        await playAudio(currentWord.audio_url_trigger, "trigger");
+        if (wordSequenceRef.current !== seq) return;
         if (currentWord.audio_url_foreign) {
           playAudio(currentWord.audio_url_foreign, "foreign");
         }
@@ -913,6 +955,7 @@ export function TestModeClient({
       toastTemplates,
       soundEffectsEnabled,
       answerFeedbackSounds,
+      replayTriggerEnabled,
     ]
   );
 
@@ -2322,6 +2365,7 @@ export function TestModeClient({
             testHistory={mergedTestHistory}
             scoreStats={mergedScoreStats}
             wordStatus={currentWord?.status}
+            correctStreak={currentWordLiveStreak}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
@@ -2350,6 +2394,8 @@ export function TestModeClient({
             onWordVolumeChange={setWordVolume}
             soundEffectsEnabled={soundEffectsEnabled}
             onSoundEffectsChange={setSoundEffectsEnabled}
+            replayTriggerEnabled={replayTriggerEnabled}
+            onReplayTriggerChange={setReplayTriggerEnabled}
             isAdmin={isAdmin}
             isEditMode={isEditMode}
             onEditModeToggle={() => setIsEditMode(!isEditMode)}

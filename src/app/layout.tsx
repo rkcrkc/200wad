@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
 import { UserProvider } from "@/context/UserContext";
 import { ConsentProvider } from "@/context/ConsentContext";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
@@ -41,7 +56,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
       <body className="font-sans antialiased">
         <FlagEmojiPolyfill />
         <ConsentProvider>

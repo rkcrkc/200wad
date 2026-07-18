@@ -10,8 +10,9 @@
  *   - {{m|text}}           → blue, bold (masculine)
  *   - {{f|text}}           → red, bold (feminine)
  *   - {{n|text}}           → orange, bold (neuter)
- *   - {{mf|text}}          → green, bold (mixed)
- *   - {{text}}             → bold in row's gender color (default green)
+ *   - {{mf|text}}          → blue→red gradient, bold (mixed)
+ *   - {{text}}             → bold in row's gender color (mf → blue→red
+ *                            gradient, default green)
  *   - [text](url)          → external link (target="_blank")
  *
  * Block syntax (only when paragraphs=true):
@@ -67,6 +68,25 @@ function getHighlightDark(gender?: string | null): string {
   return defaultHighlightColorDark;
 }
 
+/**
+ * Style for a highlighted mnemonic token. mf words get a blue→red gradient
+ * (matching GenderedHeadword); every other gender uses its flat highlight
+ * colour. Kept inline (not inline-block) so surrounding whitespace between the
+ * token and following words is preserved in the flowing trigger sentence.
+ */
+function highlightStyle(gender?: string | null): React.CSSProperties {
+  if (gender === "mf") {
+    return {
+      backgroundImage: `linear-gradient(90deg, ${genderColor.m}, ${genderColor.f})`,
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      color: "transparent",
+      WebkitTextFillColor: "transparent",
+    };
+  }
+  return { color: getHighlight(gender) };
+}
+
 export interface ParseFormattedOptions {
   /** Word gender — colors row-gender markers (`{{text}}`) and headword highlight. */
   gender?: string | null;
@@ -104,7 +124,6 @@ function emitTriggerPlain(
   keyBase: string,
 ): React.ReactNode[] {
   const baseColor = ctx.isPlaying ? getHighlightDark(ctx.gender) : "#141515";
-  const highlight = getHighlight(ctx.gender);
   const tokens = text.split(/(\s+)/); // keep separators
   const out: React.ReactNode[] = [];
   tokens.forEach((tok, idx) => {
@@ -130,7 +149,7 @@ function emitTriggerPlain(
         <span
           key={`${keyBase}h${idx}`}
           className="font-bold"
-          style={{ color: highlight }}
+          style={highlightStyle(ctx.gender)}
         >
           {tok}
         </span>,
@@ -231,14 +250,15 @@ function parseInline(
         } else {
           content = inner;
         }
-        const color =
-          tag && TAG_COLORS[tag] ? TAG_COLORS[tag] : getHighlight(ctx.gender);
+        // A known tag drives the colour; otherwise fall back to the row's
+        // gender so `{{text}}` mf mnemonics also get the blue→red gradient.
+        const markerGender = tag && tag in TAG_COLORS ? tag : ctx.gender;
         const childKey = `${keyPrefix}c${key}-`;
         nodes.push(
           <span
             key={`${keyPrefix}c${key++}`}
             style={{
-              color,
+              ...highlightStyle(markerGender),
               fontWeight: 600,
               // Trigger context only: mnemonics in {{...}} render in CAPS.
               // Display-only (stored text/audio stay natural-case).

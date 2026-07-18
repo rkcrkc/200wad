@@ -123,7 +123,7 @@ export function CelebrationModal({
           )}
           <h2
             className={cn(
-              isMajor ? "text-page-header" : "text-xxl-bold",
+              isMajor ? "text-page-header" : "text-xxl-semibold",
               accent.text,
             )}
           >

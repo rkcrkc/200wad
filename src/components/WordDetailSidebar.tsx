@@ -611,6 +611,7 @@ export function WordDetailSidebar({
           hasPrevious={hasPrevious}
           hasNext={hasNext}
           wordStatus={localWord.status}
+          correctStreak={localWord.progress?.correct_streak ?? undefined}
           variant="sidebar"
           compact={sizeKey === "sm"}
           imageMode={imageMode}

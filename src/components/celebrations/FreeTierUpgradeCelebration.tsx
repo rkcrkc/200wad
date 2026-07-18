@@ -56,7 +56,7 @@ export function FreeTierUpgradeCelebration({
           <p className="mb-2 text-xs-medium uppercase tracking-wide text-foreground/60">
             {courseTitle}
           </p>
-          <h2 className="text-xxl-bold text-primary">
+          <h2 className="text-xxl-semibold text-primary">
             You&apos;ve finished your free lessons
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-regular-semibold text-foreground/70">
@@ -132,7 +132,7 @@ function PlanCard({
         )}
       </div>
       <div className="mb-4">
-        <p className="text-xxl-bold text-foreground">{plan.price}</p>
+        <p className="text-xxl-semibold text-foreground">{plan.price}</p>
         <p className="text-xs-medium text-foreground/60">{plan.cadence}</p>
       </div>
       <ul className="mb-5 flex-1 space-y-2">

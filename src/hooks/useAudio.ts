@@ -6,6 +6,7 @@ export type AudioType = "english" | "foreign" | "trigger" | "sfx";
 
 const STORAGE_KEY_WORD_VOLUME = "word-audio-volume";
 const STORAGE_KEY_SOUND_EFFECTS = "sound-effects-enabled";
+const STORAGE_KEY_REPLAY_TRIGGER = "test-replay-trigger-enabled";
 
 interface UseAudioReturn {
   /** Play audio from URL, returns a promise that resolves when audio ends */
@@ -30,6 +31,13 @@ interface UseAudioReturn {
   soundEffectsEnabled: boolean;
   /** Toggle answer-feedback sound effects on/off (persisted). */
   setSoundEffectsEnabled: (enabled: boolean) => void;
+  /**
+   * Whether, in test mode, the post-answer sequence also replays the memory
+   * trigger and the word again (persisted). Off by default.
+   */
+  replayTriggerEnabled: boolean;
+  /** Toggle the post-answer memory-trigger replay on/off (persisted). */
+  setReplayTriggerEnabled: (enabled: boolean) => void;
 }
 
 export function useAudio(): UseAudioReturn {
@@ -50,6 +58,11 @@ export function useAudio(): UseAudioReturn {
     if (typeof window === "undefined") return true;
     // Default ON; only an explicit "false" opts out.
     return localStorage.getItem(STORAGE_KEY_SOUND_EFFECTS) !== "false";
+  });
+  const [replayTriggerEnabled, setReplayTriggerEnabledState] = useState(() => {
+    if (typeof window === "undefined") return false;
+    // Default OFF; only an explicit "true" opts in.
+    return localStorage.getItem(STORAGE_KEY_REPLAY_TRIGGER) === "true";
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -74,6 +87,13 @@ export function useAudio(): UseAudioReturn {
     setSoundEffectsEnabledState(enabled);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_SOUND_EFFECTS, String(enabled));
+    }
+  }, []);
+
+  const setReplayTriggerEnabled = useCallback((enabled: boolean) => {
+    setReplayTriggerEnabledState(enabled);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_REPLAY_TRIGGER, String(enabled));
     }
   }, []);
 
@@ -249,5 +269,7 @@ export function useAudio(): UseAudioReturn {
     setVolume,
     soundEffectsEnabled,
     setSoundEffectsEnabled,
+    replayTriggerEnabled,
+    setReplayTriggerEnabled,
   };
 }

@@ -1755,6 +1755,7 @@ export function StudyModeClient({
             testHistory={currentWord.testHistory}
             scoreStats={currentWord.scoreStats}
             wordStatus={currentWord.status}
+            correctStreak={currentWord.progress?.correct_streak ?? undefined}
             onJumpToWord={handleJumpToWord}
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}

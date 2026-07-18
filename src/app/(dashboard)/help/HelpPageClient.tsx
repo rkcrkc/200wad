@@ -362,7 +362,7 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
           <div className="mx-auto max-w-3xl px-6 py-12">
             <div className="text-center">
               <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
-              <h1 className="text-xxl-bold mb-3">Help</h1>
+              <h1 className="text-xxl-semibold mb-3">Help</h1>
               <p className="text-regular-semibold text-muted-foreground">
                 Everything you need to know about using 200 Words a Day
               </p>

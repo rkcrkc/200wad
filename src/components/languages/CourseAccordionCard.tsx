@@ -74,7 +74,7 @@ export function CourseAccordionCard({
         {/* Name + difficulty + lesson count */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <h3 className="truncate text-xxl2-semibold">{course.name}</h3>
+            <h3 className="truncate text-xxl-semibold">{course.name}</h3>
             <CourseLevelBadge level={course.level} className="shrink-0" />
           </div>
           <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">

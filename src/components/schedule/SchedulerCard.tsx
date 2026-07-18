@@ -118,7 +118,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
             )}
 
             {/* Title */}
-            <h2 className="mb-4 truncate text-[36px] font-semibold leading-tight text-foreground">
+            <h2 className="text-page-header mb-4 truncate text-foreground">
               {lesson.title}
             </h2>
 

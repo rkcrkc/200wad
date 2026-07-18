@@ -64,7 +64,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
 
         {/* Title */}
         <Link href={`/lesson/${lesson.id}`}>
-          <h3 className="mb-5 truncate text-xl-semibold text-foreground">
+          <h3 className="mb-5 truncate text-xxl-semibold text-foreground">
             {lesson.title}
           </h3>
         </Link>

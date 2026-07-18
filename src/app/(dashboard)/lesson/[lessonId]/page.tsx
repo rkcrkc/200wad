@@ -150,7 +150,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                   </Tooltip>
                 )}
               </div>
-              <h1 className="flex items-center gap-4 text-xxl-semibold">
+              <h1 className="flex items-center gap-4 text-xxxl-semibold">
                 {resolvedLesson.emoji && <span className="text-2xl">{resolvedLesson.emoji}</span>}
                 {resolvedLesson.title}
               </h1>

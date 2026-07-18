@@ -343,6 +343,7 @@ export function TestCompletedModal({
             hasPrevious={selectedWordIndex > 0}
             hasNext={selectedWordIndex < displayWords.length - 1}
             wordStatus={selectedWord.status}
+            correctStreak={selectedWord.progress?.correct_streak ?? undefined}
             variant="sidebar"
             imageMode={imageMode}
             onImageModeChange={setImageMode}

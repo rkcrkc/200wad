@@ -141,6 +141,10 @@ interface StudyActionBarProps {
   scoreStats?: WordScoreStats;
   /** Word learning status */
   wordStatus?: "not-started" | "learning" | "learned" | "mastered";
+  /** Authoritative current correct streak. In Test mode this is the live
+   *  in-session value (prior `correct_streak` + full-mark attempts so far), so
+   *  the traffic-light green run matches the mastery toast. */
+  correctStreak?: number;
   onJumpToWord: (index: number) => void;
   onPreviousWord: () => void;
   onNextWord: () => void;
@@ -197,6 +201,10 @@ interface StudyActionBarProps {
   soundEffectsEnabled?: boolean;
   /** Callback when answer feedback sounds are toggled (study + test modes) */
   onSoundEffectsChange?: (enabled: boolean) => void;
+  /** Whether the post-answer memory-trigger replay is enabled (test mode only) */
+  replayTriggerEnabled?: boolean;
+  /** Callback when the post-answer memory-trigger replay is toggled (test mode only) */
+  onReplayTriggerChange?: (enabled: boolean) => void;
   /** Whether user is an admin */
   isAdmin?: boolean;
   /** Whether admin edit mode is active */
@@ -261,6 +269,7 @@ export function StudyActionBar({
   testHistory = [],
   scoreStats,
   wordStatus,
+  correctStreak,
   onJumpToWord,
   onPreviousWord,
   onNextWord,
@@ -291,6 +300,8 @@ export function StudyActionBar({
   onWordVolumeChange,
   soundEffectsEnabled = true,
   onSoundEffectsChange,
+  replayTriggerEnabled = false,
+  onReplayTriggerChange,
   isAdmin = false,
   isEditMode = false,
   onEditModeToggle,
@@ -411,6 +422,7 @@ export function StudyActionBar({
               testHistory={testHistory}
               scoreStats={scoreStats}
               wordStatus={wordStatus}
+              correctStreak={correctStreak}
             />
           )}
         </div>
@@ -816,6 +828,24 @@ export function StudyActionBar({
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {t("msg_answer_sounds_desc")}
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Replay with memory trigger toggle */}
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={replayTriggerEnabled}
+                          onChange={(e) => onReplayTriggerChange?.(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            {t("msg_replay_trigger")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("msg_replay_trigger_desc")}
                           </div>
                         </div>
                       </label>

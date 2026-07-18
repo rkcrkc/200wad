@@ -792,6 +792,18 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     group: "Study Action Bar",
     defaultValue: "Play a sound for correct, half, and wrong answers",
   },
+  msg_replay_trigger: {
+    label: "Replay with memory trigger label",
+    category: "greetings_messages",
+    group: "Study Action Bar",
+    defaultValue: "Replay with memory trigger",
+  },
+  msg_replay_trigger_desc: {
+    label: "Replay with memory trigger description",
+    category: "greetings_messages",
+    group: "Study Action Bar",
+    defaultValue: "After each answer, also play the memory trigger and the word again",
+  },
   msg_breathing_mode: {
     label: "Breathing mode label",
     category: "greetings_messages",

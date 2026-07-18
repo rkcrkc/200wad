@@ -80,9 +80,9 @@
   "typography": {
     "$type": "typography",
     "$description": "Composite type styles mirroring the .text-* utilities in globals.css. All use lineHeight 1.35. Sizes >=20px use Inter Display (opsz 32).",
-    "pageHeader": { "$value": { "fontFamily": "Inter", "fontSize": "40px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
-    "xxlSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "32px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
-    "xxl2Semibold": { "$value": { "fontFamily": "Inter", "fontSize": "28px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "pageHeader": { "$value": { "fontFamily": "Bricolage Grotesque", "fontSize": "40px", "fontWeight": 700, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xxxlSemibold": { "$value": { "fontFamily": "Bricolage Grotesque", "fontSize": "32px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
+    "xxlSemibold": { "$value": { "fontFamily": "Bricolage Grotesque", "fontSize": "28px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
     "xlMedium": { "$value": { "fontFamily": "Inter", "fontSize": "24px", "fontWeight": 500, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
     "xlSemibold": { "$value": { "fontFamily": "Inter", "fontSize": "24px", "fontWeight": 600, "letterSpacing": "-0.025em", "lineHeight": 1.35 } },
     "largeMedium": { "$value": { "fontFamily": "Inter", "fontSize": "20px", "fontWeight": 500, "letterSpacing": "-0.02em", "lineHeight": 1.35 } },

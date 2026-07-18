@@ -108,9 +108,9 @@ Dark-mode tokens exist in `globals.css` (`.dark`) but are **grayscale/placeholde
 
 | Class | Size | Weight | Letter-spacing | Intended use |
 |---|---|---|---|---|
-| `.text-page-header` | 40px | 600 | −2.5% | Page H1 |
-| `.text-xxl-semibold` | 32px | 600 | −2.5% | Large headings |
-| `.text-xxl2-semibold` | 28px | 600 | −2.5% | Section headings |
+| `.text-page-header` | 40px | 700 | −2.5% | Page H1 (Bricolage Grotesque) |
+| `.text-xxxl-semibold` | 32px | 600 | −2.5% | Large headings (Bricolage Grotesque) |
+| `.text-xxl-semibold` | 28px | 600 | −2.5% | Section headings (Bricolage Grotesque) |
 | `.text-xl-medium` | 24px | 500 | −2.5% | Subheads |
 | `.text-xl-semibold` | 24px | 600 | −2.5% | Subheads |
 | `.text-large-medium` | 20px | 500 | −2% | Lead text |

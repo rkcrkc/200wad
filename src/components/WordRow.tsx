@@ -84,6 +84,7 @@ export function WordRow({ word, index, onClick, isFirst, isLast, isSelected, sho
           testHistory={word.testHistory}
           scoreStats={word.scoreStats}
           wordStatus={word.status}
+          correctStreak={word.progress?.correct_streak ?? undefined}
           size="sm"
           showPopover={true}
         />

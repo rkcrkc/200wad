@@ -596,7 +596,7 @@ export function WordDetailView({
             >
               <AudioButton isPlaying={isPlayingEnglish} playingColor={audioDarkColor} />
               <span
-                className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
+                className={isSidebar ? "text-xl font-medium" : "text-xxl-semibold"}
                 style={{ color: isPlayingEnglish ? getHighlightColorDark(word.gender) : "#141515" }}
               >
                 {word.english}
@@ -613,7 +613,7 @@ export function WordDetailView({
                 text={word.headword}
                 gender={word.gender}
                 isPlaying={isPlayingForeign}
-                className={isSidebar ? "text-xl font-medium" : "text-xxl2-semibold"}
+                className={isSidebar ? "text-xl font-medium" : "text-xxl-semibold"}
               />
             </button>
           </div>
@@ -634,7 +634,7 @@ export function WordDetailView({
               </span>
               {/* Score summary */}
               <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-xxl2-semibold text-foreground">
+                <span className="text-xxl-semibold text-foreground">
                   {word.scoreStats.scorePercent}%
                 </span>
                 <span className="text-sm text-foreground/50">
@@ -1137,6 +1137,7 @@ export function WordDetailView({
           imageMode={imageMode}
           onImageModeChange={setImageMode}
           wordStatus={word.status}
+          correctStreak={word.progress?.correct_streak ?? undefined}
           fromDictionary={fromDictionary}
         />
       )}

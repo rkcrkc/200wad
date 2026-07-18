@@ -67,6 +67,9 @@ interface WordDetailActionBarProps {
   onImageModeChange?: (mode: "memory-trigger" | "flashcard") => void;
   /** Word learning status */
   wordStatus?: "not-started" | "learning" | "learned" | "mastered";
+  /** Authoritative current correct streak (`correct_streak`); drives the
+   *  traffic-light green run so the dots agree with the mastery state. */
+  correctStreak?: number;
   /** Whether accessed from dictionary (hides word navigation) */
   fromDictionary?: boolean;
   /** Layout variant: "page" uses fixed positioning, "sidebar" uses relative positioning */
@@ -133,6 +136,7 @@ export function WordDetailActionBar({
   imageMode = "memory-trigger",
   onImageModeChange,
   wordStatus,
+  correctStreak,
   fromDictionary = false,
   variant = "page",
   compact = false,
@@ -291,6 +295,7 @@ export function WordDetailActionBar({
               testHistory={testHistory}
               scoreStats={scoreStats ?? { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 }}
               wordStatus={wordStatus}
+              correctStreak={correctStreak}
             />
 
             {/* Word status pill */}
