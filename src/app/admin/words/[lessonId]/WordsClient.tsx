@@ -38,7 +38,7 @@ interface Course {
   language: Language | null;
 }
 
-interface Lesson {
+export interface Lesson {
   id: string;
   number: number;
   title: string;
@@ -54,12 +54,12 @@ interface ExampleSentence {
   sort_order: number | null;
 }
 
-interface Word extends WordWithDetails {
+export interface Word extends WordWithDetails {
   sort_order: number;
   example_sentences: ExampleSentence[];
 }
 
-interface LessonOption {
+export interface LessonOption {
   id: string;
   number: number;
   title: string;
@@ -67,7 +67,7 @@ interface LessonOption {
   course_id: string | null;
 }
 
-interface CourseOption {
+export interface CourseOption {
   id: string;
   name: string;
   language_id: string | null;
@@ -121,13 +121,12 @@ export function WordsClient({ lesson, words, positionInOrder, allLessons, allCou
         .eq("word_id", word.id);
 
       if (data) {
-        const wLessons: WordLessonInfo[] = data.map((lw: any) => ({
-          id: lw.lessons.id,
-          number: lw.lessons.number,
-          title: lw.lessons.title,
-          emoji: lw.lessons.emoji,
-          course_id: lw.lessons.course_id,
-        }));
+        // `lessons` is a to-one embed (single row at runtime) that Supabase
+        // types as an array, so normalise via `unknown`.
+        type LessonWordRow = { lessons: WordLessonInfo | null };
+        const wLessons: WordLessonInfo[] = (data as unknown as LessonWordRow[])
+          .map((lw) => lw.lessons)
+          .filter((l): l is WordLessonInfo => l !== null);
         setEditingWordLessons(wLessons);
       }
     } catch {

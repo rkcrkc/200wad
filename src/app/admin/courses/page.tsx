@@ -63,12 +63,20 @@ async function getData() {
     return { languages: transformedLanguages, courses: [], lessons: [] };
   }
 
-  // Transform the data
-  const transformedCourses = courses.map((course) => ({
-    ...course,
-    language: (course as any).language,
-    lessonCount: ((course as any).lessons as any)?.[0]?.count || 0,
-  }));
+  // Transform the data. Supabase types the `language` to-one embed as an array
+  // and `lessons(count)` as a `{ count }[]`, so read them via a normalised type.
+  type CourseEmbeds = {
+    language: { id: string; name: string; code: string } | null;
+    lessons: { count: number }[];
+  };
+  const transformedCourses = courses.map((course) => {
+    const embeds = course as unknown as CourseEmbeds;
+    return {
+      ...course,
+      language: embeds.language,
+      lessonCount: embeds.lessons?.[0]?.count || 0,
+    };
+  });
 
   return {
     languages: transformedLanguages,

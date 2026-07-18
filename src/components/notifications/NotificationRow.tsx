@@ -40,6 +40,7 @@ export function NotificationRow({ notification, onAction }: NotificationRowProps
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount flag: portal target (document.body) only exists after mount
     setMounted(true);
   }, []);
 

@@ -43,6 +43,7 @@ export function LeagueEditModal({
   useEffect(() => {
     if (isOpen) {
       if (editingLeague) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset form fields when the modal opens or the edited league changes
         setTierOrder(editingLeague.tier_order);
         setSlug(editingLeague.slug);
         setName(editingLeague.name);

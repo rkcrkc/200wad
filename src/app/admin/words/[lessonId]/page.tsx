@@ -1,16 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { WordsClient } from "./WordsClient";
+import type { Lesson, Word, LessonOption, CourseOption } from "./WordsClient";
 
 interface PageProps {
   params: Promise<{ lessonId: string }>;
 }
 
-async function getData(lessonId: string) {
+interface WordsPageData {
+  lesson: Lesson;
+  words: Word[];
+  positionInOrder: number | null;
+  allLessons: LessonOption[];
+  allCourses: CourseOption[];
+}
+
+async function getData(lessonId: string): Promise<WordsPageData | null> {
   const supabase = await createClient();
 
   // Fetch lesson with course info
-  const { data: lesson, error: lessonError } = await supabase
+  const { data: lessonRaw, error: lessonError } = await supabase
     .from("lessons")
     .select(`
       id,
@@ -26,13 +35,18 @@ async function getData(lessonId: string) {
     .eq("id", lessonId)
     .single();
 
-  if (lessonError || !lesson) {
+  if (lessonError || !lessonRaw) {
     return null;
   }
 
+  // Supabase types embedded to-one relations (course, language) as arrays even
+  // though they resolve to single objects at runtime, so normalise the fetched
+  // row to our view type via `unknown`.
+  const lesson = lessonRaw as unknown as Lesson;
+
   // Position in lesson order: fetch lessons in same course by sort_order
   let positionInOrder: number | null = null;
-  const courseId = (lesson as any).course?.id;
+  const courseId = lesson.course?.id;
   if (courseId) {
     const { data: courseLessons } = await supabase
       .from("lessons")
@@ -67,16 +81,29 @@ async function getData(lessonId: string) {
 
   if (wordsError) {
     console.error("Error fetching words:", wordsError);
-    return { lesson, words: [] };
+    return {
+      lesson,
+      words: [],
+      positionInOrder,
+      allLessons: (allLessons || []) as LessonOption[],
+      allCourses: (allCourses || []) as CourseOption[],
+    };
   }
 
-  // Extract words with sort_order from join table
-  const words = (lessonWords || []).map((lw) => ({
-    ...(lw.words as any),
-    sort_order: lw.sort_order,
+  // Extract words with sort_order from join table. `lw.words` is a to-one
+  // embed (single row at runtime) that Supabase types as an array.
+  const words: Word[] = (lessonWords || []).map((lw) => ({
+    ...(lw.words as unknown as Word),
+    sort_order: lw.sort_order ?? 0,
   }));
 
-  return { lesson, words, positionInOrder, allLessons: allLessons || [], allCourses: allCourses || [] };
+  return {
+    lesson,
+    words,
+    positionInOrder,
+    allLessons: (allLessons || []) as LessonOption[],
+    allCourses: (allCourses || []) as CourseOption[],
+  };
 }
 
 export default async function WordsPage({ params }: PageProps) {
@@ -90,11 +117,11 @@ export default async function WordsPage({ params }: PageProps) {
   return (
     <div>
       <WordsClient
-        lesson={data.lesson as any}
-        words={data.words as any[]}
+        lesson={data.lesson}
+        words={data.words}
         positionInOrder={data.positionInOrder}
-        allLessons={data.allLessons as any[]}
-        allCourses={data.allCourses as any[]}
+        allLessons={data.allLessons}
+        allCourses={data.allCourses}
       />
     </div>
   );

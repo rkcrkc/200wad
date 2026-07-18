@@ -52,6 +52,7 @@ export function AdminTipEditModal({
   useEffect(() => {
     if (isOpen) {
       if (editingTip) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset form fields when the modal opens or the edited tip changes
         setTitle(editingTip.title || "");
         setBody(editingTip.body);
         setEmoji(editingTip.emoji || "");
@@ -99,6 +100,7 @@ export function AdminTipEditModal({
   // Debounced search
   useEffect(() => {
     if (!searchQuery.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: clear stale results when the debounced query is emptied
       setSearchResults([]);
       return;
     }

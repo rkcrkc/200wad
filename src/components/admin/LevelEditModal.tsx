@@ -42,6 +42,7 @@ export function LevelEditModal({
   useEffect(() => {
     if (isOpen) {
       if (editingLevel) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset form fields when the modal opens or the edited level changes
         setLevelNumber(editingLevel.level_number);
         setSlug(editingLevel.slug);
         setName(editingLevel.name);

@@ -143,13 +143,6 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
     };
   }, [lessons]);
 
-  // Helper to get milestone score value (excludes lessonId which is a string)
-  type MilestoneKey = Exclude<keyof LessonMilestoneScores, "lessonId">;
-  const getMilestoneScore = (lessonId: string, milestone: MilestoneKey): number | null => {
-    const scores = milestoneScores?.get(lessonId);
-    return scores?.[milestone] ?? null;
-  };
-
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
     // First filter by status
@@ -193,8 +186,10 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         case "year":
         case "other":
         case "overall":
-          const aScore = getMilestoneScore(a.id, sortColumn);
-          const bScore = getMilestoneScore(b.id, sortColumn);
+          // Inlined milestone lookup (rather than a render-scope helper) so
+          // the compiler can preserve this useMemo. `milestoneScores` is in deps.
+          const aScore = milestoneScores?.get(a.id)?.[sortColumn] ?? null;
+          const bScore = milestoneScores?.get(b.id)?.[sortColumn] ?? null;
           // Treat null as -1 so they sort to the end
           comparison = (aScore ?? -1) - (bScore ?? -1);
           break;

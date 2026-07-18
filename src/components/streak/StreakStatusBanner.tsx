@@ -53,6 +53,7 @@ export function StreakStatusBanner({
   // Read the previously-dismissed signature after mount to avoid a hydration
   // mismatch (server always renders the card visible).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: read client-only sessionStorage after mount to avoid SSR hydration mismatch
     setDismissedKey(sessionStorage.getItem(DISMISS_STORAGE_KEY));
   }, []);
 

@@ -113,6 +113,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
 
   // Reset state when word changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset the answer field/feedback when navigating to a new word
     setInput("");
     setFeedback(null);
     setShowDiff(false);

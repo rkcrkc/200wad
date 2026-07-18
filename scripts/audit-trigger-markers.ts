@@ -100,7 +100,7 @@ async function main() {
       .not("memory_trigger_text", "is", null)
       .range(from, from + 999);
     if (!data || data.length === 0) break;
-    for (const w of data as any[])
+    for (const w of data as { legacy_refn: number; headword: string; memory_trigger_text: string | null }[])
       dbByRefn.set(w.legacy_refn, { headword: w.headword, trigger: w.memory_trigger_text });
     if (data.length < 1000) break;
     from += 1000;

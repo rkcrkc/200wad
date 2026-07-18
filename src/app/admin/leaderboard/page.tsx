@@ -50,6 +50,7 @@ export default async function AdminLeaderboardPage() {
     .from("credit_transactions")
     .select("amount_cents, type")
     .in("type", ["leaderboard_reward", "streak_reward"])
+    // eslint-disable-next-line react-hooks/purity -- server component: the request-time "30 days ago" window is intentional and runs once per request, not during a client render
     .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
   const monthlyRewardCost = (recentRewards || []).reduce(

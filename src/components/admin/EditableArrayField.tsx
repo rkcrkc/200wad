@@ -33,6 +33,7 @@ export function EditableArrayField({
   // (e.g., after a successful save or external update) while not editing.
   useEffect(() => {
     if (!isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync pending values from the prop when not actively editing
       setPendingValues(value);
     }
   }, [value, isEditing]);
@@ -47,6 +48,7 @@ export function EditableArrayField({
   // Close editing when edit mode is turned off globally
   useEffect(() => {
     if (!isEditMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: close/reset the editor when global edit mode is turned off
       setIsEditing(false);
       setPendingValues(value);
       setNewInput("");

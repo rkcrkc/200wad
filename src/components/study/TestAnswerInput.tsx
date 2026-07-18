@@ -125,6 +125,7 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   // Only reset if there's no existing result (word not already answered)
   useEffect(() => {
     if (!existingResult) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset the answer field when navigating to a new, unanswered word
       setInput("");
       setLocalResult(null);
       clearPending();

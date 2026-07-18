@@ -20,6 +20,7 @@ export function useScrollFade() {
     const el = scrollRef.current;
     if (!el) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initial DOM overflow measurement after layout
     checkScroll();
     el.addEventListener("scroll", checkScroll, { passive: true });
     window.addEventListener("resize", checkScroll);

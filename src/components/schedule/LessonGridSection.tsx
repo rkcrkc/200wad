@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,21 +51,20 @@ export function LessonGridSection({
   );
 
   // If the active tab is no longer rendered (e.g. needs-review emptied out
-  // between renders), fall back to default-tab logic.
-  useEffect(() => {
-    if (!tabs.some((t) => t.id === activeTab)) {
-      setActiveTab(getDefaultTab(showNew, showNeedsReview));
-    }
-  }, [tabs, activeTab, showNew, showNeedsReview]);
+  // between renders), fall back to default-tab logic. Derived during render
+  // rather than synced via an effect so there's no extra commit / flicker.
+  const resolvedTab = tabs.some((t) => t.id === activeTab)
+    ? activeTab
+    : getDefaultTab(showNew, showNeedsReview);
 
   // Determine heading based on whether there are due tests
   const heading = hasDueTests ? "Or study a lesson" : "Or study something else";
 
   // Determine which lessons to show
   const displayLessons =
-    activeTab === "new"
+    resolvedTab === "new"
       ? newLessons
-      : activeTab === "needs-review"
+      : resolvedTab === "needs-review"
         ? needsReviewLessons
         : recentLessons;
 
@@ -89,7 +88,7 @@ export function LessonGridSection({
         <div className="mb-4">
           <Tabs
             tabs={tabs}
-            activeTab={activeTab}
+            activeTab={resolvedTab}
             onChange={(id) => setActiveTab(id as TabId)}
           />
         </div>
@@ -105,16 +104,16 @@ export function LessonGridSection({
       ) : (
         <EmptyState
           title={
-            activeTab === "new"
+            resolvedTab === "new"
               ? "You've started all available lessons"
-              : activeTab === "needs-review"
+              : resolvedTab === "needs-review"
                 ? "Nothing to review right now"
                 : "No recent lessons yet"
           }
           description={
-            activeTab === "new"
+            resolvedTab === "new"
               ? "Great job! Check your tests or review recent lessons."
-              : activeTab === "needs-review"
+              : resolvedTab === "needs-review"
                 ? "You're all caught up. Come back later for review suggestions."
                 : "Start studying to see your recent lessons here."
           }

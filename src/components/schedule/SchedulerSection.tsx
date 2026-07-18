@@ -41,14 +41,12 @@ export function SchedulerSection({
   // Active test index — only meaningful when in test mode with multiple tests.
   const [activeTestIndex, setActiveTestIndex] = useState(0);
 
-  // If the dueTests array shrinks (e.g. user completes a test), clamp the index.
-  useEffect(() => {
-    if (activeTestIndex >= dueTests.length) {
-      setActiveTestIndex(0);
-    }
-  }, [dueTests.length, activeTestIndex]);
+  // Clamp during render rather than in an effect: if the dueTests array shrinks
+  // (e.g. the user completes a test) below the stored index, fall back to the
+  // first tab without triggering an extra render pass.
+  const clampedTestIndex = activeTestIndex < dueTests.length ? activeTestIndex : 0;
 
-  const primaryTest = dueTests[activeTestIndex] ?? dueTests[0];
+  const primaryTest = dueTests[clampedTestIndex] ?? dueTests[0];
 
   // Alternating / priority logic:
   // - After completing a test → show next lesson (even if more tests are due)
@@ -77,6 +75,55 @@ export function SchedulerSection({
     showTest = hasDueTests;
     displayLesson = hasDueTests ? primaryTest : nextLesson;
   }
+
+  // Show dot pagination only when displaying tests and there are multiple.
+  const showTestDots = showTest && hasMultipleTests;
+
+  // Horizontal scroll state for the tab strip (used in compact mode).
+  // NOTE: these hooks must stay above the `!displayLesson` early return so
+  // they run unconditionally on every render (rules-of-hooks).
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    if (!showTestDots) return;
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updateScrollState, showTestDots, dueTests.length]);
+
+  // Auto-scroll the active tab into view when it changes (e.g. after the
+  // dueTests array shrinks and useEffect clamps the index back to 0). Only
+  // relevant when the strip is actually overflowing (many tabs at min-width).
+  useEffect(() => {
+    if (!showTestDots) return;
+    const container = tabsScrollRef.current;
+    if (!container) return;
+    const btn = container.querySelector<HTMLButtonElement>(
+      `[data-tab-index="${clampedTestIndex}"]`
+    );
+    if (!btn) return;
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    if (bRect.left < cRect.left || bRect.right > cRect.right) {
+      container.scrollTo({
+        left:
+          btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2,
+        behavior: "smooth",
+      });
+    }
+  }, [clampedTestIndex, showTestDots]);
 
   if (!displayLesson) {
     return null;
@@ -116,53 +163,6 @@ export function SchedulerSection({
     linkCount = totalLessons;
   }
 
-  // Show dot pagination only when displaying tests and there are multiple.
-  const showTestDots = showTest && hasMultipleTests;
-
-  // Horizontal scroll state for the tab strip (used in compact mode).
-  const tabsScrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollState = useCallback(() => {
-    const el = tabsScrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  }, []);
-
-  useEffect(() => {
-    if (!showTestDots) return;
-    const el = tabsScrollRef.current;
-    if (!el) return;
-    updateScrollState();
-    const observer = new ResizeObserver(updateScrollState);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [updateScrollState, showTestDots, dueTests.length]);
-
-  // Auto-scroll the active tab into view when it changes (e.g. after the
-  // dueTests array shrinks and useEffect clamps the index back to 0). Only
-  // relevant when the strip is actually overflowing (many tabs at min-width).
-  useEffect(() => {
-    if (!showTestDots) return;
-    const container = tabsScrollRef.current;
-    if (!container) return;
-    const btn = container.querySelector<HTMLButtonElement>(
-      `[data-tab-index="${activeTestIndex}"]`
-    );
-    if (!btn) return;
-    const cRect = container.getBoundingClientRect();
-    const bRect = btn.getBoundingClientRect();
-    if (bRect.left < cRect.left || bRect.right > cRect.right) {
-      container.scrollTo({
-        left:
-          btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2,
-        behavior: "smooth",
-      });
-    }
-  }, [activeTestIndex, showTestDots]);
-
   const scrollByAmount = (delta: number) => {
     tabsScrollRef.current?.scrollBy({ left: delta, behavior: "smooth" });
   };
@@ -199,7 +199,7 @@ export function SchedulerSection({
               className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {dueTests.map((test, i) => {
-                const isActive = i === activeTestIndex;
+                const isActive = i === clampedTestIndex;
                 return (
                   <button
                     key={test.id}

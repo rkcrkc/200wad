@@ -80,6 +80,7 @@ export function StartTestModal({
   // If picture-only was saved but isn't available for this lesson, fall back
   useEffect(() => {
     if (selectedType === "picture-only" && wordsWithImages === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: fall back when a persisted test type isn't available for this lesson
       setSelectedType(defaultTestType);
     }
   }, [selectedType, wordsWithImages, defaultTestType]);

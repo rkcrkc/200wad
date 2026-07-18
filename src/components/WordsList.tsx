@@ -61,6 +61,7 @@ export function WordsList({
     if (wordId) {
       const wordIndex = words.findIndex((w) => w.id === wordId);
       if (wordIndex !== -1) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: one-time auto-select from the ?word= URL param, then notify the parent
         setSelectedWordIndex(wordIndex);
         onWordSelected?.(true);
       }

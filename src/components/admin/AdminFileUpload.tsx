@@ -33,6 +33,7 @@ export function AdminFileUpload({
   useEffect(() => {
     // Only update if we don't have a local file (i.e., the value is from the server)
     if (!localFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync preview from the server value prop when no local file is staged
       setPreviewUrl(value);
     }
   }, [value, localFile]);

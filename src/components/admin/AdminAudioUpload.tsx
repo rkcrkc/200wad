@@ -30,6 +30,7 @@ export function AdminAudioUpload({
   // Sync previewUrl with value prop when editing different items
   useEffect(() => {
     if (!localFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync preview from the server value prop when no local file is staged
       setPreviewUrl(value);
     }
   }, [value, localFile]);

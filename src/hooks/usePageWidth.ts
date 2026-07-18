@@ -18,6 +18,7 @@ export function usePageWidth() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount flag: reveal client-only (localStorage) state after hydration to avoid SSR mismatch
     setMounted(true);
   }, []);
 

@@ -60,7 +60,7 @@ interface Course {
   language_id: string | null;
 }
 
-interface Lesson {
+export interface Lesson {
   id: string;
   course_id: string | null;
   number: number;
@@ -461,9 +461,11 @@ export function LessonsClient({
         console.error("Error fetching words:", error);
         setWords([]);
       } else {
-        const wordsData = (lessonWords || []).map((lw) => ({
-          ...(lw.words as any),
-          sort_order: lw.sort_order,
+        // `lw.words` is a to-one embed (single row at runtime) that Supabase
+        // types as an array, so normalise via `unknown`.
+        const wordsData: Word[] = (lessonWords || []).map((lw) => ({
+          ...(lw.words as unknown as Word),
+          sort_order: lw.sort_order ?? 0,
         }));
         setWords(wordsData);
       }
@@ -635,13 +637,12 @@ export function LessonsClient({
         .eq("word_id", word.id);
 
       if (data) {
-        const wordLessons: WordLessonInfo[] = data.map((lw: any) => ({
-          id: lw.lessons.id,
-          number: lw.lessons.number,
-          title: lw.lessons.title,
-          emoji: lw.lessons.emoji,
-          course_id: lw.lessons.course_id,
-        }));
+        // `lessons` is a to-one embed (single row at runtime) that Supabase
+        // types as an array, so normalise via `unknown`.
+        type LessonWordRow = { lessons: WordLessonInfo | null };
+        const wordLessons: WordLessonInfo[] = (data as unknown as LessonWordRow[])
+          .map((lw) => lw.lessons)
+          .filter((l): l is WordLessonInfo => l !== null);
         setEditingWordLessons(wordLessons);
       }
     } catch {

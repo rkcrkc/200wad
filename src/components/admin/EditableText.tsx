@@ -119,7 +119,7 @@ export function EditableText({
   return (
     <span className="inline-flex items-center gap-2">
       <InputComponent
-        ref={inputRef as any}
+        ref={inputRef as React.Ref<HTMLInputElement & HTMLTextAreaElement>}
         type="text"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}

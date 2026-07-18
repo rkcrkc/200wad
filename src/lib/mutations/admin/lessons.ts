@@ -9,6 +9,7 @@ import {
   type UpdateLessonInput,
 } from "@/lib/validations/admin";
 import { revalidatePath } from "next/cache";
+import type { Word } from "@/types/database";
 
 // ============================================================================
 // RESULT TYPES
@@ -334,7 +335,9 @@ export async function cloneLesson(
 
       for (let i = 0; i < originalLessonWords.length; i++) {
         const lessonWord = originalLessonWords[i];
-        const word = lessonWord.words as any;
+        // `words(*)` is a to-one embed (single row at runtime) that Supabase
+        // types as an array, so normalise via `unknown`.
+        const word = lessonWord.words as unknown as Word;
         if (!word) continue;
 
         const { data: newWord, error: wordError } = await supabase

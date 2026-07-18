@@ -107,6 +107,7 @@ export function useStudyMusic(
     const storedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
 
     if (storedTrack && tracks.some((t) => t.id === storedTrack)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initialise selection from localStorage once async-loaded tracks arrive
       setSelectedTrackState(storedTrack);
     } else {
       // Default to first track

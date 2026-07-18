@@ -345,7 +345,7 @@ export async function getLessons(courseId: string): Promise<GetLessonsResult> {
   }
 
   // Get user's lesson progress if authenticated
-  let progressByLesson: Record<string, UserLessonProgress> = {};
+  const progressByLesson: Record<string, UserLessonProgress> = {};
   let totalStudyTimeSeconds = 0;
   let totalTestTimeSeconds = 0;
   let wordsMastered = 0;

@@ -63,6 +63,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   const [tipsResetDone, setTipsResetDone] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount flag: reveal client-only (localStorage) prefs after hydration to avoid SSR mismatch
     setMounted(true);
   }, []);
 

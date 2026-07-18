@@ -139,7 +139,7 @@ export function LessonActivityHistory({
 
   const filteredAndSortedActivities = useMemo(() => {
     // First filter
-    let filtered = filter === "all"
+    const filtered = filter === "all"
       ? [...activities]
       : activities.filter((a) => a.type === filter);
 

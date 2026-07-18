@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { LessonsClient } from "./LessonsClient";
+import type { Lesson } from "./LessonsClient";
 
 async function getData() {
   const supabase = await createClient();
@@ -37,7 +38,10 @@ async function getData() {
   return {
     languages: languages || [],
     courses: courses || [],
-    lessons: (lessons || []) as any[],
+    // Supabase types embedded to-one relations (course, language) as arrays
+    // even though they resolve to single objects at runtime, so normalise via
+    // `unknown`.
+    lessons: (lessons || []) as unknown as Lesson[],
   };
 }
 

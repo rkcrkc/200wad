@@ -40,6 +40,7 @@ export function Popover({
 
   // Portal target only exists after mount on the client.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount flag: portal target (document.body) only exists after mount
     setMounted(true);
   }, []);
 

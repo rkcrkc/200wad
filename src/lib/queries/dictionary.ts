@@ -1,7 +1,22 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
-import { Word, Language } from "@/types/database";
+import { Language } from "@/types/database";
+
+/**
+ * Embedded `words(...)` projection shared by the dictionary queries. Supabase
+ * types to-one embeds as arrays even though they resolve to a single row at
+ * runtime, so each row is normalised to these shapes via `unknown`.
+ */
+type DictWordRow = {
+  id: string;
+  english: string;
+  headword: string;
+  part_of_speech: string | null;
+  category: string | null;
+  memory_trigger_image_url: string | null;
+};
+type DictWordRowWithLang = DictWordRow & { language_id: string };
 
 // ============================================================================
 // Per-request memoized sub-queries
@@ -182,7 +197,9 @@ export async function getDictionaryWords(
       // table (cached and shared with the "all" filter) and intersect
       // client-side via the wordId Set.
       const wordIdSet = new Set<string>(
-        progressWords.map((p) => (p.words as any).id).filter((id: unknown): id is string => !!id)
+        progressWords
+          .map((p) => (p.words as unknown as DictWordRowWithLang).id)
+          .filter((id: unknown): id is string => !!id)
       );
       const fullLessonMap = await getAllLessonWordsMap();
       const lessonMap = new Map(
@@ -192,9 +209,9 @@ export async function getDictionaryWords(
       );
 
       words = progressWords
-        .filter((p) => (p.words as any).language_id === languageId)
+        .filter((p) => (p.words as unknown as DictWordRowWithLang).language_id === languageId)
         .map((p) => {
-          const word = p.words as any;
+          const word = p.words as unknown as DictWordRowWithLang;
           const lesson = lessonMap.get(word.id);
           return {
             id: word.id,
@@ -254,13 +271,13 @@ export async function getDictionaryWords(
         const seenWordIds = new Set<string>();
         words = lessonWords
           .filter((lw) => {
-            const wordId = (lw.words as any).id;
+            const wordId = (lw.words as unknown as DictWordRow).id;
             if (seenWordIds.has(wordId)) return false;
             seenWordIds.add(wordId);
             return true;
           })
           .map((lw) => {
-            const word = lw.words as any;
+            const word = lw.words as unknown as DictWordRow;
             const lesson = lw.lessons as { id: string; title: string; number: number } | null;
             return {
               id: word.id,
