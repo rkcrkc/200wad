@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { ChevronRight, Info } from "lucide-react";
 import { ExampleSentence } from "@/types/database";
@@ -42,7 +42,9 @@ interface StudySidebarProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   pictureMp4Defect?: boolean | null;
-  audioRerecord?: boolean | null;
+  audioRerecordEnglish?: boolean | null;
+  audioRerecordForeign?: boolean | null;
+  audioRerecordTrigger?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /** Callback when developer data is saved (so parent can update its cached word) */
   onDeveloperDataChange?: (data: DeveloperData) => void;
@@ -74,7 +76,9 @@ export function StudySidebar({
   pictureMissing,
   pictureBadSvg,
   pictureMp4Defect,
-  audioRerecord,
+  audioRerecordEnglish,
+  audioRerecordForeign,
+  audioRerecordTrigger,
   notesInMemoryTrigger,
   onDeveloperDataChange,
   videoUrl,
@@ -92,18 +96,17 @@ export function StudySidebar({
   const [isEditingSystemNotes, setIsEditingSystemNotes] = useState(false);
   const [systemNotesInput, setSystemNotesInput] = useState(systemNotes || "");
 
-  const prevWordIdRef = useRef(wordId);
-
-  // Reset notes state when word changes
-  useEffect(() => {
-    if (wordId !== prevWordIdRef.current) {
-      setUserNotesInput(userNotes || "");
-      setIsEditingUserNotes(false);
-      setSystemNotesInput(systemNotes || "");
-      setIsEditingSystemNotes(false);
-      prevWordIdRef.current = wordId;
-    }
-  }, [wordId, userNotes, systemNotes]);
+  // Reset notes state when the word changes. Adjusting state during render
+  // (React's recommended pattern over a reset effect) so the new word's notes
+  // are applied in the same commit, avoiding a flash of the previous word.
+  const [prevWordId, setPrevWordId] = useState(wordId);
+  if (wordId !== prevWordId) {
+    setPrevWordId(wordId);
+    setUserNotesInput(userNotes || "");
+    setIsEditingUserNotes(false);
+    setSystemNotesInput(systemNotes || "");
+    setIsEditingSystemNotes(false);
+  }
 
   // User notes handlers
   const handleSaveUserNotes = () => {
@@ -375,7 +378,9 @@ export function StudySidebar({
           pictureMissing={pictureMissing}
           pictureBadSvg={pictureBadSvg}
           pictureMp4Defect={pictureMp4Defect}
-          audioRerecord={audioRerecord}
+          audioRerecordEnglish={audioRerecordEnglish}
+          audioRerecordForeign={audioRerecordForeign}
+          audioRerecordTrigger={audioRerecordTrigger}
           notesInMemoryTrigger={notesInMemoryTrigger}
           isEnabled={isEnabled}
           onSaved={onDeveloperDataChange}

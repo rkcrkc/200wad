@@ -205,7 +205,9 @@ export interface DeveloperData {
   picture_missing: boolean;
   picture_bad_svg: boolean;
   picture_mp4_defect: boolean;
-  audio_rerecord: boolean;
+  audio_rerecord_english: boolean;
+  audio_rerecord_foreign: boolean;
+  audio_rerecord_trigger: boolean;
   notes_in_memory_trigger: boolean;
 }
 
@@ -241,7 +243,9 @@ export async function saveDeveloperData(
       picture_missing: data.picture_missing,
       picture_bad_svg: data.picture_bad_svg,
       picture_mp4_defect: data.picture_mp4_defect,
-      audio_rerecord: data.audio_rerecord,
+      audio_rerecord_english: data.audio_rerecord_english,
+      audio_rerecord_foreign: data.audio_rerecord_foreign,
+      audio_rerecord_trigger: data.audio_rerecord_trigger,
       notes_in_memory_trigger: data.notes_in_memory_trigger,
     })
     .eq("id", wordId);

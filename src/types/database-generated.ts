@@ -2271,7 +2271,9 @@ export type Database = {
           admin_notes: string | null
           alternate_answers: string[] | null
           alternate_english_answers: string[] | null
-          audio_rerecord: boolean | null
+          audio_rerecord_english: boolean | null
+          audio_rerecord_foreign: boolean | null
+          audio_rerecord_trigger: boolean | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -2318,7 +2320,9 @@ export type Database = {
           admin_notes?: string | null
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
-          audio_rerecord?: boolean | null
+          audio_rerecord_english?: boolean | null
+          audio_rerecord_foreign?: boolean | null
+          audio_rerecord_trigger?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -2365,7 +2369,9 @@ export type Database = {
           admin_notes?: string | null
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
-          audio_rerecord?: boolean | null
+          audio_rerecord_english?: boolean | null
+          audio_rerecord_foreign?: boolean | null
+          audio_rerecord_trigger?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null

@@ -29,7 +29,9 @@ type CourseFlagRow = {
     picture_missing: boolean | null;
     picture_bad_svg: boolean | null;
     picture_mp4_defect: boolean | null;
-    audio_rerecord: boolean | null;
+    audio_rerecord_english: boolean | null;
+    audio_rerecord_foreign: boolean | null;
+    audio_rerecord_trigger: boolean | null;
     notes_in_memory_trigger: boolean | null;
   } | null;
 };
@@ -45,12 +47,22 @@ type CourseWord = {
 /**
  * Whether a word is "flagged" for a given QA flag. Text flags
  * (`developer_notes`) count as flagged only when non-null AND non-empty after
- * trimming; boolean flags count when strictly `true`.
+ * trimming; boolean flags count when strictly `true`. `audio_rerecord` is a
+ * combined flag over the three per-track re-record columns.
  */
 function isFlagged(flags: CourseWord["flags"], flag: QaFlag): boolean {
   if (flag === "developer_notes") {
     const note = flags.developer_notes;
     return typeof note === "string" && note.trim().length > 0;
+  }
+  // The single "Re-record Audio" QA lesson is combined: a word is flagged if
+  // any of the three per-track re-record flags is set.
+  if (flag === "audio_rerecord") {
+    return (
+      flags.audio_rerecord_english === true ||
+      flags.audio_rerecord_foreign === true ||
+      flags.audio_rerecord_trigger === true
+    );
   }
   return flags[flag] === true;
 }
@@ -70,7 +82,7 @@ async function getCourseFlaggedWords(
       supabase
         .from("lesson_words")
         .select(
-          "word_id, sort_order, lessons!inner(course_id, sort_order, number), words!inner(developer_notes, picture_wrong, picture_missing, picture_bad_svg, picture_mp4_defect, audio_rerecord, notes_in_memory_trigger)",
+          "word_id, sort_order, lessons!inner(course_id, sort_order, number), words!inner(developer_notes, picture_wrong, picture_missing, picture_bad_svg, picture_mp4_defect, audio_rerecord_english, audio_rerecord_foreign, audio_rerecord_trigger, notes_in_memory_trigger)",
         )
         .eq("lessons.course_id", courseId)
         .range(from, to),

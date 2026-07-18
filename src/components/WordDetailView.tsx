@@ -215,6 +215,7 @@ export function WordDetailView({
 
   // Reset notes state when word changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: resync note editors when the word (or its server-side notes) changes
     setUserNotesInput(word.progress?.user_notes || "");
     setUserNotes(word.progress?.user_notes || null);
     setIsEditingUserNotes(false);
@@ -290,6 +291,7 @@ export function WordDetailView({
     if (!autoPlayAudio) return;
 
     audioSequenceCancelledRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: flag the auto-play audio sequence as started (genuine side-effect)
     setIsPlayingSequence(true);
 
     const playSequence = async () => {
@@ -1059,7 +1061,9 @@ export function WordDetailView({
               pictureMissing={word.picture_missing}
               pictureBadSvg={word.picture_bad_svg}
               pictureMp4Defect={word.picture_mp4_defect}
-              audioRerecord={word.audio_rerecord}
+              audioRerecordEnglish={word.audio_rerecord_english}
+              audioRerecordForeign={word.audio_rerecord_foreign}
+              audioRerecordTrigger={word.audio_rerecord_trigger}
               notesInMemoryTrigger={word.notes_in_memory_trigger}
               videoUrl={effectiveVideoUrl}
               onVideoRemoved={() => setVideoRemoved(true)}

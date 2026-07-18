@@ -2320,7 +2320,9 @@ export function TestModeClient({
                       pictureMissing={currentWord?.picture_missing}
                       pictureBadSvg={currentWord?.picture_bad_svg}
                       pictureMp4Defect={currentWord?.picture_mp4_defect}
-                      audioRerecord={currentWord?.audio_rerecord}
+                      audioRerecordEnglish={currentWord?.audio_rerecord_english}
+                      audioRerecordForeign={currentWord?.audio_rerecord_foreign}
+                      audioRerecordTrigger={currentWord?.audio_rerecord_trigger}
                       notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
                       videoUrl={currentWord?.memory_trigger_video_url}
                       onVideoRemoved={handleVideoRemoved}

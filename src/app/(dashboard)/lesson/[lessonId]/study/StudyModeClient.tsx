@@ -756,7 +756,10 @@ export function StudyModeClient({
   // Handle next word
   const handleNextWord = useCallback(() => {
     if (isLastWord) {
-      // Finish lesson
+      // Finish lesson. `handleFinishLesson` is declared below; the forward
+      // reference is safe because this callback body only runs on invocation,
+      // by which point both are defined.
+      // eslint-disable-next-line react-hooks/immutability -- intentional forward reference between two useCallbacks
       handleFinishLesson();
     } else {
       // Move to next word
@@ -881,7 +884,9 @@ export function StudyModeClient({
                 picture_missing: data.picture_missing,
                 picture_bad_svg: data.picture_bad_svg,
                 picture_mp4_defect: data.picture_mp4_defect,
-                audio_rerecord: data.audio_rerecord,
+                audio_rerecord_english: data.audio_rerecord_english,
+                audio_rerecord_foreign: data.audio_rerecord_foreign,
+                audio_rerecord_trigger: data.audio_rerecord_trigger,
                 notes_in_memory_trigger: data.notes_in_memory_trigger,
               }
             : w,
@@ -1598,7 +1603,9 @@ export function StudyModeClient({
                 pictureMissing={currentWord.picture_missing}
                 pictureBadSvg={currentWord.picture_bad_svg}
                 pictureMp4Defect={currentWord.picture_mp4_defect}
-                audioRerecord={currentWord.audio_rerecord}
+                audioRerecordEnglish={currentWord.audio_rerecord_english}
+                audioRerecordForeign={currentWord.audio_rerecord_foreign}
+                audioRerecordTrigger={currentWord.audio_rerecord_trigger}
                 notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                 onDeveloperDataChange={handleDeveloperDataChange}
               />
@@ -1699,7 +1706,9 @@ export function StudyModeClient({
                       pictureMissing={currentWord.picture_missing}
                       pictureBadSvg={currentWord.picture_bad_svg}
                       pictureMp4Defect={currentWord.picture_mp4_defect}
-                      audioRerecord={currentWord.audio_rerecord}
+                      audioRerecordEnglish={currentWord.audio_rerecord_english}
+                      audioRerecordForeign={currentWord.audio_rerecord_foreign}
+                      audioRerecordTrigger={currentWord.audio_rerecord_trigger}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                       onDeveloperDataChange={handleDeveloperDataChange}
                       videoUrl={currentWord.memory_trigger_video_url}

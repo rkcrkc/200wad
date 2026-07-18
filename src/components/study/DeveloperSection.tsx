@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { saveDeveloperData, type DeveloperData } from "@/lib/mutations";
 import { setWordVideoOverride } from "@/lib/mutations/admin/imageGroups";
@@ -14,7 +14,9 @@ interface DeveloperSectionProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   pictureMp4Defect?: boolean | null;
-  audioRerecord?: boolean | null;
+  audioRerecordEnglish?: boolean | null;
+  audioRerecordForeign?: boolean | null;
+  audioRerecordTrigger?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /**
    * Effective trigger video URL for this word. When present, a "Remove video"
@@ -39,7 +41,9 @@ export function DeveloperSection({
   pictureMissing: initialPictureMissing,
   pictureBadSvg: initialPictureBadSvg,
   pictureMp4Defect: initialPictureMp4Defect,
-  audioRerecord: initialAudioRerecord,
+  audioRerecordEnglish: initialAudioRerecordEnglish,
+  audioRerecordForeign: initialAudioRerecordForeign,
+  audioRerecordTrigger: initialAudioRerecordTrigger,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
   videoUrl,
   onVideoRemoved,
@@ -55,42 +59,35 @@ export function DeveloperSection({
   const [pictureMissing, setPictureMissing] = useState(initialPictureMissing || false);
   const [pictureBadSvg, setPictureBadSvg] = useState(initialPictureBadSvg || false);
   const [pictureMp4Defect, setPictureMp4Defect] = useState(initialPictureMp4Defect || false);
-  const [audioRerecord, setAudioRerecord] = useState(initialAudioRerecord || false);
+  const [audioRerecordEnglish, setAudioRerecordEnglish] = useState(initialAudioRerecordEnglish || false);
+  const [audioRerecordForeign, setAudioRerecordForeign] = useState(initialAudioRerecordForeign || false);
+  const [audioRerecordTrigger, setAudioRerecordTrigger] = useState(initialAudioRerecordTrigger || false);
   const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(initialNotesInMemoryTrigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
   const [videoRemoved, setVideoRemoved] = useState(false);
   const [isRemovingVideo, setIsRemovingVideo] = useState(false);
 
-  const prevWordIdRef = useRef(wordId);
-
-  // Reset local state when word changes
-  useEffect(() => {
-    if (wordId !== prevWordIdRef.current) {
-      setDeveloperNotesInput(initialDeveloperNotes || "");
-      setDeveloperNotes(initialDeveloperNotes || null);
-      setIsEditingDeveloperNotes(false);
-      setPictureWrong(initialPictureWrong || false);
-      setPictureWrongNotesInput(initialPictureWrongNotes || "");
-      setPictureWrongNotes(initialPictureWrongNotes || null);
-      setPictureMissing(initialPictureMissing || false);
-      setPictureBadSvg(initialPictureBadSvg || false);
-      setPictureMp4Defect(initialPictureMp4Defect || false);
-      setAudioRerecord(initialAudioRerecord || false);
-      setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
-      setVideoRemoved(false);
-      prevWordIdRef.current = wordId;
-    }
-  }, [
-    wordId,
-    initialDeveloperNotes,
-    initialPictureWrong,
-    initialPictureWrongNotes,
-    initialPictureMissing,
-    initialPictureBadSvg,
-    initialPictureMp4Defect,
-    initialAudioRerecord,
-    initialNotesInMemoryTrigger,
-  ]);
+  // Reset local state when the word changes. Adjusting state during render
+  // (React's recommended pattern over a reset effect) so the new word's values
+  // are applied in the same commit, avoiding a flash of the previous word.
+  const [prevWordId, setPrevWordId] = useState(wordId);
+  if (wordId !== prevWordId) {
+    setPrevWordId(wordId);
+    setDeveloperNotesInput(initialDeveloperNotes || "");
+    setDeveloperNotes(initialDeveloperNotes || null);
+    setIsEditingDeveloperNotes(false);
+    setPictureWrong(initialPictureWrong || false);
+    setPictureWrongNotesInput(initialPictureWrongNotes || "");
+    setPictureWrongNotes(initialPictureWrongNotes || null);
+    setPictureMissing(initialPictureMissing || false);
+    setPictureBadSvg(initialPictureBadSvg || false);
+    setPictureMp4Defect(initialPictureMp4Defect || false);
+    setAudioRerecordEnglish(initialAudioRerecordEnglish || false);
+    setAudioRerecordForeign(initialAudioRerecordForeign || false);
+    setAudioRerecordTrigger(initialAudioRerecordTrigger || false);
+    setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
+    setVideoRemoved(false);
+  }
 
   const handleSaveDeveloperNotes = async () => {
     const trimmedNotes = developerNotesInput.trim() || null;
@@ -104,7 +101,9 @@ export function DeveloperSection({
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
-      audio_rerecord: audioRerecord,
+      audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_trigger: audioRerecordTrigger,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -145,7 +144,9 @@ export function DeveloperSection({
       picture_missing: field === "missing" ? checked : pictureMissing,
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
       picture_mp4_defect: field === "mp4_defect" ? checked : pictureMp4Defect,
-      audio_rerecord: audioRerecord,
+      audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_trigger: audioRerecordTrigger,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -166,7 +167,9 @@ export function DeveloperSection({
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
-      audio_rerecord: audioRerecord,
+      audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_trigger: audioRerecordTrigger,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -189,7 +192,9 @@ export function DeveloperSection({
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
-      audio_rerecord: audioRerecord,
+      audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_trigger: audioRerecordTrigger,
       notes_in_memory_trigger: checked,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -199,8 +204,14 @@ export function DeveloperSection({
     }
   };
 
-  const handleAudioCheckboxChange = async (checked: boolean) => {
-    setAudioRerecord(checked);
+  const handleAudioCheckboxChange = async (
+    track: "english" | "foreign" | "trigger",
+    checked: boolean,
+  ) => {
+    if (track === "english") setAudioRerecordEnglish(checked);
+    else if (track === "foreign") setAudioRerecordForeign(checked);
+    else setAudioRerecordTrigger(checked);
+
     setIsSavingDeveloperData(true);
     const data: DeveloperData = {
       developer_notes: developerNotes,
@@ -209,7 +220,9 @@ export function DeveloperSection({
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
-      audio_rerecord: checked,
+      audio_rerecord_english: track === "english" ? checked : audioRerecordEnglish,
+      audio_rerecord_foreign: track === "foreign" ? checked : audioRerecordForeign,
+      audio_rerecord_trigger: track === "trigger" ? checked : audioRerecordTrigger,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -385,12 +398,34 @@ export function DeveloperSection({
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={audioRerecord}
-                onChange={(e) => handleAudioCheckboxChange(e.target.checked)}
+                checked={audioRerecordEnglish}
+                onChange={(e) => handleAudioCheckboxChange("english", e.target.checked)}
                 disabled={isSavingDeveloperData}
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
-              <span className="text-small-regular text-foreground">Re-record audio</span>
+              <span className="text-small-regular text-foreground">Re-record English</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioRerecordForeign}
+                onChange={(e) => handleAudioCheckboxChange("foreign", e.target.checked)}
+                disabled={isSavingDeveloperData}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-small-regular text-foreground">Re-record Foreign</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioRerecordTrigger}
+                onChange={(e) => handleAudioCheckboxChange("trigger", e.target.checked)}
+                disabled={isSavingDeveloperData}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-small-regular text-foreground">Re-record Memory Trigger</span>
             </label>
           </div>
 

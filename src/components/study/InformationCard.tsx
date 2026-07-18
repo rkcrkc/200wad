@@ -25,7 +25,9 @@ interface InformationCardProps {
   pictureMissing?: boolean | null;
   pictureBadSvg?: boolean | null;
   pictureMp4Defect?: boolean | null;
-  audioRerecord?: boolean | null;
+  audioRerecordEnglish?: boolean | null;
+  audioRerecordForeign?: boolean | null;
+  audioRerecordTrigger?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /** Callback when developer data is saved (so parent can update its cached word) */
   onDeveloperDataChange?: (data: DeveloperData) => void;
@@ -46,7 +48,9 @@ export function InformationCard({
   pictureMissing,
   pictureBadSvg,
   pictureMp4Defect,
-  audioRerecord,
+  audioRerecordEnglish,
+  audioRerecordForeign,
+  audioRerecordTrigger,
   notesInMemoryTrigger,
   onDeveloperDataChange,
 }: InformationCardProps) {
@@ -142,7 +146,9 @@ export function InformationCard({
           pictureMissing={pictureMissing}
           pictureBadSvg={pictureBadSvg}
           pictureMp4Defect={pictureMp4Defect}
-          audioRerecord={audioRerecord}
+          audioRerecordEnglish={audioRerecordEnglish}
+          audioRerecordForeign={audioRerecordForeign}
+          audioRerecordTrigger={audioRerecordTrigger}
           notesInMemoryTrigger={notesInMemoryTrigger}
           onSaved={onDeveloperDataChange}
         />

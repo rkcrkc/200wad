@@ -73,9 +73,13 @@ export const QA_FLAG_DEFINITIONS: {
     emoji: "🎞️",
   },
   {
+    // Combined flag: a word matches if ANY of audio_rerecord_english,
+    // audio_rerecord_foreign, or audio_rerecord_trigger is set. The `column`
+    // below is nominal only (no single backing column) — the combined match
+    // lives in `isFlagged` in qa.ts. `column` is not used for reads.
     key: "audio_rerecord",
     label: "Re-record Audio",
-    column: "audio_rerecord",
+    column: "audio_rerecord_trigger",
     kind: "bool",
     emoji: "🎙️",
   },
