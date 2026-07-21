@@ -156,7 +156,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
 
             <div className="flex items-center">
               {isTest ? (
-                <Tooltip label={t("tip_study_lesson")}>
+                <Tooltip label={t("tip_study_lesson")} portal>
                   <Button
                     variant="ghost"
                     size="icon-lg"
@@ -166,7 +166,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                   </Button>
                 </Tooltip>
               ) : (
-                <Tooltip label={t("tip_take_test")}>
+                <Tooltip label={t("tip_take_test")} portal>
                   <Button
                     variant="ghost"
                     size="icon-lg"
@@ -177,7 +177,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                 </Tooltip>
               )}
 
-              <Tooltip label={t("tip_preview_lesson")}>
+              <Tooltip label={t("tip_preview_lesson")} portal>
                 <Button asChild variant="ghost" size="icon-lg">
                   <Link href={`/lesson/${lesson.id}`} prefetch>
                     <Eye className="size-5" />

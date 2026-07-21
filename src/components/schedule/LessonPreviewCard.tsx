@@ -86,7 +86,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
         </PrimaryButton>
 
         <div className="flex items-center">
-          <Tooltip label={t("tip_take_test")}>
+          <Tooltip label={t("tip_take_test")} portal>
             <Button
               variant="ghost"
               size="icon-lg"
@@ -96,7 +96,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
             </Button>
           </Tooltip>
 
-          <Tooltip label={t("tip_preview_lesson")}>
+          <Tooltip label={t("tip_preview_lesson")} portal>
             <Button asChild variant="ghost" size="icon-lg">
               <Link href={`/lesson/${lesson.id}`}>
                 <Eye className="size-5" />
