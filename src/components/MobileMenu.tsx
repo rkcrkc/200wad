@@ -165,13 +165,13 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden"
+        className="fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Drawer */}
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-white shadow-xl transition-transform lg:hidden">
+      <div className="fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-white shadow-xl transition-transform md:hidden">
         {/* Header */}
         <div className="flex h-[72px] items-center justify-between border-b border-gray-100 px-4">
           <span className="text-lg font-semibold text-foreground">Menu</span>

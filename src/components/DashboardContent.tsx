@@ -313,7 +313,7 @@ function DashboardShell({
                 <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} />
                 <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} collapsed={sidebarCollapsed} />
                 <div className="h-screen overflow-visible pt-[72px]">
-                  <main className={`bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[240px]"}`}>
+                  <main className={`bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
                     {children}
                   </main>
                 </div>

@@ -118,7 +118,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             {showSidebar && showAsLoggedIn && (
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover lg:hidden"
+                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5 text-muted-foreground" />
@@ -128,7 +128,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
             {/* Logo / Course Selector - smaller on mobile, full width on lg */}
             <div
               className={`-ml-4 flex w-auto shrink-0 px-4 ${
-                sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[240px]"
+                sidebarCollapsed ? "md:w-[72px]" : "md:w-[240px]"
               }`}
             >
             {hasContext && showAsLoggedIn && languageId ? (
@@ -165,7 +165,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           {showSidebar && showAsLoggedIn && onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="mr-2 hidden h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover lg:flex"
+              className="mr-2 hidden h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:flex"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
