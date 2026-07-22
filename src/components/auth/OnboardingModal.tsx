@@ -169,8 +169,8 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   // Success state after signup
   if (success) {
     return (
-      <ModalShell>
-        <ModalHeader className="pt-8 pb-6">
+      <ModalShell fullScreenOnMobile>
+        <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
           <div className="bg-success/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <svg
               className="text-success h-8 w-8"
@@ -221,8 +221,8 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   // Step 1: Language Selection
   if (step === "language") {
     return (
-      <ModalShell fixedHeight>
-        <ModalHeader className="pt-8 pb-6">
+      <ModalShell fixedHeight fullScreenOnMobile>
+        <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
           <h1 className="mb-2 text-3xl font-bold">Welcome to 200 Words a Day</h1>
           <p className="text-muted-foreground">
             What language do you want to study?
@@ -239,7 +239,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 <button
                   key={language.id}
                   onClick={() => setSelectedLanguageId(language.id)}
-                  className={`flex w-full items-center gap-4 rounded-2xl border bg-white px-6 py-5 text-left transition-colors ${
+                  className={`flex w-full items-center gap-4 rounded-2xl border bg-white px-4 py-4 text-left transition-colors sm:px-6 sm:py-5 ${
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
@@ -272,7 +272,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
           </div>
         </ModalBody>
 
-        <ModalFooter>
+        <ModalFooter className="pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:py-6">
           <div className="flex flex-col items-center gap-3">
             <PrimaryButton
               onClick={handleLanguageContinue}
@@ -299,8 +299,8 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
 
   // Step 2: Signup/Signin
   return (
-    <ModalShell fixedHeight>
-      <ModalHeader className="pt-8 pb-6">
+    <ModalShell fixedHeight fullScreenOnMobile>
+      <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
         <h1 className="mb-2 text-3xl font-bold">
           {authMode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
@@ -414,7 +414,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
         </div>
       </ModalBody>
 
-      <ModalFooter>
+      <ModalFooter className="pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:py-6">
         <div className="flex flex-col items-center gap-3">
           <PrimaryButton
             onClick={authMode === "signup" ? handleSignup : handleSignin}

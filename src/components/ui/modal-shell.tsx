@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 type MaxWidth = "md" | "content-sm" | "content-ms" | "content-md" | "content-lg";
@@ -13,6 +14,16 @@ const MAX_WIDTH_CLASS: Record<MaxWidth, string> = {
   "content-lg": "max-w-content-lg",
 };
 
+// md-prefixed variants for the full-screen-on-mobile shell. Kept as literal
+// strings (not interpolated) so Tailwind's JIT can detect and generate them.
+const MD_MAX_WIDTH_CLASS: Record<MaxWidth, string> = {
+  md: "md:max-w-md",
+  "content-sm": "md:max-w-content-sm",
+  "content-ms": "md:max-w-content-ms",
+  "content-md": "md:max-w-content-md",
+  "content-lg": "md:max-w-content-lg",
+};
+
 interface ModalShellProps {
   /** Modal width preset. Default: "content-sm" */
   maxWidth?: MaxWidth;
@@ -20,6 +31,12 @@ interface ModalShellProps {
   fixedHeight?: boolean;
   /** Lock body scroll while mounted. Default: true */
   lockBodyScroll?: boolean;
+  /**
+   * Below `md`, render as a full-screen page below the 72px fixed Header
+   * (no backdrop, footer pins to the bottom); at `md`+ behave as the normal
+   * centered modal. Default: false (byte-for-byte unchanged).
+   */
+  fullScreenOnMobile?: boolean;
   /** Outer card className override */
   className?: string;
   children: ReactNode;
@@ -33,6 +50,7 @@ export function ModalShell({
   maxWidth = "content-sm",
   fixedHeight = false,
   lockBodyScroll = true,
+  fullScreenOnMobile = false,
   className,
   children,
 }: ModalShellProps) {
@@ -44,19 +62,39 @@ export function ModalShell({
     };
   }, [lockBodyScroll]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+  // Portal to <body> so the fixed overlay escapes any scrollable/transformed
+  // ancestor (e.g. the dashboard's `overflow-auto` <main>), which on iOS Safari
+  // traps `position: fixed` children and clips the modal.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className={cn(
+        fullScreenOnMobile
+          ? "fixed inset-x-0 bottom-0 top-[72px] z-50 flex items-stretch overflow-hidden bg-transparent md:inset-0 md:top-0 md:items-center md:justify-center md:overflow-y-auto md:bg-black/50 md:p-6 md:backdrop-blur-sm"
+          : "fixed inset-0 z-50 flex h-[100dvh] items-center justify-center overflow-y-auto bg-black/50 px-5 py-6 backdrop-blur-sm sm:p-6",
+      )}
+    >
       <div
         className={cn(
-          "flex w-full flex-col overflow-hidden rounded-3xl bg-white",
-          MAX_WIDTH_CLASS[maxWidth],
-          fixedHeight && "h-[720px] max-h-[90vh]",
+          fullScreenOnMobile
+            ? cn(
+                "flex h-full w-full flex-col overflow-hidden rounded-none bg-white md:h-auto md:rounded-3xl",
+                MD_MAX_WIDTH_CLASS[maxWidth],
+                fixedHeight && "md:h-[720px] md:max-h-[90vh]",
+              )
+            : cn(
+                "flex w-full flex-col overflow-hidden rounded-[2rem] bg-white sm:rounded-3xl",
+                MAX_WIDTH_CLASS[maxWidth],
+                fixedHeight && "max-h-[92dvh] sm:h-[720px] sm:max-h-[90vh]",
+              ),
           className,
         )}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -73,7 +111,7 @@ export function ModalHeader({ className, children }: ModalHeaderProps) {
   return (
     <div
       className={cn(
-        "shrink-0 bg-[#EDE8DF] px-8 pt-12 pb-10 text-center",
+        "shrink-0 bg-[#EDE8DF] px-5 pt-8 pb-6 text-center sm:px-8 sm:pt-12 sm:pb-10",
         className,
       )}
     >
@@ -97,7 +135,7 @@ export function ModalBody({ scrollable = false, className, children }: ModalBody
   return (
     <div
       className={cn(
-        scrollable ? "flex-1 overflow-y-auto p-8" : "px-8 py-6",
+        scrollable ? "flex-1 overflow-y-auto p-4 sm:p-8" : "px-5 py-5 sm:px-8 sm:py-6",
         className,
       )}
     >
@@ -116,7 +154,7 @@ interface ModalFooterProps {
  */
 export function ModalFooter({ className, children }: ModalFooterProps) {
   return (
-    <div className={cn("shrink-0 bg-bone px-8 py-6", className)}>
+    <div className={cn("shrink-0 bg-bone px-5 py-5 sm:px-8 sm:py-6", className)}>
       {children}
     </div>
   );
