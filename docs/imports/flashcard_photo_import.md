@@ -22,6 +22,17 @@ ever reads from `Flashcard/` folders.**
 
 ## Source layout
 
+- The course discs exist as ISO images under
+  `/Users/ryancrocombe/Documents/200WAD/COURSES/` (e.g. `Spanish 1.iso`,
+  `Spanish 2.iso`, `German 1.iso`, …). Mount them with
+  `hdiutil attach "<path>.iso"`, pass the mount points via `--discs`, and
+  `hdiutil detach` when done. (French/Italian used physical discs at
+  `/Volumes/Disc*`; either works — `findFlashcardDirs()` scans whatever `--discs`
+  points at.)
+- Spanish mounted at `/Volumes/Spanish1Bundle` + `/Volumes/Spanish2Bundle`. Note
+  Spanish has **two distinct Flashcard sets**: `1Pictures/Flashcard` (course 1,
+  mirrored across both bundles) and `2Pictures/Flashcard` (course 2, bundle 2
+  only). The script indexes all of them; basename dedup collapses the mirror.
 - Discs mount at `/Volumes/Disc` and `/Volumes/Disc 1` (often **mirrored** — the
   same `Flashcard/` set appears on both). The script dedupes mirrored copies by
   normalised basename, so double-mounting does not create false collisions.
@@ -30,26 +41,32 @@ ever reads from `Flashcard/` folders.**
   per course. The script auto-discovers every `*Pictures/Flashcard` dir.
 - **SWF files in `Flashcard/` are text word-cards** (the English word rendered in
   blue), not photos — they are skipped, counted, and left for manual assignment.
-- Access DB (`MDB/Exceltra <Language>.mdb`, `General` table) is used only for
-  optional `Course`/`EngDictionary` reporting + a fallback match key. The join to
-  NL is `General.RefN` ↔ `words.legacy_refn`.
+- Access DB (`MDB/Exceltra <Language>.mdb`, `General` table) is the **authoritative
+  word→photo key** via its `FileEngSouRTF` column (see below), plus `Course` for
+  reporting. The join to NL is `General.RefN` ↔ `words.legacy_refn`.
 
 ## Matching strategy
 
-Match NL `words.english` to a photo basename by normalised English:
+The MDB `General.FileEngSouRTF` column holds the **exact English-side filename base**
+for each `RefN` — a deterministic pointer to the flashcard photo. This replaced the
+original fuzzy English-text matching, which both under-matched (missed ~1,600 Spanish
+photos) and mis-matched (e.g. `orange (colour)` → orange *fruit* photo).
 
 1. `norm(s)` = NFKD accent-fold → lowercase → strip non-alphanumerics.
-2. **Exact** filename match (`norm(english) == norm(basename)`) wins outright.
-3. Fallback candidate keys, each accepted **only if it maps to exactly one
-   distinct photo**:
-   - `norm(stripParen(english))` — drop `(...)` qualifiers
-   - `norm(baseEng(mdb.EngDictionary))` — drop trailing grammar tags (`, n.`,
-     `, adj.`, …) and parentheticals
-4. **Ambiguous** keys (a stripped name mapping to >1 distinct photo, e.g.
-   `friend` → `friend (male)` + `friend (female)`) are **skipped** and reported.
+2. **Authoritative:** `resolvePhoto(FileEngSouRTF)` — `norm(FileEngSouRTF)` vs
+   `norm(basename)`; when a key has >1 distinct basename (e.g. `break down` vs
+   `breakdown`), prefer the exact case-insensitive filename.
+3. **Safe fallback** (only when `FileEngSouRTF` is missing or a data glitch — e.g.
+   `FileEngSouRTF='rainy'` for the `Today` calendar photo), both deterministic:
+   - **a.** exact English == filename (`Today` → `today.jpg`)
+   - **b.** strip `(...)` qualifiers from **both** sides and accept **only if it
+     resolves to a single photo** (`policeman (slang)` → `policeman.jpg`,
+     `food (groceries)` → `food (sustenance).jpg`). >1 candidate → skipped.
+4. **SWF-only** (`Flashcard/` has only a text word-card) and **no-photo** (nothing
+   on disc, e.g. proverbs) are reported separately and left NULL.
 
-Anything not matched (word has no pre-rendered photo) is simply left NULL —
-fillable later via the admin flashcard editor (`docs/FLASHCARD_ADMIN_EDIT_PLAN.md`).
+Anything not matched is left NULL — fillable later via the admin flashcard editor
+(`docs/FLASHCARD_ADMIN_EDIT_PLAN.md`).
 
 ## Storage & DB write (idempotent)
 
@@ -90,13 +107,23 @@ Flags: `--language french|german|spanish` (required), `--dry-run`, `--limit N`,
 
 | Language | `language_id` | Flashcards | Status |
 |---|---|---|---|
-| French | `7d1ac2f6-97a3-4025-a325-fd449edb974f` | **1,010** | Done (see `french_flashcard_plan.md`) |
-| German | `7bb57c89-e01b-404b-a3d7-ab7d087ac925` | 0 | Pending — discs not yet mounted |
-| Spanish | `39e8b5a2-269c-422e-9b84-06722b4f91ff` | 0 | Pending — discs not yet mounted |
-| Italian | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` | 1,924 | ⚠️ Verify — may have the same mnemonic-as-flashcard bug |
+| French | `7d1ac2f6-97a3-4025-a325-fd449edb974f` | **1,835** | ✅ Done (deterministic; see `french_flashcard_plan.md`) |
+| German | `7bb57c89-e01b-404b-a3d7-ab7d087ac925` | **3,869** | ✅ Done (deterministic; `German_ISO.iso` + `German 2.iso`) |
+| Spanish | `39e8b5a2-269c-422e-9b84-06722b4f91ff` | **3,447** | ✅ Done (deterministic — `FileEngSouRTF`; 6 stale fuzzy nulled) |
+| Italian | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` | 1,924 | ✅ Done — verified complete (deterministic added 0) |
 
-> **Italian flag:** the Italian import predates this correction and has 1,924
-> `flashcard_image_url` rows. Before trusting them, spot-check a few in the app to
-> confirm they are photos, not the memory-trigger mnemonics. If wrong, roll back
-> the same way French was and re-run this script (Italian would need a `LANGUAGES`
-> entry added).
+> **Italian note:** the 1,924 were imported by the older `import-flashcard-images.ts`
+> (pre-built CSV) and verified correct (photos, not mnemonics). A deterministic
+> `FileEngSouRTF` re-run against `Italian 1&2 Super Bundle.iso` matched only 1,671
+> (the disc has ~911 flashcard photos) and set **0 net-new** — every match was
+> already covered. So the 1,924 is complete for this source. The low coverage
+> ratio (16% of 11,921 words) reflects that most Italian words are advanced-course
+> entries with no pre-rendered flashcard photo, not a gap in the import.
+> NB: the Italian volume is **case-sensitive** and names the folder `FlashCard`;
+> `findFlashcardDirs()` now matches it case-insensitively.
+
+> **Italian verified:** the Italian import sourced from the `1Pictures/FlashCard/`
+> subfolder (English-named photos), not the loose mnemonics — the correct approach.
+> Spot-checked live (e.g. `homework` = photo of a boy studying, while its
+> `memory_trigger_image_url` is the "COMPETE! COME PITY me!" mnemonic cartoon).
+> No rollback needed.
