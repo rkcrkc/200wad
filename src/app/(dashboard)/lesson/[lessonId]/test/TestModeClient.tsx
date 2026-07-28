@@ -330,6 +330,18 @@ export function TestModeClient({
     return arr;
   });
 
+  // Full lesson word list carrying progress accumulated across every round of
+  // this page load. Seeded from `words` once and never re-seeded: this is the
+  // client's source of truth for prior streak/status when a round is folded in.
+  //
+  // The `words` prop cannot serve that role. `completeTestSession` calls
+  // `revalidatePath`, which re-renders this route's server parent and swaps the
+  // prop to post-write data at a moment we don't control — so folding a round
+  // onto it either double-counts (revalidation landed: the round is already in
+  // the prop) or drops every earlier round (it hasn't). `activeWords` can't
+  // serve either, because Retest Incorrect narrows it to a subset.
+  const [masterWords, setMasterWords] = useState(words);
+
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -973,13 +985,15 @@ export function TestModeClient({
       clearInterval(timerRef.current);
     }
 
-    // Compute stats ONCE, BEFORE any server mutation. The `words` prop here
-    // still reflects pre-write progress (correct_streak, times_tested, status).
-    // After `completeTestSession` runs, `revalidatePath` can re-fetch this
-    // component's server parent and swap in post-write data — so we must not
-    // recompute mastery from `words` after awaiting the server call.
+    // Compute stats ONCE, BEFORE any server mutation, from `masterWords` —
+    // which holds the pre-write progress (correct_streak, times_tested, status)
+    // for this round, including every earlier round of this page load. Using
+    // the `words` prop here made retest rounds report mastery one round behind,
+    // because the prop's baseline never saw round 1. `revalidatePath` can also
+    // swap the prop to post-write data once `completeTestSession` returns, so
+    // mastery must not be recomputed after awaiting the server call either.
     const stats = calculateTestStats({
-      words,
+      words: masterWords,
       testProgressMap,
       testTwice,
       totalQuestions,
@@ -1075,7 +1089,7 @@ export function TestModeClient({
     } finally {
       setShowCompletionModal(true);
     }
-  }, [isGuest, sessionId, lesson.id, testProgressMap, words, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest, initialCourseVocabCount]);
+  }, [isGuest, sessionId, lesson.id, testProgressMap, words, masterWords, elapsedSeconds, testTwice, totalQuestions, stopAudio, milestone, isRetest, initialCourseVocabCount]);
 
   // Track viewed words when navigating
   useEffect(() => {
@@ -1256,9 +1270,17 @@ export function TestModeClient({
         }
         if (attempts.length === 0) return w;
 
-        // Prepend new attempts (newest first) to existing history, cap at 3
+        // Prepend this session's attempts to the existing history, cap at 3.
+        // `attempts` is chronological (Test Twice: attempt 1 then attempt 2)
+        // because the streak replay below depends on that order, but
+        // `testHistory` is newest-first — so reverse on the way in. Without
+        // this, a Test Twice round writes [attempt1, attempt2, ...] and
+        // ScoreIndicator, which indexes testHistory newest-first, paints the
+        // dots out of order: a non-full-mark attempt 1 gets hidden behind the
+        // leading-streak override and the strip shows three greens with no
+        // stars. Mirrors the `.reverse()` in `mergedTestHistory` above.
         const updatedHistory = [
-          ...attempts.map((a) => ({
+          ...[...attempts].reverse().map((a) => ({
             pointsEarned: a.pointsEarned,
             maxPoints: a.maxPoints,
             answeredAt: nowIso,
@@ -1377,8 +1399,10 @@ export function TestModeClient({
     // Reset finishing guard so handleFinishTest works again
     isFinishingRef.current = false;
 
-    // Update words with current test results folded into history, then reset
-    const updatedWords = buildUpdatedWords(words);
+    // Fold this round's results into the accumulated list, then test the full
+    // lesson again from there.
+    const updatedWords = buildUpdatedWords(masterWords);
+    setMasterWords(updatedWords);
     setActiveWords(updatedWords);
     setCurrentWordIndex(0);
     setClueLevel(0);
@@ -1414,7 +1438,7 @@ export function TestModeClient({
     timerRef.current = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
-  }, [sessionId, lesson.id, words, buildUpdatedWords, isGuest]);
+  }, [sessionId, lesson.id, masterWords, buildUpdatedWords, isGuest]);
 
   const handleRetestIncorrect = useCallback(async () => {
     // Reset finishing guard so handleFinishTest works again
@@ -1430,10 +1454,16 @@ export function TestModeClient({
       }
     });
 
-    // Update words with current test results folded into history, then filter
-    const updatedWords = buildUpdatedWords(words);
+    // Fold this round's results into the accumulated list, then narrow to the
+    // words that need retesting. The accumulator keeps the full lesson so a
+    // later "Test again" still has every word's up-to-date progress.
+    const updatedWords = buildUpdatedWords(masterWords);
     const incorrectWords = updatedWords.filter((w) => incorrectWordIds.has(w.id));
+    // Bail before committing anything. `testProgressMap` is only cleared when a
+    // new round actually starts, so folding into the accumulator here would let
+    // a subsequent "Test again" fold this same round in a second time.
     if (incorrectWords.length === 0) return;
+    setMasterWords(updatedWords);
 
     // Reset state with filtered words
     setActiveWords(incorrectWords);
@@ -1471,7 +1501,7 @@ export function TestModeClient({
     timerRef.current = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
-  }, [testProgressMap, testTwice, words, sessionId, lesson.id, buildUpdatedWords, isGuest]);
+  }, [testProgressMap, testTwice, masterWords, sessionId, lesson.id, buildUpdatedWords, isGuest]);
 
   const handleStudyIncorrect = useCallback(() => {
     // Collect word IDs that did not score full marks (any mistake or clue use).
@@ -1505,7 +1535,7 @@ export function TestModeClient({
   const getTestStats = (): TestStats => {
     if (finishedTestStats) return finishedTestStats;
     return calculateTestStats({
-      words,
+      words: masterWords,
       testProgressMap,
       testTwice,
       totalQuestions,
