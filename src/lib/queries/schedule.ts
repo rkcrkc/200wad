@@ -352,10 +352,12 @@ async function getWorstWordsAutoLesson(
 
   // 2. Pick the user's worst words for this course server-side. The
   //    `select_best_worst_words_for_course` RPC aggregates `test_questions`
-  //    scoped to this user and the course's words and excludes already-
-  //    mastered words. The All-Lessons summary and the lesson detail page
-  //    call the same RPC with the same admin-configurable cap, so all three
-  //    views agree on the same set of words.
+  //    scoped to this user and the course's words, keeps only words scored
+  //    below full marks at least once, and sorts already-mastered words last
+  //    (see migration 20260728000001 — mastered words used to be excluded
+  //    outright, which emptied this pool at 100% mastery). The All-Lessons
+  //    summary and the lesson detail page call the same RPC with the same
+  //    admin-configurable cap, so all three views agree on the same words.
   const autoLessonWordLimit = await getAutoLessonWordLimit();
   const { data: worstRpcRows } = await supabase.rpc(
     "select_best_worst_words_for_course",

@@ -21,9 +21,42 @@ Regenerate Supabase types:
 npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database-generated.ts
 ```
 
+## Migrations
+
+`supabase_migrations.schema_migrations` (the ledger) is the only trustworthy record of what actually ran. Local filenames have drifted from it before — see the "Migration ledger drift" bug card.
+
+- **Never re-paste a function body to change one thing.** Always start from the *latest* definition (`pg_get_functiondef`, or the ledger's `statements`), not from an older migration. Re-pasting an old body silently reverts every change made since. This is how `select_best_worst_words_for_course` lost three migrations in one hop (`20260519014048`).
+- **Keep the filename and the applied version identical.** `apply_migration` (MCP/dashboard) stamps its *own* timestamp, which will not match a hand-picked filename. After applying, read the version back out of the ledger and name the committed file with it — or apply via `supabase db push` from the committed file so the version is the filename.
+- **Before `supabase db push`, diff local versions against the ledger.** Any local version missing from the ledger *will* be executed against production. If it's already applied under a different version, use `supabase migration repair --status applied <version>` instead of letting it run.
+- **Anything applied directly must still be committed.** Schema/function/trigger/policy changes that exist only in the ledger make `db reset` produce a DB that doesn't match production.
+
 ## Glossary
 
 - **NL / new DB** — the current Supabase database backing this 200WAD app (as distinct from the legacy "old DB" / source CSVs under `/Users/ryancrocombe/Documents/200WAD/DB IMPORT/`). When the user says "NL" they mean this project's Supabase instance.
+
+## Notion Bug Board
+
+Bugs and small tasks for this project are tracked in the Notion **🐛 Bugs** database. Use the Notion MCP tools (`notion-fetch`, `notion-query-data-sources`, `notion-update-page`, `notion-create-pages`) to read and write it.
+
+- **Database:** https://app.notion.com/p/30556628fa3b806ba294f6d0b3d2fdd5
+- **Data source ID (use this for queries/updates):** `collection://30556628-fa3b-8061-9457-000b513631ba`
+
+**Schema**
+- `Name` (title) — the bug description.
+- `Section` (select) — Admin, Study Mode, Test Mode, Dashboard, Upgrade Flow, Profile, Onboarding, Kevin Notes, Pictures, LESSONS, DICTIONARY, GOOD PICS FOR PROMOS, SCHEDULE, SCORING, TURBOBOOSTERS TESTING, TOASTS.
+- `Severity` (select) — Low, Medium, High.
+- `Status` (status) — Not started → In progress → In review → Done, plus **Push to v2** (deferred, treat as out of scope for now).
+
+**Views**
+- `view://30556628-fa3b-80bb-84a5-000c8085fa21` — **To do** (everything not Done and not Push to v2, grouped by Section).
+- `view://31456628-fa3b-80e8-8b59-000c84c915f2` — **Done**.
+- `view://35356628-fa3b-805e-b6b3-000ca5f28032` — **v2** (Push to v2).
+
+**Working agreement**
+- When asked to work on "the board", "bugs", or a bug by name, query the data source rather than guessing. Default to the **To do** filter (`Status` is not Done and not Push to v2); ignore **Push to v2** items unless explicitly asked.
+- Match bugs to code by `Section` — it maps to app areas (e.g. Study Mode → study session flow, Upgrade Flow → subscriptions/paywall, Admin → `src/app/admin/`).
+- **Never change a bug's `Status` (or any other property) without asking first.** Report what you fixed and propose the status change; the user makes it. Same for creating new bug pages.
+- Bug fixes still follow the Feature Workflow below when non-trivial — spec first, ask about UX forks, run the quality checklist.
 
 ## Feature Workflow
 
