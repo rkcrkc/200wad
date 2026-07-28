@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Tabs, Tab } from "@/components/ui/tabs";
 import { TestRow } from "@/components/TestRow";
 import { TestForList } from "@/lib/queries/tests";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { useScrollFade } from "@/hooks/useScrollFade";
@@ -43,9 +42,12 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
 
       {/* Tests Table */}
       <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
-          <table className="min-w-[960px] w-full table-fixed border-separate border-spacing-0">
-          {/* Table Header */}
-          <thead>
+          {/* min-width is md-only so the table fits a phone viewport instead of
+              forcing 960px of sideways scroll. */}
+          <table className="w-full table-fixed border-separate border-spacing-0 md:min-w-[960px]">
+          {/* Table Header — hidden on mobile, where the table reads as a list
+              of rows rather than a grid of labelled columns. */}
+          <thead className="hidden md:table-header-group">
             <tr className="h-12 cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
               <th className="w-[50px] px-6 py-3 text-left font-medium">#</th>
               <th className="px-2 py-3 text-left font-medium">Lesson</th>
@@ -68,23 +70,22 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
                   </Tooltip>
                 ) : "Status"}
               </th>
-              <th className={cn(
-                filter === "previous" ? "w-[80px]" : "w-[60px]",
-                "px-2 py-3 text-center font-medium"
-              )}>
-                <Tooltip
-                  align="right"
-                  label={
-                    <span className="block whitespace-normal">
-                      {filter === "previous"
-                        ? "XP earned — 3 XP per word answered perfectly"
-                        : "XP available — one perfect test scores 3 XP per word"}
-                    </span>
-                  }
-                >
-                  <span>{filter === "previous" ? "XP earned" : "XP"}</span>
-                </Tooltip>
-              </th>
+              {/* Previous Tests only. Tests Due has no XP column — the XP on
+                  offer is shown inside that row's Start test button. */}
+              {filter === "previous" && (
+                <th className="w-[80px] px-2 py-3 text-center font-medium">
+                  <Tooltip
+                    align="right"
+                    label={
+                      <span className="block whitespace-normal">
+                        XP earned — 3 XP per word answered perfectly
+                      </span>
+                    }
+                  >
+                    <span>XP earned</span>
+                  </Tooltip>
+                </th>
+              )}
               <th className="w-[90px] px-2 py-3 text-center font-medium"># Words</th>
               <th className={cn(
                 filter === "previous" ? "w-[110px]" : "w-[90px]",
@@ -95,17 +96,23 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
                 "px-2 py-3 text-center font-medium"
               )}>{filter === "previous" ? "New Mastered" : "# Mastered"}</th>
               <th className={cn(
-                "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
+                "sticky right-0 z-10 w-[196px] bg-background px-2 py-3",
                 canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
               )}></th>
             </tr>
           </thead>
 
           {/* Table Body */}
-          <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
+          {/* Corner rounding lives on the cells themselves (see TestRow), driven
+              by isFirst/isLast. Doing it here with `:nth-child`/`:last-child`
+              breaks as soon as a cell is hidden at a breakpoint: those selectors
+              are structural and still match `display:none` cells, so the radius
+              lands on an invisible cell and the visible row renders square. */}
+          <tbody className="shadow-card">
             {currentTests.length === 0 ? (
               <tr>
-                <td colSpan={filter === "due" ? 10 : 9} className="px-6 py-12 text-center">
+                {/* Tests Due drops the XP column, so it is one narrower. */}
+                <td colSpan={filter === "previous" ? 10 : 9} className="px-6 py-12 text-center">
                   <p className="text-muted-foreground">
                     {filter === "due"
                       ? "No tests due — keep studying to unlock more tests!"

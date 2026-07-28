@@ -213,7 +213,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         emoji: def.emoji,
         label: def.label,
         count,
-        href: count > 0 ? `/lesson/${createQaLessonId(def.key, courseId)}/study` : undefined,
+        lessonId: count > 0 ? createQaLessonId(def.key, courseId) : undefined,
       };
     });
   }, [qaFlagCounts, courseId]);
@@ -247,28 +247,35 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
   return (
     <>
-      {/* Filter tabs */}
-      <div className="mb-4 flex items-center justify-between">
-        <Tabs
-          tabs={tabs}
-          activeTab={filter}
-          onChange={(tabId) => setFilter(tabId as FilterType)}
-        />
+      {/* Filter tabs — tabs scroll horizontally on overflow; the search icon
+          stays pinned on the right so it never gets pushed off-screen. */}
+      <div className="mb-4 flex items-center gap-3">
+        {/* min-w-0 lets this flex item shrink below the tabs' content width so
+            ScrollFadeRow's inner overflow-x-auto actually scrolls. */}
+        <div className="min-w-0 flex-1">
+          <Tabs
+            tabs={tabs}
+            activeTab={filter}
+            onChange={(tabId) => setFilter(tabId as FilterType)}
+            fadeClassName="from-background"
+          />
+        </div>
 
         {/* Search + stats toggle don't apply to the QA view (7 static rows). */}
         {!isQaView && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-shrink-0 items-center gap-3">
             <InlineSearch
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Filter lessons..."
             />
-            {/* Stats toggle button */}
+            {/* Stats toggle button — the milestone-scores grid it reveals is a
+                wide desktop-only view, so the toggle is hidden on mobile. */}
             <Tooltip label={showStats ? t("tip_show_progress_view") : t("tip_show_test_scores")}>
               <button
                 onClick={() => setShowStats(!showStats)}
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                  "hidden h-9 w-9 items-center justify-center rounded-lg transition-colors md:flex",
                   showStats
                     ? "bg-primary text-white"
                     : "text-foreground hover:bg-beige"
@@ -283,16 +290,17 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
       {/* Lessons Table */}
       <div ref={scrollRef} className="overflow-x-auto pt-10 -mt-10">
-        <table className={cn("w-full table-fixed border-separate border-spacing-0", isQaView ? "min-w-[600px]" : showStats ? "min-w-[900px]" : "min-w-[800px]")}>
-          {/* Table Header */}
-          <thead>
+        <table className={cn("w-full table-fixed border-separate border-spacing-0", isQaView ? "md:min-w-[600px]" : showStats ? "md:min-w-[900px]" : "md:min-w-[800px]")}>
+          {/* Table Header — hidden on mobile for the default view, where the
+              table reads as a list of rows (columns collapse into each row). */}
+          <thead className={cn(!isQaView && !showStats && "hidden md:table-header-group")}>
             <tr className="cursor-default whitespace-nowrap">
               {isQaView ? (
                 <>
                   {/* QA View Header (admin-only developer-flag lessons) */}
-                  <th className="w-[50px] px-6 py-3 text-left text-xs-medium font-medium text-muted-foreground">#</th>
+                  <th className="w-[40px] px-4 py-3 text-left text-xs-medium font-medium text-muted-foreground md:w-[50px] md:px-6">#</th>
                   <th className="px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Lesson</th>
-                  <th className="w-[90px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground"># Words</th>
+                  <th className="hidden w-[90px] px-2 py-3 text-center text-xs-medium font-medium text-muted-foreground md:table-cell"># Words</th>
                   <th className={cn(
                     "sticky right-0 z-10 w-[140px] bg-background px-2 py-3",
                     canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
@@ -406,8 +414,9 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                 </>
               ) : (
                 <>
-                  {/* Default View Header */}
-                  <th className="w-[50px] px-6 py-3 text-left">
+                  {/* Default View Header — number column is desktop-only; on
+                      mobile the number is prepended to the lesson title. */}
+                  <th className="hidden w-[40px] px-4 py-3 text-left md:table-cell md:w-[50px] md:px-6">
                     <SortableHeader
                       label="#"
                       column="number"
@@ -425,8 +434,8 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       onSort={handleSort}
                     />
                   </th>
-                  <th className="w-[140px] px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground">Status</th>
-                  <th className="w-[60px] px-2 py-3 text-center">
+                  <th className="hidden px-2 py-3 text-left text-xs-medium font-medium text-muted-foreground md:table-cell md:w-[140px]">Status</th>
+                  <th className="hidden w-[60px] px-2 py-3 text-center md:table-cell">
                     <Tooltip
                       align="right"
                       label={
@@ -443,7 +452,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       </span>
                     </Tooltip>
                   </th>
-                  <th className="w-[90px] px-2 py-3 text-center">
+                  <th className="hidden w-[90px] px-2 py-3 text-center md:table-cell">
                     <SortableHeader
                       label="# Words"
                       column="word_count"
@@ -453,7 +462,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="w-[90px] px-2 py-3 text-center">
+                  <th className="hidden w-[90px] px-2 py-3 text-center md:table-cell">
                     <SortableHeader
                       label="# Learned"
                       column="wordsLearned"
@@ -463,7 +472,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                       centered
                     />
                   </th>
-                  <th className="w-[90px] px-2 py-3 text-center">
+                  <th className="hidden w-[90px] px-2 py-3 text-center md:table-cell">
                     <SortableHeader
                       label="# Mastered"
                       column="wordsMastered"
@@ -484,7 +493,13 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
 
 
           {/* Table Body */}
-          <tbody className="shadow-card [&>tr:first-child>td:first-child]:rounded-tl-xl [&>tr:first-child>td:last-child]:rounded-tr-xl [&>tr:last-child>td:first-child]:rounded-bl-xl [&>tr:last-child>td:last-child]:rounded-br-xl">
+          {/* Corner rounding lives on the cells themselves (see LessonRow and
+              QaLessonRow), driven by isFirst/isLast. Doing it here with
+              `:nth-child`/`:last-child` breaks as soon as a cell is hidden at a
+              breakpoint: those selectors are structural and still match
+              `display:none` cells, so the radius lands on an invisible cell and
+              the visible row renders square. */}
+          <tbody className="shadow-card">
             {isQaView ? (
               qaLessons.every((q) => q.count === 0) ? (
                 <tr>
@@ -502,7 +517,7 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
                     emoji={q.emoji}
                     title={q.label}
                     count={q.count}
-                    href={q.href}
+                    lessonId={q.lessonId}
                     isFirst={index === 0}
                     isLast={index === qaLessons.length - 1}
                     showScrollFade={canScrollRight}

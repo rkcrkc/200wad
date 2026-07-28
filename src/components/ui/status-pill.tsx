@@ -1,5 +1,6 @@
 import { Star, Check } from "lucide-react";
 import { status as statusTokens } from "@/lib/design-tokens";
+import { cn } from "@/lib/utils";
 
 export type StatusType = "mastered" | "learned" | "learning" | "notStarted" | "locked";
 
@@ -48,7 +49,7 @@ export function StatusPill({
   const pillClassName = isInline
     ? "inline-flex cursor-default items-center gap-1.5 text-regular-semibold"
     : isSmall
-      ? "inline-flex cursor-default items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      ? "inline-flex cursor-default items-center gap-1 rounded-full py-0.5 pl-1.5 pr-2 text-[11px] font-medium"
       : "inline-flex cursor-default items-center gap-1.5 rounded-full px-3 py-1.5 text-xs-medium";
 
   return (
@@ -61,13 +62,16 @@ export function StatusPill({
     >
       {hasIcon && iconType === "star" && (
         <Star
-          className={isInline ? "h-3.5 w-3.5 fill-current" : "h-3 w-3 fill-current"}
+          className={cn(
+            "fill-current",
+            isInline ? "h-3.5 w-3.5" : isSmall ? "h-2.5 w-2.5" : "h-3 w-3"
+          )}
           style={isInline ? { color: inlineColor } : undefined}
         />
       )}
       {hasIcon && iconType === "check" && (
         <Check
-          className={isInline ? "h-3.5 w-3.5" : "h-3 w-3"}
+          className={isInline ? "h-3.5 w-3.5" : isSmall ? "h-2.5 w-2.5" : "h-3 w-3"}
           strokeWidth={4}
           style={isInline ? { color: inlineColor } : undefined}
         />

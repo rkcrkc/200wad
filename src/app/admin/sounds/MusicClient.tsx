@@ -364,14 +364,8 @@ export function MusicClient({ tracks }: MusicClientProps) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Study Music</h1>
-          <p className="mt-1 text-gray-600">
-            Manage background music tracks for study and test modes.
-          </p>
-        </div>
+      {/* Action bar */}
+      <div className="mb-6 flex justify-end">
         <Button onClick={openCreateModal}>
           <Plus className="mr-2 h-4 w-4" />
           Add Track

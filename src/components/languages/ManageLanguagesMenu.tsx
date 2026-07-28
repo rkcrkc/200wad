@@ -77,13 +77,13 @@ export function ManageLanguagesMenu({
   };
 
   return (
-    <div className="relative shrink-0" ref={menuRef}>
+    <div className="relative w-full md:w-auto md:shrink-0" ref={menuRef}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex h-full min-h-[7.5rem] w-52 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-black/15 px-3 text-muted-foreground transition-colors hover:border-black/30 hover:bg-bone-hover"
+        className="flex h-full min-h-44 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-black/15 px-3 text-muted-foreground transition-colors hover:border-black/30 hover:bg-bone-hover md:min-h-0 md:w-52"
       >
         <Plus className="h-6 w-6" />
         <span className="text-sm font-medium">Add languages</span>

@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getLanguages,
@@ -18,9 +16,10 @@ import {
 import { LanguagesUpgradeProvider } from "@/components/languages/LanguagesUpgradeProvider";
 import { UnlockAllLanguagesCallout } from "@/components/languages/UnlockAllLanguagesCallout";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { MobileFloatingBar } from "@/components/ui/MobileFloatingBar";
 
 export default async function DashboardPage({
   searchParams,
@@ -146,24 +145,21 @@ export default async function DashboardPage({
 
   return (
     <PageContainer size="md">
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-2 text-page-header text-foreground">
-            Courses
-          </h1>
-          <p className="text-muted-foreground">
-            Select a language to continue learning or add a new one
-          </p>
-        </div>
-        {!isGuest && (
-          <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5">
-            <Link href="/account/subscriptions">
-              Manage subscriptions
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Courses"
+        subtitle="Select a language to continue learning or add a new one"
+        actions={
+          isGuest
+            ? []
+            : [
+                {
+                  label: "Manage subscriptions",
+                  href: "/account/subscriptions",
+                  icon: "arrow-right",
+                },
+              ]
+        }
+      />
 
       {languages.length === 0 ? (
         <EmptyState
@@ -180,9 +176,23 @@ export default async function DashboardPage({
           allLanguagesStats={allLanguagesStats}
           copy={copy}
         >
-          <div className="space-y-8">
-          {/* Unlock all languages promo */}
-          {showUnlockAll && <UnlockAllLanguagesCallout />}
+          <div
+            className="space-y-8"
+            style={
+              showUnlockAll
+                ? { paddingBottom: "var(--floating-bar-h, 0px)" }
+                : undefined
+            }
+          >
+          {/* Unlock all languages promo. Inline at the top on desktop; docks to
+              the bottom of the viewport on mobile via MobileFloatingBar, which
+              publishes its height to --floating-bar-h so the padding above
+              reserves exact clearance for it. */}
+          {showUnlockAll && (
+            <MobileFloatingBar>
+              <UnlockAllLanguagesCallout />
+            </MobileFloatingBar>
+          )}
 
           {/* My Languages */}
           <section>

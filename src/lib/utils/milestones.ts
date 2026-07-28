@@ -97,6 +97,32 @@ export function shouldCountAsMilestone(
 }
 
 /**
+ * Short human-readable milestone label ("1-Week", "3-Month") for table cells
+ * and buttons, where `getMilestoneLabel`'s "… Review" phrasing is too long.
+ *
+ * `1-quarter` deliberately reads as **3-Month** — a quarter isn't a unit users
+ * think in, and it matches the "3 Month Review" wording above. Takes a plain
+ * string (not `Milestone`) because stored test rows can carry legacy or "other"
+ * values; anything unrecognised falls back to title-casing the raw value.
+ */
+const MILESTONE_SHORT_LABELS: Record<string, string> = {
+  initial: "Initial",
+  "1-day": "1-Day",
+  "1-week": "1-Week",
+  "1-month": "1-Month",
+  "1-quarter": "3-Month",
+  "1-year": "1-Year",
+  other: "Ad Hoc",
+};
+
+export function getMilestoneShortLabel(milestone: string): string {
+  return (
+    MILESTONE_SHORT_LABELS[milestone.toLowerCase()] ??
+    milestone.replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
+/**
  * Get human-readable label for a milestone
  */
 export function getMilestoneLabel(milestone: Milestone): string {

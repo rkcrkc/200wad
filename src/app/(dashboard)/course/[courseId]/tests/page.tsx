@@ -6,6 +6,7 @@ import { XpBadge } from "@/components/ui/xp-badge";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { Tooltip } from "@/components/ui/tooltip";
+import { MobileStatsDropdown } from "@/components/ui/mobile-stats-dropdown";
 import { TestsList } from "@/components/TestsList";
 import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
 import { formatDuration, formatPercent } from "@/lib/utils/helpers";
@@ -36,11 +37,45 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
   return (
     <PageShell withTopPadding={false} className="pt-8">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h1 className="text-page-header">Tests</h1>
 
-          {/* Stats */}
-          <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
+          {/* Mobile: Total XP inline (the page's headline ledger stat), the
+              other two behind a caret — three stacked stats otherwise own the
+              first screen. */}
+          <MobileStatsDropdown
+            stats={[
+              {
+                label: "Total XP (This course)",
+                value: <XpBadge value={stats.totalXp} variant="default" size="md" />,
+              },
+              {
+                label: "Total Test Time",
+                value: (
+                  <>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-regular-semibold">
+                      {formatDuration(stats.totalTestTimeSeconds)}
+                    </span>
+                  </>
+                ),
+              },
+              {
+                label: "Avg. score/word",
+                value: (
+                  <>
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-regular-semibold">
+                      {formatPercent(stats.averageScorePerWord)}
+                    </span>
+                  </>
+                ),
+              },
+            ]}
+          />
+
+          {/* Desktop: full three-stat row with its hover tooltip. */}
+          <div className="hidden cursor-default flex-wrap items-center gap-x-8 gap-y-2 md:flex">
             {/* Total test time */}
             <div className="flex flex-col items-start gap-1.5">
               <span className="text-xs text-muted-foreground">Total Test Time</span>

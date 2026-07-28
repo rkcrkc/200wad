@@ -12,6 +12,7 @@ import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers
 import { SubBadge } from "@/components/ui/sub-badge";
 import { WordWithDetails } from "@/lib/queries/words";
 import { parseAutoLessonId, type AutoLessonType } from "@/lib/queries/auto-lessons";
+import { isQaLesson } from "@/lib/queries/qa-lessons";
 import type { LessonActivityHistoryResult } from "@/lib/queries/tests";
 import { Lesson } from "@/types/database";
 import { TestType } from "@/types/test";
@@ -99,6 +100,10 @@ export function LessonPageContent({
   const [showStartTestModal, setShowStartTestModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // QA lessons (admin developer-flag review) are study-only and ephemeral —
+  // no scored tests, so hide the "Take test" action entirely.
+  const studyOnly = isQaLesson(lesson.id);
+
   // Count words with memory trigger images (for picture-only mode)
   const wordsWithImages = words.filter((w) => w.memory_trigger_image_url).length;
 
@@ -156,7 +161,8 @@ export function LessonPageContent({
             {lesson.title}
           </h1>
 
-          {/* Stats */}
+          {/* Stats — hidden for QA lessons, which don't track progress/time/XP. */}
+          {!studyOnly && (
           <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
             {/* Words learned */}
             <Popover
@@ -254,6 +260,7 @@ export function LessonPageContent({
               </div>
             </Popover>
           </div>
+          )}
         </div>
       </div>
 
@@ -338,16 +345,18 @@ export function LessonPageContent({
               >
                 Study lesson
               </PrimaryButton>
-              <PrimaryButton
-                variant="outline"
-                className="flex-1 max-w-[240px]"
-                onClick={() => setShowStartTestModal(true)}
-              >
-                <span className="inline-flex items-center gap-2">
-                  Take test
-                  <XpBadge value={xpMax} variant="available-blue" />
-                </span>
-              </PrimaryButton>
+              {!studyOnly && (
+                <PrimaryButton
+                  variant="outline"
+                  className="flex-1 max-w-[240px]"
+                  onClick={() => setShowStartTestModal(true)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    Take test
+                    <XpBadge value={xpMax} variant="available-blue" />
+                  </span>
+                </PrimaryButton>
+              )}
             </div>
             {nextLesson ? (
               <Link

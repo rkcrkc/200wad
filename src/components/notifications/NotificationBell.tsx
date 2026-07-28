@@ -7,8 +7,9 @@ import {
   useState,
   useTransition,
 } from "react";
-import { Bell } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
+import { Bell, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -21,12 +22,16 @@ import { NotificationRow } from "./NotificationRow";
 
 export function NotificationBell() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
+  // The mobile full-page panel is portaled to <body>, so it lives outside
+  // containerRef; the click-outside handler must exempt it explicitly.
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -44,7 +49,7 @@ export function NotificationBell() {
     refresh();
   }, [refresh]);
 
-  // When the dropdown opens: optimistically clear the badge, stamp
+  // When the panel opens: optimistically clear the badge, stamp
   // `notifications_last_seen_at`, then refresh the list. The badge represents
   // "new notifications since you last looked", so opening the panel clears it.
   // Per-row read state is untouched.
@@ -57,16 +62,14 @@ export function NotificationBell() {
     })();
   }, [open, refresh]);
 
-  // Click-outside to close.
+  // Click-outside to close (desktop dropdown + portaled mobile panel).
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (mobilePanelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -81,6 +84,27 @@ export function NotificationBell() {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [open]);
+
+  // Lock body scroll while the full-page mobile panel is open. Gated on the
+  // mobile breakpoint so the desktop dropdown never freezes page scrolling.
+  useEffect(() => {
+    if (!open) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      document.body.style.overflow = mq.matches ? "hidden" : "";
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      mq.removeEventListener("change", apply);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  // Close on navigation so the full-page panel never lingers over a new route.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const handleMarkAllRead = () => {
     startTransition(async () => {
@@ -104,6 +128,49 @@ export function NotificationBell() {
     (acc, n) => (n.is_read ? acc : acc + 1),
     0
   );
+
+  const markAllButton =
+    unreadItemsCount > 0 ? (
+      <button
+        type="button"
+        onClick={handleMarkAllRead}
+        disabled={isPending}
+        className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+      >
+        Mark all as read
+      </button>
+    ) : null;
+
+  const listBody =
+    loading && items.length === 0 ? (
+      <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+        Loading…
+      </div>
+    ) : items.length === 0 ? (
+      <div className="px-4 py-10 text-center">
+        <Bell
+          className="mx-auto mb-2 h-6 w-6 text-muted-foreground/60"
+          strokeWidth={1.5}
+        />
+        <p className="text-xs text-muted-foreground">
+          You&apos;re all caught up.
+        </p>
+      </div>
+    ) : (
+      <ul className="divide-y divide-gray-100">
+        {items.map((n) => (
+          <li key={n.id}>
+            <NotificationRow
+              notification={n}
+              onAction={() => {
+                // Optimistic local refresh after action.
+                refresh();
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    );
 
   return (
     <div ref={containerRef} className="relative">
@@ -135,63 +202,57 @@ export function NotificationBell() {
         )}
       </button>
 
+      {/* Desktop: anchored dropdown. */}
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5"
+          className="absolute right-0 top-full z-50 mt-2 hidden w-[380px] max-w-[calc(100vw-32px)] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5 md:block"
         >
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <span className="text-small-semibold text-foreground">
               Notifications
               {unreadItemsCount > 0 && ` (${unreadItemsCount})`}
             </span>
-            {unreadItemsCount > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAllRead}
-                disabled={isPending}
-                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
-              >
-                Mark all as read
-              </button>
-            )}
+            {markAllButton}
           </div>
-
-          {/* Body */}
-          <div className="max-h-[400px] overflow-y-auto">
-            {loading && items.length === 0 ? (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-                Loading…
-              </div>
-            ) : items.length === 0 ? (
-              <div className="px-4 py-10 text-center">
-                <Bell
-                  className="mx-auto mb-2 h-6 w-6 text-muted-foreground/60"
-                  strokeWidth={1.5}
-                />
-                <p className="text-xs text-muted-foreground">
-                  You&apos;re all caught up.
-                </p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {items.map((n) => (
-                  <li key={n.id}>
-                    <NotificationRow
-                      notification={n}
-                      onAction={() => {
-                        // Optimistic local refresh after action.
-                        refresh();
-                      }}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <div className="max-h-[400px] overflow-y-auto">{listBody}</div>
         </div>
       )}
+
+      {/* Mobile: full-page scrollable modal (mirrors the mobile menu). */}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={mobilePanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Notifications"
+            className="fixed inset-0 z-50 flex flex-col bg-white md:hidden"
+          >
+            <div className="flex h-[72px] shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4">
+              <span className="text-large-semibold text-foreground">
+                Notifications
+                {unreadItemsCount > 0 && ` (${unreadItemsCount})`}
+              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                {markAllButton}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close notifications"
+                  className="flex h-9 w-9 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+              {listBody}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -156,18 +156,15 @@ export async function getCurrentCourse(): Promise<CurrentCourseInfo> {
     currentUserLang?.language_id || userData?.current_language_id;
 
   if (!currentLanguageId) {
-    // No language selected, return first course
-    const { data: firstCourse } = await supabase
-      .from("courses")
-      .select("*, languages(*)")
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true })
-      .limit(1)
-      .single();
-
+    // Logged-in user with no enrolled/current language (mid-onboarding, or a
+    // stale account whose enrollment never completed). Return no course rather
+    // than fabricating the first course in the DB: a phantom course would show
+    // in the header while mismatching the enrolled-only course switcher and
+    // "My Languages", which are correctly empty. The header renders its
+    // "Choose language" empty state from this null.
     return {
-      course: firstCourse ? extractCourse(firstCourse) : null,
-      language: (firstCourse?.languages as Language) || null,
+      course: null,
+      language: null,
       userName: userData?.name || null,
     };
   }
@@ -853,9 +850,13 @@ export async function getScheduleData(
   //      (Tier 1 by overdue count, then Tier 2 by stale date)
   //   3. Any non-mastered lesson with progress (final safety net so the
   //      scheduler is only empty when every lesson is mastered)
+  // A brand-new user (no user_word_progress rows) leaves liveStatusByLesson
+  // empty, so read a missing entry as "not-started" — otherwise the first
+  // lesson never matches and the scheduler card silently disappears for
+  // freshly-enrolled users.
   let nextLesson: LessonForScheduler | null = null;
   let nextLessonData: Lesson | undefined = allLessons.find(
-    (lesson) => liveStatusByLesson[lesson.id] === "not-started"
+    (lesson) => (liveStatusByLesson[lesson.id] ?? "not-started") === "not-started"
   );
   if (!nextLessonData && reviewCandidates.length > 0) {
     nextLessonData = reviewCandidates[0].lesson;

@@ -1,335 +1,272 @@
 # Upgrade Touchpoints & Flows — UX Analysis
 
+> **Reconciled against the code.** An earlier revision of this document described a
+> cart-based checkout, a `bg-gray-*` modal, and a 7-step funnel — none of which still
+> exist. Every claim below was re-verified against the current source. Items that were
+> fixed are recorded in [Resolved since the last revision](#resolved-since-the-last-revision)
+> rather than deleted, so the history stays legible.
+>
+> Companion docs: [`POST_SIGNUP_AND_UPGRADE_PLAN.md`](./POST_SIGNUP_AND_UPGRADE_PLAN.md)
+> (the Figma mapping of these screens, plus open points 1–9) and
+> [`ONBOARDING_FIGMA_PLAN.md`](./ONBOARDING_FIGMA_PLAN.md).
+
 ## Overview
 
-The app uses a freemium model: first N lessons per course are free (default 10, configurable per course via admin), with paid tiers (Language, All Languages) unlocking the rest. This document maps every upgrade touchpoint, evaluates the user experience, and identifies issues.
+Freemium model: the first N lessons of each course are free (`platform_config.default_free_lessons`,
+currently **10**, overridable per course), with paid tiers unlocking the rest.
+
+Active tiers (`enabled_tiers = ["language", "all-languages"]` — the `course` tier exists in
+`pricing_plans` but is inactive):
+
+| Tier | Monthly | Annual | Lifetime |
+| --- | --- | --- | --- |
+| Language | $15 | $120 (shown as $10/mo, "Save $60/year") | $199 |
+| All Languages | $20 | $180 (shown as $15/mo, "Save $60/year") | $299 |
 
 ---
 
 ## Touchpoint Map
 
-### 1. Lesson Row Lock (Lessons List)
+### 1. Lesson row lock — `src/components/LessonRow.tsx`
 
-**File:** `src/components/LessonRow.tsx`
-**Trigger:** Viewing lessons beyond the free threshold
-**What the user sees:** Locked lessons display at 60% opacity with a Lock icon replacing the Study/Test action buttons. A "Locked" status pill appears.
-**On click:** Opens the UpgradeModal with context about which lesson was clicked.
-**Verdict:** Good — clear visual distinction, discoverable interaction, contextual messaging.
+Locked rows render at 60% opacity with a Lock icon in place of the Study/Test buttons and a
+"Locked" status pill. Clicking opens the UpgradeModal with `lessonTitle` context.
 
----
-
-### 2. Upgrade Modal (Primary Paywall)
-
-**File:** `src/components/UpgradeModal.tsx`
-**Trigger:** Clicking a locked lesson row, or clicking "View Plans" in sidebar/mobile menu
-**What the user sees:**
-- Lock icon in a circular white container on beige background
-- Heading: "Upgrade to Unlock"
-- Contextual message: `"[lesson title]" requires a subscription to access.`
-- Billing toggle (Monthly / Annual / Lifetime) with "Best value" badge on Annual
-- Up to 3 pricing cards (Free, Language, All Languages) with feature lists
-- Annual savings percentage shown dynamically
-- Fixed footer with CTAs: "Current Plan" (disabled) for Free, "Subscribe" buttons for paid tiers
-
-**On click ("Subscribe"):** Navigates to `/account/subscriptions`
-
-**Issues:**
-- Both "Subscribe" buttons just **redirect** to the subscriptions page — the user has to start over on a completely different page, re-find the plan, and add it to a cart. This breaks the conversion flow and feels like going backwards.
-- Free plan card uses `bg-gray-50` instead of `bg-bone` — inconsistent with design system.
-- Billing toggle uses `bg-gray-100` instead of `bg-bone` — same issue.
-- No "most popular" or recommended visual emphasis on a specific plan.
+**Verdict:** good. Clear visual distinction, discoverable, contextual.
 
 ---
 
-### 3. Sidebar "Unlock All Lessons" Card
+### 2. UpgradeModal — the primary paywall — `src/components/UpgradeModal.tsx`
 
-**File:** `src/components/Sidebar.tsx` (lines 148–166)
-**Trigger:** Always visible in sidebar on course-level pages
-**What the user sees:**
-- Lock icon (orange/warning color) + "Unlock All Lessons" heading
-- Copy: "First 10 lessons free. Subscribe for all 20 lessons."
-- Orange "View Plans" button
+Opened from a locked lesson row, from "View Plans" in the sidebar / mobile menu, from the
+`?upgrade-lesson=` redirect (see §7), and automatically on first dashboard load after signup
+(see §11).
 
-**On click:** Opens the UpgradeModal
+**Structure**
 
-**Issues:**
-- ~~**Hardcoded "20 lessons"**~~ **RESOLVED** — Now uses dynamic `freeLessons` prop.
-- ~~**Always shows regardless of subscription status**~~ **RESOLVED** — Hidden for subscribers via `SubscriptionContext`. Shows "Access Ending" warning when subscription is cancelling.
+- Lock circle → `h2` → subheading
+- Billing tabs: Monthly / Annual / Lifetime, with `save $` on Annual and `best value` on
+  Lifetime (uppercase 10px green pills; `bg-white` when the tab is active, `bg-green-200`
+  when not — lines 587–604)
+- Up to 3 cards: Free, `{Language} only`, All Languages. The language card carries an amber
+  **Most popular** badge (line 636)
+- Footer with the CTA row; on error, a `text-destructive` line above it
 
----
+**Copy** (lines 569–575) is contextual:
 
-### 4. Mobile Menu "Unlock All Lessons" Card
+| Entry | Heading | Subheading |
+| --- | --- | --- |
+| Locked lesson | Upgrade to Unlock | `Upgrade your plan to study '{lessonTitle}'` |
+| No lesson context | Choose a Plan | Subscribe to unlock all lessons. |
 
-**File:** `src/components/MobileMenu.tsx` (lines 182–202)
-**Trigger:** Opening the mobile navigation drawer on course-level pages
-**What the user sees:** Identical to the sidebar card.
-**On click:** Closes menu, then opens the UpgradeModal.
+**Checkout** — `handleCheckout` (lines 489–508) calls `createDirectCheckout` and assigns
+`window.location.href = result.url`, i.e. straight to Stripe. No cart, no intermediate page.
+`originLessonId` is threaded into Stripe metadata as `origin_lesson_id` (`checkout.ts:143`)
+so the success page can send the user back to the lesson that triggered the flow.
 
-**Issues:** ~~Same as sidebar — hardcoded lesson count, shows to subscribers.~~ **RESOLVED** — Dynamic lesson count, hidden for subscribers. Now shows "Access Ending" warning when subscription is cancelling.
+**Open issues** (tracked as points 6–9 in `POST_SIGNUP_AND_UPGRADE_PLAN.md`):
 
----
+- **The paywall is the least persuasive of the three call sites.** The modal falls back to
+  generic feature copy when it isn't given live counts, and the render sites are inconsistent:
 
-### 5. UnlockBundlePromo Banner (Courses Page)
+  | Call site | `languages` | `allLanguagesStats` | Result |
+  | --- | --- | --- | --- |
+  | `LessonsList.tsx:566` (the paywall) | ✗ | ✗ | fallback copy |
+  | `DashboardContent.tsx:335` (post-signup) | ✓ | ✗ | partial |
+  | `LanguagesUpgradeProvider.tsx:80` (browsing) | ✓ | ✓ | full counts |
 
-**File:** `src/components/UnlockBundlePromo.tsx`
-**Trigger:** Viewing the courses listing for a language (`/courses/[languageId]`)
-**What the user sees:**
-- Blue-to-purple gradient banner
-- Sparkles icon + "Complete Bundle" label
-- Heading: "Unlock all [Language] courses"
-- Copy: "Get access to all [X] courses with [Y] words total. Save up to 40% compared to buying individually."
-- Pricing toggle: Subscription ($10.75/month) vs Lifetime ($120 one-time)
-- "View Bundle Plans" CTA button
-
-**On click:** Links to `/account/subscriptions`
-
-**Issues:**
-- **Prices are hardcoded** ($10.75/mo and $120 one-time) — not pulled from `pricing_plans` table. If admin changes prices, this banner shows stale values.
-- **"Save up to 40%"** is hardcoded — not calculated from actual pricing data.
-- **Shows even with an active subscription** — subscriber sees a promo to buy what they already have.
-
----
-
-### 6. Courses Page Subheader
-
-**File:** `src/app/(dashboard)/courses/[languageId]/page.tsx` (line 52)
-**What the user sees:** Below the language header: "First 10 lessons free in every course"
-
-**Issues:**
-- Hardcoded "10" — should read from `platform_config` (`default_free_lessons`) or the per-course `free_lessons` value.
+  So the paywall — the highest-intent moment — says "All lessons for this language" where the
+  low-intent browsing surface says "5 courses · 447 lessons".
+- **`displaySuffix` is dead code in lifetime mode.** Line 331 computes `"one-time"`; line 360
+  suppresses the whole span when `billingModel === "lifetime"`. Meanwhile `FreePlanCard`
+  hardcodes `/month` (line 421), so lifetime renders `$0 /month` next to two suffix-less cards.
+- **Mobile footer eats 40% of the modal.** Measured at 390×844: modal 358×760, top bar 60,
+  footer 308, leaving a 392px scroll viewport. `gridCols` is an `sm:` class, so all three CTAs
+  stack and stop reading as card bottoms.
+- **The Monthly tab is unreachable on mobile.** The tab strip is 415px inside a 310px container.
+  `justify-center` pushes the overflow past the *start* edge, which `scrollLeft` can't reach
+  (it can't go below 0), and `ScrollFadeRow`'s left fade is hidden on load
+  (`canScrollLeft = scrollLeft > 1`), so there's no affordance either.
 
 ---
 
-### 7. Server-Side Redirects (Lesson/Study/Test Pages)
+### 3 & 4. Sidebar and mobile menu "Unlock All Lessons" cards
 
-**Files:**
-- `src/app/(dashboard)/lesson/[lessonId]/page.tsx`
-- `src/app/(dashboard)/lesson/[lessonId]/study/page.tsx`
-- `src/app/(dashboard)/lesson/[lessonId]/test/page.tsx`
+`src/components/Sidebar.tsx:260` and `src/components/MobileMenu.tsx:300`.
 
-**Trigger:** Direct URL access to a locked lesson (e.g., shared link, bookmark)
-**What happens:** `canAccessLesson()` is called server-side. If locked, the user is silently redirected to the course page.
+Warning-coloured Lock icon, "Unlock All Lessons", copy
+`First {freeLessons} lessons free. Subscribe for full access.`, and a "View Plans" button that
+opens the UpgradeModal. Both are gated by
+`!hasAllLanguagesAccess && !(languageId && hasLanguageAccess(languageId))`, and both swap to an
+"Access Ending" card while a subscription is cancelling.
 
-**Issues:**
-- **No user feedback** — the user sees no explanation for why they were redirected. Should show a toast or flash message: "This lesson requires a subscription."
-
----
-
-### 8. Subscription Management Page
-
-**Files:**
-- `src/app/(dashboard)/account/subscriptions/page.tsx`
-- `src/components/subscriptions/SubscriptionsPageClient.tsx`
-- `src/components/subscriptions/AllLanguagesCallout.tsx`
-- `src/components/subscriptions/LanguageSubscriptionsList.tsx`
-- `src/components/subscriptions/LanguageSubscriptionRow.tsx`
-- `src/components/subscriptions/ExpandableCourseList.tsx`
-- `src/components/subscriptions/StickyCartBar.tsx`
-
-**Trigger:** Navigating to `/account/subscriptions` (from UpgradeModal, bundle promo, or sidebar nav)
-**What the user sees:**
-- Billing toggle tabs (Monthly / Annual / Lifetime)
-- All Languages callout banner at top (amber, with "Add to Cart" button)
-- "My Languages" section — enrolled languages with plan status and actions
-- "Other Languages" section — available languages
-- Each row: language flag + name, course/word count, status badge, action buttons
-- Expandable course details per language
-- Sticky cart bar at bottom when items are in cart (item badges, total, checkout button)
-- Upsell banner when 2+ languages in cart suggesting All Languages tier
-
-**Checkout flow:** Add to cart → Review in sticky bar → "Proceed to Checkout" → Stripe Checkout → Success/Cancel page
-
-**Issues:**
-- **Cart model adds friction** — language learning apps typically use simple "pick a plan, subscribe" flows. The cart paradigm feels like e-commerce shopping rather than subscribing.
-- **Mixing billing models blocked** (lifetime + recurring) but the error only shows at checkout attempt — should prevent adding incompatible items upfront.
-- **No visual connection** between the UpgradeModal plans and this page — they look and feel like completely different UIs despite serving the same purpose.
+**Note:** the two cards are duplicated markup. That's two instances, below CLAUDE.md's
+rule-of-three threshold, so it isn't yet an extraction — but a third copy would make it one.
 
 ---
 
-### 9. Checkout Success/Cancel Pages
+### 5. UnlockBundlePromo banner — `src/components/UnlockBundlePromo.tsx`
 
-**Files:**
-- `src/app/(dashboard)/account/subscriptions/success/page.tsx`
-- `src/app/(dashboard)/account/subscriptions/cancel/page.tsx`
+Gradient banner on `/courses/[languageId]`: "Unlock all {Language} courses", a
+subscription-vs-lifetime price toggle, and a "View Bundle Plans" CTA.
 
-**Success:** Green checkmark, "Subscription Confirmed", "Your subscription is now active. You have full access to all your subscribed content.", link back to subscriptions page.
-
-**Cancel:** Gray X icon, "Checkout Cancelled", "Your checkout was cancelled. No charges were made.", link back to subscriptions page.
-
-**Issues:**
-- Success page links back to subscriptions page rather than to the content the user wanted to access (e.g., the locked lesson that started the flow). This misses an opportunity to immediately deliver value.
+Prices and the savings figure are now computed from `pricing_plans` (lines 33–44); the old
+$10.75 / $120 literals survive only as fallbacks (lines 102, 109). Gated by `!hasAccess` at
+`courses/[languageId]/page.tsx:68`.
 
 ---
 
-### 10. Stripe Customer Portal (Manage Existing Subscription)
+### 6. Courses page subheader
 
-**File:** `src/lib/mutations/subscriptions.ts` (`createCustomerPortalSession`)
-**Trigger:** "Manage plan" button on an active subscription row
-**What happens:** Opens Stripe's hosted billing portal for cancellation, payment method updates, etc.
-**Verdict:** Standard and appropriate — no custom UI needed here.
+`src/app/(dashboard)/courses/[languageId]/page.tsx` — "First N lessons free in every course",
+with N from `getDefaultFreeLessons()` (page line 29, copy line 62).
 
 ---
 
-### 11. Onboarding Flow (No Upgrade CTA)
+### 7. Server-side redirects — lesson / study / test pages
 
-**Files:**
-- `src/components/auth/OnboardingModal.tsx`
-- `src/app/(dashboard)/course/[courseId]/schedule/page.tsx`
-- `src/app/(dashboard)/dashboard/page.tsx`
+`canAccessLesson()` runs server-side on all three routes. A locked lesson now redirects to
+`/course/${course.id}?upgrade-lesson=${lesson.id}`, and `LessonsList.tsx:105–122` picks the
+param up and auto-opens the UpgradeModal on the matching lesson.
 
-**Current flow:**
-
-```
-Guest lands on / → Redirect to /course/{DEFAULT_COURSE_ID}/schedule →
-OnboardingModal (Step 1: language selection → Step 2: signup/signin) →
-Email verification → /course/{courseId}/schedule (authenticated)
-```
-
-**Step 1 — Language Selection:**
-- Header: "Welcome to 200 Words a Day"
-- Scrollable list of languages with course thumbnails and counts
-- Footer: "Start [Language]" CTA + "Already have account? Log in"
-
-**Step 2 — Signup/Signin:**
-- Email + password form (or social auth)
-- On success: either immediate session → course schedule, or "Check your email" verification screen
-
-**Post-signup:**
-- `addLanguageWithCourse()` sets up the user's first language and course
-- User lands on the course schedule page with no further onboarding steps
-- On subsequent visits, `/dashboard` (My Languages) auto-redirects to current course unless `?pick=true`
-
-**What's missing:** There is **zero upgrade messaging** anywhere in the onboarding funnel. The user signs up, lands on the schedule, and discovers the freemium model only when they scroll far enough to encounter a locked lesson. There is no moment where the value proposition of a paid plan is communicated proactively — the user has to stumble into a paywall.
+**Caveat:** that lands the user in the *fallback-copy* modal (see §2), so the deep-link path
+delivers the weakest version of the pitch.
 
 ---
 
-## Critical UX Problems
+### 8. Subscription management page
 
-### Problem 1: Broken Conversion Funnel (7 Steps to Convert)
+`src/app/(dashboard)/account/subscriptions/page.tsx` + `SubscriptionsPageClient.tsx`,
+`SubscriptionsPageHeader.tsx`, `LanguageSubscriptionsList.tsx`, `LanguageSubscriptionRow.tsx`,
+`ExpandableCourseList.tsx`, `CheckoutFooterBar.tsx`, `SwitchLanguageModal.tsx`, `ActionMenu.tsx`.
 
-The current upgrade path from discovering locked content to paying:
+Billing toggle, a single unified language list (the old "My Languages" / "Other Languages"
+split is gone), per-language rows with flag, counts, status badge and an `ActionMenu`,
+expandable course details, and a sticky `CheckoutFooterBar` when the cart has contents.
 
-```
-Locked Lesson → UpgradeModal → "Subscribe" button → /account/subscriptions →
-Find plan again → Add to cart → Proceed to Checkout → Stripe Checkout
-```
+The page is now a *management* surface with an optional single-target cart, not the primary
+conversion path — the modal goes straight to Stripe.
 
-That's **7 steps** to convert. Industry best practice is 2–3 steps. The UpgradeModal creates an expectation that clicking "Subscribe" will make progress toward subscribing, but instead it dumps the user onto a separate page where they have to start over.
-
-**Recommendation:** The UpgradeModal should either:
-- Create a Stripe Checkout session directly for the selected plan (skip the cart entirely), or
-- Have its own inline checkout that doesn't require navigating away
-
----
-
-### Problem 2: Subscription-Unaware CTAs
-
-The sidebar card, mobile menu card, and bundle promo banner all show to paying subscribers. This creates a poor post-purchase experience:
-- Paying users feel like the app doesn't recognize their purchase
-- Upgrade prompts after purchase erode trust and feel spammy
-- Users may worry their subscription isn't active
-
-**Recommendation:** Add subscription status to `UserContext` so the client can adapt in real-time. Hide upgrade prompts when the user has active coverage for the relevant content. Optionally replace them with positive reinforcement (e.g., "All lessons unlocked" with a checkmark).
+**Open issue:** `AllLanguagesCallout` is rendered behind
+`const showCallout = false && showUpgradeCta;` (`SubscriptionsPageClient.tsx:79`). The comment
+says "Temporarily hidden. Flip to `showUpgradeCta` to restore." Lint won't flag this, so it will
+sit here indefinitely — either restore it or delete it.
 
 ---
 
-### Problem 3: Hardcoded Values Create Stale UI
+### 9. Checkout success / cancel pages
 
-At least 4 places have hardcoded prices, lesson counts, or savings percentages:
+**Success:** green checkmark, "Subscription Confirmed". When `origin_lesson_id` is present in
+the Stripe session (read back via `getCheckoutSessionOrigin(session_id)`), the primary CTA is
+**"Continue to {Lesson Title}"** rather than a link back to the subscriptions page.
 
-| Location | Hardcoded Value | Should Be |
-|----------|----------------|-----------|
-| Sidebar card | "20 lessons" | Actual lesson count for current course |
-| Mobile menu card | "20 lessons" | Actual lesson count for current course |
-| UnlockBundlePromo | $10.75/mo, $120 lifetime | From `pricing_plans` table |
-| UnlockBundlePromo | "Save up to 40%" | Calculated from actual pricing |
-| Courses subheader | "10 lessons free" | From `platform_config` or course `free_lessons` |
-
-**Recommendation:** Replace all hardcoded values with dynamic data from the database or config.
+**Cancel:** grey X, "Checkout Cancelled", "Your checkout was cancelled. No charges were made."
 
 ---
 
-### Problem 4: Silent Redirects on Locked Content
+### 10. Stripe customer portal
 
-Direct URL access to locked content (lesson, study, test pages) produces a redirect with zero user feedback. The user lands on the course page with no explanation of what happened.
-
-**Recommendation:** Use a query parameter (e.g., `?locked=true`) on the redirect URL, then show a toast notification: "This lesson requires a subscription. Upgrade to unlock it."
-
----
-
-### Problem 5: Two Disconnected Pricing UIs
-
-The UpgradeModal and the Subscriptions page present pricing in completely different layouts and interaction models:
-- Modal: side-by-side plan cards with feature lists
-- Subscriptions page: language-centric rows with cart-based checkout
-
-Users who see plans in the modal then land on the subscriptions page have to mentally re-map everything. There's no visual or structural continuity.
-
-**Recommendation:** Either unify the visual language across both, or have the UpgradeModal handle the entire checkout flow end-to-end so users never see two different pricing UIs.
+`createCustomerPortalSession` in `src/lib/mutations/subscriptions.ts`, invoked from
+`SubscriptionsPageHeader.tsx` / `SubscriptionHeader.tsx` (it used to live in
+`ManageBillingButton.tsx`, now deleted). Standard hosted portal — no custom UI warranted.
 
 ---
 
-### Problem 6: Success Page Doesn't Deliver Value
+### 11. Onboarding flow
 
-After completing checkout, the success page links back to the subscriptions management page — not to the content the user wanted. The whole reason they subscribed was to access a specific lesson.
+`src/components/auth/OnboardingModal.tsx` → verification → course schedule.
 
-**Recommendation:** Pass the originating lesson/course context through the checkout flow (via Stripe metadata or session storage) and redirect the user to the content they were trying to access.
+The success screen (lines 143–175) now carries the free-tier framing:
+"🎓 What's included free: First {freeLessons} lessons in {language}", "✨ Upgrade anytime for
+full access to all lessons", and a **View Plans** link. Signup also sets `just_signed_up` in
+localStorage, which `DashboardContent.tsx:132–145` consumes once to auto-open the UpgradeModal
+on first dashboard load.
 
----
+**Still missing** (both were P2 in the previous revision and remain unbuilt):
 
-### Problem 7: No Upgrade CTA in Onboarding Flow
-
-The onboarding funnel (language selection → signup → course schedule) contains no mention of premium plans. Users complete signup without ever learning that paid tiers exist. They discover the freemium model only when they encounter a locked lesson — which feels like a bait-and-switch rather than a transparent value proposition.
-
-This is a missed opportunity at every stage:
-
-**1. Language selection (Step 1):** The user sees course counts and thumbnails but no indication of what's free vs. paid. A user choosing a language with 5 courses may assume they're all included. Setting expectations early ("First 10 lessons free in every course — upgrade anytime for full access") prevents negative surprise later.
-
-**2. Post-signup success screen:** The email verification screen currently shows a generic "Check your email" message. This dead-end screen is prime real estate — the user just committed to creating an account, intent is at its peak. A brief value pitch here (feature highlights, social proof, or a limited-time offer) would reach users at maximum receptivity.
-
-**3. First session on course schedule:** After signup, the user lands directly on the schedule with no welcome step. A lightweight welcome banner or interstitial ("Welcome! You have 10 free lessons — here's what you can unlock") would frame the free tier as a generous trial rather than a hidden limitation.
-
-**4. My Languages dashboard (returning users):** When users visit `/dashboard`, language cards show no premium indicators. A subtle badge ("3 of 20 lessons free") on each language card would create ongoing awareness without being intrusive.
-
-**Recommendation (tiered approach):**
-
-| Placement | Priority | Approach | Rationale |
-|-----------|----------|----------|-----------|
-| Post-signup success screen | **P1** | Add a "What you get" feature comparison below the verification message — free tier vs. paid. No hard sell, just transparency. | Highest intent moment; user just signed up. Framing expectations early prevents the locked-lesson surprise from feeling like a bait-and-switch. |
-| Language selection (Step 1) | **P2** | Add a subtle line below the language list: "First N lessons free in every course" | Sets expectations before commitment; reduces churn from unmet assumptions. |
-| First-session welcome banner | **P2** | Dismissible banner at top of schedule page (first visit only): "Welcome! You have N free lessons. [See what's included →]" | Frames the free tier positively; teaches the model before the user hits a wall. |
-| My Languages dashboard | **P3** | "X of Y lessons free" badge on language cards | Low-friction, ongoing awareness for returning users exploring new languages. |
-
-**Key principle:** The goal is **transparent framing**, not aggressive upselling. Users who understand the model upfront convert better and churn less than users who feel tricked by a hidden paywall. Every touchpoint should feel informative, not salesy.
+- No free-tier line on the language-selection step. A user picking a language with 5 courses
+  has no signal about what's included until after signup.
+- No first-session welcome banner on the schedule page.
 
 ---
 
-## Minor Issues
+## Open problems
 
-| Issue | Location | Notes |
-|-------|----------|-------|
-| `bg-gray-50` / `bg-gray-100` used instead of `bg-bone` | UpgradeModal | Design system inconsistency |
-| `ConfirmSubscriptionDialog` is unused | `src/components/subscriptions/` | Dead code — remove or integrate |
-| `PricingOverviewCards` is unused | `src/components/subscriptions/` | Dead code — remove or integrate |
-| Credits history uses dummy data | `CreditsHistoryClient.tsx` | Either implement or remove the page |
-| ~~No `invoice.payment_failed` webhook handler~~ | ~~`src/app/api/webhooks/stripe/route.ts`~~ | **RESOLVED** — Handler exists, sets `past_due` status and creates notification |
-| ~~No client-side subscription state~~ | ~~`UserContext.tsx`~~ | **RESOLVED** — `SubscriptionContext` provides `hasLanguageAccess`, `hasAllLanguagesAccess`, and `accessEndDate` |
+### 1. The paywall gives the weakest pitch
+
+Detailed in §2. The fix is prop threading, not new UI: pass `languages` and `allLanguagesStats`
+into the `LessonsList` render site so the highest-intent surface stops falling back to generic
+copy. Cross-referenced as open point 6 in `POST_SIGNUP_AND_UPGRADE_PLAN.md`.
+
+### 2. Two pricing UIs still look unrelated
+
+The modal shows side-by-side plan cards; the subscriptions page shows language-centric rows
+with a cart. This matters less than it did — the modal no longer routes into the page — but a
+user who upgrades from the modal and later opens the management page still has to re-map
+everything. Worth unifying the visual language even though the funnel problem is gone.
+
+### 3. Lifetime pricing renders inconsistently
+
+Detailed in §2. `$199` with no suffix beside `$0 /month`.
+
+### 4. Mobile modal layout
+
+Detailed in §2 — footer proportion and the unreachable Monthly tab.
+
+### 5. Dashboard language cards carry no premium indicator
+
+Unbuilt. A subtle "X of Y lessons free" badge on each card would give returning users ongoing
+awareness. P3.
+
+### 6. Credits page runs on dummy data
+
+`src/components/credits/CreditsHistoryClient.tsx:13–41` is a hardcoded `DUMMY_TRANSACTIONS`
+array (referral bonuses, a sign-up bonus, a subscription payment), rendered by
+`src/app/(dashboard)/account/credits/page.tsx`. There is no credits table behind it. Either
+build it or remove the page — a live-looking history of fabricated transactions is worse than
+no page.
 
 ---
 
-## Recommendations Summary (Priority Order)
+## Resolved since the last revision
 
-| Priority | Issue | Recommendation |
-|----------|-------|----------------|
-| **P0** | 7-step conversion funnel | UpgradeModal creates Stripe checkout directly — skip cart page |
-| ~~**P0**~~ | ~~CTAs show to subscribers~~ | **RESOLVED** — `SubscriptionContext` hides upgrade prompts for subscribers |
-| **P1** | Hardcoded values | Pull lesson counts, prices, and savings from DB/config dynamically |
-| **P1** | Silent redirects | Add toast notification explaining why user was redirected |
-| **P1** | Disconnected pricing UIs | Unify visual language or have modal handle checkout end-to-end |
-| **P1** | Success page misses the moment | Redirect to the content user wanted, not subscriptions page |
-| **P1** | No upgrade CTA in onboarding | Add feature comparison to post-signup screen; set free-tier expectations during language selection |
-| **P2** | Design system inconsistencies | Replace `bg-gray-*` with `bg-bone` in UpgradeModal |
-| **P2** | Dead components | Remove `ConfirmSubscriptionDialog` and `PricingOverviewCards` |
-| ~~**P2**~~ | ~~Missing webhook handler~~ | **RESOLVED** — `invoice.payment_failed` handler exists |
-| **P2** | Dummy credits data | Implement real credits history or remove page |
-| ~~**P2**~~ | ~~No client-side subscription state~~ | **RESOLVED** — `SubscriptionContext` with access checks and cancellation awareness |
+| Was | Now |
+| --- | --- |
+| **P0** 7-step funnel; "Subscribe" redirects to `/account/subscriptions` | `createDirectCheckout` → Stripe. CTA reads "Upgrade plan". |
+| **P0** Upgrade CTAs shown to subscribers | `SubscriptionContext` gates the sidebar card, mobile menu card and bundle promo. |
+| **P1** Hardcoded prices in `UnlockBundlePromo` ($10.75 / $120 / "Save up to 40%") | Computed from `pricing_plans`; literals are fallbacks only. |
+| **P1** Hardcoded "20 lessons" in sidebar / mobile menu | `First {freeLessons} lessons free. Subscribe for full access.` |
+| **P1** Hardcoded "10" in the courses subheader | `getDefaultFreeLessons()` from `platform_config`. |
+| **P1** Silent redirect on locked content | `?upgrade-lesson=` param auto-opens the modal on the right lesson. |
+| **P1** Success page links back to subscriptions | `origin_lesson_id` metadata → "Continue to {Lesson Title}". |
+| **P1** No upgrade messaging in onboarding | Free-tier breakdown + "View Plans" on the success screen; `just_signed_up` auto-opens the modal. |
+| **P2** `bg-gray-50` / `bg-gray-100` in the modal | `bg-white` + `bg-bone` header; tabs use `bg-beige`. |
+| **P2** No most-popular emphasis | Amber **Most popular** badge on the language card. |
+| **P2** `ConfirmSubscriptionDialog` / `PricingOverviewCards` dead code | Both deleted. |
+| **P2** No `invoice.payment_failed` webhook handler | Exists — `route.ts:69`, handler at 336–357; sets `past_due` and notifies. |
+| **P2** No client-side subscription state | `SubscriptionContext` exposes `hasLanguageAccess`, `hasAllLanguagesAccess`, `accessEndDate`. |
+
+Two documented claims were simply **wrong**, not stale, and are corrected above: the modal's
+Annual tab carries `save $` (not "Best value" — that's on Lifetime), and the modal's contextual
+copy is `Upgrade your plan to study '{lesson}'` (not `"[lesson]" requires a subscription to
+access.`).
+
+---
+
+## Priority summary
+
+| Priority | Issue | Direction |
+| --- | --- | --- |
+| **P1** | Paywall falls back to generic copy | Thread `languages` + `allLanguagesStats` into `LessonsList`'s modal |
+| **P1** | Mobile modal: footer proportion, unreachable Monthly tab | Rework footer layout; fix the tab-strip overflow |
+| **P2** | Lifetime price suffix inconsistency | Remove the dead `displaySuffix` branch; make the Free card's suffix follow `billingModel` |
+| **P2** | Two disconnected pricing UIs | Unify the visual language of modal and subscriptions page |
+| **P2** | `showCallout = false` dead render | Restore `AllLanguagesCallout` or delete it |
+| **P2** | Dummy credits data | Build it or remove the page |
+| **P3** | No free-tier line on language selection | One line under the language list |
+| **P3** | No first-session welcome banner | Dismissible, first visit only |
+| **P3** | No dashboard language-card badges | "X of Y lessons free" |
+
+**Guiding principle, unchanged:** transparent framing over aggressive upselling. Users who
+understand the model upfront convert better and churn less than users who feel tricked by a
+hidden paywall.

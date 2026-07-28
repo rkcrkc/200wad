@@ -9,7 +9,6 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { XpBadge } from "@/components/ui/xp-badge";
 import { ScrollablePills } from "./ScrollablePills";
-import { WordsPreviewTooltip } from "@/components/WordsPreviewTooltip";
 import { LessonStartTestModal } from "@/components/study";
 import type { LessonForScheduler } from "@/lib/queries/schedule";
 import { useText } from "@/context/TextContext";
@@ -47,19 +46,12 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
 
       {/* Lesson Info */}
       <div className="flex min-w-0 flex-col pt-8 pb-0">
-        {/* Lesson Number & Word Count */}
-        <div className="mb-3 flex items-center justify-between">
+        {/* Lesson Number & Status */}
+        <div className="mb-2 flex items-center justify-between">
           <p className="text-regular-semibold text-muted-foreground">
             Lesson #{lesson.number}
           </p>
-          <div className="flex items-center gap-2">
-            <WordsPreviewTooltip
-              lessonId={lesson.id}
-              wordCount={lesson.word_count || lesson.sampleWords.length}
-              variant="pill"
-            />
-            <StatusPill status={statusType} />
-          </div>
+          <StatusPill status={statusType} />
         </div>
 
         {/* Title */}
@@ -74,7 +66,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3 pt-8 pb-6">
+      <div className="flex items-center gap-3 pt-6 pb-6">
         <PrimaryButton
           className="flex-1"
           href={`/lesson/${lesson.id}/study`}

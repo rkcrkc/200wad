@@ -56,7 +56,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       >
         {/* Lesson number */}
         <td className={cn(
-          "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+          "bg-white px-4 py-3 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:px-6 md:py-4",
           isFirst && "rounded-tl-xl",
           isLast && "rounded-bl-xl"
         )}>
@@ -161,40 +161,73 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         lesson.isLocked && "opacity-60"
       )}
     >
-      {/* Lesson number */}
+      {/* Lesson number — desktop-only column; on mobile it's prepended to the
+          title so the row keeps more width for the name. */}
       <td className={cn(
-        "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+        "hidden bg-white px-4 py-3 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell md:px-6 md:py-4",
         isFirst && "rounded-tl-xl",
         isLast && "rounded-bl-xl"
       )}>
         {lesson.number}
       </td>
 
-      {/* Lesson: emoji + title */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* Lesson: emoji + title (status stacks beneath the title on mobile, and
+          the chevron rides along on the right).
+
+          Below md this is the only visible cell, so it owns all four corners of
+          the table. From md up the number and action cells sit either side of
+          it and reclaim them. */}
+      <td className={cn(
+        "bg-white px-2 py-3 pr-4 transition-colors group-hover:bg-bone-hover md:py-4 md:pr-2",
+        isFirst && "rounded-t-xl md:rounded-t-none",
+        isLast && "rounded-b-xl md:rounded-b-none"
+      )}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-base md:h-10 md:w-10 md:text-xl">
             {lesson.emoji || "📚"}
           </div>
-          <div className="truncate text-medium-semibold text-foreground">
-            {lesson.title}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-medium-semibold text-foreground">
+              <span className="md:hidden">{lesson.number}. </span>{lesson.title}
+            </div>
+            {/* Mobile: available XP leads, then the word count; status pill
+                trails. Desktop uses the dedicated columns below. */}
+            <div className="mt-1 flex items-center justify-between gap-2 md:hidden">
+              <span className="flex items-center gap-2">
+                <XpBadge value={wordCount * 3} variant="available" size="xs" />
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {formatNumber(wordCount)} {wordCount === 1 ? "word" : "words"}
+                </span>
+              </span>
+              <StatusPill status={statusType} size="sm" />
+            </div>
+          </div>
+          {/* Mobile: the row affordance sits in the row itself. The study/test
+              shortcuts are desktop-only, so below md this is just the chevron
+              (or the lock) — no column needed for it. */}
+          <div className="flex-shrink-0 md:hidden">
+            {lesson.isLocked ? (
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            )}
           </div>
         </div>
       </td>
 
-      {/* Status */}
-      <td className="whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* Status — desktop-only column; on mobile it moves beneath the name. */}
+      <td className="hidden whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover md:table-cell">
         <StatusPill status={statusType} />
       </td>
 
       {/* XP available — `word_count × 3` (one perfect single-direction test).
           Yellow theming matches the header daily-goal pill. */}
-      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="hidden bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         <XpBadge value={wordCount * 3} variant="available" />
       </td>
 
       {/* # Words */}
-      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="hidden bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         <WordsPreviewTooltip
           lessonId={lesson.id}
           wordCount={lesson.word_count ?? 0}
@@ -203,7 +236,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       </td>
 
       {/* # Learned */}
-      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="hidden bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         <span className="inline-flex items-center gap-1.5">
           {formatNumber(lesson.wordsLearned)}
           <SubBadge>
@@ -213,7 +246,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       </td>
 
       {/* # Mastered */}
-      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="hidden bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         <span className="inline-flex items-center gap-1.5">
           {formatNumber(lesson.wordsMastered)}
           <SubBadge>
@@ -222,9 +255,12 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         </span>
       </td>
 
-      {/* Actions / Lock - sticky on horizontal scroll */}
+      {/* Actions / Lock — a dedicated column only from md up, where the table
+          really is a grid. Below md it's `display:none` and the chevron rides in
+          the lesson cell instead, so there's no narrow column squeezing the row.
+          Sticky on horizontal scroll; width mirrors the header cell. */}
       <td className={cn(
-        "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 hidden bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover md:table-cell md:w-[140px]",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl",
         showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"

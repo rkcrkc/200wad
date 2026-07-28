@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { HelpCircle } from "lucide-react";
-import { getWords, isAutoLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
+import { getWords, isAutoLesson, isQaLesson, parseAutoLessonId, getLessonActivityHistory } from "@/lib/queries";
 import { AUTO_LESSON_META } from "@/lib/queries/auto-lessons";
 import { getTextOverrides } from "@/lib/queries/text";
 import { getText } from "@/lib/text";
@@ -40,12 +40,18 @@ interface LessonPageProps {
 export default async function LessonPage({ params }: LessonPageProps) {
   const { lessonId } = await params;
 
+  // QA lessons (`qa-…`) are admin-only, ephemeral, and never write
+  // study/test sessions, so they have no activity history — and their id isn't
+  // a real `lesson_id` UUID, so querying for it would be invalid. Skip the
+  // fetch entirely for them.
+  const isQa = isQaLesson(lessonId);
+
   // Fetch words, activity history, and admin text overrides in parallel.
   // getTextOverrides is cached (revalidate: 3600), so this call is free when
   // the dashboard layout has already warmed the cache.
   const [wordsResult, activityHistory, textOverridesResult] = await Promise.all([
     getWords(lessonId),
-    getLessonActivityHistory(lessonId),
+    isQa ? Promise.resolve(undefined) : getLessonActivityHistory(lessonId),
     getTextOverrides(),
   ]);
 
@@ -82,8 +88,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
     };
   }
 
-  // Access gate: redirect to course page if lesson is locked
-  if (course && !isAutoLesson(lessonId)) {
+  // Access gate: redirect to course page if lesson is locked. Auto-lessons
+  // and admin QA lessons are virtual (no lesson_words access rules).
+  if (course && !isAutoLesson(lessonId) && !isQa) {
     const access = await canAccessLesson(
       userId,
       { lessonNumber: resolvedLesson.number },

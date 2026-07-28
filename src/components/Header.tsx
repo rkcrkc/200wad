@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Menu, TrendingUp, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, TrendingUp, PanelLeftClose, PanelLeftOpen, Globe } from "lucide-react";
 import { SearchBar } from "./SearchBar";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { useUser } from "@/context/UserContext";
@@ -11,6 +11,7 @@ import { useCourseContext } from "@/context/CourseContext";
 import { Button } from "@/components/ui/button";
 import { Popover } from "@/components/ui/popover";
 import { MobileMenu } from "./MobileMenu";
+import { GuestMobileNav } from "./GuestMobileNav";
 import { CourseDropdown } from "./CourseDropdown";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { DailyGoalRing } from "./header/DailyGoalRing";
@@ -33,6 +34,8 @@ interface HeaderProps {
   sidebarCollapsed?: boolean;
   /** Toggle the desktop sidebar collapsed state */
   onToggleSidebar?: () => void;
+  /** Flags of every visible language, for the "Choose language" empty state. */
+  languageFlags?: string[];
 }
 
 // Placeholder stats for onboarding preview
@@ -49,7 +52,7 @@ const PREVIEW_STATS: HeaderStats = {
   dailyGoal: { goal: 30, todayXp: 12, percent: 40, goalMet: false },
 };
 
-export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons, sidebarCollapsed = false, onToggleSidebar }: HeaderProps) {
+export function Header({ showSidebar = true, stats, showPreviewMode = false, dueTestsCount, onViewPlans, freeLessons, sidebarCollapsed = false, onToggleSidebar, languageFlags = [] }: HeaderProps) {
   const { t } = useText();
   const { isLoading, isGuest, isAdmin } = useUser();
   const pathname = usePathname();
@@ -105,29 +108,36 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
     return `/course/${courseId}/schedule`;
   })();
 
-  // Header is always full-width fixed at top so it stays visible when content scrolls
-  const headerClasses = "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
+  // In the app (logged in) the navbar is `fixed` at all sizes so it stays put
+  // while content scrolls. During guest/onboarding preview it sits in normal
+  // flow on mobile — reading as a marketing-style page header that scrolls with
+  // the page — and only becomes `fixed` at md+. Keep DashboardContent's
+  // contentWrapperClass in sync with this.
+  const headerClasses = showPreviewMode
+    ? "z-20 h-[72px] bg-white py-2 px-4 md:fixed md:top-0 md:left-0 md:right-0"
+    : "fixed top-0 left-0 right-0 z-20 h-[72px] bg-white py-2 px-4";
 
   return (
     <>
       <header className={headerClasses}>
-        <div className="flex h-full w-full items-center justify-between">
-          {/* Left side - Logo + Navigation */}
-          <div className="flex shrink-0 items-center pr-4">
-            {/* Hamburger menu - show on small/md when sidebar would be shown */}
-            {showSidebar && showAsLoggedIn && (
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:hidden"
-                aria-label="Open menu"
-              >
-                <Menu className="h-5 w-5 text-muted-foreground" />
-              </button>
-            )}
+        {/* Guest/onboarding mobile header: placeholder marketing bar (logo left,
+            dead hamburger right). Replaced by the real marketing nav later.
+            md+ falls through to the full header below. */}
+        {showPreviewMode && <GuestMobileNav className="h-full w-full md:hidden" />}
 
-            {/* Logo / Course Selector - smaller on mobile, full width on lg */}
+        <div
+          className={`h-full w-full items-center justify-between ${
+            showPreviewMode ? "hidden md:flex" : "flex"
+          }`}
+        >
+          {/* Left side - Logo + Navigation. On mobile the course picker is the
+              leading element; the hamburger lives in the trailing actions group.
+              min-w-0 (no shrink-0) lets the course name truncate rather than
+              pushing the trailing controls off the right edge on narrow screens. */}
+          <div className="flex min-w-0 items-center pr-4">
+            {/* Logo / Course Selector - smaller on mobile, full width on lg. */}
             <div
-              className={`-ml-4 flex w-auto shrink-0 px-4 ${
+              className={`-ml-4 flex w-auto min-w-0 px-4 ${
                 sidebarCollapsed ? "md:w-[72px]" : "md:w-[240px]"
               }`}
             >
@@ -139,6 +149,44 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                 courseName={courseName!}
                 collapsed={showSidebar && sidebarCollapsed}
               />
+            ) : !isGuest ? (
+              // Logged-in user with no enrolled/current course (mid-onboarding or
+              // a stale account). Show a "Choose language" picker of all language
+              // flags that links straight to the courses page. No hover dropdown —
+              // there are no enrolled courses to switch between yet.
+              <Link
+                href="/dashboard"
+                aria-label="Choose a language"
+                className={`flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-bone-hover ${
+                  showSidebar && sidebarCollapsed ? "justify-center" : ""
+                }`}
+              >
+                {showSidebar && sidebarCollapsed ? (
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+                    <Globe className="text-muted-foreground h-5 w-5" strokeWidth={1.67} />
+                  </div>
+                ) : (
+                  // Mobile: flags stacked above the "Choose language" label.
+                  // md+: flags beside the label. Mirrors CourseDropdown's trigger.
+                  <div className="flex h-full min-w-0 flex-1 flex-col items-start justify-center gap-0.5 pl-4 pr-3 md:flex-row md:items-center md:gap-3">
+                    {languageFlags.length > 0 ? (
+                      <div className="flex max-w-full shrink-0 items-center gap-0.5 overflow-hidden text-[16px] leading-none md:text-[18px]">
+                        {languageFlags.map((flag, i) => (
+                          <span key={i}>{flag}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex h-4 w-4 shrink-0 items-center justify-center md:h-6 md:w-6">
+                        <Globe className="text-muted-foreground h-4 w-4 md:h-5 md:w-5" strokeWidth={1.67} />
+                      </div>
+                    )}
+                    <span className="text-primary flex max-w-full items-center gap-0.5 text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">
+                      <span className="truncate">Choose language</span>
+                      <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} />
+                    </span>
+                  </div>
+                )}
+              </Link>
             ) : (
               <Link
                 href={courseSelectorHref}
@@ -327,8 +375,9 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           {showSidebar && showAsLoggedIn && <SearchBar />}
         </div>
 
-        {/* Right side - Actions */}
-        <div className={`flex shrink-0 items-center gap-4 ${!showSidebar ? "ml-auto" : ""}`}>
+        {/* Right side - Actions. Tighter gap on mobile so the trailing controls
+            take less width, leaving more room for the leading course picker. */}
+        <div className={`flex shrink-0 items-center gap-2 md:gap-4 ${!showSidebar ? "ml-auto" : ""}`}>
           {isLoading ? (
             // Loading skeleton
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
@@ -365,11 +414,12 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               {!isGuest && <NotificationBell />}
 
               {/* User Account — dropdown for real users, static avatar for
-                  guests / onboarding preview. */}
+                  guests / onboarding preview. Hidden on mobile, where the
+                  account links live inside the hamburger menu instead. */}
               {isGuest ? (
                 <Link
                   href="#"
-                  className="flex h-12 shrink-0 items-center gap-2 px-3"
+                  className="hidden h-12 shrink-0 items-center gap-2 px-3 md:flex"
                   onClick={(e) => e.preventDefault()}
                 >
                   <div
@@ -384,9 +434,23 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   </div>
                 </Link>
               ) : (
-                <ProfileDropdown />
+                <div className="hidden md:block">
+                  <ProfileDropdown />
+                </div>
               )}
             </>
+          )}
+
+          {/* Hamburger menu — trailing (far right) on mobile so the course
+              picker leads. Hidden at md+ where the sidebar takes over. */}
+          {showSidebar && showAsLoggedIn && (
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5 text-muted-foreground" />
+            </button>
           )}
         </div>
       </div>

@@ -239,11 +239,21 @@ export function SignupModal({ courseId }: SignupModalProps) {
           {mode === "signup" && (
             <p className="text-muted-foreground text-center text-xs leading-relaxed">
               By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
-              <Link href="/terms" className="text-primary hover:underline">
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-primary hover:underline">
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 Privacy Policy
               </Link>
               .

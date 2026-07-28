@@ -56,7 +56,7 @@ export function LanguageCardStack({
             <div
               key={language.id}
               className={cn(
-                "relative flex w-52 shrink-0 flex-col rounded-2xl border bg-white shadow-card transition-all",
+                "relative flex min-h-44 w-full flex-col rounded-2xl border bg-white shadow-card transition-all md:min-h-0 md:w-52 md:shrink-0",
                 isSelected
                   ? "border-primary ring-2 ring-primary"
                   : "border-black/5 hover:border-black/15 hover:shadow-card-hover"
@@ -73,7 +73,7 @@ export function LanguageCardStack({
                 aria-label={`Show ${language.name} courses`}
                 className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
               />
-              <div className="pointer-events-none relative z-10 flex flex-col gap-3 p-4">
+              <div className="pointer-events-none relative z-10 flex flex-1 flex-col justify-between gap-3 p-4">
                 <div className="flex items-start justify-between">
                   <span className="text-3xl leading-none">{flag}</span>
                   <div className="flex items-center gap-1">

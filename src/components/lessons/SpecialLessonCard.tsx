@@ -18,7 +18,7 @@ export interface SpecialLessonCardProps {
 }
 
 const baseClass =
-  "group flex w-[260px] flex-shrink-0 snap-start items-center gap-3 rounded-xl bg-white p-3 text-left shadow-card transition-shadow hover:shadow-[0px_4px_12px_-2px_rgba(0,0,0,0.10)]";
+  "group flex w-fit flex-shrink-0 snap-start items-center gap-3 rounded-xl bg-white p-3 text-left shadow-card transition-shadow hover:shadow-[0px_4px_12px_-2px_rgba(0,0,0,0.10)]";
 
 export function SpecialLessonCard({
   emoji,
@@ -30,18 +30,27 @@ export function SpecialLessonCard({
 }: SpecialLessonCardProps) {
   const isEmpty = count === 0;
   const className = cn(baseClass, isEmpty && "opacity-80");
+  const wordLabel = `${count} ${count === 1 ? "word" : "words"}`;
 
   const content = (
     <>
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center text-xl">
         {emoji}
       </div>
-      <div className="min-w-0 flex-1 truncate text-regular-semibold text-foreground">
-        {title}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-regular-semibold text-foreground">
+          {title}
+        </div>
+        {/* Mobile: word count sits beneath the title so it doesn't squeeze the
+            name. Touch has no hover, so no hover-label swap here. */}
+        <div className="mt-0.5 text-xs-medium text-muted-foreground md:hidden">
+          {wordLabel}
+        </div>
       </div>
-      <div className="grid flex-shrink-0 items-center justify-items-end">
+      {/* Desktop: word count on the right, swapping to the hover label. */}
+      <div className="hidden flex-shrink-0 grid-cols-1 items-center justify-items-end md:grid">
         <span className="col-start-1 row-start-1 text-xs-medium text-muted-foreground transition-opacity duration-150 group-hover:opacity-0">
-          {count} {count === 1 ? "word" : "words"}
+          {wordLabel}
         </span>
         <span className="col-start-1 row-start-1 flex items-center gap-0.5 whitespace-nowrap text-xs-medium text-primary opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           {hoverLabel}

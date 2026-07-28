@@ -148,12 +148,19 @@ export default async function DashboardLayout({
       }
     : undefined;
 
+  // Flags of every visible language, for the header's "Choose language" empty
+  // state (shown when a logged-in user has no enrolled/current course).
+  const languageFlags = (langListResult.data ?? []).map((l) =>
+    getFlagFromCode(l.code)
+  );
+
   return (
     <div className="h-screen overflow-visible bg-white">
       <TooltipInit />
       <Toaster />
       <DashboardContent
         defaultCourseContext={defaultCourseContext}
+        languageFlags={languageFlags}
         headerStatsPromise={headerStatsPromise}
         showPreviewMode={isGuest}
         plans={plansResult.plans}

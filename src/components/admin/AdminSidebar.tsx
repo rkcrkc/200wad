@@ -6,7 +6,6 @@ import {
   BookOpen,
   GraduationCap,
   Type,
-  Music,
   Settings,
   CreditCard,
   ChevronLeft,
@@ -20,6 +19,7 @@ import {
   Images,
   Shield,
   Volume2,
+  Component,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,8 +47,7 @@ const navSections: NavItem[][] = [
   // Section 3: Billing
   [
     { label: "Billing", href: "/admin/settings", icon: <CreditCard className="h-5 w-5" /> },
-    { label: "Music", href: "/admin/music", icon: <Music className="h-5 w-5" /> },
-    { label: "Answer Sounds", href: "/admin/answer-sounds", icon: <Volume2 className="h-5 w-5" /> },
+    { label: "Sounds", href: "/admin/sounds", icon: <Volume2 className="h-5 w-5" /> },
     { label: "Help", href: "/admin/help", icon: <HelpCircle className="h-5 w-5" /> },
   ],
   // Section 4: Gamification
@@ -56,6 +55,10 @@ const navSections: NavItem[][] = [
     { label: "Leaderboard", href: "/admin/leaderboard", icon: <Trophy className="h-5 w-5" /> },
     { label: "Levels", href: "/admin/levels", icon: <Medal className="h-5 w-5" /> },
     { label: "Leagues", href: "/admin/leagues", icon: <Shield className="h-5 w-5" /> },
+  ],
+  // Section 5: Design system
+  [
+    { label: "App UI", href: "/admin/app-ui", icon: <Component className="h-5 w-5" /> },
   ],
 ];
 

@@ -8,4 +8,5 @@ export { AllLanguagesCallout } from "./AllLanguagesCallout";
 export { CheckoutFooterBar } from "./CheckoutFooterBar";
 export { SwitchLanguageModal } from "./SwitchLanguageModal";
 export { ActionMenu } from "./ActionMenu";
-export { ManageBillingButton } from "./ManageBillingButton";
+export type { ActionMenuItem } from "./ActionMenu";
+export { SubscriptionsPageHeader } from "./SubscriptionsPageHeader";

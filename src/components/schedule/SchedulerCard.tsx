@@ -69,7 +69,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
         flushTop ? "rounded-t-none" : ""
       }`}
     >
-      <div className="flex min-h-[450px] flex-col gap-0 md:flex-row md:items-stretch md:gap-8">
+      <div className="flex flex-col gap-0 md:min-h-[450px] md:flex-row md:items-stretch md:gap-8">
         {/* Lesson Image */}
         <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden md:h-auto md:w-full md:max-w-[340px]">
           {lesson.imageUrl ? (
@@ -86,16 +86,12 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
         </div>
 
         {/* Lesson Info */}
-        <div className="flex min-w-0 flex-1 flex-col p-8">
-          {/* Top row — milestone kicker badge on the left, word count + status on the right.
-              Test mode gets the milestone (e.g. "1-WEEK TEST"); lesson mode gets "NEW LESSON". */}
-          <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-2 self-start rounded-md bg-primary/10 px-3 py-1.5">
-              <PulseDot />
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-                {kickerLabel}
-              </p>
-            </div>
+        <div className="flex min-w-0 flex-1 flex-col p-6 md:p-8">
+          {/* Desktop top row — milestone kicker badge on the left, word count +
+              status on the right. Test mode gets the milestone (e.g. "1-WEEK
+              TEST"); lesson mode gets "NEW LESSON". */}
+          <div className="hidden items-center justify-between md:flex">
+            <KickerBadge label={kickerLabel} />
             <div className="flex items-center gap-2">
               <WordsPreviewTooltip
                 lessonId={lesson.id}
@@ -106,13 +102,26 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col justify-center">
-            {/* Lesson number — sits directly above the title. Auto-lessons
-                (e.g. Worst Words) don't have a real lesson number; the
-                "Weekly review" kicker above already provides context, so
-                we omit this line for them. */}
+          {/* Mobile eyebrow row — mirrors LessonPreviewCard: lesson number on
+              the left, the type badge on the right in place of the status pill.
+              Word count is dropped on mobile. */}
+          <div className="mb-2 flex items-center justify-between md:hidden">
+            {!isAuto ? (
+              <p className="text-regular-semibold text-muted-foreground">
+                {`Lesson #${lesson.number}`}
+              </p>
+            ) : (
+              <span />
+            )}
+            <KickerBadge label={kickerLabel} />
+          </div>
+
+          <div className="flex flex-1 flex-col md:justify-center">
+            {/* Lesson number — desktop only; on mobile it lives in the eyebrow
+                row above. Auto-lessons (e.g. Worst Words) don't have a real
+                lesson number so we omit this line for them. */}
             {!isAuto && (
-              <p className="mb-3 text-regular-semibold text-muted-foreground">
+              <p className="mb-3 hidden text-regular-semibold text-muted-foreground md:block">
                 {`Lesson #${lesson.number}`}
               </p>
             )}
@@ -127,7 +136,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-auto flex items-center gap-3 pt-10">
+          <div className="mt-auto flex items-center gap-3 pt-6 md:pt-10">
             {isTest ? (
               <span className="animate-button-pulse-delayed inline-flex flex-1 rounded-xl">
                 <PrimaryButton
@@ -198,6 +207,22 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
           onCancel={() => setShowStartTestModal(false)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Milestone kicker badge — the pulse dot + type label ("New lesson",
+ * "1-week test", "Weekly review"). Shown top-left on desktop and, on mobile,
+ * in the eyebrow row in place of the status pill.
+ */
+function KickerBadge({ label }: { label: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 self-start rounded-md bg-primary/10 px-3 py-1.5">
+      <PulseDot />
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+        {label}
+      </p>
     </div>
   );
 }

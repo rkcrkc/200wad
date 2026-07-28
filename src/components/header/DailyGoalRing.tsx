@@ -48,14 +48,18 @@ export function DailyGoalRing({ progress }: DailyGoalRingProps) {
         href="/settings"
         prefetch
         aria-label="Edit daily XP goal in settings"
-        className="flex items-center gap-2 rounded-[10px] border border-yellow-400 bg-yellow-50 py-1 pr-3 pl-1.5"
+        className="flex items-center gap-2 rounded-[10px] border border-yellow-400 bg-yellow-50 py-1 pr-3 pl-3 md:pl-1.5"
       >
-        <ProgressRing
-          value={percent}
-          size={24}
-          strokeWidth={3}
-          color={ringColor}
-        />
+        {/* Ring is hidden on mobile to keep the pill compact — the header is
+            cramped there, so the XP figure alone carries the daily goal. */}
+        <span className="hidden md:block">
+          <ProgressRing
+            value={percent}
+            size={24}
+            strokeWidth={3}
+            color={ringColor}
+          />
+        </span>
         <div className="flex flex-col items-start leading-tight">
           <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-semibold tracking-[-0.15px]">
             <XpIcon className="h-3.5 w-3.5" />

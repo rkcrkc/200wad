@@ -75,7 +75,7 @@ export function LessonGridSection({
       {/* Header */}
       <div className={`${showTabs ? "mb-6" : "mb-8"} flex items-center justify-between`}>
         <h2 className="text-xxl-semibold text-foreground">{heading}</h2>
-        <Button asChild variant="ghost" size="sm" className="gap-1.5">
+        <Button asChild variant="ghost" size="sm" className="hidden gap-1.5 md:inline-flex">
           <Link href={`/course/${courseId}`}>
             All lessons ({totalLessons})
             <ArrowRight className="h-4 w-4" />
@@ -90,6 +90,7 @@ export function LessonGridSection({
             tabs={tabs}
             activeTab={resolvedTab}
             onChange={(id) => setActiveTab(id as TabId)}
+            fadeClassName="from-background"
           />
         </div>
       )}

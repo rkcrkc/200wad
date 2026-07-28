@@ -9,8 +9,18 @@ export interface AddLanguageWithCourseResult {
   courseId: string | null;
 }
 
-export async function addLanguageWithCourse(
-  languageId: string
+/**
+ * Pure enrollment: inserts the `user_languages` row (if missing) and sets the
+ * user's `current_language_id`/`current_course_id`. Honours `preferredCourseId`
+ * when given, otherwise falls back to the first published course.
+ *
+ * Deliberately does NOT call `revalidatePath`, so it is safe to call during
+ * render (e.g. from the schedule page or the root redirect). Server-action
+ * callers that need cache invalidation should use `addLanguageWithCourse`.
+ */
+export async function enrollLanguageAndSetCurrent(
+  languageId: string,
+  preferredCourseId?: string
 ): Promise<AddLanguageWithCourseResult> {
   const supabase = await createClient();
 
@@ -44,30 +54,46 @@ export async function addLanguageWithCourse(
     }
   }
 
-  // Fetch the first published course for this language (ordered by sort_order)
-  const { data: courses, error: courseError } = await supabase
-    .from("courses")
-    .select("id")
-    .eq("language_id", languageId)
-    .eq("is_published", true)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true })
-    .limit(1);
+  // Resolve the course to make current: the preferred one (when published and
+  // in this language) if provided, else the first published course.
+  let courseId: string | null = null;
 
-  if (courseError) {
-    console.error("Error fetching course:", courseError);
-    return { success: false, error: courseError.message, courseId: null };
+  if (preferredCourseId) {
+    const { data: preferred } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("id", preferredCourseId)
+      .eq("language_id", languageId)
+      .eq("is_published", true)
+      .maybeSingle();
+    courseId = preferred?.id ?? null;
   }
 
-  if (!courses || courses.length === 0) {
-    return {
-      success: false,
-      error: "No courses available for this language",
-      courseId: null,
-    };
-  }
+  if (!courseId) {
+    const { data: courses, error: courseError } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("language_id", languageId)
+      .eq("is_published", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true })
+      .limit(1);
 
-  const courseId = courses[0].id;
+    if (courseError) {
+      console.error("Error fetching course:", courseError);
+      return { success: false, error: courseError.message, courseId: null };
+    }
+
+    if (!courses || courses.length === 0) {
+      return {
+        success: false,
+        error: "No courses available for this language",
+        courseId: null,
+      };
+    }
+
+    courseId = courses[0].id;
+  }
 
   // Update user with current_language_id and current_course_id
   const { error: updateError } = await supabase
@@ -83,8 +109,23 @@ export async function addLanguageWithCourse(
     return { success: false, error: updateError.message, courseId: null };
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/settings");
-
   return { success: true, error: null, courseId };
+}
+
+/**
+ * Server-action wrapper around `enrollLanguageAndSetCurrent` that also
+ * revalidates the pages showing enrolled languages. Use this from interactive
+ * callers (menus/forms) — NOT during render.
+ */
+export async function addLanguageWithCourse(
+  languageId: string
+): Promise<AddLanguageWithCourseResult> {
+  const result = await enrollLanguageAndSetCurrent(languageId);
+
+  if (result.success) {
+    revalidatePath("/dashboard");
+    revalidatePath("/settings");
+  }
+
+  return result;
 }

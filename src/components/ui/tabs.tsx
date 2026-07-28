@@ -4,6 +4,7 @@ import { Fragment, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils/helpers";
+import { ScrollFadeRow } from "@/components/ui/scroll-fade-row";
 
 /**
  * Shared styling for "tab pill" buttons (the page-level filter tabs as well as
@@ -55,6 +56,8 @@ interface TabsProps
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;
+  /** Gradient start colour for the overflow edge fades (see `ScrollFadeRow`). */
+  fadeClassName?: string;
 }
 
 export function Tabs({
@@ -64,11 +67,13 @@ export function Tabs({
   className,
   variant = "beige",
   size = "default",
+  fadeClassName,
 }: TabsProps) {
   return (
-    <div
+    <ScrollFadeRow
       role="tablist"
-      className={cn("flex gap-2 overflow-x-auto", className)}
+      className={cn("flex gap-2", className)}
+      fadeClassName={fadeClassName}
       data-tabs=""
     >
       {tabs.map((tab) => {
@@ -102,6 +107,6 @@ export function Tabs({
           </Fragment>
         );
       })}
-    </div>
+    </ScrollFadeRow>
   );
 }

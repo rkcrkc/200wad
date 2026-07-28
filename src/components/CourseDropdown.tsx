@@ -131,12 +131,14 @@ export function CourseDropdown({
             {languageFlag}
           </div>
         ) : (
-          <div className="flex h-full min-w-0 flex-1 items-center gap-3 pl-4 pr-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[22px]">
+          <div className="flex h-full min-w-0 flex-1 flex-col items-start justify-center gap-0.5 pl-4 pr-3 md:flex-row md:items-center md:gap-3">
+            {/* Mobile: flag stacked above the course name (no "Learning" label).
+                md+: flag beside the "Learning / course name" column. */}
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center text-[16px] md:h-6 md:w-6 md:text-[22px]">
               {languageFlag}
             </div>
             <div className="flex min-w-0 flex-col items-start">
-              <span className="text-muted-foreground text-[11px] leading-[1.35] font-medium tracking-[-0.275px]">
+              <span className="text-muted-foreground hidden text-[11px] leading-[1.35] font-medium tracking-[-0.275px] md:block">
                 Learning
               </span>
               <span className="max-w-full text-foreground truncate text-[15px] leading-[1.35] font-semibold tracking-[-0.225px]">

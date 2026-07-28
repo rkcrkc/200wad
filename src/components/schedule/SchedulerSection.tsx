@@ -172,7 +172,7 @@ export function SchedulerSection({
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-xxl-semibold text-foreground">{heading}</h2>
-        <Button asChild variant="ghost" size="sm" className="gap-1.5">
+        <Button asChild variant="ghost" size="sm" className="hidden gap-1.5 md:inline-flex">
           <Link href={linkHref}>
             {linkText} ({linkCount})
             <ArrowRight className="h-4 w-4" />
