@@ -1062,7 +1062,7 @@ async function getAutoLessonWords(
 
   // Maintain the order from targetWordIds (important for best/worst).
   // Also filter out info-category pages as defense-in-depth: the best/worst
-  // RPC excludes them at the source (migration 20260514000004), but doing it
+  // RPC excludes them at the source (migration 20260728000001), but doing it
   // here as well means a future RPC regression — or any other code path that
   // produces targetWordIds — can't leak info pages into the study/test UI.
   const wordMap = new Map(words.map((w) => [w.id, w]));

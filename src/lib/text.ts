@@ -746,7 +746,7 @@ export const TEXT_KEYS: Record<string, TextKeyMeta> = {
     label: "Worst Words empty state",
     category: "greetings_messages",
     group: "Auto-Lesson Empty States",
-    defaultValue: "No words yet — take some tests to see words needing practice.",
+    defaultValue: "Nothing to practise — you haven't got a word wrong yet.",
   },
   empty_auto_unmastered: {
     label: "Unmastered empty state",
