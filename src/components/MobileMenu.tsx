@@ -15,6 +15,9 @@ import {
   Gift,
   Settings,
   HelpCircle,
+  UserPen,
+  CreditCard,
+  LogOut,
 } from "lucide-react";
 import { useCourseContext } from "@/context/CourseContext";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -33,9 +36,13 @@ const getSecondaryNavItems = (courseId?: string) => [
   { path: "/community", icon: Trophy, label: "Leaderboard" },
 ];
 
+// Account + utility links. These moved off the header profile dropdown (hidden
+// on mobile) so the menu is the single place to reach account actions.
 const bottomNavItems = [
-  { path: "/referrals", icon: Gift, label: "Referrals" },
+  { path: "/profile", icon: UserPen, label: "Profile" },
   { path: "/settings", icon: Settings, label: "Settings" },
+  { path: "/account/subscriptions", icon: CreditCard, label: "My Subscription" },
+  { path: "/referrals", icon: Gift, label: "Referrals" },
 ];
 
 interface MobileNavItemProps {
@@ -60,7 +67,7 @@ function MobileNavItem({
       href={href}
       prefetch
       onClick={onClick}
-      className={`flex h-12 w-full items-center justify-between rounded-[10px] transition-all ${
+      className={`flex h-12 w-full shrink-0 items-center justify-between rounded-[10px] transition-all ${
         isActive ? "bg-secondary" : "hover:bg-gray-50"
       }`}
     >
@@ -101,6 +108,7 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
 
   const showUpgradeCard = !hasAllLanguagesAccess && !(languageId && hasLanguageAccess(languageId));
   const endDate = languageId ? accessEndDate(languageId) : null;
+  const homeHref = courseId ? `/course/${courseId}/schedule` : "/dashboard";
 
   // Close menu on route change
   useEffect(() => {
@@ -165,16 +173,24 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden"
+        className="fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer */}
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-white shadow-xl transition-transform lg:hidden">
+      {/* Drawer — full-width overlay on mobile. */}
+      <div className="fixed inset-0 z-50 flex w-full flex-col bg-white transition-transform md:hidden">
         {/* Header */}
-        <div className="flex h-[72px] items-center justify-between border-b border-gray-100 px-4">
-          <span className="text-lg font-semibold text-foreground">Menu</span>
+        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-gray-100 px-4">
+          <Link
+            href={homeHref}
+            onClick={onClose}
+            className="flex items-center"
+            aria-label="200 Words a Day home"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-placeholder.svg" alt="200 Words a Day" className="h-9 w-auto" />
+          </Link>
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] transition-all hover:bg-gray-50"
@@ -184,8 +200,10 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex flex-1 flex-col gap-1 px-4 pt-4">
+        {/* Navigation — scrolls when the sections overflow the drawer height.
+            All nav sections (primary, secondary, and the former bottom links)
+            live here; only the upgrade callout is pinned below. */}
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pt-4 pb-4">
           {getNavItems(courseId).map((item) => (
             <MobileNavItem
               key={item.label}
@@ -197,7 +215,7 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               onClick={onClose}
             />
           ))}
-          <div className="my-2 h-px bg-gray-100" role="separator" />
+          <div className="my-2 h-px shrink-0 bg-gray-100" role="separator" />
           {getSecondaryNavItems(courseId).map((item) => (
             <MobileNavItem
               key={item.label}
@@ -208,63 +226,20 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               onClick={onClose}
             />
           ))}
-        </nav>
-
-        {/* Unlock Card */}
-        {showUpgradeCard && (
-          <div className="mx-4 my-4 rounded-2xl bg-bone p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
-              <span className="text-[15px] font-semibold text-foreground">
-                Unlock All Lessons
-              </span>
-            </div>
-            <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
-              First {freeLessons} lessons free. Subscribe for full access.
-            </p>
-            <Button
-              className="w-full bg-warning hover:bg-warning/90 text-white"
-              size="sm"
-              onClick={() => {
-                onClose();
-                onViewPlans?.();
-              }}
-            >
-              View Plans
-            </Button>
-          </div>
-        )}
-
-        {/* Subscription ending warning */}
-        {!showUpgradeCard && endDate && (
-          <div className="mx-4 my-4 rounded-2xl bg-orange-50 p-4">
-            <div className="mb-1 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-orange-500" strokeWidth={1.67} />
-              <span className="text-[15px] font-semibold text-foreground">
-                Access Ending
-              </span>
-            </div>
-            <p className="text-[13px] leading-[1.4] text-muted-foreground">
-              Your subscription ends{" "}
-              {new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
-            </p>
-          </div>
-        )}
-
-        {/* Bottom Section */}
-        <div className="flex flex-col gap-1 px-4 pb-5">
+          <div className="my-2 h-px shrink-0 bg-gray-100" role="separator" />
           {bottomNavItems.map((item) => (
             <MobileNavItem
               key={item.path}
               href={item.path}
               icon={item.icon}
               label={item.label}
+              isActive={isActive(item.path)}
               onClick={onClose}
             />
           ))}
           <button
             onClick={onClose}
-            className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
+            className="flex h-12 w-full shrink-0 items-center rounded-[10px] transition-all hover:bg-gray-50"
           >
             <div className="flex items-center gap-3 pl-4">
               <HelpCircle
@@ -280,7 +255,81 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               </span>
             </div>
           </button>
-        </div>
+
+          <div className="my-2 h-px shrink-0 bg-gray-100" role="separator" />
+
+          {/* Sign out — POSTs to the logout route, mirroring the profile dropdown.
+              No onClick={onClose} here: closing the menu unmounts this form (the
+              drawer returns null when closed) before the browser runs the native
+              submit, which would cancel the POST. The full-page navigation to
+              /login unmounts everything anyway. */}
+          <form action="/auth/logout" method="post" className="w-full shrink-0">
+            <button
+              type="submit"
+              className="flex h-12 w-full items-center rounded-[10px] transition-all hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-3 pl-4">
+                <LogOut
+                  className="h-5 w-5 shrink-0"
+                  strokeWidth={1.67}
+                  style={{ color: "rgba(20,21,21,0.75)" }}
+                />
+                <span
+                  className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px]"
+                  style={{ color: "rgba(20,21,21,0.75)" }}
+                >
+                  Log out
+                </span>
+              </div>
+            </button>
+          </form>
+        </nav>
+
+        {/* Pinned bottom callout — upgrade prompt or subscription-ending
+            warning stays fixed at the base of the menu while nav scrolls. */}
+        {showUpgradeCard && (
+          <div className="shrink-0 border-t border-gray-100 px-4 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            <div className="rounded-2xl bg-bone p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-warning" strokeWidth={1.67} />
+                <span className="text-[15px] font-semibold text-foreground">
+                  Unlock All Lessons
+                </span>
+              </div>
+              <p className="mb-3 text-[13px] leading-[1.4] text-muted-foreground">
+                First {freeLessons} lessons free. Subscribe for full access.
+              </p>
+              <Button
+                className="w-full bg-warning hover:bg-warning/90 text-white"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  onViewPlans?.();
+                }}
+              >
+                View Plans
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Subscription ending warning */}
+        {!showUpgradeCard && endDate && (
+          <div className="shrink-0 border-t border-gray-100 px-4 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            <div className="rounded-2xl bg-orange-50 p-4">
+              <div className="mb-1 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-orange-500" strokeWidth={1.67} />
+                <span className="text-[15px] font-semibold text-foreground">
+                  Access Ending
+                </span>
+              </div>
+              <p className="text-[13px] leading-[1.4] text-muted-foreground">
+                Your subscription ends{" "}
+                {new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

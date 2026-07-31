@@ -41,7 +41,7 @@ export async function createMusicTrack(data: {
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/admin/music");
+  revalidatePath("/admin/sounds");
   return { success: true, track };
 }
 
@@ -61,7 +61,7 @@ export async function updateMusicTrack(
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/admin/music");
+  revalidatePath("/admin/sounds");
   return { success: true };
 }
 
@@ -98,7 +98,7 @@ export async function deleteMusicTrack(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/admin/music");
+  revalidatePath("/admin/sounds");
   return { success: true };
 }
 
@@ -121,7 +121,7 @@ export async function reorderMusicTracks(trackIds: string[]) {
     return { success: false, error: "Failed to reorder some tracks" };
   }
 
-  revalidatePath("/admin/music");
+  revalidatePath("/admin/sounds");
   return { success: true };
 }
 

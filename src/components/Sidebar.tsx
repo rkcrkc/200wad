@@ -214,7 +214,7 @@ export function Sidebar({ dueTestsCount: propDueTestsCount, onViewPlans, freeLes
 
   return (
     <div
-      className={`fixed top-[72px] bottom-0 left-0 hidden flex-col bg-white lg:flex ${
+      className={`fixed top-[72px] bottom-0 left-0 hidden flex-col bg-white md:flex ${
         collapsed ? "w-[72px]" : "w-[240px]"
       }`}
     >

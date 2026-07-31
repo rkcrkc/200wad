@@ -20,8 +20,22 @@ export async function GET(request: Request) {
       if (userId && next === "/onboarding") {
         await fireFirstTimeNotification(userId, "system.welcome");
       }
-      // Redirect to the specified next page (e.g., /reset-password for recovery)
-      return NextResponse.redirect(`${origin}${next}`);
+
+      // If the `next` param was lost (fell back to the default) but signup stashed
+      // the initial course selection on the user record, recover it so the user
+      // lands directly in their chosen language's schedule instead of generic
+      // onboarding. The schedule page assigns the language on first landing.
+      let destination = next;
+      if (next === "/onboarding") {
+        const onboardingCourseId =
+          data.session?.user?.user_metadata?.onboarding_course_id;
+        if (typeof onboardingCourseId === "string" && onboardingCourseId) {
+          destination = `/course/${onboardingCourseId}/schedule`;
+        }
+      }
+
+      // Redirect to the resolved destination (e.g., /reset-password for recovery)
+      return NextResponse.redirect(`${origin}${destination}`);
     }
   }
 

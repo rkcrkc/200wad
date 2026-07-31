@@ -5,10 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Course, Language, Lesson } from "@/types/database";
 import { WordWithDetails, type AdjacentLesson } from "@/lib/queries/words";
 import type { AnswerFeedbackSoundMap } from "@/lib/queries/answer-sounds";
+import type { UserStudySettings } from "@/lib/queries/study-settings";
 import { useAudio, AudioType } from "@/hooks/useAudio";
 import { useStudyMusic } from "@/hooks/useStudyMusic";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import {
   StudyNavbar,
+  StudyProgressBar,
   StudyActionBar,
   StudyWordListSidebar,
   WordCard,
@@ -91,6 +94,8 @@ interface StudyModeClientProps {
   incorrectWords?: boolean;
   /** CMS-managed answer feedback sounds, keyed by grade. */
   answerFeedbackSounds?: AnswerFeedbackSoundMap;
+  /** Account-scoped study/test toggles (null fields = fall back to localStorage/default). */
+  studySettings?: UserStudySettings;
 }
 
 export function StudyModeClient({
@@ -104,6 +109,7 @@ export function StudyModeClient({
   nextMilestone = null,
   incorrectWords = false,
   answerFeedbackSounds = {},
+  studySettings,
 }: StudyModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -119,7 +125,11 @@ export function StudyModeClient({
     setVolume: setWordVolume,
     soundEffectsEnabled,
     setSoundEffectsEnabled,
-  } = useAudio();
+  } = useAudio({
+    initialSoundEffectsEnabled: studySettings?.soundEffectsEnabled ?? null,
+    initialReplayTriggerEnabled: studySettings?.replayTriggerEnabled ?? null,
+    isGuest,
+  });
   // Snapshot of the most recent submission, consumed by the feedback-sound
   // effect. Study mode is binary, so grade is only ever "correct"/"incorrect"
   // (never "half-correct"). Bumping feedbackNonce re-fires the effect on EVERY
@@ -189,6 +199,9 @@ export function StudyModeClient({
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+  // Mobile-only word-list slide-over drawer
+  const [isWordListOpen, setIsWordListOpen] = useState(false);
+
   // Test format selector (stacked over the completed modal)
   const [showStartTestModal, setShowStartTestModal] = useState(false);
 
@@ -240,6 +253,7 @@ export function StudyModeClient({
   const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const answerInputRef = useRef<AnswerInputHandle>(null);
+  const keyboardInset = useKeyboardInset();
 
   const currentWord = localWords[currentWordIndex];
   const isLastWord = currentWordIndex === localWords.length - 1;
@@ -1555,7 +1569,7 @@ export function StudyModeClient({
   const wordCategories = localWords.map((w) => w.category);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {/* Word list sidebar */}
       <StudyWordListSidebar
         wordList={localWords.map((w) => ({ id: w.id, english: w.english, foreign: w.headword, imageUrl: w.memory_trigger_image_url }))}
@@ -1564,10 +1578,14 @@ export function StudyModeClient({
         onJumpToWord={handleJumpToWord}
         mode="study"
         categories={wordCategories}
+        isOpen={isWordListOpen}
+        onClose={() => setIsWordListOpen(false)}
       />
 
-      {/* Main content area */}
-      <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
+      {/* Main content area. min-w-0 lets this flex item shrink to the viewport;
+          without it the media's intrinsic width stretches the column past the
+          screen edge on mobile when the picture appears. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:ml-[240px]">
         {/* Custom navbar (replaces default header) */}
         <StudyNavbar
           courseName={course?.name}
@@ -1582,6 +1600,13 @@ export function StudyModeClient({
           isTimerPaused={isTimerPaused}
           categories={wordCategories}
           incorrectWords={incorrectWords}
+        />
+
+        {/* Mobile progress strip under the navbar (dots hidden below md) */}
+        <StudyProgressBar
+          currentWordIndex={currentWordIndex}
+          totalWords={localWords.length}
+          categories={wordCategories}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
@@ -1641,9 +1666,10 @@ export function StudyModeClient({
                   />
                 </div>
 
-                {/* Two columns: Memory Trigger (left), Notes/Sentences (right) */}
-                <div className="flex w-full min-w-0 gap-4">
-                  <div className="flex w-[700px] shrink-0 flex-col gap-4">
+                {/* Two columns: Memory Trigger (left), Notes/Sentences (right).
+                    Stacks on mobile, side-by-side from md. */}
+                <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row">
+                  <div className="flex w-full flex-col gap-4 lg:w-[700px] lg:shrink-0">
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         key={currentWord.id}
@@ -1725,8 +1751,13 @@ export function StudyModeClient({
           </div>
         </div>
 
-        {/* Fixed bottom container - stacked input and action bar */}
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
+        {/* Fixed bottom container - stacked input and action bar. `bottom` is
+            offset by the on-screen keyboard height so it floats above the
+            keyboard on mobile (0 on desktop / Android). */}
+        <div
+          className="fixed left-0 right-0 z-10 bg-white shadow-bar md:left-[240px]"
+          style={{ bottom: keyboardInset }}
+        >
           {/* Answer Input Row (or Information Next Button) */}
           {isInformationPage ? (
             <InformationNextButton
@@ -1769,6 +1800,7 @@ export function StudyModeClient({
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
             onRestart={handleRestart}
+            onOpenWordList={() => setIsWordListOpen(true)}
             strictMode={strictMode}
             onStrictModeChange={setStrictMode}
             languageCode={language?.code}

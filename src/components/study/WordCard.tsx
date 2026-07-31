@@ -72,7 +72,7 @@ export function WordCard({
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white px-6 py-4 shadow-card">
+    <div className="w-full rounded-2xl bg-white px-4 py-3 shadow-card sm:px-6 sm:py-4">
       {/* Words container */}
       <div className="flex flex-col gap-2">
         {/* English word row */}

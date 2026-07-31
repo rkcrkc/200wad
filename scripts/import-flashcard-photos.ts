@@ -18,10 +18,12 @@
  *   2. Indexes the JPG photos there (skips the SWF files — those render to the
  *      plain English WORD as text, not a picture, so they are not flashcards).
  *   3. Loads NL words for the language (legacy_refn -> { id, english }).
- *   4. Matches each word to a photo by normalised English (accent-folded,
- *      parenthetical-stripped, grammar-tag-stripped). Ambiguous matches (where a
- *      stripped name maps to >1 distinct photo, e.g. "friend" -> male/female) are
- *      SKIPPED and reported for manual assignment via the admin editor.
+ *   4. Matches each word to a photo via the Access `General` table's
+ *      `FileEngSouRTF` column, which names the exact flashcard file for each RefN
+ *      (join: words.legacy_refn -> General.RefN -> FileEngSouRTF + ".jpg"). This
+ *      is a deterministic lookup — no fuzzy English guessing. Words whose file is
+ *      only a SWF text-card, or has no photo on disc (e.g. proverbs), are reported
+ *      for manual assignment via the admin editor.
  *   5. Uploads each matched photo to word-images/words/{uuid}/flashcard.jpg and
  *      sets flashcard_image_url. Idempotent (guarded by flashcard_image_url NULL
  *      + storage upsert). Independent per row (each word gets its own object).
@@ -75,6 +77,10 @@ const LANGUAGES: Record<string, { id: string; mdb: string }> = {
     id: "39e8b5a2-269c-422e-9b84-06722b4f91ff",
     mdb: "MDB/Exceltra Spanish.mdb",
   },
+  italian: {
+    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    mdb: "MDB/Exceltra Italian.mdb",
+  },
 };
 
 // --- Args
@@ -99,19 +105,18 @@ if (!LANGUAGES[LANGUAGE]) {
 }
 const LANG = LANGUAGES[LANGUAGE];
 
-// --- Normalisation helpers (mirror the verified French matching) ------------
-const GRAMMAR_TAG = /,\s*(n|adj|adv|v|exc|m|f|pl|prep|pron|prn|conj)\.?\s*$/i;
+// --- Normalisation helpers --------------------------------------------------
 function fold(s: string): string {
   return (s || "").normalize("NFKD").replace(/\p{Diacritic}/gu, "");
 }
 function norm(s: string): string {
   return fold(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
+// Drop parenthetical qualifiers / duplicate markers, e.g.
+// "school (secondary)" -> "school", "policeman (2)" -> "policeman". Used only by
+// the safe fallback so a word variant can still find its base photo.
 function stripParen(s: string): string {
-  return (s || "").replace(/\([^)]*\)/g, "");
-}
-function baseEng(s: string): string {
-  return stripParen((s || "").replace(GRAMMAR_TAG, ""));
+  return (s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // --- 1+2. Discover Flashcard folders and index the JPG photos ---------------
@@ -123,54 +128,62 @@ function findFlashcardDirs(): string[] {
       const picDir = path.join(disc, entry);
       if (!/Pictures$/i.test(entry)) continue;
       if (!fs.statSync(picDir).isDirectory()) continue;
-      const fc = path.join(picDir, "Flashcard");
-      if (fs.existsSync(fc) && fs.statSync(fc).isDirectory()) dirs.push(fc);
+      // Match "Flashcard" case-insensitively — Italian names it "FlashCard" and
+      // its mounted volume is case-sensitive, so a hardcoded name would miss it.
+      for (const sub of fs.readdirSync(picDir)) {
+        if (!/^flashcard$/i.test(sub)) continue;
+        const fc = path.join(picDir, sub);
+        if (fs.statSync(fc).isDirectory()) dirs.push(fc);
+      }
     }
   }
   return dirs;
 }
 
+type Photo = { base: string; path: string };
 type PhotoIndex = {
-  exact: Map<string, string>; // norm(basename) -> path
-  keyBases: Map<string, Set<string>>; // candidate key -> distinct photos (norm basename)
+  byKey: Map<string, Photo[]>; // norm(basename) -> distinct photos sharing that key
+  byBareKey: Map<string, Photo[]>; // norm(stripParen(basename)) -> photos (fallback only)
+  swfKeys: Set<string>; // norm(basename) of SWF text-cards (no photo)
   jpgCount: number;
   swfSkipped: number;
 };
 
 // Discs are often mirrored (the same Flashcard/ set appears on each disc), so a
-// photo is deduped by its normalised BASENAME — two files that share a basename
-// are the same photo, not a collision. A key is only ambiguous when it maps to
-// two *different* photos (e.g. "friend" -> "friend (male)" + "friend (female)").
+// photo is deduped by its lowercased BASENAME — two files that share a basename
+// are the same photo, not a collision. Distinct basenames that normalise to the
+// same key (e.g. "break down" vs "breakdown") are kept as separate candidates and
+// disambiguated at match time by exact filename.
 function indexPhotos(dirs: string[]): PhotoIndex {
-  const exact = new Map<string, string>();
-  const keyBases = new Map<string, Set<string>>();
-  const swfNames = new Set<string>();
-  const addKey = (key: string, base: string) => {
-    if (!key) return;
-    if (!keyBases.has(key)) keyBases.set(key, new Set());
-    keyBases.get(key)!.add(base);
-  };
+  const byKey = new Map<string, Photo[]>();
+  const byBareKey = new Map<string, Photo[]>();
+  const seenBase = new Set<string>();
+  const swfKeys = new Set<string>();
   for (const dir of dirs) {
     for (const fn of fs.readdirSync(dir)) {
       const ext = path.extname(fn).toLowerCase();
       const base = path.basename(fn, path.extname(fn));
       if (ext === ".swf") {
-        swfNames.add(norm(base)); // SWF flashcards are text word-cards, not photos.
+        swfKeys.add(norm(base)); // SWF flashcards are text word-cards, not photos.
         continue;
       }
       if (ext !== ".jpg" && ext !== ".jpeg") continue;
-      const nb = norm(base);
-      if (!exact.has(nb)) exact.set(nb, path.join(dir, fn));
-      addKey(nb, nb);
-      addKey(norm(stripParen(base)), nb);
+      if (seenBase.has(base.toLowerCase())) continue; // mirrored duplicate
+      seenBase.add(base.toLowerCase());
+      const photo = { base, path: path.join(dir, fn) };
+      const key = norm(base);
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key)!.push(photo);
+      const bareKey = norm(stripParen(base));
+      if (bareKey) {
+        if (!byBareKey.has(bareKey)) byBareKey.set(bareKey, []);
+        byBareKey.get(bareKey)!.push(photo);
+      }
     }
   }
-  return {
-    exact,
-    keyBases,
-    jpgCount: exact.size,
-    swfSkipped: swfNames.size,
-  };
+  let jpg = 0;
+  for (const v of byKey.values()) jpg += v.length;
+  return { byKey, byBareKey, swfKeys, jpgCount: jpg, swfSkipped: swfKeys.size };
 }
 
 // --- 3. NL words for the language -------------------------------------------
@@ -199,9 +212,13 @@ async function loadNlWords(): Promise<Map<number, NlWord>> {
   return map;
 }
 
-// --- Optional MDB EngDictionary/Course (merge across discs, first wins) ------
-function loadMdbMeta(): Map<number, { course: string; engDict: string }> {
-  const meta = new Map<number, { course: string; engDict: string }>();
+// --- MDB General (merge across discs, first wins) ---------------------------
+// `FileEngSouRTF` is the base filename of the English-side asset for each RefN —
+// it matches the flashcard photo's basename exactly, so it is the authoritative
+// word->photo key. `Course` is kept for reporting only.
+type MdbMeta = { course: string; fileEng: string };
+function loadMdbMeta(): Map<number, MdbMeta> {
+  const meta = new Map<number, MdbMeta>();
   for (const disc of DISCS) {
     const mdb = path.join(disc, LANG.mdb);
     if (!fs.existsSync(mdb)) continue;
@@ -225,14 +242,14 @@ function loadMdbMeta(): Map<number, { course: string; engDict: string }> {
       if (!Number.isFinite(refn) || meta.has(refn)) continue;
       meta.set(refn, {
         course: (r.Course || "").trim(),
-        engDict: r.EngDictionary || "",
+        fileEng: (r.FileEngSouRTF || "").trim(),
       });
     }
   }
   return meta;
 }
 
-// --- 4. Match a word to a photo (or null). Skips ambiguous stripped keys. ----
+// --- 4. Match a word to a photo via MDB FileEngSouRTF -----------------------
 type Match = {
   refn: number;
   uuid: string;
@@ -242,54 +259,57 @@ type Match = {
   path: string;
 };
 
+// Resolve a filename base (from FileEngSouRTF, or English as a fallback) to a
+// photo. When a normalised key has multiple distinct basenames (e.g.
+// "break down" vs "breakdown"), prefer the exact case-insensitive filename.
+function resolvePhoto(base: string, idx: PhotoIndex): Photo | null {
+  const key = norm(base);
+  if (!key) return null;
+  const photos = idx.byKey.get(key);
+  if (!photos || photos.length === 0) return null;
+  if (photos.length === 1) return photos[0];
+  return (
+    photos.find((p) => p.base.toLowerCase() === base.toLowerCase()) ?? photos[0]
+  );
+}
+
+type MatchResult = { match?: Match; reason?: "swf" | "nophoto" };
 function matchWord(
   refn: number,
   w: NlWord,
   idx: PhotoIndex,
-  meta: Map<number, { course: string; engDict: string }>,
-): { match?: Match; ambiguous?: boolean } {
-  // Exact English == filename wins outright.
-  const exactKey = norm(w.english);
-  if (idx.exact.has(exactKey)) {
+  meta: Map<number, MdbMeta>,
+): MatchResult {
+  const m = meta.get(refn);
+  // 1) Authoritative: the MDB's English-side filename names the exact photo.
+  let photo = m?.fileEng ? resolvePhoto(m.fileEng, idx) : null;
+  // 2) Safe fallback when the authoritative key is missing or a data glitch
+  //    (e.g. FileEngSouRTF='rainy' for the "Today" calendar photo). Both steps
+  //    are deterministic — no fuzzy guessing:
+  //      a. exact English == filename ("Today" -> today.jpg)
+  //      b. strip parenthetical qualifiers from BOTH sides and accept only when
+  //         it resolves to a single unambiguous photo ("policeman (slang)" ->
+  //         policeman.jpg, "food (groceries)" -> "food (sustenance).jpg").
+  if (!photo) photo = resolvePhoto(w.english, idx);
+  if (!photo) {
+    const cands = idx.byBareKey.get(norm(stripParen(w.english)));
+    if (cands && cands.length === 1) photo = cands[0];
+  }
+  if (photo) {
     return {
       match: {
         refn,
         uuid: w.id,
         english: w.english,
         category: w.category,
-        course: meta.get(refn)?.course ?? "?",
-        path: idx.exact.get(exactKey)!,
+        course: m?.course ?? "?",
+        path: photo.path,
       },
     };
   }
-  // Fallback candidate keys, each accepted only if unambiguous (one file).
-  const candidates = [
-    norm(w.english),
-    norm(stripParen(w.english)),
-    norm(baseEng(meta.get(refn)?.engDict ?? "")),
-  ];
-  let sawAmbiguous = false;
-  for (const k of candidates) {
-    if (!k) continue;
-    const bases = idx.keyBases.get(k);
-    if (!bases) continue;
-    if (bases.size === 1) {
-      const file = idx.exact.get([...bases][0]);
-      if (!file) continue;
-      return {
-        match: {
-          refn,
-          uuid: w.id,
-          english: w.english,
-          category: w.category,
-          course: meta.get(refn)?.course ?? "?",
-          path: file,
-        },
-      };
-    }
-    sawAmbiguous = true;
-  }
-  return { ambiguous: sawAmbiguous };
+  // No photo: distinguish "only a SWF text-card exists" from "nothing on disc".
+  const base = m?.fileEng || w.english;
+  return { reason: idx.swfKeys.has(norm(base)) ? "swf" : "nophoto" };
 }
 
 // --- 5. Upload + set URL -----------------------------------------------------
@@ -346,19 +366,19 @@ async function main() {
   );
 
   const matches: Match[] = [];
-  let ambiguous = 0;
-  let unmatched = 0;
-  const ambiguousSamples: string[] = [];
-  const unmatchedSamples: string[] = [];
+  let swfOnly = 0;
+  let noPhoto = 0;
+  const swfSamples: string[] = [];
+  const noPhotoSamples: string[] = [];
   for (const [refn, w] of nl) {
     const r = matchWord(refn, w, idx, meta);
     if (r.match) matches.push(r.match);
-    else if (r.ambiguous) {
-      ambiguous++;
-      if (ambiguousSamples.length < 20) ambiguousSamples.push(w.english);
+    else if (r.reason === "swf") {
+      swfOnly++;
+      if (swfSamples.length < 20) swfSamples.push(w.english);
     } else {
-      unmatched++;
-      if (unmatchedSamples.length < 20) unmatchedSamples.push(w.english);
+      noPhoto++;
+      if (noPhotoSamples.length < 20) noPhotoSamples.push(w.english);
     }
   }
 
@@ -370,14 +390,14 @@ async function main() {
   console.log("=".repeat(60));
   console.log("MATCH REPORT");
   console.log("=".repeat(60));
-  console.log(`Matched:            ${matches.length}`);
-  console.log(`  by MDB course:    ${JSON.stringify(byCourse)}`);
-  console.log(`Ambiguous (skipped):${ambiguous}`);
-  console.log(`Unmatched:          ${unmatched}`);
-  if (ambiguousSamples.length)
-    console.log(`\nAmbiguous samples (assign manually):\n  ${ambiguousSamples.join("\n  ")}`);
-  if (unmatchedSamples.length)
-    console.log(`\nUnmatched samples:\n  ${unmatchedSamples.join("\n  ")}`);
+  console.log(`Matched:               ${matches.length}`);
+  console.log(`  by MDB course:       ${JSON.stringify(byCourse)}`);
+  console.log(`No photo (SWF only):   ${swfOnly}`);
+  console.log(`No photo (none found): ${noPhoto}`);
+  if (swfSamples.length)
+    console.log(`\nSWF-only samples (text card, no photo):\n  ${swfSamples.join("\n  ")}`);
+  if (noPhotoSamples.length)
+    console.log(`\nNo-photo samples (e.g. proverbs):\n  ${noPhotoSamples.join("\n  ")}`);
 
   const planPath = path.join(
     process.cwd(),

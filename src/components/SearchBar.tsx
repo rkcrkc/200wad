@@ -272,7 +272,7 @@ export function SearchBar() {
   const showDropdown = isOpen && results !== null;
 
   return (
-    <div className="relative ml-5 hidden h-[42px] w-[400px] shrink-0 lg:block">
+    <div className="relative ml-5 hidden h-[42px] w-[400px] shrink-0 md:block">
       <div className="border-secondary bg-input-background absolute top-0 left-0 h-[42px] w-full rounded-[10px] border">
         <input
           ref={inputRef}

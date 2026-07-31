@@ -106,9 +106,9 @@ export function LessonCompletedModal({
           eyebrow={`Lesson #${lesson.number} · ${lesson.title}`}
           title="Lesson completed!"
         >
-          <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div className="flex cursor-default flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground sm:text-sm">
             <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
             </div>
             <span>·</span>
@@ -268,23 +268,24 @@ export function LessonCompletedModal({
         </div>
       ) : (
         <CompletedModalShell.Footer>
-          <div className="flex justify-center gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-center sm:gap-4">
             {!hideStartTest && (
               <CompletedModalActionButton
-                icon={<Play className="h-6 w-6" />}
+                icon={<Play className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Start test"
                 onClick={onStartTest}
                 primary
                 iconHover="shift"
+                className="col-span-2 sm:col-auto"
               />
             )}
             <CompletedModalActionButton
-              icon={<RotateCcw className="h-6 w-6" />}
+              icon={<RotateCcw className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
               label="Study again"
               onClick={onStudyAgain}
             />
             <CompletedModalActionButton
-              icon={<ArrowRight className="h-6 w-6" />}
+              icon={<ArrowRight className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
               label="Not now"
               onClick={onDismiss}
               iconHover="shift"

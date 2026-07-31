@@ -16,6 +16,9 @@ import {
   Play,
   Pause,
   Pencil,
+  Menu,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -221,6 +224,8 @@ interface StudyActionBarProps {
   breathingSecond?: number;
   /** Whether breathing indicator should be visible */
   breathingActive?: boolean;
+  /** Mobile only: open the word-list drawer. Renders a hamburger at the start of the bar. */
+  onOpenWordList?: () => void;
 }
 
 /** Abbreviate part of speech for compact display */
@@ -310,12 +315,17 @@ export function StudyActionBar({
   breathingPhase = null,
   breathingSecond = 0,
   breathingActive = false,
+  onOpenWordList,
 }: StudyActionBarProps) {
   const { t, tt } = useText();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccentsOpen, setIsAccentsOpen] = useState(false);
   const [isMusicOpen, setIsMusicOpen] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
+  // Mobile-only overflow bottom-sheet holding the toggle actions that don't fit inline.
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  // Which section is expanded inside the mobile overflow sheet (accordion).
+  const [mobilePanel, setMobilePanel] = useState<null | "accents" | "music" | "settings">(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const accentsRef = useRef<HTMLDivElement>(null);
   const musicRef = useRef<HTMLDivElement>(null);
@@ -387,16 +397,342 @@ export function StudyActionBar({
     : category
       ? category.charAt(0).toUpperCase() + category.slice(1)
       : "";
+
+  // Shared dropdown bodies — rendered inside the desktop absolute dropdowns AND
+  // the mobile overflow sheet, so the two stay in sync.
+  const accentsBody = (
+    <>
+      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
+        {t("label_accented_chars")}
+      </div>
+      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+        {accentedChars.map((char) => (
+          <button
+            key={char}
+            onClick={() => {
+              onInsertCharacter?.(char);
+              setIsAccentsOpen(false);
+            }}
+            className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-base font-medium text-foreground transition-colors group-hover:bg-primary group-hover:text-white">
+              {char}
+            </span>
+            {shortcuts[char] && (
+              <span className="truncate text-xs text-foreground/50">
+                {shortcuts[char]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  const musicBody = (
+    <>
+      <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
+        {t("label_study_music")}
+      </div>
+
+      {/* Track list */}
+      <div className="mb-4 space-y-1">
+        {musicTracks.map((track) => {
+          const isSelected = selectedTrack === track.id;
+          const isPlayingTrack = isSelected && musicEnabled && !musicHasError;
+          const isHovered = hoveredTrack === track.id;
+          const mins = Math.floor(track.duration_seconds / 60);
+          const durationLabel = mins >= 60
+            ? `${Math.floor(mins / 60)}h ${mins % 60}m`
+            : `${mins} min`;
+          return (
+            <button
+              key={track.id}
+              onClick={() => onToggleTrack?.(track.id)}
+              onMouseEnter={() => setHoveredTrack(track.id)}
+              onMouseLeave={() => setHoveredTrack(null)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                isPlayingTrack
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-gray-50"
+              )}
+            >
+              {/* Play / Pause / Audiowave icon */}
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                {isPlayingTrack && isHovered ? (
+                  <Pause className="h-4 w-4 text-primary" />
+                ) : isPlayingTrack ? (
+                  <AudioWaveIcon />
+                ) : (
+                  <Play
+                    className={cn(
+                      "h-4 w-4",
+                      isSelected ? "text-primary" : "text-muted-foreground"
+                    )}
+                  />
+                )}
+              </div>
+              <span className="flex-1 text-sm font-medium">{track.name}</span>
+              <span className="text-xs text-muted-foreground">{durationLabel}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Volume sliders */}
+      <div className="mb-4 space-y-3">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">{t("label_music_volume")}</span>
+            <span className="text-xs text-muted-foreground">
+              {Math.round(musicVolume * 100)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(musicVolume * 100)}
+            onChange={(e) => onMusicVolumeChange?.(Number(e.target.value) / 100)}
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
+          />
+        </div>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">{t("label_word_volume")}</span>
+            <span className="text-xs text-muted-foreground">
+              {Math.round(wordVolume * 100)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(wordVolume * 100)}
+            onChange={(e) => onWordVolumeChange?.(Number(e.target.value) / 100)}
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
+          />
+        </div>
+      </div>
+
+      {/* Error message */}
+      {musicHasError && (
+        <div className="mb-4 rounded-lg bg-destructive/10 p-3">
+          <p className="text-xs leading-relaxed text-destructive">
+            {t("msg_music_error")}
+          </p>
+        </div>
+      )}
+
+      {/* Explainer */}
+      <div className="rounded-lg bg-bone p-3">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">{t("msg_alpha_wave_title")}</span> {t("msg_alpha_wave_desc")}
+        </p>
+      </div>
+    </>
+  );
+
+  const settingsBody = (
+    <>
+      <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
+        {isTestMode ? t("label_test_settings") : t("label_lesson_settings")}
+      </div>
+
+      {isTestMode ? (
+        <div className="space-y-4">
+          {/* Nerves of Steel Mode Toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={nervesOfSteelMode}
+              onChange={(e) => onNervesOfSteelModeChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("msg_nerves_of_steel")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_nerves_of_steel_desc")}
+              </div>
+            </div>
+          </label>
+
+          {/* Test Twice Display (locked) */}
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 opacity-60",
+                testTwice ? "border-primary bg-primary" : "border-gray-300 bg-white"
+              )}
+            >
+              {testTwice && (
+                <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <div className="flex-1 opacity-60">
+              <div className="text-sm font-medium text-foreground">
+                {t("btn_test_twice")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {testTwice ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
+              </div>
+            </div>
+          </div>
+
+          {/* Random Order Display (locked) */}
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 opacity-60",
+                randomOrder ? "border-primary bg-primary" : "border-gray-300 bg-white"
+              )}
+            >
+              {randomOrder && (
+                <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <div className="flex-1 opacity-60">
+              <div className="text-sm font-medium text-foreground">
+                {t("btn_test_random_order")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {randomOrder ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
+              </div>
+            </div>
+          </div>
+
+          {/* Answer feedback sounds toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={soundEffectsEnabled}
+              onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("msg_answer_sounds")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_answer_sounds_desc")}
+              </div>
+            </div>
+          </label>
+
+          {/* Replay with memory trigger toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={replayTriggerEnabled}
+              onChange={(e) => onReplayTriggerChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("msg_replay_trigger")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_replay_trigger_desc")}
+              </div>
+            </div>
+          </label>
+        </div>
+      ) : (
+        /* Study mode settings */
+        <div className="space-y-4">
+          {/* Strict Study Mode Toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={strictMode}
+              onChange={(e) => onStrictModeChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("label_strict_study_mode")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_strict_study_desc")}
+              </div>
+            </div>
+          </label>
+
+          {/* Breathing Mode Toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={breathingModeEnabled}
+              onChange={(e) => onBreathingModeChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("msg_breathing_mode")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_breathing_mode_desc")}
+              </div>
+            </div>
+          </label>
+
+          {/* Answer feedback sounds toggle */}
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={soundEffectsEnabled}
+              onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground">
+                {t("msg_answer_sounds")}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("msg_answer_sounds_desc")}
+              </div>
+            </div>
+          </label>
+        </div>
+      )}
+    </>
+  );
+
+  const closeOverflow = () => {
+    setIsOverflowOpen(false);
+    setMobilePanel(null);
+  };
+
   return (
     <div className="px-4 py-4 sm:px-6">
       <div className="flex items-center justify-between gap-4">
         {/* Left section - word info, score */}
-        <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
+          {/* Word-list hamburger (mobile only) — opens the slide-over drawer */}
+          {onOpenWordList && (
+            <button
+              type="button"
+              onClick={onOpenWordList}
+              aria-label={t("tip_show_words")}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-foreground hover:bg-bone-hover md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
+
           {/* Word text + part of speech */}
           {/* In picture-only mode, hide word/pos (and the divider before score) until submit */}
+          {/* Word + part of speech — desktop only; on mobile it's redundant with the card */}
           {!(isTestMode && pictureOnlyMode && !hasSubmittedAnswer) && (
             <>
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="hidden min-w-0 items-center gap-2 md:flex">
                 <span className="text-regular-semibold text-foreground truncate">
                   {isTestMode && !hasSubmittedAnswer ? englishWord : `${englishWord} · ${foreignWord}`}
                 </span>
@@ -409,9 +745,9 @@ export function StudyActionBar({
                 )}
               </div>
 
-              {/* Divider — only shown when both word info and score are visible */}
+              {/* Divider — only shown when both word info and score are visible (desktop only) */}
               {category !== "information" && scoreStats && (
-                <span className="text-foreground/25">|</span>
+                <span className="hidden text-foreground/25 md:inline">|</span>
               )}
             </>
           )}
@@ -478,12 +814,12 @@ export function StudyActionBar({
                 <RefreshCw className="h-5 w-5" />
               </button>
             </Tooltip>
-            {/* Skip to first - study mode only */}
+            {/* Skip to first - study mode only, desktop only (mobile → overflow sheet) */}
             {!isTestMode && (
               <Tooltip label={t("tip_first_word")}>
                 <button
                   onClick={() => onJumpToWord(0)}
-                  className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
+                  className="hidden h-6 w-6 items-center justify-center text-foreground transition-colors md:flex"
                 >
                   <ChevronsLeft className="h-5 w-5" />
                 </button>
@@ -509,12 +845,12 @@ export function StudyActionBar({
                 <ChevronRight className="h-5 w-5" />
               </button>
             </Tooltip>
-            {/* Skip to last - study mode only */}
+            {/* Skip to last - study mode only, desktop only (mobile → overflow sheet) */}
             {!isTestMode && (
               <Tooltip label={t("tip_last_word")}>
                 <button
                   onClick={() => onJumpToWord(totalWords - 1)}
-                  className="flex h-6 w-6 items-center justify-center text-foreground transition-colors"
+                  className="hidden h-6 w-6 items-center justify-center text-foreground transition-colors md:flex"
                 >
                   <ChevronsRight className="h-5 w-5" />
                 </button>
@@ -522,11 +858,21 @@ export function StudyActionBar({
             )}
           </div>
 
-          {/* Divider */}
-          <span className="text-foreground/25">|</span>
+          {/* Mobile overflow trigger — opens the bottom sheet with the toggle actions */}
+          <button
+            type="button"
+            onClick={() => setIsOverflowOpen(true)}
+            aria-label="More options"
+            className="flex h-6 w-6 items-center justify-center text-foreground md:hidden"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
 
-          {/* Toggle icons */}
-          <div className="flex items-center gap-3">
+          {/* Divider (desktop only) */}
+          <span className="hidden text-foreground/25 md:inline">|</span>
+
+          {/* Toggle icons (desktop only — mobile lives in the overflow sheet) */}
+          <div className="hidden items-center gap-3 md:flex">
             {/* Admin edit mode toggle */}
             {isAdmin && onEditModeToggle && (
               <Tooltip label={isEditMode ? t("tip_exit_edit") : t("tip_edit_word")}>
@@ -562,30 +908,7 @@ export function StudyActionBar({
                 {isAccentsOpen && (
                   <div className="absolute bottom-full right-0 mb-2">
                     <div className="w-[340px] rounded-xl bg-white p-3 shadow-panel">
-                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                        {t("label_accented_chars")}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                        {accentedChars.map((char) => (
-                          <button
-                            key={char}
-                            onClick={() => {
-                              onInsertCharacter?.(char);
-                              setIsAccentsOpen(false);
-                            }}
-                            className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-left"
-                          >
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gray-100 text-base font-medium text-foreground transition-colors group-hover:bg-primary group-hover:text-white">
-                              {char}
-                            </span>
-                            {shortcuts[char] && (
-                              <span className="truncate text-xs text-foreground/50">
-                                {shortcuts[char]}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                      {accentsBody}
                     </div>
                   </div>
                 )}
@@ -623,106 +946,7 @@ export function StudyActionBar({
               {/* Music dropdown */}
               {isMusicOpen && (
                 <div className="absolute bottom-full right-0 mb-2 w-[320px] rounded-xl bg-white p-4 shadow-panel">
-                  <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                    {t("label_study_music")}
-                  </div>
-
-                  {/* Track list */}
-                  <div className="mb-4 space-y-1">
-                    {musicTracks.map((track) => {
-                      const isSelected = selectedTrack === track.id;
-                      const isPlayingTrack = isSelected && musicEnabled && !musicHasError;
-                      const isHovered = hoveredTrack === track.id;
-                      const mins = Math.floor(track.duration_seconds / 60);
-                      const durationLabel = mins >= 60
-                        ? `${Math.floor(mins / 60)}h ${mins % 60}m`
-                        : `${mins} min`;
-                      return (
-                        <button
-                          key={track.id}
-                          onClick={() => onToggleTrack?.(track.id)}
-                          onMouseEnter={() => setHoveredTrack(track.id)}
-                          onMouseLeave={() => setHoveredTrack(null)}
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
-                            isPlayingTrack
-                              ? "bg-primary/10 text-primary"
-                              : "hover:bg-gray-50"
-                          )}
-                        >
-                          {/* Play / Pause / Audiowave icon */}
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            {isPlayingTrack && isHovered ? (
-                              <Pause className="h-4 w-4 text-primary" />
-                            ) : isPlayingTrack ? (
-                              <AudioWaveIcon />
-                            ) : (
-                              <Play
-                                className={cn(
-                                  "h-4 w-4",
-                                  isSelected ? "text-primary" : "text-muted-foreground"
-                                )}
-                              />
-                            )}
-                          </div>
-                          <span className="flex-1 text-sm font-medium">{track.name}</span>
-                          <span className="text-xs text-muted-foreground">{durationLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Volume sliders */}
-                  <div className="mb-4 space-y-3">
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">{t("label_music_volume")}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {Math.round(musicVolume * 100)}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={Math.round(musicVolume * 100)}
-                        onChange={(e) => onMusicVolumeChange?.(Number(e.target.value) / 100)}
-                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
-                      />
-                    </div>
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">{t("label_word_volume")}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {Math.round(wordVolume * 100)}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={Math.round(wordVolume * 100)}
-                        onChange={(e) => onWordVolumeChange?.(Number(e.target.value) / 100)}
-                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-primary"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Error message */}
-                  {musicHasError && (
-                    <div className="mb-4 rounded-lg bg-destructive/10 p-3">
-                      <p className="text-xs leading-relaxed text-destructive">
-                        {t("msg_music_error")}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Explainer */}
-                  <div className="rounded-lg bg-bone p-3">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground">{t("msg_alpha_wave_title")}</span> {t("msg_alpha_wave_desc")}
-                    </p>
-                  </div>
+                  {musicBody}
                 </div>
               )}
             </div>
@@ -742,178 +966,121 @@ export function StudyActionBar({
               {/* Settings dropdown */}
               {isSettingsOpen && (
                 <div className="absolute bottom-full right-0 mb-2 w-[280px] rounded-xl bg-white p-4 shadow-panel">
-                  <div className="mb-3 text-xs font-medium uppercase tracking-wide text-foreground/50">
-                    {isTestMode ? t("label_test_settings") : t("label_lesson_settings")}
-                  </div>
-
-                  {isTestMode ? (
-                    <div className="space-y-4">
-                      {/* Nerves of Steel Mode Toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={nervesOfSteelMode}
-                          onChange={(e) => onNervesOfSteelModeChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("msg_nerves_of_steel")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_nerves_of_steel_desc")}
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Test Twice Display (locked) */}
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={cn(
-                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 opacity-60",
-                            testTwice ? "border-primary bg-primary" : "border-gray-300 bg-white"
-                          )}
-                        >
-                          {testTwice && (
-                            <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
-                              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </div>
-                        <div className="flex-1 opacity-60">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("btn_test_twice")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {testTwice ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Random Order Display (locked) */}
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={cn(
-                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 opacity-60",
-                            randomOrder ? "border-primary bg-primary" : "border-gray-300 bg-white"
-                          )}
-                        >
-                          {randomOrder && (
-                            <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
-                              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </div>
-                        <div className="flex-1 opacity-60">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("btn_test_random_order")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {randomOrder ? t("label_enabled") : t("label_disabled")} · {t("msg_set_before_test")}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Answer feedback sounds toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={soundEffectsEnabled}
-                          onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("msg_answer_sounds")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_answer_sounds_desc")}
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Replay with memory trigger toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={replayTriggerEnabled}
-                          onChange={(e) => onReplayTriggerChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("msg_replay_trigger")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_replay_trigger_desc")}
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  ) : (
-                    /* Study mode settings */
-                    <div className="space-y-4">
-                      {/* Strict Study Mode Toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={strictMode}
-                          onChange={(e) => onStrictModeChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("label_strict_study_mode")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_strict_study_desc")}
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Breathing Mode Toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={breathingModeEnabled}
-                          onChange={(e) => onBreathingModeChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("msg_breathing_mode")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_breathing_mode_desc")}
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Answer feedback sounds toggle */}
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={soundEffectsEnabled}
-                          onChange={(e) => onSoundEffectsChange?.(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">
-                            {t("msg_answer_sounds")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {t("msg_answer_sounds_desc")}
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  )}
+                  {settingsBody}
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Mobile overflow bottom-sheet — holds the toggle actions that don't fit
+          inline on phones (image mode, accents, music, settings, edit). */}
+      {isOverflowOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+          {/* Scrim */}
+          <div className="absolute inset-0 bg-black/40" onClick={closeOverflow} />
+          {/* Sheet */}
+          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-panel">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-regular-semibold text-foreground">Options</span>
+              <button
+                type="button"
+                onClick={closeOverflow}
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground hover:bg-bone-hover"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-2 pb-4">
+              {/* Image mode */}
+              <button
+                type="button"
+                onClick={() => onImageModeChange?.(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-regular-medium text-foreground hover:bg-bone-hover"
+              >
+                {imageMode === "memory-trigger" ? (
+                  <Zap className="h-5 w-5 shrink-0" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 shrink-0" />
+                )}
+                <span className="flex-1">
+                  {imageMode === "memory-trigger" ? t("tip_show_flashcard") : t("tip_show_memory_trigger")}
+                </span>
+              </button>
+
+              {/* Accents (expandable) */}
+              {showAccentsButton && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setMobilePanel(mobilePanel === "accents" ? null : "accents")}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-regular-medium text-foreground hover:bg-bone-hover"
+                  >
+                    <Languages className="h-5 w-5 shrink-0" />
+                    <span className="flex-1">{t("tip_accents")}</span>
+                    <ChevronRight className={cn("h-4 w-4 shrink-0 text-foreground/40 transition-transform", mobilePanel === "accents" && "rotate-90")} />
+                  </button>
+                  {mobilePanel === "accents" && <div className="px-3 pb-2">{accentsBody}</div>}
+                </div>
+              )}
+
+              {/* Music (expandable) */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMobilePanel(mobilePanel === "music" ? null : "music")}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-regular-medium text-foreground hover:bg-bone-hover"
+                >
+                  {musicEnabled && !musicHasError ? (
+                    <AudioWaveIcon className="w-5 shrink-0" />
+                  ) : (
+                    <Music className="h-5 w-5 shrink-0" />
+                  )}
+                  <span className="flex-1">{t("label_background_music")}</span>
+                  <ChevronRight className={cn("h-4 w-4 shrink-0 text-foreground/40 transition-transform", mobilePanel === "music" && "rotate-90")} />
+                </button>
+                {mobilePanel === "music" && <div className="px-3 pb-2">{musicBody}</div>}
+              </div>
+
+              {/* Settings (expandable) */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMobilePanel(mobilePanel === "settings" ? null : "settings")}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-regular-medium text-foreground hover:bg-bone-hover"
+                >
+                  <SlidersHorizontal className="h-5 w-5 shrink-0" />
+                  <span className="flex-1">{isTestMode ? t("label_test_settings") : t("label_lesson_settings")}</span>
+                  <ChevronRight className={cn("h-4 w-4 shrink-0 text-foreground/40 transition-transform", mobilePanel === "settings" && "rotate-90")} />
+                </button>
+                {mobilePanel === "settings" && <div className="px-3 pb-2">{settingsBody}</div>}
+              </div>
+
+              {/* Admin edit toggle */}
+              {isAdmin && onEditModeToggle && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onEditModeToggle();
+                    closeOverflow();
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-regular-medium hover:bg-bone-hover",
+                    isEditMode ? "text-primary" : "text-foreground"
+                  )}
+                >
+                  <Pencil className="h-5 w-5 shrink-0" />
+                  <span className="flex-1">{isEditMode ? t("tip_exit_edit") : t("tip_edit_word")}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

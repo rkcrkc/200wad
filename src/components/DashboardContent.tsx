@@ -57,6 +57,8 @@ export interface HeaderStats {
 interface DashboardContentProps {
   children: React.ReactNode;
   defaultCourseContext?: DefaultCourseContext;
+  /** Flags of every visible language, for the header's empty-state picker. */
+  languageFlags?: string[];
   /**
    * Streamed bundle of slow header stats + due-tests count. Resolved
    * asynchronously inside a Suspense boundary so the shell renders before
@@ -155,6 +157,7 @@ function UpgradeModalWithContext({
 export function DashboardContent({
   children,
   defaultCourseContext,
+  languageFlags,
   headerStatsPromise,
   showPreviewMode,
   plans = [],
@@ -170,6 +173,7 @@ export function DashboardContent({
     <HeaderStatsProvider promise={headerStatsPromise ?? null}>
       <DashboardShell
         defaultCourseContext={defaultCourseContext}
+        languageFlags={languageFlags}
         showPreviewMode={showPreviewMode}
         plans={plans}
         enabledTiers={enabledTiers}
@@ -189,6 +193,7 @@ export function DashboardContent({
 interface DashboardShellProps {
   children: React.ReactNode;
   defaultCourseContext?: DefaultCourseContext;
+  languageFlags?: string[];
   showPreviewMode?: boolean;
   plans: PricingPlan[];
   enabledTiers: string[];
@@ -203,6 +208,7 @@ interface DashboardShellProps {
 function DashboardShell({
   children,
   defaultCourseContext,
+  languageFlags,
   showPreviewMode,
   plans,
   enabledTiers,
@@ -279,6 +285,15 @@ function DashboardShell({
   // Courses page renders full width; everything else gets the sidebar.
   const showSidebar = !pathname.startsWith("/courses/");
 
+  // Header positioning: in the app (logged in) the navbar stays `fixed` at all
+  // sizes, so content sits below it via pt-[72px]. During guest/onboarding
+  // preview the navbar is in normal flow on mobile (it scrolls as a page
+  // header), so the content area takes the remaining height instead; md+ still
+  // reverts to the fixed-header layout. See Header.tsx headerClasses.
+  const contentWrapperClass = showPreviewMode
+    ? "h-[calc(100dvh-72px)] overflow-visible md:h-screen md:pt-[72px]"
+    : "h-screen overflow-visible pt-[72px]";
+
   if (!showSidebar) {
     // No sidebar - full width content with fixed header; only main scrolls
     return (
@@ -287,9 +302,9 @@ function DashboardShell({
           <TextProvider overrides={textOverrides}>
             <WordPreviewProvider>
               <DefaultContextSetter context={defaultCourseContext} />
-              <Header showSidebar={false} stats={streamedStats} showPreviewMode={showPreviewMode} />
-              <div className="h-screen overflow-visible pt-[72px]">
-                <main className="bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
+              <Header showSidebar={false} stats={streamedStats} showPreviewMode={showPreviewMode} languageFlags={languageFlags} />
+              <div className={contentWrapperClass}>
+                <main className="bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
                   {children}
                 </main>
               </div>
@@ -310,10 +325,10 @@ function DashboardShell({
             <SidebarCollapseProvider collapsed={sidebarCollapsed}>
               <WordPreviewProvider>
                 <DefaultContextSetter context={defaultCourseContext} />
-                <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} />
+                <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} languageFlags={languageFlags} />
                 <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} collapsed={sidebarCollapsed} />
-                <div className="h-screen overflow-visible pt-[72px]">
-                  <main className={`bg-background h-full overflow-auto px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[240px]"}`}>
+                <div className={contentWrapperClass}>
+                  <main className={`bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
                     {children}
                   </main>
                 </div>

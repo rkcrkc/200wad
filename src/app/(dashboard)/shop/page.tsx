@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/PageContainer";
+import { DesktopOnly } from "@/components/DesktopOnly";
 import { getShopData } from "@/lib/queries/shop";
 import type { ShopCategory, ShopItemForList } from "@/lib/queries/shop";
 import { getCoinHistory, getCoinTotals } from "@/lib/queries/coins";
@@ -41,23 +42,25 @@ export default async function ShopPage() {
   }
 
   return (
-    <PageContainer size="md">
-      <ShopHeader coinBalance={coinBalance} />
-      <ShopTabs
-        initialHistory={history.entries}
-        historyHasMore={history.hasMore}
-        historyTotals={historyTotals}
-      >
-        {CATEGORIES.map((cat) => (
-          <ShopCategorySection
-            key={cat.key}
-            title={cat.title}
-            description={cat.description}
-            items={grouped.get(cat.key) ?? []}
-          />
-        ))}
-        <LearningResourcesSection />
-      </ShopTabs>
-    </PageContainer>
+    <DesktopOnly>
+      <PageContainer size="md">
+        <ShopHeader coinBalance={coinBalance} />
+        <ShopTabs
+          initialHistory={history.entries}
+          historyHasMore={history.hasMore}
+          historyTotals={historyTotals}
+        >
+          {CATEGORIES.map((cat) => (
+            <ShopCategorySection
+              key={cat.key}
+              title={cat.title}
+              description={cat.description}
+              items={grouped.get(cat.key) ?? []}
+            />
+          ))}
+          <LearningResourcesSection />
+        </ShopTabs>
+      </PageContainer>
+    </DesktopOnly>
   );
 }

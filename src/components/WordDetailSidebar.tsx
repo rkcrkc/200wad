@@ -10,6 +10,7 @@ import type { AdjacentLesson, WordWithDetails } from "@/lib/queries/words";
 import { useText } from "@/context/TextContext";
 import { useWordPreview } from "@/context/WordPreviewContext";
 import { useStudyExitGuard } from "@/context/StudyExitGuardContext";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/utils";
 import { updateWord } from "@/lib/mutations/admin/words";
 import {
@@ -91,6 +92,7 @@ export function WordDetailSidebar({
   isLocked = false,
 }: WordDetailSidebarProps) {
   const { t, tt } = useText();
+  const isMobile = useIsMobile();
   // Clicking a related entry from inside the preview sidebar swaps content
   // in-place via the existing openWord behavior (URL replace, no history bloat).
   const { openWord } = useWordPreview();
@@ -461,7 +463,7 @@ export function WordDetailSidebar({
       <div
         ref={sidebarRef}
         style={{ width: sidebarWidth }}
-        className={`fixed top-0 right-0 bottom-0 z-50 flex flex-col bg-bone shadow-2xl transition-[width,transform] duration-300 ease-out ${
+        className={`fixed top-0 right-0 bottom-0 z-50 flex flex-col bg-bone shadow-2xl transition-[width,transform] duration-300 ease-out max-md:!w-full ${
           isVisible ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -537,9 +539,10 @@ export function WordDetailSidebar({
             })()}
 
             <div className="flex shrink-0 items-center gap-1">
+              {/* Size cycling is meaningless when the panel is full-width (mobile). */}
               <button
                 onClick={cycleSize}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-beige hover:text-foreground"
+                className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-beige hover:text-foreground md:flex"
               >
                 <SizeIcon className="h-4 w-4" />
               </button>
@@ -613,7 +616,7 @@ export function WordDetailSidebar({
           wordStatus={localWord.status}
           correctStreak={localWord.progress?.correct_streak ?? undefined}
           variant="sidebar"
-          compact={sizeKey === "sm"}
+          compact={sizeKey === "sm" || isMobile}
           imageMode={imageMode}
           onImageModeChange={setImageMode}
           isAdmin={isAdmin}

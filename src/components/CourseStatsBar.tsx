@@ -2,6 +2,7 @@
 
 import { Popover } from "@/components/ui/popover";
 import { SubBadge } from "@/components/ui/sub-badge";
+import { MobileStatsDropdown, type MobileStat } from "@/components/ui/mobile-stats-dropdown";
 import { formatNumber, formatRatioPercent } from "@/lib/utils/helpers";
 import { useText } from "@/context/TextContext";
 
@@ -24,8 +25,33 @@ export function CourseStatsBar({
 }: CourseStatsBarProps) {
   const { t } = useText();
 
+  // Flat list used only for the mobile dropdown (the desktop row keeps its
+  // richer per-stat popovers below). The first entry is the one shown inline.
+  const mobileStats: MobileStat[] = [
+    {
+      label: "Words learned",
+      value: <StatValue count={wordsLearned} total={totalWords} />,
+    },
+    {
+      label: t("pop_words_mastered"),
+      value: <StatValue count={wordsMastered} total={totalWords} />,
+    },
+    {
+      label: "Lessons learned",
+      value: <StatValue count={lessonsLearned} total={totalLessons} />,
+    },
+    {
+      label: t("pop_lessons_mastered"),
+      value: <StatValue count={lessonsMastered} total={totalLessons} />,
+    },
+  ];
+
   return (
-    <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
+    <>
+      <MobileStatsDropdown stats={mobileStats} />
+
+      {/* Desktop: full four-stat row with per-stat popovers. */}
+      <div className="hidden cursor-default flex-wrap items-center gap-x-8 gap-y-2 md:flex">
       {/* Words learned */}
       <Popover
         className="flex flex-col items-start gap-1.5 cursor-default"
@@ -117,6 +143,19 @@ export function CourseStatsBar({
           </SubBadge>
         </div>
       </Popover>
-    </div>
+      </div>
+    </>
+  );
+}
+
+/** "N / total" plus its percentage badge — the shape every stat here takes. */
+function StatValue({ count, total }: { count: number; total: number }) {
+  return (
+    <>
+      <span className="text-regular-semibold">
+        {formatNumber(count)} / {formatNumber(total)}
+      </span>
+      <SubBadge variant="header">{formatRatioPercent(count, total)}</SubBadge>
+    </>
   );
 }

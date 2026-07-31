@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/PageContainer";
+import { DesktopOnly } from "@/components/DesktopOnly";
 import { getAchievementsForUser } from "@/lib/queries/achievements";
 import type {
   AchievementCategory,
@@ -38,16 +39,18 @@ export default async function TrophiesPage() {
   }
 
   return (
-    <PageContainer size="md">
-      <TrophiesHeader aggregates={userAggregates} />
-      {CATEGORIES.map((cat) => (
-        <TrophyCategorySection
-          key={cat.key}
-          title={cat.title}
-          description={cat.description}
-          rows={grouped.get(cat.key) ?? []}
-        />
-      ))}
-    </PageContainer>
+    <DesktopOnly>
+      <PageContainer size="md">
+        <TrophiesHeader aggregates={userAggregates} />
+        {CATEGORIES.map((cat) => (
+          <TrophyCategorySection
+            key={cat.key}
+            title={cat.title}
+            description={cat.description}
+            rows={grouped.get(cat.key) ?? []}
+          />
+        ))}
+      </PageContainer>
+    </DesktopOnly>
   );
 }

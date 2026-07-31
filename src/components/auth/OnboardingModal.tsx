@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ModalShell, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal-shell";
+import { GuestMobileNav } from "@/components/GuestMobileNav";
 import { SocialLoginButtons } from "./SocialLoginButtons";
 import { getPasswordError } from "@/lib/validations/auth";
 import type { LanguageWithCourses } from "@/lib/queries/onboarding";
@@ -109,7 +110,15 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/course/${selectedCourseId}/schedule`,
-        data: { marketing_consent: marketingConsent },
+        // Persist the initial language/course selection on the user record so it
+        // survives email confirmation even if the `next` param is lost (e.g. the
+        // link is opened on a different device, where localStorage/URL don't carry
+        // over). The auth callback reads these back as a fallback destination.
+        data: {
+          marketing_consent: marketingConsent,
+          onboarding_language_id: selectedLanguageId,
+          onboarding_course_id: selectedCourseId,
+        },
       },
     });
 
@@ -169,8 +178,9 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   // Success state after signup
   if (success) {
     return (
-      <ModalShell>
-        <ModalHeader className="pt-8 pb-6">
+      <ModalShell fullScreenOnMobile>
+        <GuestMobileNav className="h-[72px] shrink-0 px-4 md:hidden" />
+        <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
           <div className="bg-success/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <svg
               className="text-success h-8 w-8"
@@ -221,8 +231,9 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   // Step 1: Language Selection
   if (step === "language") {
     return (
-      <ModalShell fixedHeight>
-        <ModalHeader className="pt-8 pb-6">
+      <ModalShell fixedHeight fullScreenOnMobile>
+        <GuestMobileNav className="h-[72px] shrink-0 px-4 md:hidden" />
+        <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
           <h1 className="mb-2 text-3xl font-bold">Welcome to 200 Words a Day</h1>
           <p className="text-muted-foreground">
             What language do you want to study?
@@ -239,7 +250,7 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 <button
                   key={language.id}
                   onClick={() => setSelectedLanguageId(language.id)}
-                  className={`flex w-full items-center gap-4 rounded-2xl border bg-white px-6 py-5 text-left transition-colors ${
+                  className={`flex w-full items-center gap-4 rounded-2xl border bg-white px-4 py-4 text-left transition-colors sm:px-6 sm:py-5 ${
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/50"
@@ -299,8 +310,9 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
 
   // Step 2: Signup/Signin
   return (
-    <ModalShell fixedHeight>
-      <ModalHeader className="pt-8 pb-6">
+    <ModalShell fixedHeight fullScreenOnMobile>
+      <GuestMobileNav className="h-[72px] shrink-0 px-4 md:hidden" />
+      <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
         <h1 className="mb-2 text-3xl font-bold">
           {authMode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
@@ -432,50 +444,59 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
           {authMode === "signup" && (
             <p className="text-muted-foreground text-center text-xs leading-relaxed">
               By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
-              <Link href="/terms" className="text-primary hover:underline">
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-primary hover:underline">
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 Privacy Policy
               </Link>
               .
             </p>
           )}
-          <div className="flex w-full items-center justify-between text-sm">
-            <button
-              type="button"
-              onClick={() => setStep("language")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              ← Back
-            </button>
-            <p className="text-muted-foreground">
-              {authMode === "signup" ? (
-                <>
-                  Have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode("signin")}
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Sign in
-                  </button>
-                </>
-              ) : (
-                <>
-                  Need an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode("signup")}
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Sign up
-                  </button>
-                </>
-              )}
+          {authMode === "signup" ? (
+            // Create-account: no Back button; center the sign-in toggle.
+            <p className="text-muted-foreground text-center text-sm">
+              Have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setAuthMode("signin")}
+                className="text-primary font-medium hover:underline"
+              >
+                Sign in
+              </button>
             </p>
-          </div>
+          ) : (
+            <div className="flex w-full items-center justify-between text-sm">
+              <button
+                type="button"
+                onClick={() => setStep("language")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ← Back
+              </button>
+              <p className="text-muted-foreground">
+                Need an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("signup")}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Sign up
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </ModalFooter>
     </ModalShell>

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getScheduleData } from "@/lib/queries/schedule";
 import { getCourseById } from "@/lib/queries/courses";
 import { getLanguagesWithCourses } from "@/lib/queries/onboarding";
-import { addLanguageWithCourse } from "@/lib/mutations";
+import { enrollLanguageAndSetCurrent } from "@/lib/mutations";
 import { SchedulerSection, LessonGridSection } from "@/components/schedule";
 import { OnboardingSignupGate } from "@/components/auth/OnboardingSignupGate";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,7 +51,8 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     // (Existing users' current_course_id is updated by the course-scoped layout
     // at (dashboard)/course/[courseId]/layout.tsx.)
     if (!userData?.current_language_id && language?.id) {
-      await addLanguageWithCourse(language.id);
+      // Render-safe: no revalidatePath (which throws during render).
+      await enrollLanguageAndSetCurrent(language.id, courseId);
     }
   }
 

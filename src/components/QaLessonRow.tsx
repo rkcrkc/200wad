@@ -12,8 +12,8 @@ interface QaLessonRowProps {
   title: string;
   /** Number of flagged words in this QA lesson. */
   count: number;
-  /** Study href; omitted (and the row disabled) when `count` is 0. */
-  href?: string;
+  /** QA lesson id; omitted (and the row disabled) when `count` is 0. */
+  lessonId?: string;
   isFirst?: boolean;
   isLast?: boolean;
   showScrollFade?: boolean;
@@ -22,25 +22,29 @@ interface QaLessonRowProps {
 /**
  * A single admin-only QA lesson rendered as a row in the lessons table
  * (shown when the "Developer notes" filter pill is active). QA lessons are
- * study-only and ephemeral, so the row omits status/XP/progress and offers a
- * single Study action. Zero-count rows render greyed and non-interactive.
+ * study-only and ephemeral, so the row omits status/XP/progress. Clicking the
+ * row opens the lesson detail view (words list + preview sidebar); the Study
+ * action starts an ephemeral study session directly. Zero-count rows render
+ * greyed and non-interactive.
  */
 export function QaLessonRow({
   index,
   emoji,
   title,
   count,
-  href,
+  lessonId,
   isFirst,
   isLast,
   showScrollFade,
 }: QaLessonRowProps) {
   const router = useRouter();
-  const disabled = count === 0 || !href;
+  const disabled = count === 0 || !lessonId;
+  const detailHref = lessonId ? `/lesson/${lessonId}` : undefined;
+  const studyHref = lessonId ? `/lesson/${lessonId}/study` : undefined;
 
   const handleClick = () => {
-    if (disabled || !href) return;
-    router.push(href);
+    if (disabled || !detailHref) return;
+    router.push(detailHref);
   };
 
   return (
@@ -55,7 +59,7 @@ export function QaLessonRow({
       {/* # */}
       <td
         className={cn(
-          "bg-white px-6 py-4 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover",
+          "bg-white px-4 py-3 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:px-6 md:py-4",
           isFirst && "rounded-tl-xl",
           isLast && "rounded-bl-xl"
         )}
@@ -64,7 +68,7 @@ export function QaLessonRow({
       </td>
 
       {/* Lesson: emoji + title */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      <td className="bg-white px-2 py-3 transition-colors group-hover:bg-bone-hover md:py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-xl">
             {emoji}
@@ -76,14 +80,14 @@ export function QaLessonRow({
       </td>
 
       {/* # Words */}
-      <td className="bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover">
+      <td className="hidden bg-white px-2 py-4 text-center text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         {count}
       </td>
 
       {/* Study action - sticky on horizontal scroll */}
       <td
         className={cn(
-          "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+          "sticky right-0 z-10 bg-white px-2 py-3 pr-6 transition-colors group-hover:bg-bone-hover md:py-4",
           isFirst && "rounded-tr-xl",
           isLast && "rounded-br-xl",
           showScrollFade &&
@@ -91,11 +95,11 @@ export function QaLessonRow({
         )}
       >
         <div className="flex justify-end">
-          {disabled ? (
+          {disabled || !studyHref ? (
             <span className="text-xs-medium text-muted-foreground">No words</span>
           ) : (
             <Link
-              href={href}
+              href={studyHref}
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             >

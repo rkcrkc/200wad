@@ -14,12 +14,17 @@ import { cn } from "@/lib/utils";
  * appear only when there is more content to scroll to in that direction. Props
  * are forwarded to the inner scroll container, so `className` sets its layout
  * (e.g. `flex gap-4`) and `role` etc. pass through.
+ *
+ * `fadeClassName` sets the gradient's start colour so it can match the surface
+ * the row sits on (defaults to `from-white`; use e.g. `from-background` on the
+ * cream page background).
  */
 export function ScrollFadeRow({
   children,
   className,
+  fadeClassName = "from-white",
   ...props
-}: HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement> & { fadeClassName?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -52,13 +57,15 @@ export function ScrollFadeRow({
       </div>
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-white to-transparent transition-opacity",
+          "pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r to-transparent transition-opacity",
+          fadeClassName,
           canScrollLeft ? "opacity-100" : "opacity-0"
         )}
       />
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent transition-opacity",
+          "pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l to-transparent transition-opacity",
+          fadeClassName,
           canScrollRight ? "opacity-100" : "opacity-0"
         )}
       />

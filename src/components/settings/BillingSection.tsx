@@ -62,7 +62,7 @@ export function BillingSection() {
   };
 
   return (
-    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
+    <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-card">
       <div className="mb-6 flex items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Billing</h2>
         {data?.hasCustomer && (

@@ -35,8 +35,8 @@ export function InformationNextButton({
 
   return (
     <div className="px-6 pt-2 pb-0">
-      <div className="flex items-center gap-4 rounded-2xl border-2 border-transparent pr-2 py-2">
-        <span className="flex-1 text-xl font-medium text-black/50">
+      <div className="flex items-center gap-4 rounded-2xl border-2 border-transparent pr-1.5 py-1.5 md:pr-2 md:py-2">
+        <span className="flex-1 text-base font-medium text-black/50 md:text-xl">
           Read and continue
         </span>
         <Button ref={buttonRef} onClick={onNext} className="gap-1.5">

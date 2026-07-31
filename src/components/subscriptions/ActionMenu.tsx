@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
+import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
 
 export interface ActionMenuItem {
   label: string;
-  onClick: () => void;
+  /** Click handler for button items. Ignored when `href` is set. */
+  onClick?: () => void;
+  /** Render a navigation link instead of a button. */
+  href?: string;
+  /** Optional leading icon shown before the label. */
+  icon?: ReactNode;
   /** Render in the destructive colour (e.g. Cancel plan). */
   destructive?: boolean;
   /** Greyed out and non-clickable; pair with `title` to explain why. */
@@ -66,24 +72,45 @@ export function ActionMenu({ items, label = "Plan actions" }: ActionMenuProps) {
           role="menu"
           className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
         >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              disabled={item.disabled}
-              title={item.title}
-              onClick={() => {
-                setOpen(false);
-                item.onClick();
-              }}
-              className={`block w-full px-4 py-2.5 text-left text-small-medium transition-colors hover:bg-bone-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
-                item.destructive ? "text-destructive" : "text-foreground"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+          {items.map((item) => {
+            const className = `flex w-full items-center gap-2 px-4 py-2.5 text-left text-small-medium transition-colors hover:bg-bone-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
+              item.destructive ? "text-destructive" : "text-foreground"
+            }`;
+
+            if (item.href) {
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  role="menuitem"
+                  title={item.title}
+                  onClick={() => setOpen(false)}
+                  className={className}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                disabled={item.disabled}
+                title={item.title}
+                onClick={() => {
+                  setOpen(false);
+                  item.onClick?.();
+                }}
+                className={className}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

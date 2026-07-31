@@ -1,12 +1,27 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { updateStudySettingsAction } from "@/lib/mutations/settings";
 
 export type AudioType = "english" | "foreign" | "trigger" | "sfx";
 
 const STORAGE_KEY_WORD_VOLUME = "word-audio-volume";
 const STORAGE_KEY_SOUND_EFFECTS = "sound-effects-enabled";
 const STORAGE_KEY_REPLAY_TRIGGER = "test-replay-trigger-enabled";
+
+interface UseAudioOptions {
+  /**
+   * Server-persisted value for a logged-in user (from `getUserStudySettings`).
+   * `null` = the user has never explicitly set it → fall back to localStorage /
+   * default and backfill the account. `undefined` = the caller has no account
+   * context (e.g. WordDetailView) and opts out of syncing entirely.
+   */
+  initialSoundEffectsEnabled?: boolean | null;
+  /** As above, for the test-mode "play memory trigger after answer" toggle. */
+  initialReplayTriggerEnabled?: boolean | null;
+  /** Guests don't persist to the server; they stay on localStorage. */
+  isGuest?: boolean;
+}
 
 interface UseAudioReturn {
   /** Play audio from URL, returns a promise that resolves when audio ends */
@@ -40,7 +55,14 @@ interface UseAudioReturn {
   setReplayTriggerEnabled: (enabled: boolean) => void;
 }
 
-export function useAudio(): UseAudioReturn {
+export function useAudio(options?: UseAudioOptions): UseAudioReturn {
+  // Sync the two toggles to the account only when a caller passes account
+  // context AND the user isn't a guest. Callers without context (WordDetailView)
+  // pass no options and stay localStorage-only.
+  const persistToServer = options !== undefined && options.isGuest === false;
+  const initialSoundEffects = options?.initialSoundEffectsEnabled;
+  const initialReplayTrigger = options?.initialReplayTriggerEnabled;
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAudioType, setCurrentAudioType] = useState<AudioType | null>(null);
@@ -55,13 +77,15 @@ export function useAudio(): UseAudioReturn {
     return 1;
   });
   const [soundEffectsEnabled, setSoundEffectsEnabledState] = useState(() => {
+    // Account value wins when present; else localStorage; else default ON.
+    if (typeof initialSoundEffects === "boolean") return initialSoundEffects;
     if (typeof window === "undefined") return true;
-    // Default ON; only an explicit "false" opts out.
     return localStorage.getItem(STORAGE_KEY_SOUND_EFFECTS) !== "false";
   });
   const [replayTriggerEnabled, setReplayTriggerEnabledState] = useState(() => {
+    // Account value wins when present; else localStorage; else default OFF.
+    if (typeof initialReplayTrigger === "boolean") return initialReplayTrigger;
     if (typeof window === "undefined") return false;
-    // Default OFF; only an explicit "true" opts in.
     return localStorage.getItem(STORAGE_KEY_REPLAY_TRIGGER) === "true";
   });
 
@@ -88,14 +112,49 @@ export function useAudio(): UseAudioReturn {
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_SOUND_EFFECTS, String(enabled));
     }
-  }, []);
+    if (persistToServer) {
+      updateStudySettingsAction({ soundEffectsEnabled: enabled }).catch((err) =>
+        console.error("Failed to persist sound-effects setting:", err)
+      );
+    }
+  }, [persistToServer]);
 
   const setReplayTriggerEnabled = useCallback((enabled: boolean) => {
     setReplayTriggerEnabledState(enabled);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_REPLAY_TRIGGER, String(enabled));
     }
-  }, []);
+    if (persistToServer) {
+      updateStudySettingsAction({ replayTriggerEnabled: enabled }).catch((err) =>
+        console.error("Failed to persist replay-trigger setting:", err)
+      );
+    }
+  }, [persistToServer]);
+
+  // One-time backfill: a logged-in user whose account column is still null but
+  // who already has a localStorage preference (set before this synced) keeps
+  // that preference and pushes it up to the account, so it isn't silently reset
+  // to the column default on their next device. Runs once on mount.
+  const didBackfillRef = useRef(false);
+  useEffect(() => {
+    if (!persistToServer || didBackfillRef.current) return;
+    didBackfillRef.current = true;
+
+    const payload: { soundEffectsEnabled?: boolean; replayTriggerEnabled?: boolean } = {};
+    if (initialSoundEffects == null) {
+      const local = localStorage.getItem(STORAGE_KEY_SOUND_EFFECTS);
+      if (local !== null) payload.soundEffectsEnabled = local !== "false";
+    }
+    if (initialReplayTrigger == null) {
+      const local = localStorage.getItem(STORAGE_KEY_REPLAY_TRIGGER);
+      if (local !== null) payload.replayTriggerEnabled = local === "true";
+    }
+    if (payload.soundEffectsEnabled !== undefined || payload.replayTriggerEnabled !== undefined) {
+      updateStudySettingsAction(payload).catch((err) =>
+        console.error("Failed to backfill study settings:", err)
+      );
+    }
+  }, [persistToServer, initialSoundEffects, initialReplayTrigger]);
 
   // Cleanup on unmount
   useEffect(() => {

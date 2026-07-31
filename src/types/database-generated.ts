@@ -1989,6 +1989,8 @@ export type Database = {
           pb_week_test_points: number | null
           pb_week_test_points_at: string | null
           referral_code: string | null
+          replay_trigger_enabled: boolean | null
+          sound_effects_enabled: boolean | null
           streak_freeze_auto: boolean
           streak_freezes_available: number
           stripe_customer_id: string | null
@@ -2033,6 +2035,8 @@ export type Database = {
           pb_week_test_points?: number | null
           pb_week_test_points_at?: string | null
           referral_code?: string | null
+          replay_trigger_enabled?: boolean | null
+          sound_effects_enabled?: boolean | null
           streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null
@@ -2077,6 +2081,8 @@ export type Database = {
           pb_week_test_points?: number | null
           pb_week_test_points_at?: string | null
           referral_code?: string | null
+          replay_trigger_enabled?: boolean | null
+          sound_effects_enabled?: boolean | null
           streak_freeze_auto?: boolean
           streak_freezes_available?: number
           stripe_customer_id?: string | null

@@ -40,7 +40,7 @@ export {
 
 export type { UpdateProfileData, MutationResult } from "./settings";
 
-export { addLanguageWithCourse } from "./onboarding";
+export { addLanguageWithCourse, enrollLanguageAndSetCurrent } from "./onboarding";
 
 export type { AddLanguageWithCourseResult } from "./onboarding";
 

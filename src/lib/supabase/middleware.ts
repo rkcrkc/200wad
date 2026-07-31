@@ -63,6 +63,11 @@ export async function updateSession(request: NextRequest) {
     "/welcome-back",
     "/go",
     "/lp",
+    // Public legal pages — linked from signup/footer, must be reachable by
+    // logged-out guests (otherwise they bounce to onboarding and read as dead).
+    "/terms",
+    "/privacy",
+    "/refunds",
   ];
   const isMarketingRoute = MARKETING_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
@@ -98,8 +103,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from auth *pages* (login/signup/password).
+  // Exclude the /auth/* endpoints (logout, callback): those are functional
+  // handlers, not pages. Bouncing them here meant a logout POST — made while the
+  // user is still authenticated — got redirected to /dashboard before the logout
+  // route could run, so the session was never cleared.
+  if (user && isAuthRoute && !pathname.startsWith("/auth")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

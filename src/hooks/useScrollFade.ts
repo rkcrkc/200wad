@@ -1,18 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /**
- * Detects whether a horizontally-scrollable container has more content
- * to the right, so a fade indicator can be shown on the sticky column.
+ * Detects whether a horizontally-scrollable container has more content to the
+ * left or right, so fade indicators can be shown on the scrollable edges.
  */
 export function useScrollFade() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const hasOverflow = el.scrollWidth > el.clientWidth;
+    const atStart = el.scrollLeft <= 1;
     const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+    setCanScrollLeft(hasOverflow && !atStart);
     setCanScrollRight(hasOverflow && !atEnd);
   }, []);
 
@@ -35,5 +38,5 @@ export function useScrollFade() {
     };
   }, [checkScroll]);
 
-  return { scrollRef, canScrollRight };
+  return { scrollRef, canScrollLeft, canScrollRight };
 }

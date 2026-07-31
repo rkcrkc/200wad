@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   getBestMatch,
   getMaxPossibleMistakes,
@@ -71,8 +72,10 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   const { t, tt } = useText();
   const [input, setInput] = useState("");
   const [localResult, setLocalResult] = useState<TestAnswerResult | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
+  const isMobile = useIsMobile();
 
   // Dead key composition for accented characters (Windows support)
   const { handleDeadKey, clearPending } = useDeadKeyComposition(languageCode, inputRef, setInput);
@@ -114,12 +117,14 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   const result = existingResult ?? localResult;
   const isLocked = !!existingResult;
 
-  // Focus input when it becomes visible and not locked
+  // Focus input when it becomes visible and not locked. Skipped on mobile so the
+  // on-screen keyboard doesn't pop open on every new word; mobile users tap the
+  // field (or an accent button) to start typing.
   useEffect(() => {
-    if (isVisible && !result && !isLocked && inputRef.current) {
+    if (isVisible && !result && !isLocked && !isMobile && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isVisible, result, isLocked]);
+  }, [isVisible, result, isLocked, isMobile]);
 
   // Reset local state when word changes
   // Only reset if there's no existing result (word not already answered)
@@ -257,16 +262,21 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
   const feedback = getFeedback();
 
   return (
-    <div className="px-6 pt-2 pb-0">
+    <div className="px-4 pt-2 pb-0 sm:px-6">
       <div
         className={cn(
-          "flex items-center gap-4 rounded-2xl border-2 bg-white pl-4 pr-2 py-2 transition-colors",
+          "flex items-center gap-2 rounded-2xl border-2 bg-white pl-3 pr-1.5 py-1.5 transition-colors sm:gap-4 md:pl-4 md:pr-2 md:py-2",
           feedback?.borderColor || "border-primary"
         )}
       >
+        {/* Leading column: the answer (or live input) with feedback stacked
+            beneath it on mobile; on sm+ it becomes a row so feedback sits inline
+            to the answer's right, as before. The Next button is the trailing,
+            vertically-centred item. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
         {/* Input field or result display */}
         {result ? (
-          <div className="flex-1 text-xl font-medium">
+          <div className="min-w-0 flex-1 truncate text-base font-medium sm:overflow-visible sm:whitespace-normal md:text-xl">
             {result.grade === "correct" ? (
               // Fully correct - show in normal color
               <span className="text-foreground">{result.userAnswer}</span>
@@ -310,23 +320,52 @@ export const TestAnswerInput = forwardRef<TestAnswerInputHandle, TestAnswerInput
             onKeyDown={handleKeyPress}
             onBlur={handleBlur}
             placeholder={`Type the ${languageName}${hasGender ? " + (m/f)" : ""}...`}
-            className="flex-1 bg-transparent text-xl font-medium text-foreground outline-none placeholder:text-black/50"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="go"
+            className="min-w-0 flex-1 bg-transparent text-base font-medium text-foreground outline-none placeholder:text-black/50 md:text-xl"
           />
         )}
 
-        {/* Feedback and button */}
-        <div className="flex items-center gap-4">
-          {feedback && (
-            <span className={cn("text-regular-semibold", feedback.textColor)}>
-              {feedback.text}
-            </span>
-          )}
+        {/* Feedback text: stacked beneath the answer on mobile at ~2/3 the
+            answer size, inline to its right on sm+. Medium weight throughout. */}
+        {feedback && (
+          <span
+            className={cn(
+              "text-[11px] font-medium sm:text-[15px]",
+              feedback.textColor
+            )}
+          >
+            {feedback.text}
+          </span>
+        )}
+        </div>
 
-          {/* Submit or Next button - must submit answer before proceeding */}
+        {/* Submit or Next button - must submit answer before proceeding */}
+        <div className="flex items-center gap-2 sm:gap-4">
           {result ? (
-            <Button ref={nextButtonRef} onClick={onNextWord} className="gap-1.5">
-              {isLastWord ? "Finish test" : "Next word"}
-              <ChevronRight className="h-4 w-4" />
+            <Button
+              ref={nextButtonRef}
+              onClick={() => {
+                if (isLastWord) setIsFinishing(true);
+                onNextWord();
+              }}
+              disabled={isFinishing}
+              className="gap-1.5"
+            >
+              {isLastWord ? "Finish test" : (
+                <>
+                  <span className="sm:hidden">Next</span>
+                  <span className="hidden sm:inline">Next word</span>
+                </>
+              )}
+              {isLastWord && isFinishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </Button>
           ) : (
             <Button

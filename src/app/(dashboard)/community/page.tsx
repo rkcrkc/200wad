@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/PageContainer";
+import { DesktopOnly } from "@/components/DesktopOnly";
 import { LeaderboardClient } from "@/components/community/LeaderboardClient";
 import {
   getDistinctLessonsTested,
@@ -25,15 +26,17 @@ export default async function CommunityPage() {
   const personalBests = await getPersonalBests();
 
   return (
-    <PageContainer size="md">
-      <LeaderboardClient
-        initialRoom={initialRoom}
-        initialAllTime={initialAllTime}
-        rewards={rewards}
-        personalBests={personalBests}
-        distinctLessonsTested={distinctLessonsTested}
-        minLessonsToJoin={minLessons ?? 3}
-      />
-    </PageContainer>
+    <DesktopOnly>
+      <PageContainer size="md">
+        <LeaderboardClient
+          initialRoom={initialRoom}
+          initialAllTime={initialAllTime}
+          rewards={rewards}
+          personalBests={personalBests}
+          distinctLessonsTested={distinctLessonsTested}
+          minLessonsToJoin={minLessons ?? 3}
+        />
+      </PageContainer>
+    </DesktopOnly>
   );
 }

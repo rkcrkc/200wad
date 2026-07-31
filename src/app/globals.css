@@ -201,48 +201,53 @@
 
 /* 200WAD Typography Utilities */
 @layer utilities {
-  /* Page Header - Bricolage Grotesque / Bold / 40px / -2.5% / 1.35 */
+  /* Page Header - Bricolage Grotesque / Bold / 40px / -2.5% / 1.35
+     Scales down on small viewports; reaches 40px desktop max. */
   .text-page-header {
     font-family: var(--font-display);
-    font-size: 40px;
+    font-size: clamp(28px, 4vw + 12px, 40px);
     font-weight: 700;
     line-height: 1.35;
     letter-spacing: -0.025em;
     font-variation-settings: "opsz" 40;
   }
 
-  /* XXXL / Semibold - Bricolage Grotesque / Semibold / 32px / -2.5% / 1.35 */
+  /* XXXL / Semibold - Bricolage Grotesque / Semibold / 32px / -2.5% / 1.35
+     Scales down on small viewports; reaches 32px desktop max. */
   .text-xxxl-semibold {
     font-family: var(--font-display);
-    font-size: 32px;
+    font-size: clamp(24px, 2.5vw + 14px, 32px);
     font-weight: 600;
     line-height: 1.35;
     letter-spacing: -0.025em;
     font-variation-settings: "opsz" 32;
   }
 
-  /* XXL / Semibold - Bricolage Grotesque / Semibold / 28px / -2.5% / 1.35 */
+  /* XXL / Semibold - Bricolage Grotesque / Semibold / 28px / -2.5% / 1.35
+     Scales down on small viewports; reaches 28px desktop max. */
   .text-xxl-semibold {
     font-family: var(--font-display);
-    font-size: 28px;
+    font-size: clamp(22px, 1.9vw + 14px, 28px);
     font-weight: 600;
     line-height: 1.35;
     letter-spacing: -0.025em;
     font-variation-settings: "opsz" 28;
   }
 
-  /* XL / Medium - Inter Display / Medium / 24px / -2.5% / 1.35 */
+  /* XL / Medium - Inter Display / Medium / 24px / -2.5% / 1.35
+     Scales down on small viewports; reaches 24px desktop max. */
   .text-xl-medium {
-    font-size: 24px;
+    font-size: clamp(20px, 1.25vw + 15px, 24px);
     font-weight: 500;
     line-height: 1.35;
     letter-spacing: -0.025em;
     font-variation-settings: "opsz" 32;
   }
 
-  /* XL / Semibold - Inter Display / Semibold / 24px / -2.5% / 1.35 */
+  /* XL / Semibold - Inter Display / Semibold / 24px / -2.5% / 1.35
+     Scales down on small viewports; reaches 24px desktop max. */
   .text-xl-semibold {
-    font-size: 24px;
+    font-size: clamp(20px, 1.25vw + 15px, 24px);
     font-weight: 600;
     line-height: 1.35;
     letter-spacing: -0.025em;

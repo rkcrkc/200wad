@@ -42,13 +42,14 @@ export function WordGrid({
   showStatus = false,
   onWordClick,
 }: WordGridProps) {
-  // Explicit classes so Tailwind's scanner picks them up
-  const gridColsClass = columns === 4 ? "grid-cols-4" : "grid-cols-5";
+  // Explicit classes so Tailwind's scanner picks them up. Mobile shows 3
+  // columns regardless of the desktop 4/5 toggle so tiles stay legible at 390px.
+  const gridColsClass = columns === 4 ? "grid-cols-3 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5";
   // 4-col tiles are wider, so give the image ~20% more height to balance proportions
   const imageHeightClass = columns === 4 ? "h-[134px]" : "h-28";
 
   return (
-    <div className={`grid ${gridColsClass} gap-4`}>
+    <div className={`grid ${gridColsClass} gap-3 sm:gap-4`}>
       {words.map((word) => {
         const imageUrl =
           imageMode === "memory-trigger"

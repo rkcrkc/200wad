@@ -62,9 +62,9 @@ interface HeaderProps {
 
 function Header({ eyebrow, title, children }: HeaderProps) {
   return (
-    <div className="shrink-0 bg-bone-hover px-8 pt-8 pb-6 text-center">
+    <div className="shrink-0 bg-bone-hover px-5 pt-6 pb-5 text-center sm:px-8 sm:pt-8 sm:pb-6">
       <p className="mb-2 text-sm font-medium text-muted-foreground">{eyebrow}</p>
-      <h1 className="mb-3 text-3xl font-bold">{title}</h1>
+      <h1 className="mb-3 text-2xl font-bold sm:text-3xl">{title}</h1>
       {children}
     </div>
   );
@@ -72,7 +72,7 @@ function Header({ eyebrow, title, children }: HeaderProps) {
 
 function StatsBar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex shrink-0 cursor-default items-center justify-between bg-bone px-8 py-5 text-sm">
+    <div className="flex shrink-0 cursor-default items-center justify-between bg-bone px-4 py-4 text-sm sm:px-8 sm:py-5">
       {children}
     </div>
   );
@@ -83,7 +83,7 @@ function Body({ children }: { children: ReactNode }) {
   // flex-1 (without min-h-0) means body fills the remaining modal height when
   // there's room, but can grow past it when content is tall; the modal then
   // scrolls to reveal the overflow.
-  return <div className="flex-1 bg-bone p-8">{children}</div>;
+  return <div className="flex-1 bg-bone p-4 sm:p-8">{children}</div>;
 }
 
 function Footer({ children }: { children: ReactNode }) {
@@ -91,7 +91,7 @@ function Footer({ children }: { children: ReactNode }) {
   // even when header + body + footer exceed the modal height. The small negative
   // top shadow fades scrolling content into the footer for a subtle cue.
   return (
-    <div className="sticky bottom-0 z-10 bg-bone px-8 py-6 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+    <div className="sticky bottom-0 z-10 bg-bone px-4 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] sm:px-8 sm:py-6">
       {children}
     </div>
   );

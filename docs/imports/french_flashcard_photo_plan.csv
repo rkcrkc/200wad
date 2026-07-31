@@ -16,8 +16,9 @@ refn,uuid,course,english,source_path
 293,ffb40d68-1946-49e4-9c56-5def31809b47,1,"how often?, how many times?","/Volumes/Disc/1Pictures/Flashcard/how often, how many times.jpg"
 388,17424350-ed96-4b79-9508-a340ffa4139a,1,fridge,/Volumes/Disc/1Pictures/Flashcard/fridge.jpg
 469,3ecc0881-a0a4-4a26-806b-65b2253f46b0,1,street,/Volumes/Disc/1Pictures/Flashcard/street.jpg
-26,8d8a0d93-0ee2-4642-b91d-713e922541ab,1,all (feminine),/Volumes/Disc/1Pictures/Flashcard/all.jpg
+26,8d8a0d93-0ee2-4642-b91d-713e922541ab,1,all (feminine),"/Volumes/Disc/1Pictures/Flashcard/all ,f.jpg"
 92,aaf3c725-4f48-48b9-8711-1954e3ec271e,1,around,/Volumes/Disc/1Pictures/Flashcard/around.jpg
+46,a82c141e-476a-4f52-b1e3-28e43e027571,1,child (kid) (m/f),/Volumes/Disc/1Pictures/Flashcard/child (kid).jpg
 55,72b73570-ea50-42e8-86e2-5a2883bdf7f6,1,to be called,/Volumes/Disc/1Pictures/Flashcard/be called.jpg
 73,0e6dba89-88e2-496d-8e28-d09632aa8925,1,window,/Volumes/Disc/1Pictures/Flashcard/window.jpg
 115,f183915e-5abb-43ed-b0b8-735b22a07832,1,near to,/Volumes/Disc/1Pictures/Flashcard/near to.jpg
@@ -107,10 +108,12 @@ refn,uuid,course,english,source_path
 142,5b1d3c74-31bd-469d-8f29-0d0b3d26aa44,1,bread,/Volumes/Disc/1Pictures/Flashcard/bread.jpg
 486,fa9ec2ad-985e-4720-8213-158be5584d7b,1,impossible,/Volumes/Disc/1Pictures/Flashcard/impossible.jpg
 496,51181bd7-d1c5-4ff4-b48f-d32c8dde438d,1,next,/Volumes/Disc/1Pictures/Flashcard/next.jpg
+528,9bc20566-b9f8-4ff1-b880-46b812adacfe,1,please,/Volumes/Disc/1Pictures/Flashcard/please (formal).jpg
 579,bc799675-393b-451f-b59e-87c85ffe135d,1,roast meat,/Volumes/Disc/1Pictures/Flashcard/roast meat.jpg
 141,7bbaf9b6-222b-4908-a1fc-8d475fc81622,1,egg,/Volumes/Disc/1Pictures/Flashcard/egg.jpg
 487,6a6aa307-09cf-4af6-875f-279f3cf0231c,1,incredible,/Volumes/Disc/1Pictures/Flashcard/incredible.jpg
 497,6a4372ac-1e33-4405-8344-0bd847a73830,1,dirty,/Volumes/Disc/1Pictures/Flashcard/dirty.jpg
+540,095370f4-c87b-4756-a7c2-7f140de3c3c5,1,to know (a person or place),/Volumes/Disc/1Pictures/Flashcard/know (a person or place).jpg
 560,71eec128-74f5-4988-91da-981f9eb790a2,1,beer,/Volumes/Disc/1Pictures/Flashcard/beer.jpg
 633,4d6a4c7e-7091-4fd6-83f9-07a4920cc945,1,towel,/Volumes/Disc/1Pictures/Flashcard/towel.jpg
 512,07592803-1ee5-4cd4-8540-2bd4a17e97bb,1,"there isn't any, there aren't any","/Volumes/Disc/1Pictures/Flashcard/there isnt any, there arent any.jpg"
@@ -119,7 +122,7 @@ refn,uuid,course,english,source_path
 819,b1b2ef2c-2068-4ddf-8a57-3f13ae28190e,1,to get up,/Volumes/Disc/1Pictures/Flashcard/get up.jpg
 850,9a2a72ab-3d15-4d35-9f7a-57897a2471b4,1,"journey, voyage","/Volumes/Disc/1Pictures/Flashcard/journey, voyage.jpg"
 521,e0ef743a-c916-450d-b501-fe693f3b11c5,1,to be able,/Volumes/Disc/1Pictures/Flashcard/be able.jpg
-533,30deccb5-25ff-4f76-862b-03c425de0690,1,to help,/Volumes/Disc/1Pictures/Flashcard/help!.jpg
+533,30deccb5-25ff-4f76-862b-03c425de0690,1,to help,/Volumes/Disc/1Pictures/Flashcard/help.jpg
 656,9d690634-d2c8-40b8-a015-53c6a31b5773,1,eye,/Volumes/Disc/1Pictures/Flashcard/eye.jpg
 676,e733bb99-8555-4e42-b68b-a57ac4f4f8f0,1,driver,/Volumes/Disc/1Pictures/Flashcard/driver.jpg
 741,3d86b95c-bc58-4069-8e90-0be4e4843ac5,1,to jump,/Volumes/Disc/1Pictures/Flashcard/jump.jpg
@@ -127,6 +130,7 @@ refn,uuid,course,english,source_path
 577,823864b6-b756-49f1-a28f-e8d47a78c295,1,fish,/Volumes/Disc/1Pictures/Flashcard/fish.jpg
 609,2d1d13a0-973f-4555-8e2c-6afc139b5d05,1,coin,/Volumes/Disc/1Pictures/Flashcard/coin.jpg
 660,583b3bca-9acd-4e8c-8dba-2ed98e48e6da,1,"breast, chest","/Volumes/Disc/1Pictures/Flashcard/breast, chest.jpg"
+700,ea066410-a631-40e5-bdad-46e2d79883d2,1,to spend (money),/Volumes/Disc/1Pictures/Flashcard/spend (money).jpg
 124,48f99db3-e8cb-4637-9ba8-87969fabb6df,1,cereals,/Volumes/Disc/1Pictures/Flashcard/cereals.jpg
 596,fc5bafe0-ef53-44b3-8cb0-c662ba365832,1,to count,/Volumes/Disc/1Pictures/Flashcard/count.jpg
 744,30d68b21-b2d4-4fb1-8c42-0c7159bcce8b,1,to pull,/Volumes/Disc/1Pictures/Flashcard/pull.jpg
@@ -137,22 +141,23 @@ refn,uuid,course,english,source_path
 632,4bfbaf73-e5ea-40eb-b5e6-f2714e7ac313,1,to shave,/Volumes/Disc/1Pictures/Flashcard/shave.jpg
 652,d495f014-42a3-4699-bd9e-3fadc47e6f9a,1,hand,/Volumes/Disc/1Pictures/Flashcard/hand.jpg
 737,0bdda7f3-6ea0-46f6-b327-98326edc2b3b,1,to push,/Volumes/Disc/1Pictures/Flashcard/push.jpg
+794,2f656885-a583-4646-9e5d-4897941207a3,1,to use (wear out),/Volumes/Disc/1Pictures/Flashcard/to use (1).jpg
 180,1b87be14-9c30-40fa-90e3-6bd4cf85bc26,1,soon,/Volumes/Disc/1Pictures/Flashcard/soon.jpg
 643,db70f932-bfc9-40fe-bc5a-39df3fcdde20,1,finger,/Volumes/Disc/1Pictures/Flashcard/finger.jpg
 760,72d6bb1f-8e47-4bb7-bcd8-7151d116d441,1,overcoat,/Volumes/Disc/1Pictures/Flashcard/overcoat.jpg
 795,184ed8e1-40f7-4f49-b582-c18fafcb1b54,1,to come,/Volumes/Disc/1Pictures/Flashcard/come.jpg
+845,d7d27de7-dcc0-4576-9f0f-519db02e9b08,1,ticket (t…),/Volumes/Disc/1Pictures/Flashcard/ticket (2).jpg
 886,5c9345d2-10ec-4756-a791-d1084107cea7,1,"animal, creature","/Volumes/Disc/1Pictures/Flashcard/animal, creature.jpg"
 188,7a71258b-105f-4502-b0dd-4296b898d1cc,1,day (moment in time),/Volumes/Disc/1Pictures/Flashcard/day (period of time).jpg
 649,0b104807-4e3c-44ea-86d1-6e799cc30ff8,1,leg,/Volumes/Disc/1Pictures/Flashcard/leg.jpg
 699,49cc56ae-b10f-4a8d-ba28-03ac1909d4c2,1,to cost,/Volumes/Disc/1Pictures/Flashcard/cost.jpg
-734,5814cd2e-3c43-4b63-b79d-282bc9955a6e,1,to walk,/Volumes/Disc/1Pictures/Flashcard/walk.jpg
+734,5814cd2e-3c43-4b63-b79d-282bc9955a6e,1,to walk,"/Volumes/Disc/1Pictures/Flashcard/walk ,v.jpg"
 922,f072306f-4750-4e2f-9f3e-f1971e18e1df,1,to die,/Volumes/Disc/1Pictures/Flashcard/die.jpg
-982,8dc2c8a2-f639-4e8c-b0c0-fb22b1f33daa,1,completely (all done),/Volumes/Disc/1Pictures/Flashcard/completely (all done).jpg
-1022,aeafd97e-88d0-4898-8969-92e1a820280a,1,disco,/Volumes/Disc/1Pictures/Flashcard/disco.jpg
 193,10b0184f-fa83-475d-83a7-0348f760b837,1,morning (period of time),/Volumes/Disc/1Pictures/Flashcard/morning (period of time).jpg
 655,32afab3e-e252-409e-ba83-3734a1fb44f8,1,nose,/Volumes/Disc/1Pictures/Flashcard/nose.jpg
 675,5749973c-853c-4242-8cd8-81f8e1916949,1,"to validate, to date stamp a ticket",/Volumes/Disc/1Pictures/Flashcard/validate - to date stamp a ticket.jpg
 730,6fb3eb64-09b5-49ea-9b32-bd2c08243a13,1,to hear,/Volumes/Disc/1Pictures/Flashcard/hear.jpg
+837,9e236f86-13bd-4637-bf7b-c7417a968b00,1,to leave (p…),/Volumes/Disc/1Pictures/Flashcard/to leave (1).jpg
 671,d9531a27-2867-4a17-bdd0-c0ee8e1cbd8e,1,bus,/Volumes/Disc/1Pictures/Flashcard/bus.jpg
 29,e5bbf5ad-5912-4e5a-b1c0-2c7ea09e91c2,1,you (formal),/Volumes/Disc/1Pictures/Flashcard/you (formal).jpg
 843,0d3dd1ef-6fb7-488d-907c-eddcfd193127,1,information,/Volumes/Disc/1Pictures/Flashcard/information.jpg
@@ -161,11 +166,9 @@ refn,uuid,course,english,source_path
 15,692e2ccb-3478-4faa-97e7-445c1b23a2f4,1,to be,/Volumes/Disc/1Pictures/Flashcard/be.jpg
 706,1f2ed469-47fe-4449-8783-a936b1b72541,1,shop,/Volumes/Disc/1Pictures/Flashcard/shop.jpg
 846,4b09f67a-1699-4b8d-86e9-ff7e91375edc,1,journey,/Volumes/Disc/1Pictures/Flashcard/journey.jpg
-1037,d3211a0e-69ec-40ef-ae38-ce147ab22c5c,1,theatre,/Volumes/Disc/1Pictures/Flashcard/theatre.jpg
 735,0a016979-9ba2-43a3-a51b-37cb2c4da51a,1,to put,/Volumes/Disc/1Pictures/Flashcard/put.jpg
 973,01c2e410-125a-4889-8464-e66d097ab091,1,big,/Volumes/Disc/1Pictures/Flashcard/big.jpg
 872,ef734826-706d-4c7a-8b16-50d3e19ab564,1,certainly,/Volumes/Disc/1Pictures/Flashcard/certainly.jpg
-983,f8e09048-12e9-4236-acd2-31626ef5f961,1,"too, too much, too many","/Volumes/Disc/1Pictures/Flashcard/too, too much, too many.jpg"
 1003,1a25d30d-a8b8-4040-a9e3-fbb3ef023f3c,1,sea,/Volumes/Disc/1Pictures/Flashcard/sea.jpg
 753,35acba12-2340-40b3-a709-19aa109a2dcf,1,blouse,/Volumes/Disc/1Pictures/Flashcard/blouse.jpg
 880,5455eca8-3827-4c66-b3e7-0be7fc433d44,1,what a pity!,/Volumes/Disc/1Pictures/Flashcard/what a pity!.jpg
@@ -185,24 +188,21 @@ refn,uuid,course,english,source_path
 268,279e6500-caec-4bfa-8f4c-2264d79ea3c7,1,knife,/Volumes/Disc/1Pictures/Flashcard/knife.jpg
 820,16656e26-768c-4956-b5fb-28122564d947,1,to rest,/Volumes/Disc/1Pictures/Flashcard/rest.jpg
 931,6cc03bdf-adde-4b13-b91d-922445fe3f78,1,"truly, really","/Volumes/Disc/1Pictures/Flashcard/truly, really.jpg"
-961,bc160aca-5b3d-47dc-aa5d-a259affb0341,1,approximately,/Volumes/Disc/1Pictures/Flashcard/approximately.jpg
-1021,463f8b9b-713f-4a32-9da2-032aa7d07010,1,cinema,/Volumes/Disc/1Pictures/Flashcard/cinema.jpg
 305,ac74b89e-4117-46f6-915c-006a333bc2c9,1,only,/Volumes/Disc/1Pictures/Flashcard/only.jpg
 308,81acb9a3-33e0-4867-9b44-c4f3560c0081,1,or,/Volumes/Disc/1Pictures/Flashcard/or.jpg
 847,24986750-2cf0-47dc-8657-427191c5c66d,1,"vacations, holidays","/Volumes/Disc/1Pictures/Flashcard/vacations, holidays.jpg"
 878,99ebc0cc-a47e-4b32-9244-1adbf9f4b6ca,1,"I would like to, I'm willing to","/Volumes/Disc/1Pictures/Flashcard/I would like to, Im willing to.jpg"
 974,07636140-c603-44ca-8e69-816f0b8b46c2,1,wide,/Volumes/Disc/1Pictures/Flashcard/wide.jpg
+936,cb61cc58-1b22-430d-8005-ab97b89686f4,1,to stop (doing something),/Volumes/Disc/1Pictures/Flashcard/stop (doing something).jpg
 1026,1a333ebb-ae36-46cf-ab1c-223accd4cf21,1,newspaper,/Volumes/Disc/1Pictures/Flashcard/newspaper.jpg
 980,e66ed98d-ff9c-44d9-b419-2bf990a6969d,1,full,/Volumes/Disc/1Pictures/Flashcard/full.jpg
 944,9469281f-1d83-4be1-88af-79efe835fbc3,1,"mistake, error","/Volumes/Disc/1Pictures/Flashcard/mistake, error.jpg"
 539,899eb478-de6c-4c24-8516-c7715d9c240f,1,to understand,/Volumes/Disc/1Pictures/Flashcard/understand.jpg
 571,ff41b8ba-0a37-4ddd-930a-7c7bf9c8d243,1,water,/Volumes/Disc/1Pictures/Flashcard/water.jpg
-956,bd1155d8-9371-40b6-85a0-22bcf7b689ed,1,primary,/Volumes/Disc/1Pictures/Flashcard/primary.jpg
 1019,013e36d9-91ef-4191-94b5-414bd6aedac7,1,goal,/Volumes/Disc/1Pictures/Flashcard/goal.jpg
 622,3221febc-7e84-46c2-b0e6-91c6f916e38c,1,toothpaste,/Volumes/Disc/1Pictures/Flashcard/toothpaste.jpg
 1040,612faa14-773b-4a22-9da6-fb98c44b5b50,1,a little,/Volumes/Disc/1Pictures/Flashcard/a little.jpg
 2328,63573af5-7989-49d1-8471-55826e549878,2,anywhere,/Volumes/Disc/1Pictures/Flashcard/anywhere.jpg
-1181,cadca328-a1ec-4495-acc9-57d4402f943b,2,"to push (a key ,button etc)",/Volumes/Disc/1Pictures/Flashcard/push.jpg
 971,891eead6-1bfc-4ba3-b365-5e5c9dcd0679,1,exactly,/Volumes/Disc/1Pictures/Flashcard/exactly.jpg
 2409,dcc818df-21a7-4ab6-b0c1-d34ae297a6a9,2,Excuse me,/Volumes/Disc/1Pictures/Flashcard/excuse me.jpg
 1811,0026cf8c-560d-4f1e-b229-b7439250e599,2,policeman (slang),/Volumes/Disc/1Pictures/Flashcard/policeman.jpg
@@ -211,15 +211,12 @@ refn,uuid,course,english,source_path
 1517,c113ecba-437f-42cc-b563-174dbe63a664,2,door (of vehicle),/Volumes/Disc/1Pictures/Flashcard/door.jpg
 1358,0c0788cc-e27d-4b97-94af-6633f660a269,2,fridge (slang),/Volumes/Disc/1Pictures/Flashcard/fridge.jpg
 805,b88cc329-42f1-4574-a531-281e620dbd33,1,to sleep,/Volumes/Disc/1Pictures/Flashcard/sleep.jpg
-1560,79f23d62-1bf3-45c2-9c70-8e978bfe8ac6,2,to save (file),/Volumes/Disc/1Pictures/Flashcard/save (money).jpg
-2792,f17cad32-c3d0-4210-80cc-259c58fcb4e3,2,to save (rescue),/Volumes/Disc/1Pictures/Flashcard/save (money).jpg
 2352,7cbd5d4a-a4ac-474b-ac73-e45a8efeeb12,2,second (ordinal number),/Volumes/Disc/1Pictures/Flashcard/second.jpg
 871,6f0b56bb-f6a3-404e-aa37-aaaea7ab451d,1,"things are fine!, it's okay!","/Volumes/Disc/1Pictures/Flashcard/things are fine, its okay.jpg"
 1444,dc104ea4-a9e1-46a0-8d72-dec4ae817ede,2,lie,/Volumes/Disc/1Pictures/Flashcard/lie.jpg
 4028,ad35cac2-4495-4419-86c8-0bc3ae5f268c,22,Today,/Volumes/Disc/1Pictures/Flashcard/today.jpg
 1177,2cf0118c-0dd9-4ac8-af3d-81c6729b7f95,2,policeman (2),/Volumes/Disc/1Pictures/Flashcard/policeman.jpg
 918,503d2728-db39-4535-b982-76697d1a3c2b,1,law,/Volumes/Disc/1Pictures/Flashcard/law.jpg
-1357,fb08684b-c4af-486d-8427-c5fe819f4b16,2,"brake ,n",/Volumes/Disc/1Pictures/Flashcard/brake.jpg
 947,9e620513-6a14-4547-92ba-b4a89e85bbb4,1,"examination, test","/Volumes/Disc/1Pictures/Flashcard/examination, test.jpg"
 1472,633d9939-fb84-4239-a14b-ba360cdcd69d,2,snow,/Volumes/Disc/1Pictures/Flashcard/snow.jpg
 1734,89a2e50d-9711-41a6-8870-2a0e0982c86a,2,school (college),/Volumes/Disc/1Pictures/Flashcard/school.jpg
@@ -227,10 +224,8 @@ refn,uuid,course,english,source_path
 1971,a7dbdb41-3421-48cf-a6c8-fd64e70ff0d3,2,stay,/Volumes/Disc/1Pictures/Flashcard/stay.jpg
 1729,ef18a209-3529-4f68-9ed7-cb3609c6d9f1,2,change (changing),/Volumes/Disc/1Pictures/Flashcard/change (money).jpg
 1755,425f5c38-c33e-4bc7-bc0b-3af29dc867e5,21,Goodbye,/Volumes/Disc/1Pictures/Flashcard/goodbye.jpg
-992,730a205b-fa50-472c-a688-70ba9e5c0a77,1,star (sky),/Volumes/Disc/1Pictures/Flashcard/star (sky).jpg
 1264,a214c48c-0652-462b-ba81-e5de4fb83b81,2,mail,/Volumes/Disc/1Pictures/Flashcard/mail (post).jpg
 2426,29f63752-7983-42dd-a62c-099a9dab789d,2,food (groceries),/Volumes/Disc/1Pictures/Flashcard/food (sustenance).jpg
-2094,335f255c-c187-4839-850d-29c5d0f98d76,2,to dance,/Volumes/Disc/1Pictures/Flashcard/dance.jpg
 52,5bbeab50-a592-4091-a289-b0e7918cb6e3,1,nobody,/Volumes/Disc/1Pictures/Flashcard/nobody.jpg
 113,b39d2ef4-09dd-40b3-8d94-b1e519d80e7e,1,that way,/Volumes/Disc/1Pictures/Flashcard/that way.jpg
 1667,a3ef6382-8974-4047-8cdf-19469099ee97,2,year,/Volumes/Disc/1Pictures/Flashcard/year.jpg
@@ -240,16 +235,23 @@ refn,uuid,course,english,source_path
 2382,c9efea02-c7b1-4bc4-8242-45fa3bc152c1,2,ugly (rotten),/Volumes/Disc/1Pictures/Flashcard/ugly (unsightly).jpg
 269,5e1cc73e-cbe9-4d87-add1-4095f1dbf35f,1,spoon,/Volumes/Disc/1Pictures/Flashcard/spoon.jpg
 312,7102eb9c-421e-471c-b2a8-858d6123aa3a,1,something,/Volumes/Disc/1Pictures/Flashcard/something.jpg
+537,97dc44fc-5124-48d7-9572-8bcb08bc3cb8,1,to be present at,/Volumes/Disc/1Pictures/Flashcard/be present at.jpg
+955,dfe1fd35-fcb9-4f3d-b644-a5ff3596b03e,1,word,/Volumes/Disc/1Pictures/Flashcard/word.jpg
 316,f27a670e-94f0-40b6-a962-edee8432a172,1,"only, but, solely","/Volumes/Disc/1Pictures/Flashcard/only, but, solely.jpg"
 343,ce7ab31b-7853-4338-986e-6c5fe3b5f963,1,Dad,/Volumes/Disc/1Pictures/Flashcard/Dad.jpg
+956,bd1155d8-9371-40b6-85a0-22bcf7b689ed,1,primary,/Volumes/Disc/1Pictures/Flashcard/primary.jpg
 513,61c42087-9c82-410b-b940-9576173d3ed5,1,"there is, there are","/Volumes/Disc/1Pictures/Flashcard/there is, there are.jpg"
 502,2007ce6b-da0e-4619-82d7-ac8f9fe2c62d,1,"then, so","/Volumes/Disc/1Pictures/Flashcard/then, so.jpg"
+959,333e1c4d-1513-4122-9883-23da5b5bfaf3,1,to remember (se r…),/Volumes/Disc/1Pictures/Flashcard/to remember (1).jpg
 438,1960cc69-ab7d-4593-afd8-22ae0ccb6eed,1,pale,/Volumes/Disc/1Pictures/Flashcard/pale.jpg
 534,df93e9aa-7ce2-48f8-b2dd-29f112a6b39b,1,friendship,/Volumes/Disc/1Pictures/Flashcard/friendship.jpg
 506,68f67a3b-9e6b-480f-96be-64c532f4cc80,1,"as, like","/Volumes/Disc/1Pictures/Flashcard/as, like.jpg"
 642,340a7a02-6ceb-4d8c-99cf-ea6104e55a42,1,tooth,/Volumes/Disc/1Pictures/Flashcard/tooth.jpg
+592,e11fbc70-b579-4ee9-8962-92c2bb337b72,1,check book (cheque book),"/Volumes/Disc/1Pictures/Flashcard/cheque book, check book.jpg"
 589,85d79779-ac80-43cf-afb3-7819606d9f56,1,bank,/Volumes/Disc/1Pictures/Flashcard/bank.jpg
+967,30609e1d-9a0e-4ba0-ad31-426f2717ac70,1,each,/Volumes/Disc/1Pictures/Flashcard/each.jpg
 646,c0910ca6-332e-4bcf-930c-0a50bcc786d3,1,stomach,/Volumes/Disc/1Pictures/Flashcard/stomach.jpg
+961,bc160aca-5b3d-47dc-aa5d-a259affb0341,1,approximately,/Volumes/Disc/1Pictures/Flashcard/approximately.jpg
 745,0c7baf3b-841e-41dd-ae0c-032fbd1cc907,1,to fall,/Volumes/Disc/1Pictures/Flashcard/fall.jpg
 2166,c1d7e6f5-e96d-436c-b8be-0cfc73f5b072,2,draw (game),/Volumes/Disc/1Pictures/Flashcard/draw.jpg
 2264,47b3ce88-0004-4145-ac84-1f94eb40ab36,2,car (2),/Volumes/Disc/1Pictures/Flashcard/car.jpg
@@ -265,12 +267,12 @@ refn,uuid,course,english,source_path
 451,b4002b9d-5461-4188-9c45-c65aa1f023e4,1,office,/Volumes/Disc/1Pictures/Flashcard/office.jpg
 465,dfed72bd-4662-46a9-bb19-b690e7d26750,1,sign (road-sign),/Volumes/Disc/1Pictures/Flashcard/sign (road-sign).jpg
 718,2b4d6f2f-ae0d-409f-b736-0064eaabdc3c,1,to accept,/Volumes/Disc/1Pictures/Flashcard/accept.jpg
-977,3c9446a5-faa6-4ccc-9a12-f9e3ea485d7e,1,neither … nor,/Volumes/Disc/1Pictures/Flashcard/neither nor.jpg
-1008,0af25d7b-d615-4c5d-9bf9-52086a7fc45d,1,country,/Volumes/Disc/1Pictures/Flashcard/country.jpg
 51,6978700b-cb1d-4676-9a96-0051c995d34e,1,"Mister, Sir","/Volumes/Disc/1Pictures/Flashcard/Mister, Sir.jpg"
 38,8d9e53cb-f95d-4176-a67e-0d3887c0dc31,1,funny,/Volumes/Disc/1Pictures/Flashcard/funny.jpg
 217,e12b73d0-22e6-4af8-9958-672030d13bd5,1,it is nice (weather),/Volumes/Disc/1Pictures/Flashcard/it is nice.jpg
 262,558e1676-8447-4ba3-b657-f6b7dff5680b,1,delicious (appetising),/Volumes/Disc/1Pictures/Flashcard/delicious (appetising).jpg
+267,f96475a0-fdd9-4901-8f93-aa87aab911b5,1,included (co…),/Volumes/Disc/1Pictures/Flashcard/included (1).jpg
+276,6db16503-9385-497b-98e7-70ef19e7a6a4,1,included (inc…),/Volumes/Disc/1Pictures/Flashcard/included (2).jpg
 206,fcce301d-3cf0-4414-8174-0c9235520a15,1,pleasant,/Volumes/Disc/1Pictures/Flashcard/pleasant.jpg
 207,b4aaddae-6118-4950-8a14-3e49de3e2a97,1,fog,/Volumes/Disc/1Pictures/Flashcard/fog.jpg
 216,a2809ea2-57c5-4318-b0ed-0b0ddefeccd9,1,damp,/Volumes/Disc/1Pictures/Flashcard/damp.jpg
@@ -288,36 +290,62 @@ refn,uuid,course,english,source_path
 126,0b4cd2fb-2b1e-4832-9c4a-add724bb756c,1,chocolate,/Volumes/Disc/1Pictures/Flashcard/chocolate.jpg
 346,b08ab97c-7009-404c-a5ce-7cfb6c2bc04a,1,grandchildren,/Volumes/Disc/1Pictures/Flashcard/grandchildren.jpg
 347,aa2f13a8-644a-4306-82ff-cef04a7b311d,1,sister,/Volumes/Disc/1Pictures/Flashcard/sister.jpg
+982,8dc2c8a2-f639-4e8c-b0c0-fb22b1f33daa,1,completely (all done),/Volumes/Disc/1Pictures/Flashcard/completely (all done).jpg
 349,f6670f56-6b68-472a-abf7-9cec80aafeb1,1,to live,/Volumes/Disc/1Pictures/Flashcard/live.jpg
+964,36b1e2c7-9be3-4f98-b6f3-7cc0d70218a0,1,enough,/Volumes/Disc/1Pictures/Flashcard/enough.jpg
 359,59b06da0-6ce1-408f-b8c9-dafdba5a94dc,1,winter,/Volumes/Disc/1Pictures/Flashcard/winter.jpg
+962,60b6be85-e5aa-48e3-a79a-4d055a4c1352,1,absolutely,/Volumes/Disc/1Pictures/Flashcard/absolutely.jpg
 381,f428b849-1550-4836-b9d0-7be9c233ac86,1,freezer,/Volumes/Disc/1Pictures/Flashcard/freezer.jpg
+977,3c9446a5-faa6-4ccc-9a12-f9e3ea485d7e,1,neither … nor,/Volumes/Disc/1Pictures/Flashcard/neither nor.jpg
 383,b474e4f0-8dbd-4ea8-aa44-66cbe0c0dadf,1,"gas stove, gas cooker","/Volumes/Disc/1Pictures/Flashcard/gas stove, gas cooker.jpg"
 384,6e1f3f27-baf5-4f31-9f07-38e174200a05,1,"electric stove, electric cooker","/Volumes/Disc/1Pictures/Flashcard/electric stove, electric cooker.jpg"
+978,e4838f62-9bcf-4ffc-9863-5eec0f13ed17,1,nothing,/Volumes/Disc/1Pictures/Flashcard/nothing.jpg
 391,36f3656e-5d5c-4579-87a1-866ab30ab8e4,1,dishwasher,/Volumes/Disc/1Pictures/Flashcard/dishwasher.jpg
+983,f8e09048-12e9-4236-acd2-31626ef5f961,1,"too, too much, too many","/Volumes/Disc/1Pictures/Flashcard/too, too much, too many.jpg"
 393,3a19c793-c33b-4ae2-bd91-ca839afa8f91,1,to clean,/Volumes/Disc/1Pictures/Flashcard/clean.jpg
 398,881b2ebb-ad28-4a9f-b98c-a67ad209fe0d,1,stove,/Volumes/Disc/1Pictures/Flashcard/stove.jpg
+990,c3e37404-2654-4c7a-a3f1-e0d0a4aaf76e,1,hill,/Volumes/Disc/1Pictures/Flashcard/hill.jpg
 399,7cd192b9-8980-4d70-9e35-809431c23ff2,1,corkscrew,/Volumes/Disc/1Pictures/Flashcard/corkscrew.jpg
+992,730a205b-fa50-472c-a688-70ba9e5c0a77,1,star (sky),/Volumes/Disc/1Pictures/Flashcard/star (sky).jpg
 397,d8c90b6d-ab10-481e-b289-82c0ca9cf5f6,1,frying pan,/Volumes/Disc/1Pictures/Flashcard/frying pan.jpg
+987,d97e06e8-ca44-442d-b934-5acc70dc8dc2,1,countryside,/Volumes/Disc/1Pictures/Flashcard/countryside.jpg
 404,261f7525-0467-47c8-b649-bb26b7c59a71,1,beetroot,/Volumes/Disc/1Pictures/Flashcard/beetroot.jpg
+984,4ff91c85-c4bc-406f-a952-84abde5c2ee8,1,atmosphere,/Volumes/Disc/1Pictures/Flashcard/atmosphere.jpg
 407,e718bf14-4f6d-4753-91de-8d4eb00dae98,1,mushroom,/Volumes/Disc/1Pictures/Flashcard/mushroom.jpg
+986,b825c34e-9f2f-4cac-ac9d-78d69a9e7c73,1,wood,/Volumes/Disc/1Pictures/Flashcard/wood.jpg
 408,556c3fde-8e3d-49c5-8705-10e8ccedf867,1,cabbage,/Volumes/Disc/1Pictures/Flashcard/cabbage.jpg
+994,e5f35330-59fc-4a83-ab8e-bb2bb5b5b7df,1,fire (hearth),/Volumes/Disc/1Pictures/Flashcard/fire (hearth).jpg
 409,1e3a7652-5171-49fc-8044-98cb1a87fcdc,1,cauliflower,/Volumes/Disc/1Pictures/Flashcard/cauliflower.jpg
+1002,9c27c3a9-9312-4965-bd33-9d09def7758d,1,moon,/Volumes/Disc/1Pictures/Flashcard/moon.jpg
 415,3190cc2a-d5f3-4117-b6da-1bd8e41182d3,1,lettuce,/Volumes/Disc/1Pictures/Flashcard/lettuce.jpg
+993,496061a3-cdd3-44f1-a9b3-058443d9e332,1,farm,/Volumes/Disc/1Pictures/Flashcard/farm.jpg
+1008,0af25d7b-d615-4c5d-9bf9-52086a7fc45d,1,country,/Volumes/Disc/1Pictures/Flashcard/country.jpg
 463,96491674-7175-4ae0-8ff7-265f92b81efe,1,hospital,/Volumes/Disc/1Pictures/Flashcard/hospital.jpg
+1020,ba9d6346-9ddb-4b07-92c7-acf7c112e2eb,1,cigarette,/Volumes/Disc/1Pictures/Flashcard/cigarette.jpg
 468,0f50920b-ce91-483f-8168-65b45f1b044a,1,road,/Volumes/Disc/1Pictures/Flashcard/road.jpg
+1015,09639e91-d8d8-48ea-8cde-14445db5f98e,1,ball,/Volumes/Disc/1Pictures/Flashcard/ball.jpg
+1012,611e698d-92f8-4312-9c6c-68032e43729e,1,news (current events),/Volumes/Disc/1Pictures/Flashcard/news (current events).jpg
 432,bf3edeab-ae81-4f80-a7aa-31e30a58a59d,1,colour,/Volumes/Disc/1Pictures/Flashcard/colour.jpg
+1023,47078e04-a9d0-4755-b999-99b8776ed178,1,team,/Volumes/Disc/1Pictures/Flashcard/team.jpg
+1027,12c7045e-d807-4198-ab8b-295932042f66,1,to read,/Volumes/Disc/1Pictures/Flashcard/read.jpg
+1021,463f8b9b-713f-4a32-9da2-032aa7d07010,1,cinema,/Volumes/Disc/1Pictures/Flashcard/cinema.jpg
+1022,aeafd97e-88d0-4898-8969-92e1a820280a,1,disco,/Volumes/Disc/1Pictures/Flashcard/disco.jpg
 448,afe24eeb-39dc-43b7-a4c0-b3c3a645e19c,1,bench,/Volumes/Disc/1Pictures/Flashcard/bench.jpg
 449,c68cc774-8203-4b30-812a-8800700fb558,1,building,/Volumes/Disc/1Pictures/Flashcard/building.jpg
+1024,4c25c20d-2fdb-4f04-8ed7-97ca9736f7e2,1,game,/Volumes/Disc/1Pictures/Flashcard/game.jpg
 452,ea152c44-4efa-4c1d-bcce-a1c98eb1c304,1,crossroads,/Volumes/Disc/1Pictures/Flashcard/crossroads.jpg
+1038,8bb5f67d-411b-4507-a3eb-32389fc3c693,1,bicycle,/Volumes/Disc/1Pictures/Flashcard/bicycle.jpg
 270,6828a9bc-68b5-4aac-826c-16b4f1ddf6fe,1,delicious,/Volumes/Disc/1Pictures/Flashcard/delicious.jpg
 480,be17b6b9-a401-4f88-bb28-b2cc0c50e280,1,hard,/Volumes/Disc/1Pictures/Flashcard/hard.jpg
 481,51c646db-dfec-4907-92c9-4aeed14cab56,1,strange,/Volumes/Disc/1Pictures/Flashcard/strange.jpg
 500,b7ec2f79-5767-4a34-a7e6-718ee82b388f,1,empty,/Volumes/Disc/1Pictures/Flashcard/empty.jpg
 525,d5359f28-8296-4eb8-b0e9-277f3da101f6,1,sometimes,/Volumes/Disc/1Pictures/Flashcard/sometimes.jpg
+527,a9eeb957-2004-42b5-84b2-07ef7b6150f3,1,please,/Volumes/Disc/1Pictures/Flashcard/please (informal).jpg
 531,fa4ce83d-1183-4ff8-b5a6-5d012b3c103b,1,"welcome, reception","/Volumes/Disc/1Pictures/Flashcard/welcome, reception.jpg"
 548,edd99450-9963-4746-8d99-289e40b1e31a,1,to talk,/Volumes/Disc/1Pictures/Flashcard/talk.jpg
 550,af17b588-0d16-4718-9226-750df00e0327,1,to tell,/Volumes/Disc/1Pictures/Flashcard/tell.jpg
-563,6da2faf6-eb34-44a1-9b6f-4dc69c8c03e0,1,to drink,/Volumes/Disc/1Pictures/Flashcard/drink.jpg
+561,a05eb2d6-2f11-48c8-a58f-0d5fe7cf9ce3,1,steak (bi…),/Volumes/Disc/1Pictures/Flashcard/steak (2).jpg
+563,6da2faf6-eb34-44a1-9b6f-4dc69c8c03e0,1,to drink,"/Volumes/Disc/1Pictures/Flashcard/drink ,v.jpg"
 567,b8c0f5b5-a903-4105-9089-ec1ccb6b2c8c,1,duck,/Volumes/Disc/1Pictures/Flashcard/duck.jpg
 568,7a2b14d6-f914-411d-a042-92b276a4ae47,1,cider,/Volumes/Disc/1Pictures/Flashcard/cider.jpg
 569,1632fc92-44d7-4daf-8267-f0fe346ef902,1,shellfish,/Volumes/Disc/1Pictures/Flashcard/shellfish.jpg
@@ -326,7 +354,7 @@ refn,uuid,course,english,source_path
 578,128cbad7-8741-4a89-b6f6-1635ed635b05,1,chicken,/Volumes/Disc/1Pictures/Flashcard/chicken.jpg
 581,577efa1f-6a09-4210-b615-05fe9b3fb0f5,1,salami-type sausage,/Volumes/Disc/1Pictures/Flashcard/salami-type sausage.jpg
 580,0e27c41b-1f5f-4344-8f56-b9b3302a69f0,1,sausage,/Volumes/Disc/1Pictures/Flashcard/sausage.jpg
-611,883b58ba-7fc7-4c95-9dd6-a97f4de6182d,1,to post,/Volumes/Disc/1Pictures/Flashcard/post.jpg
+611,883b58ba-7fc7-4c95-9dd6-a97f4de6182d,1,to post,"/Volumes/Disc/1Pictures/Flashcard/post ,v.jpg"
 624,009cd730-1338-40c5-8d72-5765a8a8dacb,1,make-up,/Volumes/Disc/1Pictures/Flashcard/make-up.jpg
 638,2491449c-1308-4f3d-8ad2-8d8f698ec2f9,1,heart,/Volumes/Disc/1Pictures/Flashcard/heart.jpg
 892,f79adb32-2419-4595-8e5e-b8ea734b1fe1,1,"cockerel, rooster","/Volumes/Disc/1Pictures/Flashcard/cockerel, rooster.jpg"
@@ -341,6 +369,7 @@ refn,uuid,course,english,source_path
 203,8228d4ef-2167-4444-85d7-957b5ff7ec19,1,late,/Volumes/Disc/1Pictures/Flashcard/late.jpg
 679,4e3506ab-494e-4ca7-80c4-7d61d2757b34,1,"petrol, gasoline","/Volumes/Disc/1Pictures/Flashcard/petrol, gasoline.jpg"
 707,8bc6ed92-6647-4467-888f-e73c7a20a47c,1,market,/Volumes/Disc/1Pictures/Flashcard/market.jpg
+701,0f7159e9-7968-45d6-a623-56e2ef5ef98f,1,"to want, desire",/Volumes/Disc/1Pictures/Flashcard/want.jpg
 715,73289357-173f-4e61-8b0e-129576072059,1,bag,/Volumes/Disc/1Pictures/Flashcard/bag.jpg
 205,7e2469a0-0265-419d-ad4c-f6eecad8b9b5,1,quickly (fast),/Volumes/Disc/1Pictures/Flashcard/quickly (fast).jpg
 593,9f836eb2-1d7f-46c8-b39e-ac99e2bb46e1,1,parcel,/Volumes/Disc/1Pictures/Flashcard/parcel.jpg
@@ -348,6 +377,7 @@ refn,uuid,course,english,source_path
 694,27244a61-c679-40b9-8d25-32c9665cb0aa,1,how much is it?,/Volumes/Disc/1Pictures/Flashcard/how much is it.jpg
 695,3e9f9d06-7197-41fd-b5c7-3cb3de29d34d,1,"dear, expensive","/Volumes/Disc/1Pictures/Flashcard/dear, expensive.jpg"
 705,475e9227-d72b-4049-be92-e7cd4bf1b395,1,free (of charge),/Volumes/Disc/1Pictures/Flashcard/free.jpg
+1037,d3211a0e-69ec-40ef-ae38-ce147ab22c5c,1,theatre,/Volumes/Disc/1Pictures/Flashcard/theatre.jpg
 702,cbe58ce2-5b2f-455d-833c-f0ec4cefb7e5,1,to save (money),/Volumes/Disc/1Pictures/Flashcard/save (money).jpg
 714,03bd2f30-2ad6-41f8-a219-c2b8c54b4ae0,1,to take,/Volumes/Disc/1Pictures/Flashcard/take.jpg
 713,97381e91-b411-4fe1-a249-c73656e5ddd6,1,to pay,/Volumes/Disc/1Pictures/Flashcard/pay.jpg
@@ -362,57 +392,183 @@ refn,uuid,course,english,source_path
 731,8f44b733-7104-4543-871e-8ca53d1c7d09,1,to throw (discard),/Volumes/Disc/1Pictures/Flashcard/to throw (discard).jpg
 143,2b46bda6-ca12-4731-9e97-2077fc577188,1,breakfast,/Volumes/Disc/1Pictures/Flashcard/breakfast.jpg
 736,09f091d7-1514-41cf-8039-7215a7bc6f99,1,to lose,/Volumes/Disc/1Pictures/Flashcard/lose.jpg
+738,16092112-d073-456d-8ec1-03c201f518e4,1,to leave (q…),/Volumes/Disc/1Pictures/Flashcard/to leave (2).jpg
 740,944342fc-98fe-429b-9626-d368b945642b,1,to sit down,/Volumes/Disc/1Pictures/Flashcard/sit down.jpg
 742,3d5c3b4d-aa07-43cf-9c57-6a3922ac5b12,1,to make a mistake,/Volumes/Disc/1Pictures/Flashcard/make a mistake.jpg
+746,a909ca5a-0d66-478c-b90a-95c1e6b1da56,1,"to use (make use of), utilise",/Volumes/Disc/1Pictures/Flashcard/to use (2).jpg
 750,5796b476-8d7a-44cc-a2d4-c0b0be67d04d,1,sock,/Volumes/Disc/1Pictures/Flashcard/sock.jpg
 757,5d4c1c67-b57c-48a5-a77e-765dea023382,1,glasses,/Volumes/Disc/1Pictures/Flashcard/glasses.jpg
 771,5028396d-603c-4329-9bac-4382d0d72a61,1,with,/Volumes/Disc/1Pictures/Flashcard/with.jpg
 235,aa16c2bf-be51-45b2-b3ef-259d008e6abc,1,to have an earache,/Volumes/Disc/1Pictures/Flashcard/have an earache.jpg
 238,e154a72e-776e-449b-8b16-bd5d8b0394dc,1,to have a sore back,/Volumes/Disc/1Pictures/Flashcard/have a sore back.jpg
 773,47128f8c-b95e-4ef2-8024-dd9524827508,1,to say,/Volumes/Disc/1Pictures/Flashcard/say.jpg
-784,a0d88939-48b3-4888-b709-19d4f9bdbc97,1,when,/Volumes/Disc/1Pictures/Flashcard/when.jpg
+784,a0d88939-48b3-4888-b709-19d4f9bdbc97,1,when,"/Volumes/Disc/1Pictures/Flashcard/when ,q.jpg"
 793,38598fdc-67e1-4bd3-b91a-76f460a6c7cb,1,to find,/Volumes/Disc/1Pictures/Flashcard/find.jpg
 933,70d8fd23-cf53-454e-8654-2f9102b8959d,1,art,/Volumes/Disc/1Pictures/Flashcard/art.jpg
 797,0d39c4db-032d-47e3-a7ec-da6073e14f39,1,"to wish, to want","/Volumes/Disc/1Pictures/Flashcard/wish, to want.jpg"
-802,4b3f4c9a-33d9-41c8-aa4a-3decc309985d,1,to change,/Volumes/Disc/1Pictures/Flashcard/change (money).jpg
+2993,2e70e5df-40c9-4102-8077-b7a09d5ee329,21,This chocolate cake looks delicious!,/Volumes/Disc/1Pictures/Flashcard/delicious.jpg
+1434,95346304-308c-4c98-b9d3-1d69fcaa4636,21,It's completely different!,/Volumes/Disc/1Pictures/Flashcard/different.jpg
+3207,190fe484-1c96-4d33-9f89-26baecd9beee,21,"I accept that I have to wait a little for you, but not too long!",/Volumes/Disc/1Pictures/Flashcard/accept.jpg
+802,4b3f4c9a-33d9-41c8-aa4a-3decc309985d,1,to change,"/Volumes/Disc/1Pictures/Flashcard/change ,v.jpg"
+3255,f47d0522-7fe7-418b-852c-2d9ccf5d8801,21,The weather was dry yesterday but today it's raining…,/Volumes/Disc/1Pictures/Flashcard/dry.jpg
+4022,ff490a1e-6de2-4af6-b2bc-e737dfdc21fa,22,I get used to (a) difficult work.,/Volumes/Disc/1Pictures/Flashcard/work.jpg
 804,387290a4-37ca-42a2-a44b-3e168680c888,1,blanket,/Volumes/Disc/1Pictures/Flashcard/blanket.jpg
 314,0718bd3f-7c01-4da6-877d-792b75111f0d,1,hello!,/Volumes/Disc/1Pictures/Flashcard/hello!.jpg
+783,0695a0a9-e405-4271-95c9-6c68228485e6,1,what?,"/Volumes/Disc/1Pictures/Flashcard/what ,q.jpg"
+2592,6dabc6e1-ff4a-4c79-b2da-8f72f8eab189,21,She's in the ambulance with the nurse: she has broken her leg.,/Volumes/Disc/1Pictures/Flashcard/ambulance.jpg
+2927,d18df482-a0d8-422b-8fcb-444278685861,21,My friends (m) always give me a very pleasant welcome.,"/Volumes/Disc/1Pictures/Flashcard/welcome, reception.jpg"
 806,92a13abc-63a4-408e-96b6-f196d3e9f92b,1,sheet,/Volumes/Disc/1Pictures/Flashcard/sheet.jpg
+475,70830c42-1aa8-4365-996b-107cdb484ef4,1,low,"/Volumes/Disc/1Pictures/Flashcard/low, small.jpg"
+2502,8383197b-d3ee-4f79-9e9c-b6f3ff32b2fd,21,Is there some milk to pour on my cereal?,/Volumes/Disc/1Pictures/Flashcard/cereals.jpg
+4002,ed7ffa4f-e2c8-4eda-a213-313cb0bdd459,22,My favorite books are comics.,/Volumes/Disc/1Pictures/Flashcard/book.jpg
 811,09ebd7fa-5e8e-444a-9cb3-e2483ff54151,1,coat,/Volumes/Disc/1Pictures/Flashcard/coat.jpg
+710,dc775240-a210-4302-b8c3-9fbb88965b9e,1,to open,"/Volumes/Disc/1Pictures/Flashcard/open ,v.jpg"
+3832,28e809f9-426f-44c1-8251-99b5ca4370ef,22,Tennis is my favorite sport.,/Volumes/Disc/1Pictures/Flashcard/sport.jpg
 813,49b7514a-8130-4e3d-8142-0552991db4d9,1,pillow,/Volumes/Disc/1Pictures/Flashcard/pillow.jpg
+2822,83fef70f-bb37-4bdf-ba2e-316999574d89,21,The day of his birthday he will enter adult life.,/Volumes/Disc/1Pictures/Flashcard/birthday.jpg
+2727,293bc104-42f1-44fa-90d5-404059ed9482,21,Here are the electric stoves and there are the gas stoves,"/Volumes/Disc/1Pictures/Flashcard/electric stove, electric cooker.jpg"
+3212,807e7ac1-f1d0-48cb-b555-5191ddd44db4,21,She began to sing as soon as she (one) was asked to.,/Volumes/Disc/1Pictures/Flashcard/sing.jpg
+3242,06d2b773-b92a-4eb7-b843-94570aa8e130,21,Normally it's hot during this time.,/Volumes/Disc/1Pictures/Flashcard/normally.jpg
+2709,0b074816-fba5-42f7-995a-74d4f4ff4f22,21,I need washing powder and fabric softener.,"/Volumes/Disc/1Pictures/Flashcard/laundry, washing.jpg"
+3098,bca470fa-b452-4b20-b089-ec274e59cb98,21,She hasn't gone back to the beach since she has a swimming pool in the garden!,/Volumes/Disc/1Pictures/Flashcard/since.jpg
+1412,53f11b08-d9c9-48b7-8525-2fe7cd5235a0,21,My ancient fridge is out of order.,"/Volumes/Disc/1Pictures/Flashcard/former, ancient.jpg"
+3541,e9bc6ea0-29e2-4cad-8d1b-2d71da8e8d48,22,I have good souvenirs of my stay.,/Volumes/Disc/1Pictures/Flashcard/stay.jpg
+3106,7ca45ad1-2e2e-41f9-90f0-adad672bbe53,21,What do you eat in the morning?,/Volumes/Disc/1Pictures/Flashcard/morning (moment in time).jpg
+2913,998c0bf4-e212-484d-9c0a-447c660b9b77,21,Hello Mum! I'm going to hoover!,"/Volumes/Disc/1Pictures/Flashcard/Mom, Mum.jpg"
+1865,fcd6279c-1d40-46a7-9cc4-304838ebbcbb,21,How may times have you been to France?,"/Volumes/Disc/1Pictures/Flashcard/how often, how many times.jpg"
+2867,b4326737-6f0e-473b-b806-dede26d6ab21,21,We daren't say he has a big nose.,/Volumes/Disc/1Pictures/Flashcard/nose.jpg
 817,85baf262-b568-48ed-b438-74d14a74d117,1,to go to sleep,/Volumes/Disc/1Pictures/Flashcard/go to sleep.jpg
+2837,9b875aaa-c90d-4e5c-a74c-de131c67d652,21,Good morning Miss!,/Volumes/Disc/1Pictures/Flashcard/Miss.jpg
+2631,7f5c3249-ccc9-4051-8db4-c11b063516b6,21,How do you feel? -Better now but I still have a headache.,/Volumes/Disc/1Pictures/Flashcard/better.jpg
+1979,9b79b3a2-65de-45ba-94b1-e0514343d34c,21,"It's so strange, it can't be! -Yes it can! Ask if you want!","/Volumes/Disc/1Pictures/Flashcard/if, so, yes.jpg"
+2280,90ac62cf-8a4e-491e-b390-0ee8388e1de4,21,In winter there's always a lot of snow in our garden.,/Volumes/Disc/1Pictures/Flashcard/winter.jpg
+3866,3554bb06-7aec-4b3b-80cd-8b758e85304f,22,He can be anywhere.,/Volumes/Disc/1Pictures/Flashcard/anywhere.jpg
 822,4bf83c4d-3cd4-49b7-a998-a82949517cad,1,drawer,/Volumes/Disc/1Pictures/Flashcard/drawer.jpg
+2606,9ec6a18b-9ba4-46a5-bbb1-0e85389277de,21,The doctor told me to take these vials.,/Volumes/Disc/1Pictures/Flashcard/doctor.jpg
 828,bb9c7418-d78c-4352-934d-2119ba317271,1,boat,/Volumes/Disc/1Pictures/Flashcard/boat.jpg
+2095,111524e2-b544-4b07-aae5-dc1ca0615e07,21,We all passed through Paris to go to Germany.,/Volumes/Disc/1Pictures/Flashcard/go.jpg
+3544,14702a94-0410-4c74-9197-ca474041260d,22,I'm going to water the flowers.,/Volumes/Disc/1Pictures/Flashcard/water.jpg
 427,356fcb7d-8435-4753-912b-4995f56c2799,1,tomato,/Volumes/Disc/1Pictures/Flashcard/tomato.jpg
+2953,d19cc3f6-3738-48ef-94df-5b61aa0309e3,21,She was late,/Volumes/Disc/1Pictures/Flashcard/in haste.jpg
+3448,32b7db26-0ab3-4344-906d-13c3fb3548ba,22,He speaks during his sleep!,/Volumes/Disc/1Pictures/Flashcard/sleep.jpg
+232,23824241-72ae-4bc8-93fb-b4b296c8aefa,1,to look (ill),/Volumes/Disc/1Pictures/Flashcard/look (ill).jpg
 848,7f52b1ba-ae6e-4bfb-b949-f5885bc59d2f,1,suitcase,/Volumes/Disc/1Pictures/Flashcard/suitcase.jpg
+2443,6c3e8e15-ddb1-421f-abf6-75d94015abdd,21,The grass is magnificent in the United Kingdom.,/Volumes/Disc/1Pictures/Flashcard/grass.jpg
 818,96600f0a-3a3c-4593-b531-0a77e2c11807,1,to get dressed,/Volumes/Disc/1Pictures/Flashcard/get dressed.jpg
+1624,fec63cc5-d3e1-4b20-8a60-dd5eeafcb06a,21,I borrowed money to buy a house.,/Volumes/Disc/1Pictures/Flashcard/borrow.jpg
+2514,dcd9a56a-124f-4783-9655-fc34598265c9,21,We always watch television after dinner when there's a good movie on.,/Volumes/Disc/1Pictures/Flashcard/dinner.jpg
+2732,fe5153d3-1499-4316-ad28-11ce599f9131,21,Don't put the croissants in the fridge!,/Volumes/Disc/1Pictures/Flashcard/fridge.jpg
+3115,774521e1-4975-4d3a-bd8f-b92ac6490980,21,Are we going out this evening?,/Volumes/Disc/1Pictures/Flashcard/evening (moment in time).jpg
 835,1feb0406-69a8-4851-bc81-b96a64021140,1,slowly,/Volumes/Disc/1Pictures/Flashcard/slowly.jpg
+2117,9bdb9887-6e98-42d7-bd7c-2b99929119fa,21,I don't know what to say!,/Volumes/Disc/1Pictures/Flashcard/say.jpg
+2525,9df75596-fd80-4601-881c-3a9e1f70768b,21,If you're not very hungry,/Volumes/Disc/1Pictures/Flashcard/soup.jpg
+2582,70580f0a-d6a0-4575-9a86-ca25ccb3eeff,21,It's a roast chicken!,/Volumes/Disc/1Pictures/Flashcard/roast meat.jpg
+2873,2e031ff6-7144-4b3f-b1f1-6c147367f003,21,He can't stand the sight of blood.,/Volumes/Disc/1Pictures/Flashcard/blood.jpg
 836,954a356b-7b82-4c84-96da-71815fa3871f,1,to swim,/Volumes/Disc/1Pictures/Flashcard/swim.jpg
+2456,059c4277-6984-4895-ab75-7732bcfef2de,21,This plant grows up along the wall.,/Volumes/Disc/1Pictures/Flashcard/plant.jpg
+2765,1271ae03-d826-4dee-b640-c1ee13e28a2e,21,This man is a member of the team.,/Volumes/Disc/1Pictures/Flashcard/team.jpg
+2852,19502179-2f4f-48af-b0b2-f70a34ec4f55,21,He has a scarf round his neck.,/Volumes/Disc/1Pictures/Flashcard/neck.jpg
+2904,69a5877a-8ab2-4b6a-a025-879f59595dd3,21,My sister-in-law is a good wife.,/Volumes/Disc/1Pictures/Flashcard/wife.jpg
 842,82f96d26-9ce0-4a3b-8ded-7bf0aa228862,1,beach,/Volumes/Disc/1Pictures/Flashcard/beach.jpg
+2453,d8c9d142-c760-4b10-960b-68386acc6563,21,It's not in her nature to be aggressive.,/Volumes/Disc/1Pictures/Flashcard/nature.jpg
+1686,7669b768-a91a-42fd-8549-6d2e891c7650,21,Please,/Volumes/Disc/1Pictures/Flashcard/sign.jpg
+1910,b984c4d1-fde1-467f-a411-c3d882087c21,21,Straightaway means now and not tomorrow!,/Volumes/Disc/1Pictures/Flashcard/now.jpg
+2268,15abf9d0-c9c5-44db-b14d-82432695e677,21,"In summer, I bathe in my neighbours' swimming pool!",/Volumes/Disc/1Pictures/Flashcard/summer.jpg
+2474,85b99945-395f-4264-908e-173b10b5709e,21,"Of course, I've already seen this movie!",/Volumes/Disc/1Pictures/Flashcard/of course.jpg
+2515,bced707a-83fa-4f73-b31c-abb1e6a02507,21,"In French restaurants, they ask you: ""cheese or dessert?"" (m)",/Volumes/Disc/1Pictures/Flashcard/cheese.jpg
+2548,b1e0e9f8-b34e-4370-a458-2dd4b59d714f,21,There are pips in apples.,/Volumes/Disc/1Pictures/Flashcard/apple.jpg
+2658,8090dc9c-40c2-4c53-9f72-7fabe74c04e8,21,I have to change the wardrobe and the chest of drawers of my bedroom.,/Volumes/Disc/1Pictures/Flashcard/wardrobe.jpg
+858,c52f94e9-3d10-47fd-95bb-4486e3612f8d,1,to want (to do something),/Volumes/Disc/1Pictures/Flashcard/want (to do something).jpg
+2931,872091bc-1ad7-431a-bfa7-4f55a2270236,21,It's an incredible love story!,/Volumes/Disc/1Pictures/Flashcard/love.jpg
+2981,915e7871-ff12-4278-9e97-6f5e778a39c6,21,And suddenly,/Volumes/Disc/1Pictures/Flashcard/suddenly.jpg
+3058,85a09e68-02b8-411b-9fba-60b287c51eef,21,Neither does he want to go out nor watch TV.,/Volumes/Disc/1Pictures/Flashcard/neither nor.jpg
+2546,7f7b9a48-72aa-43ee-b9b6-afa5b7ded82b,21,My son counts the peas on his plate.,/Volumes/Disc/1Pictures/Flashcard/pea.jpg
 859,db89cd4a-24e0-4ab7-8f81-65efcd0eca05,1,to take place,/Volumes/Disc/1Pictures/Flashcard/take place.jpg
+3045,b35616a0-09af-47a3-90ef-2a9df8bd0398,21,I have had enough!,/Volumes/Disc/1Pictures/Flashcard/enough.jpg
+2825,def26904-7cfd-4b0e-877f-be7da5269b52,21,Michèle Laroque is a funny actress and a celebrity in France.,/Volumes/Disc/1Pictures/Flashcard/funny.jpg
+2952,3ef9b5ac-df61-4465-8a21-157c0dd646b2,21,We (one) go out from time to time and we laugh a lot!,/Volumes/Disc/1Pictures/Flashcard/go out.jpg
+3016,fd52ac1e-02e6-41a2-bc3d-5a7959f3ea3a,21,To asphyxiate? How do you spell that?,/Volumes/Disc/1Pictures/Flashcard/how do you spell that.jpg
 862,9204ddc0-31f5-4ea6-9bc7-809e7ec49437,1,to be wrong,/Volumes/Disc/1Pictures/Flashcard/be wrong.jpg
+2886,03281f53-f91a-4bfe-94ab-7e2811d8ead6,21,I broke my glasses.,/Volumes/Disc/1Pictures/Flashcard/glasses.jpg
+2389,bd065d98-59e2-4dec-b347-d2fba979a757,21,In the woods,/Volumes/Disc/1Pictures/Flashcard/wood.jpg
+2963,336fa12b-7b18-4c1f-8f2d-75a7f3d1eff3,21,Are you mad?,"/Volumes/Disc/1Pictures/Flashcard/mad, crazy.jpg"
+2746,999b9df8-fff4-45cb-ad1d-bdac07813d70,21,What is the news today on T.V?,/Volumes/Disc/1Pictures/Flashcard/news (current events).jpg
+2943,80ce6da1-ad21-45c1-a944-420767b07f65,21,What is this pink letter?,/Volumes/Disc/1Pictures/Flashcard/letter.jpg
 867,e1590c7e-c102-44eb-a9bb-30aca393cef2,1,well done!,/Volumes/Disc/1Pictures/Flashcard/well done!.jpg
+2955,b21ba580-23df-4f3a-aa83-18b825c99573,21,Congratulations! I've never met someone so stupid! We have to celebrate that!,"/Volumes/Disc/1Pictures/Flashcard/silly, stupid.jpg"
+3073,9e4247fa-eca3-443d-9676-be7413f59eca,21,It costs thirty euros.,/Volumes/Disc/1Pictures/Flashcard/cost.jpg
+3133,e063b10c-510f-4746-acd0-ebb626b342a6,21,My cousin has been studying law for three years.,"/Volumes/Disc/1Pictures/Flashcard/the right ,law.jpg"
+1522,7dfa9aa8-1e8f-4571-8092-b77af459757d,21,It's terrible all the things we watch on TV.,/Volumes/Disc/1Pictures/Flashcard/terrible.jpg
+3010,c004e1e9-bca4-4027-878a-dae9621c2b8b,21,"I've broken the bowl, can I take a cup?",/Volumes/Disc/1Pictures/Flashcard/cup.jpg
+3195,c7f929c4-91af-40e5-bd96-23a8f2714fda,21,He likes to take photos during his voyages.,/Volumes/Disc/1Pictures/Flashcard/photo.jpg
+3219,fb1d7b4e-6881-4d79-b014-b3d47c2583f5,21,How long does the movie last?,"/Volumes/Disc/1Pictures/Flashcard/last ,v.jpg"
+2521,71affd8a-8db7-4b72-a6fe-403966c5a18f,21,You forgot to put an egg in my steak tartare!,/Volumes/Disc/1Pictures/Flashcard/egg.jpg
+2864,cd88656b-6af5-46ba-ad3f-cbef6a012c22,21,She writes with her left hand.,/Volumes/Disc/1Pictures/Flashcard/hand.jpg
 620,fd679797-65eb-4940-b133-edcb66028ba5,1,toothbrush,/Volumes/Disc/1Pictures/Flashcard/toothbrush.jpg
 873,1b7891c7-8f73-4311-8831-97a46a11d20b,1,so-so,/Volumes/Disc/1Pictures/Flashcard/so-so.jpg
+3103,51b458b6-a33b-4e89-a5c4-04e3475ba483,21,I spent the day on the beach!,/Volumes/Disc/1Pictures/Flashcard/day (period of time).jpg
+2212,bfc04db2-a579-4036-a9ef-9b63b5e3640b,21,My son is one year-old.,/Volumes/Disc/1Pictures/Flashcard/year.jpg
+2827,b21ef8f3-c824-4bb2-a764-116e8e38d307,21,Children are always funny.,/Volumes/Disc/1Pictures/Flashcard/child.jpg
+3061,660a5b2f-25f8-40fc-b1ff-a4d8296b0018,21,He has pockets full of money!,/Volumes/Disc/1Pictures/Flashcard/full.jpg
 874,bf699b81-ef5e-456b-911c-c601e2e62b16,1,okay!,/Volumes/Disc/1Pictures/Flashcard/okay.jpg
+3119,80dcb01e-67ec-4ead-b533-f502c39b8399,21,"Time passes quickly, but from time to time it lasts an eternity!",/Volumes/Disc/1Pictures/Flashcard/quickly (fast).jpg
+3141,ee7374f9-bab9-4642-96f2-9b425297086e,21,The inhabitants leave the blocks of flats to live in houses.,/Volumes/Disc/1Pictures/Flashcard/block of flats.jpg
+3197,355ddb51-60e7-4a3a-a514-ad36e2e35341,21,I have to go and get some information. See you tomorrow!,/Volumes/Disc/1Pictures/Flashcard/information.jpg
+1680,ebe92da6-505d-424b-9705-1e55d99d3175,21,She lent her car to her sister.,/Volumes/Disc/1Pictures/Flashcard/lend.jpg
 877,33b4bbda-b66e-419e-9005-97e6c95a51c0,1,I don't know!,/Volumes/Disc/1Pictures/Flashcard/I dont know.jpg
+2062,293f0508-fc13-4c19-a21e-230f91e5a355,21,"Can you switch on the T.V., please!",/Volumes/Disc/1Pictures/Flashcard/please (informal).jpg
+2186,0a5182af-8040-49c9-a30f-d0431f714b59,21,"Sorry, I don't have time to come and see you!",/Volumes/Disc/1Pictures/Flashcard/time.jpg
+2545,ce8814f6-0f1f-42ff-b893-72809a231c87,21,I peel peaches before eating them.,/Volumes/Disc/1Pictures/Flashcard/peach.jpg
+2844,cf383cc7-a0da-420a-807d-708864398fd9,21,She works for Mrs Curie.,/Volumes/Disc/1Pictures/Flashcard/work.jpg
+2138,9766a89c-1a6a-454c-b1f2-83e839ee985c,21,Where are my shoes? They were in the entrance.,/Volumes/Disc/1Pictures/Flashcard/where.jpg
 881,cfad28f7-b986-43d4-879c-203687df2e38,1,no doubt! (probably!),/Volumes/Disc/1Pictures/Flashcard/no doubt.jpg
+2572,caa6c3b4-a43b-4d2e-8e6c-0e57f1623132,21,I'd like three pork chops,/Volumes/Disc/1Pictures/Flashcard/chop.jpg
+3002,9cdd19e6-a3df-4d7d-a70b-510fc318be92,21,"Good evening. A table for two, we (one) booked yesterday.",/Volumes/Disc/1Pictures/Flashcard/book.jpg
+3067,9b110e5d-d2c9-48b1-b72a-4ccfb230bab0,21,I'm looking for cheap products.,/Volumes/Disc/1Pictures/Flashcard/cheap.jpg
+2519,470b49d4-5ef6-4499-a00b-53b2732a4ede,21,"Salty or sweet pancakes, it depends on one's taste!","/Volumes/Disc/1Pictures/Flashcard/taste, flavour.jpg"
 882,725dfbbd-a65c-443c-b5f1-4b26ad10c0c3,1,help yourself! (inf.sing),/Volumes/Disc/1Pictures/Flashcard/help yourself.jpg
+2845,e87756a7-7874-4981-a3fe-a399d5b80074,21,This man is old but is still funny.,/Volumes/Disc/1Pictures/Flashcard/old.jpg
+3134,8bbb413d-03ca-42e1-bd36-775440d51eb2,21,The church is in the middle of the town.,/Volumes/Disc/1Pictures/Flashcard/church.jpg
+3186,98c6a639-a454-413e-b7a1-e8d2dd6145ab,21,Banks take commission on withdrawals made abroad.,"/Volumes/Disc/1Pictures/Flashcard/overseas, abroad.jpg"
 883,443ccc47-1e84-465c-9b9e-fe8604db35a6,1,bee,/Volumes/Disc/1Pictures/Flashcard/bee.jpg
+2538,788a17b4-81db-4cf2-921c-afda4936dc5a,21,My mother cooks good strawberry cakes every Sunday.,/Volumes/Disc/1Pictures/Flashcard/strawberry.jpg
+2697,bf1a6ea9-d21a-467b-9262-4f53738b7b7c,21,Darling! I'm going to drink tea at Mrs Dupond's!,"/Volumes/Disc/1Pictures/Flashcard/to, at the home of.jpg"
+2875,e102e403-b6c6-47c0-80bf-0a99e4735eee,21,He has nice eyes: one eye is blue and one eye is green.,/Volumes/Disc/1Pictures/Flashcard/eyes.jpg
+3069,7f5aef4f-5255-482b-9ef8-cdae4b42cf7a,21,It's expensive but there are free products and so I can save money!,"/Volumes/Disc/1Pictures/Flashcard/dear, expensive.jpg"
 889,03f6af74-ebc5-4026-9386-3f30bea3824a,1,dog,/Volumes/Disc/1Pictures/Flashcard/dog.jpg
+2642,3ea85638-e970-4a3c-96d4-ebc509e03216,21,"I don't need to brush, I have short hair!","/Volumes/Disc/1Pictures/Flashcard/brush ,v.jpg"
+2922,86eb7acc-9c80-4d88-a028-3eac080f5046,21,My father is very pleasant.,/Volumes/Disc/1Pictures/Flashcard/father.jpg
+2967,45cf8b32-8f66-44b7-b48c-da2cc35aa1fa,21,There is a slight drop of temperatures this month!,"/Volumes/Disc/1Pictures/Flashcard/light, slight.jpg"
+3032,82daf1d2-65c9-4b2e-999e-9760222c77f0,21,I got everything correct in the maths test!,/Volumes/Disc/1Pictures/Flashcard/correct (fair).jpg
+3265,679f53ec-b796-4f09-b1b0-35c651138180,21,"If the keys are not on the car, have a look inside!",/Volumes/Disc/1Pictures/Flashcard/inside.jpg
 890,b231f9bd-c91f-42ac-aaa8-c6c0710d944c,1,guinea pig,/Volumes/Disc/1Pictures/Flashcard/guinea pig.jpg
+2734,58b5294b-8f31-4e28-9af9-33cdbe40a801,21,"Wash your knife, spoon, fork and bowl before leaving!",/Volumes/Disc/1Pictures/Flashcard/wash.jpg
+2745,5d604d9f-6211-4d0c-a8f6-7ee6415a1125,21,After dinner you will wash the dishes!,"/Volumes/Disc/1Pictures/Flashcard/washing up, dish washing.jpg"
+3147,819194ad-7538-470a-a234-887c839f773e,21,Everybody must walk on the pavement/sidewalk.,"/Volumes/Disc/1Pictures/Flashcard/sidewalk, pavement.jpg"
 520,836beaef-2518-4e25-9bd5-0d73e3070873,1,me,/Volumes/Disc/1Pictures/Flashcard/me.jpg
+2869,38ee8495-7eab-49fc-a6b0-7e706c078ace,21,She has two earrings in each ear.,/Volumes/Disc/1Pictures/Flashcard/ear.jpg
+2939,14f8da5f-b4da-49a8-9940-2046139a6719,21,Will you marry me?,/Volumes/Disc/1Pictures/Flashcard/marry.jpg
+3160,229a3bfa-87d9-48e2-a78e-398d501efdb0,21,The railway line heads in the same direction as the motorway.,/Volumes/Disc/1Pictures/Flashcard/railway.jpg
 899,bb7d739a-90ff-4824-ad9d-fe406a8d6b60,1,mouse,/Volumes/Disc/1Pictures/Flashcard/mouse.jpg
+2921,7a20421c-7714-4606-a66a-3314dac8714f,21,The girl is looking for her parents.,/Volumes/Disc/1Pictures/Flashcard/parents.jpg
+3145,d7c9253c-2f1c-43d0-81e7-ab3f91de9cbd,21,They (one) drive on the right side of every road in France.,/Volumes/Disc/1Pictures/Flashcard/road.jpg
+3253,447acb86-0e28-457f-871d-18e09ae1a745,21,I wish it wouldn't rain!,"/Volumes/Disc/1Pictures/Flashcard/rain ,v.jpg"
+3215,ec3cfb99-ac25-4e3e-b1da-d2c0923509ed,21,I am going to ask her to marry me. I hope she says yes!,/Volumes/Disc/1Pictures/Flashcard/ask.jpg
 905,77fbac70-ee4d-45b3-a5d7-ad89a48a0f6b,1,against,/Volumes/Disc/1Pictures/Flashcard/against.jpg
+3231,9ea8c19e-833b-4e99-8efe-daff69e77bb8,21,He jumped from the top of the wall and he fell.,/Volumes/Disc/1Pictures/Flashcard/jump.jpg
+3201,209d3227-bf4c-418d-b999-2797df6a03f7,21,In ten days time it's the holidays!,"/Volumes/Disc/1Pictures/Flashcard/vacations, holidays.jpg"
 907,f59af2e8-44ad-4096-b0f4-83e3f8862499,1,danger,/Volumes/Disc/1Pictures/Flashcard/danger.jpg
+3228,08571eff-340f-4a73-9356-f38e667ae412,21,I left the office at four.,/Volumes/Disc/1Pictures/Flashcard/to leave (2).jpg
+3254,238b7f9b-918a-4607-8b55-61ed53e20adb,21,She's singing in the rain.,/Volumes/Disc/1Pictures/Flashcard/rain.jpg
 866,2c9b5b6d-a831-43f6-811a-9787ce7b30e8,1,good evening!,/Volumes/Disc/1Pictures/Flashcard/good evening.jpg
 910,013cf4cf-73b3-476a-8148-b4911acc2231,1,congratulations,/Volumes/Disc/1Pictures/Flashcard/congratulations.jpg
+233,ed89b945-7c36-4a23-abb7-10eea5af64ad,1,to feel pain in,/Volumes/Disc/1Pictures/Flashcard/feel pain in.jpg
 911,0e6c0d7e-15ae-4da2-a7e0-630d12b14bc7,1,to celebrate,/Volumes/Disc/1Pictures/Flashcard/celebrate.jpg
 919,920b2494-b646-41b3-8ce9-3d3f5b460a9c,1,naughty (wicked),/Volumes/Disc/1Pictures/Flashcard/naughty (wicked).jpg
 894,166b053a-8bb2-4173-a1ca-63e0dc9d3098,1,insect,/Volumes/Disc/1Pictures/Flashcard/insect.jpg
 914,fe4b1cec-8433-4430-bdde-9231c02bb7a2,1,serious,/Volumes/Disc/1Pictures/Flashcard/serious.jpg
 923,f8472c64-5c1c-47fa-baf3-77cab7e05b81,1,birth,/Volumes/Disc/1Pictures/Flashcard/birth.jpg
-955,dfe1fd35-fcb9-4f3d-b644-a5ff3596b03e,1,word,/Volumes/Disc/1Pictures/Flashcard/word.jpg
+928,09fb6482-cfc2-450f-8c8a-36083eedda0d,1,to remember (se s…),/Volumes/Disc/1Pictures/Flashcard/to remember (2).jpg
 957,eac04ce8-eafe-4620-8856-ff6cde225382,1,private,/Volumes/Disc/1Pictures/Flashcard/private.jpg
 925,ac28fadf-a02f-498c-ad90-b1deae8be08c,1,pleasure,/Volumes/Disc/1Pictures/Flashcard/pleasure.jpg
 998,05fd97b7-0d59-4f67-9187-4b93485fc2db,1,grass,/Volumes/Disc/1Pictures/Flashcard/grass.jpg
@@ -421,18 +577,54 @@ refn,uuid,course,english,source_path
 1010,5bc28da1-f655-42eb-939c-469c3dc99ab5,1,region,/Volumes/Disc/1Pictures/Flashcard/region.jpg
 932,a1deca58-972e-409d-8463-ca80bd667b1f,1,to learn,/Volumes/Disc/1Pictures/Flashcard/learn.jpg
 943,ac225c61-6995-424b-b9f2-9b24a8b63d70,1,test,/Volumes/Disc/1Pictures/Flashcard/test.jpg
+1742,d17b8e40-2faf-401d-aabb-a00c48e9c765,21,I'm leaving from 8 o'clock onwards.,/Volumes/Disc/1Pictures/Flashcard/from.jpg
+1748,c8f568cf-f7c6-4cca-bee1-095ade290839,21,She has a female friend in the army.,/Volumes/Disc/1Pictures/Flashcard/friend (female).jpg
 10,9aac4225-b196-4628-9bc7-3081d696f8ab,1,good,/Volumes/Disc/1Pictures/Flashcard/good.jpg
 6,e256cab4-b83b-4e22-b1b4-8d22d4e6cc90,1,goodbye!,/Volumes/Disc/1Pictures/Flashcard/goodbye.jpg
 11,ff52905c-4936-455f-8ff1-a9af266fced6,1,good morning!,/Volumes/Disc/1Pictures/Flashcard/good morning.jpg
+1510,bb5b7bf1-fc40-4cb9-a9c0-110ed655ec03,21,We'll meet next Monday!,/Volumes/Disc/1Pictures/Flashcard/next.jpg
+1765,dbb219b8-fa87-45e4-819a-7c709e72995f,21,He has prepared a good meal.,/Volumes/Disc/1Pictures/Flashcard/good.jpg
 13,aca2aca8-b25f-41ed-8466-b4e78398866f,1,"still, again, yet","/Volumes/Disc/1Pictures/Flashcard/still, again, yet.jpg"
+1595,db94c010-5688-407e-8511-4ae2055269f0,21,What's your address?,/Volumes/Disc/1Pictures/Flashcard/address.jpg
+2823,c9225ecc-468d-4ea3-a9ef-79bdead98cdd,21,My friend (m) has a baby but I don't know his age.,/Volumes/Disc/1Pictures/Flashcard/baby.jpg
+2819,897046b2-5c83-460d-8f76-858443f02390,21,There is one adult in the orchestra.,/Volumes/Disc/1Pictures/Flashcard/adult.jpg
+1801,7b54fb40-560a-450a-a912-cd3146a11380,21,She also looked back over her shoulder.,"/Volumes/Disc/1Pictures/Flashcard/above, over.jpg"
+1843,2bdb15ca-797e-462c-b083-a35708d3bead,21,Here is a magnificent jewel.,/Volumes/Disc/1Pictures/Flashcard/here is.jpg
+2818,394904e4-14ef-49cb-8df7-65da9da592f3,21,My male friend is still an adolescent.,/Volumes/Disc/1Pictures/Flashcard/adolescent.jpg
+2505,e780d464-b063-4ca2-9184-26ae6d8a2728,21,Do you want some chocolate?,/Volumes/Disc/1Pictures/Flashcard/chocolate.jpg
+2710,9a20ae17-2cdc-4ea8-a2b4-abb9e55a5f68,21,"It's dark (night), switch on the light, please!",/Volumes/Disc/1Pictures/Flashcard/light.jpg
+2520,869ff384-9194-46dd-a2f0-2cd763adb251,21,All this food looks very appetising!,/Volumes/Disc/1Pictures/Flashcard/food (sustenance).jpg
 2313,41155bad-7d4a-4357-8faf-7af37ae66db1,2,inside (2),/Volumes/Disc/1Pictures/Flashcard/inside.jpg
 219,37b01e10-4ce9-4bd4-a4a2-17360ad73a95,1,wet,/Volumes/Disc/1Pictures/Flashcard/wet.jpg
+2984,8d330996-446c-466d-9ce1-e95027ae7738,21,"Can we have the bill, please?",/Volumes/Disc/1Pictures/Flashcard/bill (in a cafe).jpg
+2983,8fa9124c-18d8-42bf-b29b-e1d8d6b089c6,21,I prefer steak medium-cooked,/Volumes/Disc/1Pictures/Flashcard/medium (cooking of steak).jpg
+2994,7a18217b-5f3d-4113-b75e-c8e6ab37e70c,21,We could enter by the back door.,/Volumes/Disc/1Pictures/Flashcard/enter.jpg
+2523,adcfc1f3-30e9-4d61-a845-7f041e646187,21,"For breakfast, I have a coffee with cereal and a glass of orange juice",/Volumes/Disc/1Pictures/Flashcard/breakfast.jpg
+2597,79e8e344-2e7a-432a-aff0-b7541a37e8d2,21,He has stomach pains.,/Volumes/Disc/1Pictures/Flashcard/have stomach pains.jpg
+2599,7a973972-8920-4db8-9139-130f53c5734c,21,He always has a headache after playing video games.,/Volumes/Disc/1Pictures/Flashcard/have a headache.jpg
+2600,cc4520fd-2022-4498-a39c-893ab5499ff0,21,"He feels sick, I think he's going to vomit …",/Volumes/Disc/1Pictures/Flashcard/feel sick.jpg
+2601,f29003c4-3867-4145-8a80-a62d58580d39,21,I coughed so much that I have a sore back.,/Volumes/Disc/1Pictures/Flashcard/have a sore back.jpg
+2602,2196d6c0-c9ec-41e2-b92b-57ad05a7ef20,21,"Stop eating sweets, you will get a toothache!",/Volumes/Disc/1Pictures/Flashcard/have a toothache.jpg
+2643,dcfb6d64-85d5-4715-9177-03fe91a6b14e,21,Can I borrow your toothpaste to put on my toothbrush?,/Volumes/Disc/1Pictures/Flashcard/toothbrush.jpg
+2731,38ca5755-df16-45ee-a138-0e721929d03d,21,I have a new microwave oven and it's very practical!,/Volumes/Disc/1Pictures/Flashcard/microwave oven.jpg
+3126,e3052572-8dd0-4947-a352-fa1cf4c7ce3c,21,And on the left is a new building.,/Volumes/Disc/1Pictures/Flashcard/building.jpg
+3137,9c347f83-8421-4afd-bf83-56ff79989c79,21,"Where is the police station, please?",/Volumes/Disc/1Pictures/Flashcard/police station.jpg
+2936,fc1aa080-336d-4c7e-b073-a09d84098321,21,Nelson Mandela - that is someone everyone knows!,/Volumes/Disc/1Pictures/Flashcard/know (a person or place).jpg
+2928,9be6cd4c-731a-4e13-a331-cab50c56d786,21,I love the snow but I prefer the sun!,"/Volumes/Disc/1Pictures/Flashcard/love ,v.jpg"
+2960,bdf3bcd3-9312-4066-b0b9-d02ea27643be,21,It's a boring movie.,/Volumes/Disc/1Pictures/Flashcard/boring.jpg
+3193,5ec2eae0-81bd-40ad-becc-d223a500abe5,21,He spends a lot of time playing video games.,/Volumes/Disc/1Pictures/Flashcard/spend (time).jpg
+2450,7d5e48f9-1c29-4b7a-9f54-63c3508857fd,21,The world is crazy!,/Volumes/Disc/1Pictures/Flashcard/world.jpg
 833,11a24d0b-a5c7-4979-97b5-df24b3f0fa66,1,guide (m/f),/Volumes/Disc/1Pictures/Flashcard/guide.jpg
+1570,0090e22b-e344-4ca5-ac9e-d11b6c89afdd,21,To fly off the handle.,/Volumes/Disc/1Pictures/Flashcard/fly.jpg
 976,a7673acb-feab-49cc-a019-1ae495ac1bf0,1,never,/Volumes/Disc/1Pictures/Flashcard/never.jpg
+2964,f7497b7f-5926-43ab-9754-d01127d4b4d7,21,This cheese is really fatty!,/Volumes/Disc/1Pictures/Flashcard/fat.jpg
 970,c480e5fa-0467-4ea1-97f1-b5613443cc1b,1,equal,/Volumes/Disc/1Pictures/Flashcard/equal.jpg
+2396,4a8b3778-ff70-47b0-b0ef-66aecf872d58,21,I live on a farm on the coast of a small island.,/Volumes/Disc/1Pictures/Flashcard/coast.jpg
 997,788ef750-183f-48d9-a281-ccb3058e4510,1,forest,/Volumes/Disc/1Pictures/Flashcard/forest.jpg
+2751,86a1b728-d2d8-45da-a04c-1d9e22cb6143,21,Where is he? At the bar?,/Volumes/Disc/1Pictures/Flashcard/bar.jpg
 2342,7e52a8d8-91b8-48e9-8ede-b8e88b6f8fe9,2,police station (3),/Volumes/Disc/1Pictures/Flashcard/police station.jpg
-532,5b4902c3-8df4-44ab-9857-f6a69eb485ee,1,"to love, adore",/Volumes/Disc/1Pictures/Flashcard/love.jpg
+532,5b4902c3-8df4-44ab-9857-f6a69eb485ee,1,"to love, adore","/Volumes/Disc/1Pictures/Flashcard/love ,v.jpg"
+3014,8c174d59-75e7-4d81-9630-d066a5b8114f,21,I have one hour of plastic art this afternoon.,/Volumes/Disc/1Pictures/Flashcard/art.jpg
 516,14fbbd10-8867-40c1-9dcb-f7d0d7cd305e,1,the (masculine),/Volumes/Disc/1Pictures/Flashcard/the (masculine).jpg
 27,569826d8-8095-407a-a40a-a9e16abbcd33,1,here is,/Volumes/Disc/1Pictures/Flashcard/here is.jpg
 35,2325e54e-4ca2-4987-b45d-72f890236629,1,birthday,/Volumes/Disc/1Pictures/Flashcard/birthday.jpg
@@ -447,13 +639,15 @@ refn,uuid,course,english,source_path
 303,8964029f-a419-4214-80d9-6eb71a397804,1,now,/Volumes/Disc/1Pictures/Flashcard/now.jpg
 2768,ed69c2bd-1fd7-49c8-9d24-7ac2551feda0,2,of course (2),/Volumes/Disc/1Pictures/Flashcard/of course.jpg
 927,79af07f9-971d-42dc-81fe-d49869a55aab,1,to be bored,/Volumes/Disc/1Pictures/Flashcard/be bored.jpg
-965,40f9d920-8dca-4263-bea3-6c9f3caaf124,1,at least,/Volumes/Disc/1Pictures/Flashcard/at least.jpg
+941,90c6bf37-dfbf-4203-825c-3c8aba26d541,1,timetable (em…),/Volumes/Disc/1Pictures/Flashcard/timetable (1).jpg
 518,cde71f5e-1d94-4754-a29f-4bff1fdda9b3,1,same,/Volumes/Disc/1Pictures/Flashcard/same.jpg
 478,4ad0c39e-eeab-48bd-bd0f-98996b2d2f55,1,different,/Volumes/Disc/1Pictures/Flashcard/different.jpg
+965,40f9d920-8dca-4263-bea3-6c9f3caaf124,1,at least,/Volumes/Disc/1Pictures/Flashcard/at least.jpg
 951,07d06d93-f930-4cd8-b7e5-9dbd2770e823,1,correct (fair),/Volumes/Disc/1Pictures/Flashcard/correct (fair).jpg
 517,75a55632-7285-4f08-b224-85ebf141052a,1,their,/Volumes/Disc/1Pictures/Flashcard/their.jpg
 505,4af42e6c-f919-447c-a61f-cc1ba417dfa2,1,thing,/Volumes/Disc/1Pictures/Flashcard/thing.jpg
 612,736a57e8-02c3-45ae-9fb1-3b87314c80d2,1,first name,/Volumes/Disc/1Pictures/Flashcard/first name.jpg
+615,02ec5206-8851-4e11-b226-99e6cf7f6390,1,to sign,/Volumes/Disc/1Pictures/Flashcard/sign.jpg
 685,5ebebcf4-ff2c-432e-a030-f652c80701b9,1,engine,/Volumes/Disc/1Pictures/Flashcard/engine.jpg
 972,84583604-0263-4f76-b31b-87db9411a557,1,shape,/Volumes/Disc/1Pictures/Flashcard/shape.jpg
 727,122f2913-6e62-4f31-9eea-1b125d5ba9ee,1,to hate,/Volumes/Disc/1Pictures/Flashcard/hate.jpg
@@ -468,15 +662,12 @@ refn,uuid,course,english,source_path
 921,2463480e-5a1d-416a-a55b-3952f63aa271,1,death,/Volumes/Disc/1Pictures/Flashcard/death.jpg
 948,9484dea5-faf5-4e08-a000-a1b563bc8ce7,1,example,/Volumes/Disc/1Pictures/Flashcard/example.jpg
 958,9598dbc4-ff12-4fd7-ae95-485328417a03,1,classroom,/Volumes/Disc/1Pictures/Flashcard/classroom.jpg
-964,36b1e2c7-9be3-4f98-b6f3-7cc0d70218a0,1,enough,/Volumes/Disc/1Pictures/Flashcard/enough.jpg
 981,f0fb3ff1-e360-4177-9ae0-7c67f64db326,1,except,/Volumes/Disc/1Pictures/Flashcard/except.jpg
-986,b825c34e-9f2f-4cac-ac9d-78d69a9e7c73,1,wood,/Volumes/Disc/1Pictures/Flashcard/wood.jpg
 1001,8a2f72e7-7013-40d9-918a-edd7f4a0c9b5,1,lake,/Volumes/Disc/1Pictures/Flashcard/lake.jpg
-1035,e1a15f45-e3c2-4b32-92e3-7e0037cf613c,1,sport,/Volumes/Disc/1Pictures/Flashcard/sport.jpg
 117,68474e30-6ec9-47dc-8aa5-1ce4894a8ef0,1,south,/Volumes/Disc/1Pictures/Flashcard/south.jpg
+1035,e1a15f45-e3c2-4b32-92e3-7e0037cf613c,1,sport,/Volumes/Disc/1Pictures/Flashcard/sport.jpg
 98,58170fe8-14b5-4366-8eb3-87c07411af30,1,in,/Volumes/Disc/1Pictures/Flashcard/in.jpg
 194,23bef237-3819-43d4-b133-8070dc7d2cd7,1,minute,/Volumes/Disc/1Pictures/Flashcard/minute.jpg
-232,23824241-72ae-4bc8-93fb-b4b296c8aefa,1,to look (ill),/Volumes/Disc/1Pictures/Flashcard/look (ill).jpg
 248,1d906dd5-b917-4b21-9553-4650a4a88c81,1,"sick, ill","/Volumes/Disc/1Pictures/Flashcard/sick, ill.jpg"
 299,c059592f-582b-4386-bbd1-c621ddd62ead,1,here,/Volumes/Disc/1Pictures/Flashcard/here.jpg
 257,c3c9aa07-5496-46f9-9624-5209f1b51cb1,1,to cough,/Volumes/Disc/1Pictures/Flashcard/cough.jpg
@@ -486,6 +677,7 @@ refn,uuid,course,english,source_path
 309,a16c3ec4-cac7-4f15-907b-7770dee6d953,1,yes,/Volumes/Disc/1Pictures/Flashcard/yes.jpg
 310,06bd5fca-3c1f-44e3-adf9-a6735242c432,1,(the) most,/Volumes/Disc/1Pictures/Flashcard/most.jpg
 327,1c0f1429-a47b-422b-a457-b3fe2f8bb285,1,wife,/Volumes/Disc/1Pictures/Flashcard/wife.jpg
+330,6783876a-a7f3-47a9-b6d6-01c705249ad4,1,"woman, wife","/Volumes/Disc/1Pictures/Flashcard/wife, woman.jpg"
 416,512ac2e5-0b8e-4566-a5e7-29ab5d74c44d,1,vegetable,/Volumes/Disc/1Pictures/Flashcard/vegetable.jpg
 430,ee4c3eb7-8f1d-455a-aff1-bd19d7cda4ca,1,blond,/Volumes/Disc/1Pictures/Flashcard/blond.jpg
 302,8c7a1a32-4589-46de-8dda-19a8c2fe6d3f,1,my (f),/Volumes/Disc/1Pictures/Flashcard/my (f).jpg
@@ -497,12 +689,14 @@ refn,uuid,course,english,source_path
 697,d2398598-bf4e-4cf2-9438-011ac3869e8a,1,to choose,/Volumes/Disc/1Pictures/Flashcard/choose.jpg
 677,7af83044-a8a4-49f5-9a57-bafb60b34a62,1,to drive,/Volumes/Disc/1Pictures/Flashcard/drive.jpg
 747,9a73bd30-eff0-4c80-aa49-bb257cd0e269,1,jacket (bomber),/Volumes/Disc/1Pictures/Flashcard/jacket (bomber).jpg
-2205,74328d58-304f-4a7a-8944-fdf8d6b05a49,2,to tell (e.g. a story),/Volumes/Disc/1Pictures/Flashcard/tell.jpg
+1857,afdbb4f1-23e7-4df2-828b-2e534607ddbb,21,There aren't any spectators,"/Volumes/Disc/1Pictures/Flashcard/any, not any, no.jpg"
+688,6f5c7a71-bd91-4f1e-9b56-ef08fed425e2,1,to stop,"/Volumes/Disc/1Pictures/Flashcard/stop ,v.jpg"
 2192,ca861bfd-ba8c-4fa8-a4a7-423f413ef6b6,2,map (of town),/Volumes/Disc/1Pictures/Flashcard/map.jpg
 2783,e2513980-0819-4c7f-a389-e3995d44c7d5,2,jacket,/Volumes/Disc/1Pictures/Flashcard/jacket (bomber).jpg
 1620,bbbff51c-1bdf-4e82-9b0c-bccd607c2f81,2,quiet (tranquil),/Volumes/Disc/1Pictures/Flashcard/quiet (calm).jpg
 1660,e0f17c54-a78a-43e6-b454-7808128735af,2,hello! (on the telephone),/Volumes/Disc/1Pictures/Flashcard/hello!.jpg
 1747,cc621682-5819-4da0-88da-f9216a684fb3,2,phone call (2),/Volumes/Disc/1Pictures/Flashcard/phone call.jpg
+3400,146c92ec-e2c8-471b-9ded-94f7fe38d92e,22,The chauffeur overtook a taxi.,/Volumes/Disc/1Pictures/Flashcard/driver.jpg
 211,c7e404ee-8b6a-4595-b9ab-c4d269bcd9d4,1,normally,/Volumes/Disc/1Pictures/Flashcard/normally.jpg
 281,0f887272-e5ea-425d-a52b-7fb56f865889,1,gravy,/Volumes/Disc/1Pictures/Flashcard/gravy.jpg
 301,d23b21f4-2dfe-44b5-946f-139217e895eb,1,I,/Volumes/Disc/1Pictures/Flashcard/I.jpg
@@ -521,6 +715,7 @@ refn,uuid,course,english,source_path
 792,968b7cd0-277c-40d6-8b9b-ccbd7036749b,1,time,/Volumes/Disc/1Pictures/Flashcard/time.jpg
 786,cf9ab498-f8ba-4eeb-830e-5ccdffd87fd3,1,who?,/Volumes/Disc/1Pictures/Flashcard/who.jpg
 777,ec9a8e8f-8f00-4467-994e-28fa856de502,1,"us, we","/Volumes/Disc/1Pictures/Flashcard/us, we.jpg"
+788,53087f8b-1e85-448e-b7b6-8d8d369ae2c3,1,what?,"/Volumes/Disc/1Pictures/Flashcard/what ,q.jpg"
 875,8b7b9750-1af3-4ccf-b380-df3aaded5375,1,delighted,/Volumes/Disc/1Pictures/Flashcard/delighted.jpg
 590,18477cd6-e794-4bf7-9a0d-708be58e2f46,1,"cashpoint, till","/Volumes/Disc/1Pictures/Flashcard/cashpoint, till.jpg"
 761,59b16649-11c4-4d51-bc9f-89a01c6cb71a,1,pocket,/Volumes/Disc/1Pictures/Flashcard/pocket.jpg
@@ -530,66 +725,240 @@ refn,uuid,course,english,source_path
 243,9949b4b7-967c-4954-acaa-bd030470553d,1,pain,/Volumes/Disc/1Pictures/Flashcard/pain.jpg
 604,2b7cd735-31e4-46c6-8d6d-9a9545ad94db,1,change (money),/Volumes/Disc/1Pictures/Flashcard/change (money).jpg
 691,853d6624-edb4-402e-b045-2e08dc962bd1,1,purchase,/Volumes/Disc/1Pictures/Flashcard/purchase.jpg
+1777,46dc7553-4eeb-4f80-abd7-53eb6cf5ac38,21,I have a female friend who plays guitar and also the saxophone.,/Volumes/Disc/1Pictures/Flashcard/and.jpg
+1796,2da1d751-2384-4656-ad2d-c6282691f7fa,21,She wants to go through the window when the policeman has gone.,"/Volumes/Disc/1Pictures/Flashcard/through, by.jpg"
+1822,f1588b52-cb0d-4945-83d1-042c0666cd3e,21,She is still trying to learn guitar but it is not a good idea.,"/Volumes/Disc/1Pictures/Flashcard/still, always.jpg"
 99,e397da6a-89fe-41bd-8844-37d1a179f491,1,"below, downstairs","/Volumes/Disc/1Pictures/Flashcard/below, downstairs.jpg"
+3280,2c281aef-d3f7-409b-b235-9a441f0a4231,21,"As far as I can remember, it wasn't that far, was it?",/Volumes/Disc/1Pictures/Flashcard/far.jpg
+1797,394e2041-c1f1-493e-8135-bf1e64622906,21,Take the stairs because the lift is out of order!,/Volumes/Disc/1Pictures/Flashcard/because.jpg
 42,feb2e086-147a-4a6f-88e9-90239fcfe144,1,angry,/Volumes/Disc/1Pictures/Flashcard/angry.jpg
 85,e9ad9f26-da28-4640-b930-b6e87281d651,1,door,/Volumes/Disc/1Pictures/Flashcard/door.jpg
+3094,669c2303-7865-4278-b969-640b35751ca1,21,Goodbye and see you soon!,/Volumes/Disc/1Pictures/Flashcard/soon.jpg
+3099,f558f441-d566-4b10-9f16-7ac0343c126e,21,It's already the end of the movie!,/Volumes/Disc/1Pictures/Flashcard/end.jpg
+3237,4641a57f-db77-41e9-bcd5-d8efb0f9a257,21,It's pleasant to have a swimming pool in his garden!,/Volumes/Disc/1Pictures/Flashcard/pleasant.jpg
 37,aa447756-bbf1-42e2-8ad6-dead17b0bc43,1,famous,/Volumes/Disc/1Pictures/Flashcard/famous.jpg
+2829,42d0cdc6-863a-4d24-a3ea-2694c57b79df,21,She is a little angry with her friend (f) because she is late.,/Volumes/Disc/1Pictures/Flashcard/angry.jpg
+2707,6a6f3097-1889-4502-8deb-d4a2af167613,21,Your clock is eight minutes slow.,/Volumes/Disc/1Pictures/Flashcard/clock.jpg
+3266,cb35de19-0060-4636-a6d9-537a2c185efe,21,"You have a garden behind the house, don't you?",/Volumes/Disc/1Pictures/Flashcard/behind.jpg
+2695,11b42088-d157-4da2-b147-e987cd04c5a8,21,Take a chair and sit down.,/Volumes/Disc/1Pictures/Flashcard/chair.jpg
+3095,3ade2f39-101d-456b-9d0c-2087c70430ea,21,Of course he hoovers… from time to time!,/Volumes/Disc/1Pictures/Flashcard/from time to time.jpg
+3100,a43a26a3-9fec-4413-90bc-d1b7b9569825,21,"You've asked me three times and it's still ""no""!","/Volumes/Disc/1Pictures/Flashcard/time, occasion.jpg"
+2820,e85c6da5-d5d8-45af-8585-a01b719d5df8,21,They are all the same age in my class.,/Volumes/Disc/1Pictures/Flashcard/age.jpg
+3262,2ff61f7c-374d-44f2-9a52-fe984fd7102b,21,I'm going to put a carpet beneath the armchair.,/Volumes/Disc/1Pictures/Flashcard/beneath.jpg
+3272,05f0b8b4-6307-48fb-bbb8-7be7504288ff,21,"Our swimming pool is surrounded by lawn, it's more comfortable (agreeable) for the feet!",/Volumes/Disc/1Pictures/Flashcard/surrounded by.jpg
+2500,3a935701-8e7d-46d9-800e-a0f98dbb0b83,21,"Pass me the butter, please!",/Volumes/Disc/1Pictures/Flashcard/butter.jpg
+2517,860aed3f-fc60-4d8c-921a-7cf2a32d85d6,21,"They also like chocolate ice-cream, and everything ""with chocolate""!",/Volumes/Disc/1Pictures/Flashcard/ice cream.jpg
+2524,4c02366c-486b-405d-aeef-b137b38d37e8,21,I have a meal each time I'm hungry.,/Volumes/Disc/1Pictures/Flashcard/meal.jpg
 102,6f2e9b55-7820-46d4-a551-584bc61c5678,1,between,/Volumes/Disc/1Pictures/Flashcard/between.jpg
+3288,800c638c-6b79-4e2f-a6e3-a6f703afeb9a,21,"French people call the South of France ""le Midi"".",/Volumes/Disc/1Pictures/Flashcard/south.jpg
+3091,ed7db8ba-90a9-4722-91e1-c082e994109e,21,At what time does the plane take off?,/Volumes/Disc/1Pictures/Flashcard/at what time.jpg
+3096,8c79cd6d-1d1e-4dc1-9d33-16e080ad5bb8,21,"Oh, the meal is ready already!",/Volumes/Disc/1Pictures/Flashcard/already.jpg
+3107,a90ac08f-d426-4957-9585-895638c2c1ad,21,"We'll pick you up in the morning, OK?",/Volumes/Disc/1Pictures/Flashcard/morning (period of time).jpg
+3270,ce91bef8-ee92-4484-b334-7d1e38837546,21,The hoover is below the stairs. /  The hoover is downstairs.,"/Volumes/Disc/1Pictures/Flashcard/below, downstairs.jpg"
+2497,2dc564d8-810e-47db-af2f-6d2646552c97,21,I'm hungry! Shall we (one) eat?,/Volumes/Disc/1Pictures/Flashcard/be hungry.jpg
+1786,3e01729e-b91e-4848-9212-caf9f6f79157,21,To be or not to be.,/Volumes/Disc/1Pictures/Flashcard/be.jpg
 83,0b2253d8-a5cf-4666-b713-1f6da82c75e4,1,lawn,/Volumes/Disc/1Pictures/Flashcard/lawn.jpg
+3279,2f0e90cf-c327-45e1-a250-6bf33e7499cd,21,We walked along the river and nobody was there.,/Volumes/Disc/1Pictures/Flashcard/along.jpg
+3284,7dcd83ae-5317-427d-aafa-21711c16d85f,21,"The beach? That way, I think!",/Volumes/Disc/1Pictures/Flashcard/that way.jpg
+3092,6e89b5d6-d62d-4bdd-8726-3bb4b792d71e,21,"We (one) cannot phone him at the present time, he's too busy!",/Volumes/Disc/1Pictures/Flashcard/at the present time.jpg
 60,42231c8a-9663-4e7f-ae58-70bca423c903,1,match,/Volumes/Disc/1Pictures/Flashcard/match.jpg
+3263,fe1b1111-f5bf-4e70-a0ca-818dd7dd23e9,21,And what if I were to plant roses around the garden?,/Volumes/Disc/1Pictures/Flashcard/around.jpg
+3268,4dbae1de-6220-44ee-9adb-db367ba30635,21,You have to turn right to go to my parents' house.,/Volumes/Disc/1Pictures/Flashcard/right.jpg
 209,1abdbc34-7f2f-46ea-a293-6855f8dc3fb5,1,hot,/Volumes/Disc/1Pictures/Flashcard/hot.jpg
+2720,ea03154b-3c24-4676-9525-dd6764db7eb1,21,It's a big room for a small wedding!,/Volumes/Disc/1Pictures/Flashcard/room (hall).jpg
+3264,d68ad705-311d-4180-90d4-96f3e04e8836,21,The balcony is on the other side of the house.,/Volumes/Disc/1Pictures/Flashcard/side.jpg
+3269,504165ab-c1b2-4db4-863a-32a8b1170388,21,I have a nice house in France.,/Volumes/Disc/1Pictures/Flashcard/in.jpg
+3290,3f3c9e74-ee1a-4ed8-97fd-0053b20edfcc,21,We'll move towards Bordeaux.,/Volumes/Disc/1Pictures/Flashcard/towards.jpg
+3285,08bbeadc-f8d5-4eee-b62d-9e006d556f29,21,"In Paris, there are famous people everywhere!",/Volumes/Disc/1Pictures/Flashcard/everywhere.jpg
+3093,1ae0576e-c865-4203-8f48-66f5883e57f6,21,Today I didn't have a breakfast and right now I'm hungry!,/Volumes/Disc/1Pictures/Flashcard/today.jpg
+3246,7e08d1c9-30d5-453d-ac14-6e353b09425e,21,Figure skating is practiced on ice!,/Volumes/Disc/1Pictures/Flashcard/ice.jpg
+2605,de05bff6-9ba7-43a1-bfb0-2dfd37cb1dfb,21,"You look ill, I'm going to call the doctor so that he'll give you some tablets.",/Volumes/Disc/1Pictures/Flashcard/tablet.jpg
+2498,b02054cb-c482-4d69-8669-72aeb06c6030,21,I'd like a French bread loaf,/Volumes/Disc/1Pictures/Flashcard/french bread loaf.jpg
+2511,f3b394c0-93d7-4d85-9be2-1c9cd862fbb9,21,"No, in fact I'd rather have a toasted cheese sandwich with ham.",/Volumes/Disc/1Pictures/Flashcard/toasted cheese sandwich with ham.jpg
+2522,6be20680-5246-4168-9f04-59268a78ecb6,21,Don't make bread crumbs everywhere and have good table manners!,/Volumes/Disc/1Pictures/Flashcard/bread.jpg
 197,ed53f1f6-1aaf-49e9-8718-3fe1101c4882,1,during,/Volumes/Disc/1Pictures/Flashcard/during.jpg
 215,e02dde2a-ead2-4160-83b9-ce650b895ed2,1,ice,/Volumes/Disc/1Pictures/Flashcard/ice.jpg
+2997,3cab7619-3a95-472e-b3e6-b7ac63796b6c,21,Is your fish fresh?,"/Volumes/Disc/1Pictures/Flashcard/cool, fresh.jpg"
+2788,63809572-eafc-4f90-90c2-1584b0277dc2,21,I'm sure a jubilee is fifty years.,/Volumes/Disc/1Pictures/Flashcard/fifty.jpg
+2637,c4afbb36-1157-4ed4-98fa-2c6470abea69,21,She coughed so much that she had a sore chest.,/Volumes/Disc/1Pictures/Flashcard/cough.jpg
+2990,99e7162e-1f8f-4c59-9ed3-7c1de8dabea0,21,Is the service included?,/Volumes/Disc/1Pictures/Flashcard/included (1).jpg
+2995,cbbaebbd-548d-434f-bd8f-5f4d834c75bd,21,"At Christmas, we (one) always eat snails.",/Volumes/Disc/1Pictures/Flashcard/snail.jpg
+1924,d63318ad-8520-4761-b80a-4ab1971d31ce,21,I have new central heating.,/Volumes/Disc/1Pictures/Flashcard/new.jpg
 348,7d053eef-953c-4ffc-a817-1d2ce829fe5b,1,aunt,/Volumes/Disc/1Pictures/Flashcard/aunt.jpg
 379,db93f533-b47f-4bf0-b548-85015c195271,1,bowl,/Volumes/Disc/1Pictures/Flashcard/bowl.jpg
 419,c4343d5b-2f3f-4021-9045-fd978c6dfe05,1,peach,/Volumes/Disc/1Pictures/Flashcard/peach.jpg
+3104,ffaca5e2-5c2d-4ca9-a793-dd122a2e7dfb,21,I've been patient until now but it's going to change!,/Volumes/Disc/1Pictures/Flashcard/until.jpg
+3003,22832577-d1ce-4b04-bc05-c3c41a27b254,21,It's pleasant to eat in a restaurant.,/Volumes/Disc/1Pictures/Flashcard/restaurant.jpg
+1898,8477fc28-370b-424c-838c-8aaecaa190d0,21,He is always hungry!,/Volumes/Disc/1Pictures/Flashcard/he.jpg
+3108,2f5ced15-be42-4570-b0a3-c31a0e8616b4,21,I have only five minutes left!,/Volumes/Disc/1Pictures/Flashcard/minute.jpg
+3113,038a7f48-23c8-42dd-bd2c-ba26bc3864c9,21,There are sixty seconds in one minute.,/Volumes/Disc/1Pictures/Flashcard/second.jpg
+3240,58b23dc7-c5f1-400b-9366-561030fb07b5,21,It's hot today.,/Volumes/Disc/1Pictures/Flashcard/hot.jpg
+3260,3d04dc3d-c87d-4494-813e-66d6fc41de5d,21,"There's a lot of wind, it's not very pleasant!",/Volumes/Disc/1Pictures/Flashcard/wind.jpg
+2987,57e84682-4131-4853-8707-41e5972eb5b4,21,We'd like a bottle of red wine,/Volumes/Disc/1Pictures/Flashcard/bottle.jpg
 279,2836e78a-7ebf-4a39-a8ec-372f80f829bb,1,to book,/Volumes/Disc/1Pictures/Flashcard/book.jpg
+3111,a52df9a8-d774-44a4-a4e5-bf3195813807,21,For a moment I thought you were being serious!,/Volumes/Disc/1Pictures/Flashcard/during.jpg
+3238,5d76def1-b275-4d8a-af79-385bad5f5cc6,21,It's common knowledge! There's a lot of fog in Great Britain!,/Volumes/Disc/1Pictures/Flashcard/fog.jpg
+3248,64d8efa0-59af-44f8-9147-c81992e2a5d6,21,"It is nice, we (one) are going to have a picnic!",/Volumes/Disc/1Pictures/Flashcard/it is nice.jpg
+2595,6dd57071-1f2d-4f73-80a8-7d7f7ec4ad15,21,He looks ill.,/Volumes/Disc/1Pictures/Flashcard/look (ill).jpg
+2607,fc01ccb8-133d-4653-a5e9-596d072a1dbc,21,She has poor health: she is always in pain!,/Volumes/Disc/1Pictures/Flashcard/pain.jpg
+2985,9cac7a08-128e-484d-92af-8d13cdd3374d,21,"Mmmm! It looks delicious, doesn't it?",/Volumes/Disc/1Pictures/Flashcard/delicious (appetising).jpg
 291,745f5c10-0b1c-4b68-b8de-c0fc1f63de03,1,"any, not any, no","/Volumes/Disc/1Pictures/Flashcard/any, not any, no.jpg"
+3117,f2a5f0e2-33d7-4476-9f5e-0b5d023e6748,21,"What time is it? One a.m. Oh, it's late!",/Volumes/Disc/1Pictures/Flashcard/late.jpg
+3239,e755a435-d300-4652-a782-328223686122,21,The sea is quiet and it's pleasant.,/Volumes/Disc/1Pictures/Flashcard/quiet (calm).jpg
+2608,98d15615-f36b-4628-b732-446eab243041,21,I have a cold but I'm in good shape!,/Volumes/Disc/1Pictures/Flashcard/in good shape.jpg
+2900,b73aea61-3185-41fc-9bac-df289e4977cd,21,And here is my younger sister!,"/Volumes/Disc/1Pictures/Flashcard/younger, youngest.jpg"
+2910,70e330d8-3307-4fc7-90fe-a41621b8948b,21,My grandmother is seventy years old.,/Volumes/Disc/1Pictures/Flashcard/grandmother.jpg
+2737,b6900b8e-6571-4d29-b30e-15dbc876928a,21,After eating my children clean the table.,/Volumes/Disc/1Pictures/Flashcard/clean.jpg
+2638,9ff0b67b-ee47-4cea-b867-c625cb99cdc3,21,I have a such a toothache that it makes me shiver.,/Volumes/Disc/1Pictures/Flashcard/shiver.jpg
+1699,2c5a5f4d-be65-488e-a8d4-199134d7ca33,21,In this family,/Volumes/Disc/1Pictures/Flashcard/blond.jpg
+2898,1302c9c2-6408-4e27-8c8b-0dce07ec57d1,21,My brother-in-law is also my neighbour.,/Volumes/Disc/1Pictures/Flashcard/brother in law.jpg
+2923,ca1096d7-329e-4269-96a0-e0f51caa5b87,21,They often see their grandchildren.,/Volumes/Disc/1Pictures/Flashcard/grandchildren.jpg
+2902,6b76479f-db92-40af-a439-a8dd948e8e60,21,My cousin is the younger one.,/Volumes/Disc/1Pictures/Flashcard/cousin.jpg
+2907,6b48b554-2318-400f-b766-68e3ed93bfeb,21,"This is Mrs Dupond, Mr. Dupond's wife!","/Volumes/Disc/1Pictures/Flashcard/wife, woman.jpg"
 422,3c83ddcc-2c8d-4b3b-9388-f10928ff4da6,1,apple,/Volumes/Disc/1Pictures/Flashcard/apple.jpg
+2999,c2df7264-ea1a-48b2-8819-79e1af714cae,21,VAT is not included.,/Volumes/Disc/1Pictures/Flashcard/included (2).jpg
+2169,514156f5-6c86-4e1a-87b5-2f27aa561f29,21,She is the one who has decorated the bathroom.,/Volumes/Disc/1Pictures/Flashcard/who (whom).jpg
+1918,72aded3f-9d5a-415b-8b8e-6d6d6c516cfa,21,"No, I don't agree!",/Volumes/Disc/1Pictures/Flashcard/no.jpg
 337,1302aed0-ad77-4105-b4f1-f365349b99d7,1,husband,/Volumes/Disc/1Pictures/Flashcard/husband.jpg
 373,9ca5b2c6-cd14-4727-af25-b4a1dfa32666,1,spring,/Volumes/Disc/1Pictures/Flashcard/spring.jpg
 340,6626b386-6ace-4885-9f89-24d6194194f7,1,nephew,/Volumes/Disc/1Pictures/Flashcard/nephew.jpg
 350,65528e2a-0fad-4737-9883-cdce8281d409,1,year,/Volumes/Disc/1Pictures/Flashcard/year.jpg
+3149,52f25282-d3ca-4e8e-8b67-37fb17c2527f,21,There's a lot of traffic in this town!,/Volumes/Disc/1Pictures/Flashcard/town-city.jpg
 483,9b1c6ca5-c1a8-4156-93a4-ff16529b06a3,1,easy,/Volumes/Disc/1Pictures/Flashcard/easy.jpg
+2232,b8d454f4-79b9-459c-b585-4c3dfdfe6880,21,My birthday is in the autumn.,/Volumes/Disc/1Pictures/Flashcard/autumn.jpg
+2544,485118fa-95f0-4c55-b858-fc98da307571,21,The orange juice is in the fridge!,/Volumes/Disc/1Pictures/Flashcard/orange.jpg
 424,d1ced830-4cdb-4443-9def-7f2c4dced716,1,grape,/Volumes/Disc/1Pictures/Flashcard/grape.jpg
 460,b67cbd84-89cc-4eb8-9c49-3c1f9a1ea8be,1,police station,/Volumes/Disc/1Pictures/Flashcard/police station.jpg
+1453,29593959-c80a-4f99-9d81-5250b458d4dd,21,It's important to eat fruit and vegetables.,/Volumes/Disc/1Pictures/Flashcard/important.jpg
+2901,e2263088-094d-427a-b0c4-f6786fc90b14,21,He is still single because he works too much.,/Volumes/Disc/1Pictures/Flashcard/single (not married).jpg
+2911,b5988453-1035-4d85-8a8e-0e86ef4575e9,21,My grandfather only eats soup.,/Volumes/Disc/1Pictures/Flashcard/grandfather.jpg
+2916,184fd265-c6f4-4ec8-9d36-dd63a4584020,21,My grandmother would have liked to have been born later.,/Volumes/Disc/1Pictures/Flashcard/be born.jpg
+2926,2939c7e2-76d9-414a-a080-fd88eadd7c25,21,"In my family, we (one) all live together!",/Volumes/Disc/1Pictures/Flashcard/live.jpg
 417,5ccf65c8-3447-4b93-9720-b7f9233b9e96,1,onion,/Volumes/Disc/1Pictures/Flashcard/onion.jpg
+2556,6983fdf4-a5a7-42a8-9a52-7536343e4cf8,21,I've planted tomatoes in the garden and they are growing!,/Volumes/Disc/1Pictures/Flashcard/tomato.jpg
+1706,2d026fb3-2bcc-40d1-b4c1-373a2541ad20,21,She has every colour in the kitchen.,/Volumes/Disc/1Pictures/Flashcard/colour.jpg
+3124,fa188234-3f9d-4ff2-a343-4034b5fdb614,21,Have you ever seen the Champs Elysées Avenue?,/Volumes/Disc/1Pictures/Flashcard/avenue.jpg
+1403,7ba84020-2e27-47bc-b8a8-858fa3288623,21,This pink building is awful!,/Volumes/Disc/1Pictures/Flashcard/awful.jpg
+2723,4ba2f402-a1ff-4a7b-9c2e-cfee7211f6f1,21,Be careful! The milk is heating up in the saucepan!,/Volumes/Disc/1Pictures/Flashcard/saucepan.jpg
+2531,dbc9b614-d71c-48e2-903a-34609a522f9b,21,Eating carrots gives nice cheeks!,/Volumes/Disc/1Pictures/Flashcard/carrot.jpg
+2848,109c75d2-6191-4157-9c26-7cdc36d6e154,21,He took his wife in his arms.,/Volumes/Disc/1Pictures/Flashcard/arm.jpg
+2543,31fc1140-d67d-49de-b62d-ce651194518d,21,Enjoy your meal! I wish you liked onions!,/Volumes/Disc/1Pictures/Flashcard/onion.jpg
+1468,20d59939-760f-402c-aa62-03e88e6b938e,21,We are free to do what we want!,/Volumes/Disc/1Pictures/Flashcard/free.jpg
+1498,62a1fcec-2e69-468a-89d7-5ae25022f427,21,"Eat snails? Yes, it's possible!",/Volumes/Disc/1Pictures/Flashcard/possible.jpg
 564,89c53a21-02c5-4a80-93fc-d5f892e77fee,1,drink,/Volumes/Disc/1Pictures/Flashcard/drink.jpg
+3161,b70edc73-4048-48fc-bb5d-affec5046f93,21,I'm going to validate my ticket and show it to the driver.,/Volumes/Disc/1Pictures/Flashcard/validate - to date stamp a ticket.jpg
 403,5d9d6e82-af89-401d-9e0f-dfd8080ba1b2,1,banana,/Volumes/Disc/1Pictures/Flashcard/banana.jpg
+2550,0acfa339-0050-408c-a4d2-3a4386bfc2c7,21,"Peel the potatoes, I'm going to cook French fries!",/Volumes/Disc/1Pictures/Flashcard/potato.jpg
+2001,28c7d7ad-e89f-4c54-af32-11e70ee89bbe,21,Be careful! It's a dangerous place!,"/Volumes/Disc/1Pictures/Flashcard/spot, place.jpg"
+2935,3d24969c-b7c6-4c5e-b552-bb0f1556d813,21,I don't always understand him!,/Volumes/Disc/1Pictures/Flashcard/understand.jpg
+2560,edcb2522-bfe5-4ed7-82d3-ed4b62b68547,21,"Can I have a glass of water, please, I'm thirsty!",/Volumes/Disc/1Pictures/Flashcard/be thirsty.jpg
+2530,ed79bb7f-3914-41d4-acfd-78e433b34bc9,21,"I bought beetroot yesterday, we're (one) eating them this evening!",/Volumes/Disc/1Pictures/Flashcard/beetroot.jpg
+2540,7de8ffa7-865d-47ba-9d7a-9892448100e9,21,Do you want a fruit for dessert?,/Volumes/Disc/1Pictures/Flashcard/fruit.jpg
 461,68deaef8-ebd2-44f2-a7c4-01e387b68d9d,1,inhabitant,/Volumes/Disc/1Pictures/Flashcard/inhabitant.jpg
 556,cd2967d2-592e-4e2c-95ea-4d456c6ec359,1,to go out,/Volumes/Disc/1Pictures/Flashcard/go out.jpg
+3122,13d61fd5-ebcc-4553-8b95-574de5c91ff9,21,Walk along the path to go in the garden.,"/Volumes/Disc/1Pictures/Flashcard/lane, path.jpg"
+3148,c292b74d-1d88-43d4-8e9b-9a892ea5a7b9,21,In this village,/Volumes/Disc/1Pictures/Flashcard/village.jpg
+2005,2dab342a-9382-4b9f-af10-5dc5653de784,21,You are one hour late!,/Volumes/Disc/1Pictures/Flashcard/hour.jpg
+2016,e5b133fb-4e6f-40dd-a4b3-7a36a9ebbc1c,21,Here is the dessert!,/Volumes/Disc/1Pictures/Flashcard/the (masculine).jpg
+2947,e69036f6-2513-44eb-bcc6-6e5fcc2d8bce,21,The phone's ringing! Answer it please! It might be my brother.,/Volumes/Disc/1Pictures/Flashcard/answer.jpg
+1415,1040969f-b0e3-4a4a-8d8c-b63017d7bcb6,21,The clouds are low but it's not going to rain.,"/Volumes/Disc/1Pictures/Flashcard/low, small.jpg"
+1437,84a20d8f-5ba8-4400-afd0-510a2b6b65d0,21,The oven is hard to open.,/Volumes/Disc/1Pictures/Flashcard/hard.jpg
+2019,505b5d9f-9858-4565-a20f-e8a5bac7e809,21,They all arrived at the same time.,/Volumes/Disc/1Pictures/Flashcard/same.jpg
+2571,56a491d7-b1ac-487b-a7d7-73966dae4c92,21,During the holidays we (one) eat a lot of shellfish by the sea.,/Volumes/Disc/1Pictures/Flashcard/shellfish.jpg
+1597,01ae7019-1258-4804-8ad3-231747f47d57,21,I'm going to the bank tomorrow morning.,/Volumes/Disc/1Pictures/Flashcard/bank.jpg
+3066,1551f345-4d2b-4b82-bb51-7822675d2218,21,I don't think I'll buy a lot of things.,/Volumes/Disc/1Pictures/Flashcard/buy.jpg
+3071,288dadbc-0e19-41c3-8e38-44e3ff6de582,21,"I choose, and I'd rather go to the market than shops!",/Volumes/Disc/1Pictures/Flashcard/choose.jpg
+1486,c9521863-d03d-4fc2-ab62-da323f5af808,21,My luggage is too heavy to carry.,"/Volumes/Disc/1Pictures/Flashcard/heavy, sultry.jpg"
+1524,493284f2-e37e-47ef-90db-f0590ae401d4,21,"It was busy and now, there's nobody: it's empty!",/Volumes/Disc/1Pictures/Flashcard/empty.jpg
 586,adbdece7-643e-40ec-bf0d-3b68653c644d,1,wine,/Volumes/Disc/1Pictures/Flashcard/wine.jpg
+2871,b1fd3f1e-224e-4b05-a2ba-591ddb6e50dd,21,He was elegant from head to foot.,/Volumes/Disc/1Pictures/Flashcard/foot.jpg
+3168,ef0808f1-02ed-4f1e-8801-c01d6935000f,21,I think it's better to park in the car park because it's dangerous to stop on the main road.,"/Volumes/Disc/1Pictures/Flashcard/park ,v.jpg"
+2015,c3adeb9b-c9b3-4185-a0ac-a7e58a1af051,21,Slow down! We (one) are passing in front of the police station! (f),/Volumes/Disc/1Pictures/Flashcard/the (feminine).jpg
+2561,14615169-a16c-4f86-b4c8-053589a3b339,21,What do you have in the way of beers?,/Volumes/Disc/1Pictures/Flashcard/beer.jpg
+2567,d7f3b5d7-1365-417c-9cdb-2717cd67f55e,21,"I broke the cork, it stayed in the bottle!",/Volumes/Disc/1Pictures/Flashcard/cork.jpg
+2584,fec7af71-8682-43f9-892b-eb0c1720b416,21,Do you have some bread for the salami-type sausage?,/Volumes/Disc/1Pictures/Flashcard/salami-type sausage.jpg
 650,b18cf417-6886-40ae-98b4-dd0f6433d619,1,cheek,/Volumes/Disc/1Pictures/Flashcard/cheek.jpg
 538,37b5584d-268e-4b0d-9608-f4004163d6f5,1,kiss on cheek,/Volumes/Disc/1Pictures/Flashcard/kiss on cheek.jpg
+1622,7d783881-40ec-410a-baa2-747e28d65db5,21,What is the address of your place of residence?,"/Volumes/Disc/1Pictures/Flashcard/home, place of residence.jpg"
+1631,145d78e5-4127-4024-802f-459b2ebda089,21,"Sorry, I don't have change.",/Volumes/Disc/1Pictures/Flashcard/change (money).jpg
 617,79366657-fe82-432a-980d-99902e8bbff1,1,bath (tub),/Volumes/Disc/1Pictures/Flashcard/bath (tub).jpg
+2859,75c5eb38-22e5-4d14-a801-7ead380d4abb,21,Mother and daughter have the same face.,/Volumes/Disc/1Pictures/Flashcard/face (appearance).jpg
+686,eb1dd7b4-1222-49c1-9df3-e9ee5137cac4,1,"lorry, truck (heavy)","/Volumes/Disc/1Pictures/Flashcard/lorry, truck (2).jpg"
+2938,315e08b4-a816-4726-84ee-b975e4a71c99,21,"Listen to the noise of the clock, something is not normal!",/Volumes/Disc/1Pictures/Flashcard/listen.jpg
 680,d07da6d1-717c-4696-b498-9177c6febdd8,1,to brake,/Volumes/Disc/1Pictures/Flashcard/brake.jpg
 732,4db47bd8-ff3c-464f-adfb-6edcb579334e,1,"to let, to leave",/Volumes/Disc/1Pictures/Flashcard/let-to leave.jpg
+2562,3367f2d4-be14-49d8-8727-4c3a1e593009,21,After pre-dinner drinks I'm going to have a good steak with mushrooms!,/Volumes/Disc/1Pictures/Flashcard/steak (2).jpg
+2575,257631c0-8b5e-42d7-95a1-0bc07212d491,21,My father loves seafood!,/Volumes/Disc/1Pictures/Flashcard/seafood.jpg
 603,3c93d897-8c41-49f2-8002-2dbf7969f1af,1,counter window,/Volumes/Disc/1Pictures/Flashcard/counter window.jpg
+3176,73e0aa7b-f08e-4fe3-8dde-94d394670296,21,You can put your car in our garage if you want.,/Volumes/Disc/1Pictures/Flashcard/car.jpg
 781,4b60fb28-c7d8-4071-8fa3-763c8e413b9f,1,why?,/Volumes/Disc/1Pictures/Flashcard/why.jpg
-962,60b6be85-e5aa-48e3-a79a-4d055a4c1352,1,absolutely,/Volumes/Disc/1Pictures/Flashcard/absolutely.jpg
+1628,b0a2513c-36e3-4d95-b97a-72ee1869060c,21,"I need your name, first name and nationality to fill in this form",/Volumes/Disc/1Pictures/Flashcard/form.jpg
+2847,5e4a4b0c-b48a-4fbb-a095-28bec958174e,21,The rose's thorns prick her mouth.,/Volumes/Disc/1Pictures/Flashcard/mouth.jpg
+3225,80b835b0-f06e-4f90-962f-9a94cb159cef,21,I'm going to put the table in the garden this summer.,/Volumes/Disc/1Pictures/Flashcard/put.jpg
+2121,94585a00-fc2d-4a93-b09a-53f204b4be30,21,He'll do everything to be happy!,/Volumes/Disc/1Pictures/Flashcard/happy.jpg
+2868,9afdb700-e7b2-454f-9e69-fc6ba2b374ab,21,This man has a blue eye and a green eye.,/Volumes/Disc/1Pictures/Flashcard/eye.jpg
+3081,f11bc795-7d88-49b8-be5a-2bc27a10228d,21,This morning,/Volumes/Disc/1Pictures/Flashcard/market.jpg
+2122,74a9c15d-72a6-4da7-b3db-705c58790bd5,21,My parents told them not to come and I will finish my homework before seeing them.,/Volumes/Disc/1Pictures/Flashcard/them.jpg
+2465,d8bd7741-fb48-4fdc-b725-accac6fb4b04,21,I want to go to the beach!,/Volumes/Disc/1Pictures/Flashcard/want (to do something).jpg
+2489,1df93347-0a5d-430c-9606-abaaa6a6f86c,21,Good evening! Delighted to meet you!,/Volumes/Disc/1Pictures/Flashcard/delighted.jpg
+2975,d846d27f-aef2-4108-9178-9e9f466e9906,21,"Oh, poor little thing! Stop crying, it's not serious!",/Volumes/Disc/1Pictures/Flashcard/poor.jpg
+3156,86b7353d-7992-41ae-8a3a-a772008b441b,21,I would like a single ticket for tonight's show at Paris Theatre.,"/Volumes/Disc/1Pictures/Flashcard/one-way ticket, single ticket.jpg"
+2669,57eb2c14-92ba-48b5-8275-ac31ce51f13b,21,Every morning I wake up at 7 (o'clock) and it's tiring!,/Volumes/Disc/1Pictures/Flashcard/tiring.jpg
+2492,cab7f463-3265-4a85-8a1a-52ced89149fa,21,I'm willing to go to Germany for the holidays.,"/Volumes/Disc/1Pictures/Flashcard/I would like to, Im willing to.jpg"
 904,bf6e4346-8d03-4565-8ebd-312f78d378f8,1,"silly, stupid","/Volumes/Disc/1Pictures/Flashcard/silly, stupid.jpg"
 909,fdbcc0ea-6be8-47d7-9e9a-5e7e0413be25,1,boring,/Volumes/Disc/1Pictures/Flashcard/boring.jpg
+2378,3f099294-adc9-4122-8f0e-ab8f61aae091,21,There's a good atmosphere this evening!,/Volumes/Disc/1Pictures/Flashcard/atmosphere.jpg
+3084,3559ad40-88c1-4f7f-a1de-dd5db8df0c4f,21,I should have taken a basket instead of this small bag!,/Volumes/Disc/1Pictures/Flashcard/basket.jpg
 763,409d7fd1-b9a2-428d-8804-7b8674171dbb,1,pullover,/Volumes/Disc/1Pictures/Flashcard/pullover.jpg
+2165,b6070c74-13c5-4b15-99c7-3aed485556fd,21,What time is it? We (one) are late and I don't know which jeans to wear!,"/Volumes/Disc/1Pictures/Flashcard/what, which.jpg"
+3026,af636d5e-04e5-4c37-8372-c35c2dca2b58,21,The classrooms are small and there are many students.,/Volumes/Disc/1Pictures/Flashcard/student.jpg
+703,6015ba7f-dbde-4aa2-9e7c-d19636690c09,1,"correct, exact",/Volumes/Disc/1Pictures/Flashcard/correct (accurate).jpg
+3013,a2db93d7-05a1-43cb-af39-422b8e23cdad,21,My son learns many new words at primary school.,/Volumes/Disc/1Pictures/Flashcard/learn.jpg
+3025,8927a02d-4122-4daa-8877-3cc67e743a9c,21,I've made a mistake but I don't have a rubber…,"/Volumes/Disc/1Pictures/Flashcard/mistake, error.jpg"
 979,f6fc2226-7148-468e-8538-af6e4de6dcc1,1,neither,/Volumes/Disc/1Pictures/Flashcard/neither.jpg
+3082,d8d112c8-7048-4f6b-ba1e-2df63c133395,21,"Can you show me your new products, please?",/Volumes/Disc/1Pictures/Flashcard/show.jpg
+3216,0ac23588-912b-4b21-afec-732ec33c02f7,21,I hate drawing!,/Volumes/Disc/1Pictures/Flashcard/draw.jpg
+2882,7e8591d7-832b-4a7f-9de9-0021cc05df42,21,Why have you put on a green skirt with a red blouse?,/Volumes/Disc/1Pictures/Flashcard/blouse.jpg
+2178,f9b164cd-b5b2-49a7-a1ff-f6d471079cab,21,"If she's not here within twenty minutes, I'm leaving without her.",/Volumes/Disc/1Pictures/Flashcard/without.jpg
+3183,d3d6ac7e-f630-47a0-9b7b-087b86d8b63f,21,I always take a map when I leave for abroad.,/Volumes/Disc/1Pictures/Flashcard/map.jpg
+1546,42190337-e3d9-470b-b775-ccd3242dc2e1,21,To have a cat (frog) in one's throat.,/Volumes/Disc/1Pictures/Flashcard/cat.jpg
 770,6726aa85-f8c6-45de-90b2-5f8acacc7511,1,to go,/Volumes/Disc/1Pictures/Flashcard/go.jpg
 821,5effed79-1327-4a08-9ec2-3335df0e105b,1,to wake up,/Volumes/Disc/1Pictures/Flashcard/wake up.jpg
+2979,b7f46dfb-0a91-44c6-8895-90fc713c721e,21,Do you remember Paul?,/Volumes/Disc/1Pictures/Flashcard/to remember (2).jpg
 960,6dc87c97-1a91-4e5b-8ed3-92e93f5c0f8e,1,pen,/Volumes/Disc/1Pictures/Flashcard/pen.jpg
+3051,986abfd5-55da-4c36-8cf8-4e5284469c38,21,Equal work,/Volumes/Disc/1Pictures/Flashcard/equal.jpg
+2876,da0d5d30-feff-418f-ba6a-f1a21b2f6d91,21,"When it's really cold I wear warm clothes: jeans, T-shirt",/Volumes/Disc/1Pictures/Flashcard/jacket (bomber).jpg
+2666,75aa4b7b-ca25-41e2-8a43-1219f704156f,21,If you feel sleepy go to sleep!,/Volumes/Disc/1Pictures/Flashcard/sleep.jpg
 902,20036f61-cad1-40bf-a751-bb90f512446c,1,in haste,/Volumes/Disc/1Pictures/Flashcard/in haste.jpg
 937,005c864d-cbc5-42d3-bdc5-ab90705552ff,1,pencil,/Volumes/Disc/1Pictures/Flashcard/pencil.jpg
+3063,b4bd267c-f33e-46ae-9683-a708b9dde599,21,She is completely right.,/Volumes/Disc/1Pictures/Flashcard/completely (all done).jpg
+790,000217c3-8030-464e-8035-66371e49374f,1,to know (facts),/Volumes/Disc/1Pictures/Flashcard/know (facts).jpg
+2667,2d0c77b7-f46b-4cd9-b0b1-428b40e9d869,21,Change your bed sheets!,/Volumes/Disc/1Pictures/Flashcard/sheet.jpg
+2491,15ae4c9b-ef48-471d-9db0-ff60640ae4f2,21,Good luck! I don't know what's going to happen!,/Volumes/Disc/1Pictures/Flashcard/I dont know.jpg
 926,bce721b8-486e-4169-b132-8b9aa8174bab,1,to cry,/Volumes/Disc/1Pictures/Flashcard/cry.jpg
-1018,6cd8e623-d5e7-4837-bbda-4c86a0dd4ce4,1,"bar, pub",/Volumes/Disc/1Pictures/Flashcard/bar-pub.jpg
+2478,d8d1d787-c6e3-41a6-83ab-ad0b19ae57a2,21,Good evening! How are you doing?,/Volumes/Disc/1Pictures/Flashcard/good evening.jpg
+2664,d57c6c5e-5a1c-4300-a2e3-5c8f74db453e,21,I'm warm with this blanket!,/Volumes/Disc/1Pictures/Flashcard/blanket.jpg
+2690,94e9e541-56ea-4aa1-af47-148ee99bcf8c,21,I have no drawer in my wardrobe.,/Volumes/Disc/1Pictures/Flashcard/drawer.jpg
 924,7328a8d2-3d9a-4f18-a879-10be418ff329,1,poor,/Volumes/Disc/1Pictures/Flashcard/poor.jpg
-978,e4838f62-9bcf-4ffc-9863-5eec0f13ed17,1,nothing,/Volumes/Disc/1Pictures/Flashcard/nothing.jpg
-990,c3e37404-2654-4c7a-a3f1-e0d0a4aaf76e,1,hill,/Volumes/Disc/1Pictures/Flashcard/hill.jpg
+1018,6cd8e623-d5e7-4837-bbda-4c86a0dd4ce4,1,"bar, pub",/Volumes/Disc/1Pictures/Flashcard/bar-pub.jpg
+2448,73c6c6e1-fe31-4ae1-9ff6-2cbae7fc95ed,21,The moon is reflected in the sea.,/Volumes/Disc/1Pictures/Flashcard/moon.jpg
+2760,00cb1e77-b4d9-46d3-b951-461f5d6b3255,21,He isn't interested in sport except when a player scores a goal!,/Volumes/Disc/1Pictures/Flashcard/goal.jpg
+1841,9c932833-03f6-470d-8d97-3df2146a92ca,21,I have a little money to buy myself a good guitar.,/Volumes/Disc/1Pictures/Flashcard/a little.jpg
+3165,60742c63-128e-4e85-b050-688c3da6755e,21,Where is the service station? I need petrol.,"/Volumes/Disc/1Pictures/Flashcard/petrol, gasoline.jpg"
 996,b83d0274-358b-4367-83d4-c7958da372d0,1,river,/Volumes/Disc/1Pictures/Flashcard/river.jpg
+3189,20a074d7-8755-4893-a105-d3529f042701,21,You swim slowly!,/Volumes/Disc/1Pictures/Flashcard/slowly.jpg
+2774,e48f7ea5-af0b-40c1-85d6-57a26c7c4b2f,21,My hobbies? Reading novels; going for walks in the countryside.,/Volumes/Disc/1Pictures/Flashcard/hobby.jpg
+40,f23cba5d-d542-47bf-ac54-35d46c1364dc,1,child (m/f),/Volumes/Disc/1Pictures/Flashcard/child.jpg
+4027,93982da6-74a4-41a3-b22d-6d5c8705529c,22,There was a lot of snow.,/Volumes/Disc/1Pictures/Flashcard/snow.jpg
 2148,c208b1b4-55a9-4044-b0fc-873944a881e6,2,Italy,/Volumes/Disc/1Pictures/Flashcard/Italy.jpg
 887,5085c0ca-bf14-4bb9-b7b5-63545fa8d6d6,1,cat,/Volumes/Disc/1Pictures/Flashcard/cat.jpg
 807,e06d57c5-2c6b-4010-90a0-6876c45f679a,1,tiring,/Volumes/Disc/1Pictures/Flashcard/tiring.jpg
-984,4ff91c85-c4bc-406f-a952-84abde5c2ee8,1,atmosphere,/Volumes/Disc/1Pictures/Flashcard/atmosphere.jpg
 832,3b74ffe6-9ab8-451a-a758-5745a44b4ded,1,"overseas, abroad","/Volumes/Disc/1Pictures/Flashcard/overseas, abroad.jpg"
 930,f8dffbdf-55af-4feb-82d5-cf0f1cfa4dbd,1,suddenly,/Volumes/Disc/1Pictures/Flashcard/suddenly.jpg
+950,f98c241b-4e6e-495f-89e0-8d0b2b327683,1,timetable (ho…),/Volumes/Disc/1Pictures/Flashcard/timetable (2).jpg
 80,5311a42f-88a1-4754-b0cf-9e4d2c2ab638,1,furniture,/Volumes/Disc/1Pictures/Flashcard/furniture.jpg
 82,6c89e442-8502-46f5-96a1-28c925667d62,1,painting (picture),/Volumes/Disc/1Pictures/Flashcard/painting (picture).jpg
+84,90aa4ab0-dab4-437a-8bc9-b18267e77ad9,1,room (p…),/Volumes/Disc/1Pictures/Flashcard/room (piece).jpg
 908,f7ddd0ab-b421-4505-9dc5-90b5f33c517f,1,angry  (in anger),/Volumes/Disc/1Pictures/Flashcard/angry  (in anger).jpg
 841,d50f2532-34fb-4814-8658-31f835a1fd4e,1,photo,/Volumes/Disc/1Pictures/Flashcard/photo.jpg
 897,ca5b6c41-72af-4f70-a006-f84e06aada2c,1,bird,/Volumes/Disc/1Pictures/Flashcard/bird.jpg
@@ -600,14 +969,16 @@ refn,uuid,course,english,source_path
 149,2c2a32a8-f5d7-4bcd-96ac-992d443e7de3,1,fifty,/Volumes/Disc/1Pictures/Flashcard/fifty.jpg
 916,b796de85-c6bf-454c-b586-1032b790fcaa,1,"light, slight","/Volumes/Disc/1Pictures/Flashcard/light, slight.jpg"
 920,8ac56910-a7fc-447d-aaef-f22044da7f9d,1,to lie,/Volumes/Disc/1Pictures/Flashcard/lie.jpg
+1982,466a8e5b-0bf4-47a3-9c15-1e1d30429a27,21,It's very cold outside!,/Volumes/Disc/1Pictures/Flashcard/very.jpg
 246,0fbe33f9-48ec-4b7d-96ef-e866af47a763,1,flu,/Volumes/Disc/1Pictures/Flashcard/flu.jpg
 208,309c0056-702f-4e23-9e79-5d39dfb9b0d8,1,quiet (calm),/Volumes/Disc/1Pictures/Flashcard/quiet (calm).jpg
-222,cd01046f-816b-465d-b79a-e3e979888c71,1,to rain,/Volumes/Disc/1Pictures/Flashcard/rain.jpg
+222,cd01046f-816b-465d-b79a-e3e979888c71,1,to rain,"/Volumes/Disc/1Pictures/Flashcard/rain ,v.jpg"
 553,c889e866-f98e-48dd-95f1-dce3e42c46d1,1,to laugh,/Volumes/Disc/1Pictures/Flashcard/laugh.jpg
 324,ca7ed7b8-f065-4313-8901-b04975259de8,1,single (not married),/Volumes/Disc/1Pictures/Flashcard/single (not married).jpg
 342,8a0d50f1-648f-4e24-ab1c-3beb7ead453d,1,uncle,/Volumes/Disc/1Pictures/Flashcard/uncle.jpg
 687,5e60024a-c105-430e-850b-8d9579b5cc9e,1,platform,/Volumes/Disc/1Pictures/Flashcard/platform.jpg
 332,ef391628-e613-4d17-9c21-fcffb6bfecdf,1,brother,/Volumes/Disc/1Pictures/Flashcard/brother.jpg
+1999,bc07b71d-922d-4ca5-a9e0-d9f91d6bb95a,21,My mother? She's there!,/Volumes/Disc/1Pictures/Flashcard/she.jpg
 411,12851b02-166c-4f8c-bca7-f79cf9ebb33b,1,"raw vegetables, salads","/Volumes/Disc/1Pictures/Flashcard/raw vegetables, salads.jpg"
 414,a4c1b61b-8e7d-4cd9-8d98-d1ef5ed715f5,1,fruit,/Volumes/Disc/1Pictures/Flashcard/fruit.jpg
 413,a1b532a3-111d-413c-a732-443ea40a09d2,1,"chips, french fries","/Volumes/Disc/1Pictures/Flashcard/chips, french fries.jpg"
@@ -617,9 +988,9 @@ refn,uuid,course,english,source_path
 493,669711ef-fc69-43ad-aa8b-c538d6c6e5f4,1,small,/Volumes/Disc/1Pictures/Flashcard/small.jpg
 514,e9f7e78c-16c4-4544-aabe-e98254328caa,1,they (m),/Volumes/Disc/1Pictures/Flashcard/they (m).jpg
 952,4dfd21dc-b2a4-4dda-9239-02fdb1e55f24,1,lesson,/Volumes/Disc/1Pictures/Flashcard/lesson.jpg
-537,97dc44fc-5124-48d7-9572-8bcb08bc3cb8,1,to be present at,/Volumes/Disc/1Pictures/Flashcard/be present at.jpg
 546,3a274f0f-2712-4394-b3a5-036d6a6f74f6,1,to play,/Volumes/Disc/1Pictures/Flashcard/play.jpg
 549,5fc2282e-53eb-41d6-819e-79764d2581ca,1,to introduce,/Volumes/Disc/1Pictures/Flashcard/introduce.jpg
+1567,d7d77642-ebd6-4d88-90e6-99497749918d,21,Insects are odd creatures.,/Volumes/Disc/1Pictures/Flashcard/insect.jpg
 566,4f971f52-b9a8-4d49-991c-c14c58a0a277,1,coffee,/Volumes/Disc/1Pictures/Flashcard/coffee.jpg
 565,98a1adb1-f156-4374-b8e0-e64d8a1a3df6,1,cork,/Volumes/Disc/1Pictures/Flashcard/cork.jpg
 594,f849c5e3-10c0-41e8-92ad-0807b4e4643d,1,commission,/Volumes/Disc/1Pictures/Flashcard/commission.jpg
@@ -633,8 +1004,10 @@ refn,uuid,course,english,source_path
 796,2e37b800-8fdd-49c3-af6e-d0d68330ddb6,1,to see,/Volumes/Disc/1Pictures/Flashcard/see.jpg
 803,e1228131-1144-47bd-8586-b7006c05feec,1,chest of drawers,/Volumes/Disc/1Pictures/Flashcard/chest of drawers.jpg
 823,3f67d7eb-4814-47ad-b33b-24b8588bda9a,1,airport,/Volumes/Disc/1Pictures/Flashcard/airport.jpg
+1421,dc5a8563-08c2-4780-8903-569e0d3594be,21,Bordeaux is a beautiful town.,/Volumes/Disc/1Pictures/Flashcard/beautiful.jpg
 829,8dc862f8-15f8-4807-a55f-32d00bc6e98f,1,map,/Volumes/Disc/1Pictures/Flashcard/map.jpg
 834,53cb6ad5-0015-4c60-b30b-383703cda2db,1,hotel,/Volumes/Disc/1Pictures/Flashcard/hotel.jpg
+839,18923cb4-6156-4a46-b8a7-83bd74990d01,1,to spend (time),/Volumes/Disc/1Pictures/Flashcard/spend (time).jpg
 840,f41fbba1-0a5a-45ba-b3ee-7bd1b18701dd,1,film (for camera),/Volumes/Disc/1Pictures/Flashcard/film (for camera).jpg
 860,2174ea3b-8f07-4780-b6fa-e709f4247071,1,to be frightened,/Volumes/Disc/1Pictures/Flashcard/be frightened.jpg
 966,71362572-1ad2-45e3-92d5-ee110ae009c4,1,"end, piece, scrap","/Volumes/Disc/1Pictures/Flashcard/end, piece, scrap.jpg"
@@ -642,77 +1015,413 @@ refn,uuid,course,english,source_path
 938,9685dc7c-2bbb-4216-ad69-f5049b8b6111,1,homework,/Volumes/Disc/1Pictures/Flashcard/homework.jpg
 949,367f3d36-8cbd-41cc-9965-82297eebb392,1,"rubber, eraser","/Volumes/Disc/1Pictures/Flashcard/rubber, eraser.jpg"
 1004,bc8c3abd-43ee-4754-9f1e-4e993df78243,1,world,/Volumes/Disc/1Pictures/Flashcard/world.jpg
+1017,c3cfcb57-ae90-40af-8a41-bb26e1c3413b,1,basketball,/Volumes/Disc/1Pictures/Flashcard/basketball.jpg
 1016,aa079f46-5c71-4524-92cf-cad9f69b4297,1,bar,/Volumes/Disc/1Pictures/Flashcard/bar.jpg
 1014,f72e2f38-1da7-4df8-9d70-d72977b1b845,1,"ball, bullet","/Volumes/Disc/1Pictures/Flashcard/ball, bullet.jpg"
-1017,c3cfcb57-ae90-40af-8a41-bb26e1c3413b,1,basketball,/Volumes/Disc/1Pictures/Flashcard/basketball.jpg
-1023,47078e04-a9d0-4755-b999-99b8776ed178,1,team,/Volumes/Disc/1Pictures/Flashcard/team.jpg
-1038,8bb5f67d-411b-4507-a3eb-32389fc3c693,1,bicycle,/Volumes/Disc/1Pictures/Flashcard/bicycle.jpg
 1170,185c7db5-efe4-46d9-acd4-7362138a7f06,1,beautiful,/Volumes/Disc/1Pictures/Flashcard/beautiful.jpg
+3223,44f0d7dd-808a-4646-95f2-fa9afb5dd039,21,Throw me the balloon!,/Volumes/Disc/1Pictures/Flashcard/to throw (launch).jpg
+1531,46caafe2-aef3-4edd-b02c-9eeec356bb92,21,He is as sweet as a lamb!,/Volumes/Disc/1Pictures/Flashcard/lamb.jpg
+2460,6175aee3-414c-4b1f-8481-1257dbd74c59,21,Good bye! See you soon!,/Volumes/Disc/1Pictures/Flashcard/see you soon!.jpg
+1609,2239ab5c-c8f5-46b7-a1f8-0f1fc998a37d,21,I have a new current account.,/Volumes/Disc/1Pictures/Flashcard/account.jpg
+1629,0b7f490e-ccd2-4030-97a9-5bc7a404ab8f,21,Ask at the counter window number twelve.,/Volumes/Disc/1Pictures/Flashcard/counter window.jpg
+1616,3fe93c41-8616-4f09-b12b-732c945d27f1,21,"I've counted, I don't have enough.",/Volumes/Disc/1Pictures/Flashcard/count.jpg
+1763,a021e396-d494-4bcd-a68d-7ed73882fbc5,21,Before leaving say goodbye to your friends. (m),/Volumes/Disc/1Pictures/Flashcard/before.jpg
+1795,67112658-3024-4b4e-9089-b9c03df3d89d,21,When our friend (m) comes,/Volumes/Disc/1Pictures/Flashcard/our.jpg
+2027,66b5d0bb-e513-4e87-9801-d21bdf83ac46,21,It's up to me to choose!,/Volumes/Disc/1Pictures/Flashcard/me.jpg
+2191,2ba1dcaa-41ca-4833-a593-8c1b3375b8db,21,He is always using a ruse.,/Volumes/Disc/1Pictures/Flashcard/to use (1).jpg
+2189,591190ef-91fb-4396-8736-1d7603a3f411,21,I'm going to tell them where to find a good car.,/Volumes/Disc/1Pictures/Flashcard/find.jpg
+2201,60b55c3d-c4e6-46e5-bdcd-f75d899ebfc2,21,"You should see this movie, it's excellent!",/Volumes/Disc/1Pictures/Flashcard/see.jpg
+2335,46a3d664-fbbc-4c98-a8d2-42cc9a868298,21,"In spring, we (one) start eating ice creams!",/Volumes/Disc/1Pictures/Flashcard/spring.jpg
+2428,078f97e2-f286-40aa-a2d2-b82c7b48ffcd,21,"We can't see the stars, there are too many clouds!",/Volumes/Disc/1Pictures/Flashcard/star (sky).jpg
+2388,4f13e64f-c233-4ff9-b956-ff1385f54727,21,The restaurant is in a corner,/Volumes/Disc/1Pictures/Flashcard/tree.jpg
+2434,ffc5fd9a-397a-40c7-8471-015dce0247ee,21,Be careful of the flowers there!,/Volumes/Disc/1Pictures/Flashcard/flower.jpg
+2484,67082187-0bbd-4c17-b9ca-c4221521b59e,21,That's enough children!,/Volumes/Disc/1Pictures/Flashcard/thats enough.jpg
+2477,f92ecae4-8619-4f95-9618-f998b61f10aa,21,Good luck for your exams!,/Volumes/Disc/1Pictures/Flashcard/good luck!.jpg
+2475,53fa8177-bebb-48e8-9083-9de648cefdf4,21,Welcome to France!,/Volumes/Disc/1Pictures/Flashcard/welcome.jpg
+2512,99d6c20b-ce86-400a-940d-ee503e7457d8,21,"It's midday, it's lunch time. Come on (to the table)!",/Volumes/Disc/1Pictures/Flashcard/lunch.jpg
+2508,8c5cb860-bc27-4fea-b27b-475c74a360b7,21,Do you prefer salty or sweet pancakes?,/Volumes/Disc/1Pictures/Flashcard/pancake.jpg
+2529,553721ea-a80c-4693-91f3-528adc25dbfe,21,"No, I prefer banana cordial!",/Volumes/Disc/1Pictures/Flashcard/banana.jpg
+2532,5d7f2f0f-1e80-4e55-ba6c-aa59448907a8,21,Cherries are expensive in spring!,/Volumes/Disc/1Pictures/Flashcard/cherry.jpg
+2535,09baa38d-e2d5-44f0-916b-c3e4cec51bdd,21,Cauliflower is part of the cabbage family.,/Volumes/Disc/1Pictures/Flashcard/cauliflower.jpg
+2541,2b6dddfd-435b-49ac-b718-e8a0d5541f1a,21,Is there lettuce in the raw vegetables?,/Volumes/Disc/1Pictures/Flashcard/lettuce.jpg
+2551,02f883e7-e742-4109-bcc9-9ccde57ab3ab,21,"I've made grape jam, do you want a taste?",/Volumes/Disc/1Pictures/Flashcard/grape.jpg
+2552,1a8c65d8-7309-44d0-90c5-f38bd4557aef,21,Rice is a bit heavy with fries!,/Volumes/Disc/1Pictures/Flashcard/rice.jpg
+2574,a5e368c0-0308-41f2-b74d-c057deccce33,21,"If the water in the swimming pool is good, I'm going to have a swim!",/Volumes/Disc/1Pictures/Flashcard/water.jpg
+2580,d0dd4bb4-d9b2-46bb-8b66-7dc503c9de3a,21,There are many fish in the canal!,/Volumes/Disc/1Pictures/Flashcard/fish.jpg
+2579,57842f68-a78d-47a4-81e7-bad4749071ee,21,Yesterday I was so warm that I drank a lemonade.,/Volumes/Disc/1Pictures/Flashcard/lemonade.jpg
+2583,6f5daecd-9b8b-41f6-a4c3-d5ca5ea42f89,21,I've taken sausages for the picnic.,/Volumes/Disc/1Pictures/Flashcard/sausage.jpg
+2629,69dc8d10-ca7b-4fef-a8da-8ba8fe727694,21,You cough because you smoke and you'll end up having a serious illness!,/Volumes/Disc/1Pictures/Flashcard/illness.jpg
+2591,b0bacc6c-ffde-4a10-8034-7b7cd2914ad6,21,I'd like white wine with the fish.,/Volumes/Disc/1Pictures/Flashcard/wine.jpg
+2613,f8382fc6-2ae1-4da4-b49d-915bc3bc00c7,21,I've caught the flu yesterday.,/Volumes/Disc/1Pictures/Flashcard/flu.jpg
+2635,f9e07c57-e4d3-43f2-afaa-4ecbb26a110d,21,Ouch! I've hurt myself!,/Volumes/Disc/1Pictures/Flashcard/hurt oneself.jpg
+2650,a8bc4f9b-6225-4251-a02e-3bfe0cbf329d,21,Don't forget your comb!,/Volumes/Disc/1Pictures/Flashcard/comb.jpg
+2598,01f8aa86-75fb-4b01-86a5-efd9b45b9a49,21,She has an earache in the left ear.,/Volumes/Disc/1Pictures/Flashcard/have an earache.jpg
+2640,22837278-0f1e-4d6e-b3b7-fbd978449f62,21,If you want to have a bath,/Volumes/Disc/1Pictures/Flashcard/bath (tub).jpg
 605,8c9572d6-526f-4853-a8cd-4f708d3dcde4,1,nationality,/Volumes/Disc/1Pictures/Flashcard/nationality.jpg
+2660,99316dae-4a06-4fef-9891-6cbf3dee7ec1,21,This brush should be in the bathroom!,/Volumes/Disc/1Pictures/Flashcard/brush.jpg
+2647,79482346-f05c-449f-afc3-50526653bea9,21,I can lend you my make-up if you want!,/Volumes/Disc/1Pictures/Flashcard/make-up.jpg
+2654,d64b4b69-8b84-47b0-b258-15928c045da7,21,I love getting washed in the  bath but sometimes I forget to take a towel.,/Volumes/Disc/1Pictures/Flashcard/get washed.jpg
+3043,91943fbd-a6ec-42e8-8faf-e241372a4290,21,It's absolutely necessary that you see it!,/Volumes/Disc/1Pictures/Flashcard/absolutely.jpg
+2662,8a0d1346-929a-4c86-b212-f07a2af57221,21,Can you change the light bulb?,"/Volumes/Disc/1Pictures/Flashcard/change ,v.jpg"
+2958,047a7971-6059-4232-8577-667a7791f7c0,21,"Be careful, danger!",/Volumes/Disc/1Pictures/Flashcard/danger.jpg
+3036,fc007a3f-2d70-4860-a450-1495ded0a3f3,21,"He arrived, had a coffee and then he left, without saying a word!",/Volumes/Disc/1Pictures/Flashcard/word.jpg
+3047,632bafab-5c83-4375-b856-82e5fac95cea,21,Do you want a piece of cake?,"/Volumes/Disc/1Pictures/Flashcard/end, piece, scrap.jpg"
+2730,fab12bb7-aec1-44e0-a602-cde821c94ae4,21,Put your bowl and saucepan in the sink!,/Volumes/Disc/1Pictures/Flashcard/sink.jpg
 598,ba9cfaed-056b-422a-be67-573afd218235,1,exchange rate,/Volumes/Disc/1Pictures/Flashcard/exchange rate.jpg
+3053,d1be2a26-ea8f-45c6-bb22-3b7c08c67c4e,21,Your house is starting to take shape.,/Volumes/Disc/1Pictures/Flashcard/shape.jpg
+3046,0a10248a-6cd4-404d-b163-62f6d593c127,21,She has at least three suitcases.,/Volumes/Disc/1Pictures/Flashcard/at least.jpg
+2684,ecfe86db-3242-49ae-878a-9ec3c86f11e5,21,He is too young to get dressed alone.,/Volumes/Disc/1Pictures/Flashcard/get dressed.jpg
+2671,6f7527b6-1efe-4e76-b5cc-b4539e445918,21,I have to change the light bulb of my lamp.,/Volumes/Disc/1Pictures/Flashcard/lamp.jpg
+2721,145752de-1de7-4a97-96e2-499909b30657,21,This carpet is full of dust!,"/Volumes/Disc/1Pictures/Flashcard/carpet (not fitted), rug.jpg"
 588,e76d568c-2215-49c9-b107-34ecb1f3c479,1,money,/Volumes/Disc/1Pictures/Flashcard/money.jpg
+2711,2d3153f1-48fc-4bc9-a9f2-22e06b67b0f1,21,Show me your new house!,/Volumes/Disc/1Pictures/Flashcard/house.jpg
+2716,43ed891f-f21c-4c50-b02b-6087b978f251,21,"I think this room will be the TV room, what do you think?",/Volumes/Disc/1Pictures/Flashcard/room (piece).jpg
+2713,5d15e6af-b558-435f-9ff3-cfbad8533ed2,21,The carpet doesn't suit the armchair.,/Volumes/Disc/1Pictures/Flashcard/carpet (fitted).jpg
 558,84fbbda8-3f3f-48b3-b718-66fb272d7c05,1,pre-dinner drinks,/Volumes/Disc/1Pictures/Flashcard/pre-dinner drinks.jpg
+2715,1bd9434f-ed3f-4303-b4b0-a182b39b916d,21,The lawn in your garden is splendid!,/Volumes/Disc/1Pictures/Flashcard/lawn.jpg
 988,c62545e0-e061-4ec3-a6c0-b392e7be0913,1,field,/Volumes/Disc/1Pictures/Flashcard/field.jpg
-1024,4c25c20d-2fdb-4f04-8ed7-97ca9736f7e2,1,game,/Volumes/Disc/1Pictures/Flashcard/game.jpg
+2735,e7fae0df-9b60-4560-b5b4-916483ae4066,21,We've had a dishwasher since August.,/Volumes/Disc/1Pictures/Flashcard/dishwasher.jpg
+2736,82a2b195-a86d-404e-a8aa-851c33fa58f6,21,We've been eating all evening!,/Volumes/Disc/1Pictures/Flashcard/eat.jpg
+2738,5497efb5-ae7a-47d6-bde8-9e7e972b6496,21,Where's the can opener?,/Volumes/Disc/1Pictures/Flashcard/can opener.jpg
+2756,467b6c08-33bc-45c9-aea0-ab1fe6a62f2a,21,"Come on! This evening, we'll (one) go to the cinema and then we'll have a drink at the pub!",/Volumes/Disc/1Pictures/Flashcard/bar-pub.jpg
+2779,f1aac075-41b5-4425-8565-c8c12d377fb7,21,He is really interested in Austria.,/Volumes/Disc/1Pictures/Flashcard/be interested in.jpg
+2750,680e5722-8376-4fbc-8f3e-2ea273e6dea9,21,Bring the basket-ball! This weekend we'll (one) make teams and have a good time!,/Volumes/Disc/1Pictures/Flashcard/ball.jpg
+2839,fb884785-82e0-4d9b-9957-b58e05662ff8,21,I'm looking,/Volumes/Disc/1Pictures/Flashcard/nobody.jpg
+2828,96771c47-89ed-4808-be4d-2aeffc1e961e,21,Since they were young,/Volumes/Disc/1Pictures/Flashcard/together.jpg
+2830,90d0fc96-4f0b-4e75-ac86-40bd2f257567,21,I have two children: here is my daughter.,"/Volumes/Disc/1Pictures/Flashcard/girl, daughter.jpg"
+2838,713fe44b-2a23-495b-96ae-69f83de7abfd,21,"Look, it is Mr Dupond!","/Volumes/Disc/1Pictures/Flashcard/Mister, Sir.jpg"
+2849,2122dd0f-384f-43e8-ae08-ebb1f2914a71,21,They lose their hair.,/Volumes/Disc/1Pictures/Flashcard/hair.jpg
+2870,de90b6f3-5d42-494e-838e-483877212273,21,He broke the bone in his left leg.,/Volumes/Disc/1Pictures/Flashcard/bone.jpg
+2865,b616a145-09a4-4270-a74a-125531c37057,21,Adolescent boys start to grow a beard on their chin.,/Volumes/Disc/1Pictures/Flashcard/chin.jpg
+2861,9955ea38-105c-4643-ab2a-5f3e35c2336b,21,She broke her leg.,/Volumes/Disc/1Pictures/Flashcard/leg.jpg
+2863,a5c21ad2-8662-4a80-b5b2-00db0f596308,21,She always has chapped lips.,/Volumes/Disc/1Pictures/Flashcard/lip.jpg
+2891,8b08e3db-08e0-4c69-bc61-025fc33ae86f,21,My purse is in my pocket.,/Volumes/Disc/1Pictures/Flashcard/purse.jpg
+2890,c87cce0b-3917-458b-ab03-9f47111c81c0,21,He introduced himself (with) his hands in his pockets!,/Volumes/Disc/1Pictures/Flashcard/pocket.jpg
+2877,85ce75e2-6ced-4b81-be97-766c98d45611,21,My boots hurt my feet.,/Volumes/Disc/1Pictures/Flashcard/boot (shoe).jpg
+2899,da390bf7-70d9-4340-ac9d-d4c3c4a616a3,21,I'm his sister-in-law.,/Volumes/Disc/1Pictures/Flashcard/sister in law.jpg
+2915,e065b0b9-04ab-403c-9dee-04bb5562f792,21,My mother loves snow!,/Volumes/Disc/1Pictures/Flashcard/mother.jpg
+2908,7b4a9124-e3a2-4e18-9022-55f0c9b4dd88,21,His son is a pleasant and very polite child.,/Volumes/Disc/1Pictures/Flashcard/son.jpg
+2909,91137ab4-cde5-4dbb-8e3e-7cc4684b22e4,21,My brother is the older one.,/Volumes/Disc/1Pictures/Flashcard/brother.jpg
+2919,0a60ccc5-7b94-46fe-acbf-e43a5b9dcf1a,21,Hello Uncle! (term of endearment) - he's my uncle!,/Volumes/Disc/1Pictures/Flashcard/uncle.jpg
+2932,84cb056d-ea72-412a-b124-6a941f82b95b,21,I have to call the doctor almost every two weeks for my son.,/Volumes/Disc/1Pictures/Flashcard/call.jpg
+2941,e932ca1d-aedc-48be-846f-dc8114210dea,21,I'm going to invite your friends (m) to a barbecue!,/Volumes/Disc/1Pictures/Flashcard/invite.jpg
+2951,16d5f48b-4c58-443d-9dda-4483f8b4d9bc,21,We (one) met in a café and after we went through to the restaurant.,/Volumes/Disc/1Pictures/Flashcard/meet.jpg
+2944,c850cdc5-0463-4777-a259-feb6fbcfd31b,21,He loves to talk but he says nothing!,/Volumes/Disc/1Pictures/Flashcard/talk.jpg
+2965,8acbe723-0349-49e9-8e24-b5d205420466,21,"It's a serious disease, he's going to die.",/Volumes/Disc/1Pictures/Flashcard/serious.jpg
+2954,3f042c27-c7a4-415e-a539-d94bfbd45fa8,21,What brings you here?,/Volumes/Disc/1Pictures/Flashcard/bring (a person).jpg
+2978,404e53ef-0d0a-42ff-aadc-f34dbea20544,21,He is bored in Belgium.,/Volumes/Disc/1Pictures/Flashcard/be bored.jpg
+3000,beaeaa23-3cf6-4d52-bd11-a58d4a1723bb,21,"The bill, please!",/Volumes/Disc/1Pictures/Flashcard/bill (invoice).jpg
+3004,59196575-7679-4323-8b9f-9aa8023afed0,21,"This steak is dry, I'd like some gravy.",/Volumes/Disc/1Pictures/Flashcard/gravy.jpg
+3005,bd7821f5-50c9-4642-a99d-8b65c263a54f,21,Where are the salt and the pepper?,/Volumes/Disc/1Pictures/Flashcard/salt.jpg
+3001,e51962ab-5e9e-4d62-a2c4-6c546a566b7b,21,I like pepper because it's strong.,/Volumes/Disc/1Pictures/Flashcard/pepper.jpg
+3021,7c498ba4-2b6a-46aa-ab68-6e7950cca603,21,I didn't have time to write the timetable and the subjects we study.,/Volumes/Disc/1Pictures/Flashcard/write.jpg
+3031,8e96c773-6fa4-4988-84cd-9676f6c220ed,21,Where is the train timetable?,/Volumes/Disc/1Pictures/Flashcard/timetable (2).jpg
+3024,223b513b-9cd4-467d-8eed-5c7fdcc1bb6f,21,The test is finished! Put your pens down!,/Volumes/Disc/1Pictures/Flashcard/test.jpg
+3060,63a0f569-8686-46ca-8bc3-22a054f58d6e,21,I don't agree! - Me neither!,/Volumes/Disc/1Pictures/Flashcard/neither.jpg
+3087,32c5bdc5-988f-4562-bc0a-655ccb59d7e8,21,I'm going to take all that I want!,/Volumes/Disc/1Pictures/Flashcard/take.jpg
+3075,7e21bbd4-095b-4ab8-ba33-36804e8fa90d,21,"Hello, what do you want?",/Volumes/Disc/1Pictures/Flashcard/want.jpg
+3086,4a94a051-3dda-4da3-850c-d06243a9a974,21,"Wait, I'm going to pay! How much is it, please?",/Volumes/Disc/1Pictures/Flashcard/pay.jpg
+3083,33c25dd2-1b15-4126-a8db-b70c5900dd9e,21,Give me the corkscrew to open the bottle of white wine.,"/Volumes/Disc/1Pictures/Flashcard/open ,v.jpg"
+3109,85ee6520-b299-4d39-aceb-c5e3f799061d,21,One moment please!,/Volumes/Disc/1Pictures/Flashcard/moment.jpg
+3110,63706327-2773-4896-88b1-8ed723e5a8ae,21,He spends his nights and days sleeping.,/Volumes/Disc/1Pictures/Flashcard/night.jpg
+3169,d9d6261b-07fa-4b94-a8ee-8e46f3027b87,21,I've put oil in the engine of my car.,/Volumes/Disc/1Pictures/Flashcard/oil.jpg
+3123,6d581ca4-405b-4094-b146-e93dc7d1b975,21,Everything is yellow in his apartment!,"/Volumes/Disc/1Pictures/Flashcard/flat, apartment.jpg"
+3130,1e724754-e060-4dbb-a673-4d55c6b8ee19,21,"Don't go in the centre, there are too many people!",/Volumes/Disc/1Pictures/Flashcard/centre.jpg
+3150,1d5db79e-6f3a-45ac-8b8f-fd6ab6376973,21,Even on foot he goes at full speed.,/Volumes/Disc/1Pictures/Flashcard/on foot.jpg
+3153,aba9d42a-d051-4aa4-91f6-a89447271583,21,I love taking the motorway with my car because it's quick.,"/Volumes/Disc/1Pictures/Flashcard/freeway, motorway.jpg"
+3139,82863f90-d202-4f7e-b41b-8bcbcecd27af,21,I live in the opposite direction.,/Volumes/Disc/1Pictures/Flashcard/live in.jpg
+3146,a79a0c16-793f-492b-a3c2-efddec64df86,21,My office is in this street.,/Volumes/Disc/1Pictures/Flashcard/street.jpg
+3159,c1279d9e-acef-486c-b778-f894ca134fa1,21,I'm going on holiday by coach this year.,"/Volumes/Disc/1Pictures/Flashcard/coach, bus.jpg"
+3154,fee3d707-f069-4b6d-a7b4-cee78bf3363b,21,Yesterday,/Volumes/Disc/1Pictures/Flashcard/plane.jpg
+3202,94dc490e-c263-459f-8573-95ffc9fb8f82,21,We (one) leave our suitcases at the hotel and go to visit the town!,/Volumes/Disc/1Pictures/Flashcard/suitcase.jpg
+3172,8c2b2f91-c5a3-43a2-adda-efefa91bba63,21,It must be exhausting to drive a truck.,"/Volumes/Disc/1Pictures/Flashcard/lorry, truck (2).jpg"
+3185,711c546a-c455-4a2f-a9a3-36af01969f78,21,I gave my passport to customs.,/Volumes/Disc/1Pictures/Flashcard/customs.jpg
+3196,52ac416f-8765-4167-986a-69af4c4dcaa5,21,We spend a lot of time on the beach!,/Volumes/Disc/1Pictures/Flashcard/beach.jpg
+3182,338eeb83-0552-447c-85ea-1eeb7c84044b,21,What time does the boat arrive?,/Volumes/Disc/1Pictures/Flashcard/boat.jpg
+3224,f31acaf1-7afb-48ba-aec2-4880cbd9cfbe,21,Don't walk on the grass.,"/Volumes/Disc/1Pictures/Flashcard/walk ,v.jpg"
+3222,6877521d-5347-4f6a-bcdc-3c9c0dbe2e22,21,Let me finish my sentence!,/Volumes/Disc/1Pictures/Flashcard/let-to leave.jpg
+3227,76a0c676-314e-4ee3-9564-687abfb7a013,21,"Push the door, please!",/Volumes/Disc/1Pictures/Flashcard/push.jpg
+3217,7ef04bd6-a38d-4862-83f8-ec8c64e5cae9,21,I hate to wear shirts.,/Volumes/Disc/1Pictures/Flashcard/hate.jpg
+3234,d3265a16-588e-4c37-af7d-249a50941487,21,I told him to pull the rope!,/Volumes/Disc/1Pictures/Flashcard/pull.jpg
+3249,5ab488fb-f307-43c5-a5ad-8686de351946,21,"When the weather is bad we (one) stay at home, great!",/Volumes/Disc/1Pictures/Flashcard/bad.jpg
+3251,4001d2a9-caa2-477b-b32a-49772c7a708b,21,It snowed all evening.,/Volumes/Disc/1Pictures/Flashcard/snow.jpg
+3247,474b6826-7dc4-42d4-8e8d-cc3471771be0,21,"In a tropical climate, it's hot and damp.",/Volumes/Disc/1Pictures/Flashcard/damp.jpg
+3259,123eb7f6-4c00-439b-9b0f-41025a8ae59b,21,It depends on the weather!,/Volumes/Disc/1Pictures/Flashcard/weather.jpg
+3273,25f8234d-7a21-4064-b641-a4da3a4fa767,21,I'll be back between 9 and 10!,/Volumes/Disc/1Pictures/Flashcard/between.jpg
+3275,25c92109-24e0-4a4b-8dfb-0bf40e3a16e1,21,"Our swimming pool is deep, I can't touch the bottom.","/Volumes/Disc/1Pictures/Flashcard/bottom, far end.jpg"
+3287,3d039365-196d-49e0-9fa8-2c22596003ae,21,He's near his mother.,/Volumes/Disc/1Pictures/Flashcard/near.jpg
+1432,b2dd71e4-9356-46f8-83ae-b748aa104b8f,21,It's dangerous not to slow down at a crossroad!,/Volumes/Disc/1Pictures/Flashcard/dangerous.jpg
+1440,99b19aeb-8606-43ff-ab7d-5483d7a1c8c1,21,"It's strange, he seems angry today!",/Volumes/Disc/1Pictures/Flashcard/strange.jpg
+1455,256597c1-9cdc-42d6-9e09-e7328edbbc94,21,It's impossible to make him eat beetroot!,/Volumes/Disc/1Pictures/Flashcard/impossible.jpg
+1539,7dd71d96-3c1c-4ecd-bfe2-5e00eebf4aad,21,To look for the little creature (to nitpick).,"/Volumes/Disc/1Pictures/Flashcard/animal, creature.jpg"
+1556,ec811d59-c882-41cf-b065-9a2fac4ccd06,21,To get up at the cock's crow.,"/Volumes/Disc/1Pictures/Flashcard/cockerel, rooster.jpg"
 1032,c7ccc14b-d11b-4fb0-bb04-b516254498b5,1,novel,/Volumes/Disc/1Pictures/Flashcard/novel.jpg
-1015,09639e91-d8d8-48ea-8cde-14445db5f98e,1,ball,/Volumes/Disc/1Pictures/Flashcard/ball.jpg
-1020,ba9d6346-9ddb-4b07-92c7-acf7c112e2eb,1,cigarette,/Volumes/Disc/1Pictures/Flashcard/cigarette.jpg
 1033,41730ff3-aa67-41ba-8bb6-c30d8e5bc4ed,1,to have a good time,/Volumes/Disc/1Pictures/Flashcard/have a good time.jpg
-1031,fa9151a4-6290-47f5-a650-9da0332fd2db,1,radio,/Volumes/Disc/1Pictures/Flashcard/radio.jpg
+1422,2c186243-6871-4f6e-981a-f686c6669ac4,21,Your flat is light/bright because the walls are white.,"/Volumes/Disc/1Pictures/Flashcard/clear, light, bright.jpg"
+1435,cd076f91-41cb-4687-8817-e49871e9560e,21,It's difficult to choose,/Volumes/Disc/1Pictures/Flashcard/difficult.jpg
 107,5d7a638d-e811-4231-ac75-32b852c35ec3,1,over there,/Volumes/Disc/1Pictures/Flashcard/over there.jpg
+1031,fa9151a4-6290-47f5-a650-9da0332fd2db,1,radio,/Volumes/Disc/1Pictures/Flashcard/radio.jpg
 1034,21cf537b-5b64-4919-a262-f5543be2712f,1,to be interested in,/Volumes/Disc/1Pictures/Flashcard/be interested in.jpg
 59,2f3e7e63-b81e-4324-a08e-725f3a3991f1,1,neighbour,/Volumes/Disc/1Pictures/Flashcard/neighbour.jpg
 93,e4e54d3b-b81c-4d9a-8c42-a1a2f44e7b31,1,side,/Volumes/Disc/1Pictures/Flashcard/side.jpg
 67,93c825ac-5cfb-4b04-953a-d7e4716a37de,1,key (door),/Volumes/Disc/1Pictures/Flashcard/key (door).jpg
 72,9880da02-de93-4a77-be54-a43e08d64a36,1,armchair,/Volumes/Disc/1Pictures/Flashcard/armchair.jpg
 109,7f2c2f06-c2ec-4b8f-ad4d-eb4b3e0a911d,1,far,/Volumes/Disc/1Pictures/Flashcard/far.jpg
+1487,ae674564-2180-4472-98ce-a51ca0df561d,21,Smile! You look unhappy!,"/Volumes/Disc/1Pictures/Flashcard/unhappy, unfortunate.jpg"
+1459,bc953e6b-65a9-4a36-b70a-40ba1b540186,21,What is he doing? He's slow!,/Volumes/Disc/1Pictures/Flashcard/slow.jpg
+1511,956367eb-938f-4329-836f-3931a9efef35,21,"I have to wash my car, it's dirty!",/Volumes/Disc/1Pictures/Flashcard/dirty.jpg
+1600,42684938-0d94-4954-b1fb-8c7a6e3e4b29,21,We no longer accept cheques.,"/Volumes/Disc/1Pictures/Flashcard/cheque, check.jpg"
+1558,483e2e1c-9d95-4882-9a83-c55b8244f07a,21,She's really a turkey!,/Volumes/Disc/1Pictures/Flashcard/turkey.jpg
+1538,439add20-d272-4f9f-b4ca-076ce8a4a30b,21,One animal,/Volumes/Disc/1Pictures/Flashcard/animal.jpg
+1621,9377a727-4985-4ace-96c0-12731f720292,21,The exchange rate at the stock exchange is low today!,/Volumes/Disc/1Pictures/Flashcard/exchange rate.jpg
 200,74fb06ec-bb04-4bb3-9b43-9656d32b7991,1,century,/Volumes/Disc/1Pictures/Flashcard/century.jpg
+1520,1b814aa7-beb0-49b8-8e5b-f44063503ccd,21,You are early: that's surprising!,/Volumes/Disc/1Pictures/Flashcard/surprising.jpg
+1596,0429093b-f407-4338-bb74-00f8b3cdf840,21,I don't have a lot of money!,/Volumes/Disc/1Pictures/Flashcard/money.jpg
 728,abf9d170-02bc-4d40-b5e8-2db526901681,1,"to have to, must","/Volumes/Disc/1Pictures/Flashcard/have to, must.jpg"
 192,745a8e44-271f-4b2f-8a97-e45866bd9c91,1,morning (moment in time),/Volumes/Disc/1Pictures/Flashcard/morning (moment in time).jpg
+1907,b380cd07-ae13-4bc9-960e-8815d5ba839e,21,I agree.,/Volumes/Disc/1Pictures/Flashcard/I.jpg
+1553,40995593-996d-4ae0-bd37-4a8bd0c4eb70,21,To be a guinea pig.,/Volumes/Disc/1Pictures/Flashcard/guinea pig.jpg
+1598,d764a458-339e-49d7-8afb-342abf98f075,21,Please pay at the cashpoint.,"/Volumes/Disc/1Pictures/Flashcard/cashpoint, till.jpg"
 628,a8fa834f-4df6-41c4-bd61-cd4e83c0bc29,1,bathroom,/Volumes/Disc/1Pictures/Flashcard/bathroom.jpg
+1618,a0b25f59-2d77-40c8-81e8-a3ba4b58cb42,21,You have mail on the table.,/Volumes/Disc/1Pictures/Flashcard/mail (post).jpg
+1625,a93bc0fd-e0c6-4b1c-a9a3-91d7a8976a9d,21,The bank sent your cheque book.,/Volumes/Disc/1Pictures/Flashcard/send.jpg
 189,b109f8a0-bee4-455c-822c-01bbe48000a0,1,day (period of time),/Volumes/Disc/1Pictures/Flashcard/day (period of time).jpg
+1574,12a9784a-7f2e-41ba-b64b-df49777d60d8,21,A mosquito bite.,/Volumes/Disc/1Pictures/Flashcard/mosquito.jpg
+1605,49baa022-21aa-4cc1-a7c3-473e54ca020d,21,There's a parcel for you!,/Volumes/Disc/1Pictures/Flashcard/parcel.jpg
+2685,d0cd627a-61c2-4c86-951f-1b2078b297e8,21,Get up and get dressed! You'll be late!,/Volumes/Disc/1Pictures/Flashcard/get up.jpg
 665,8b2629d6-0111-4f7d-a2a4-0161c1c30ae3,1,at full speed,/Volumes/Disc/1Pictures/Flashcard/at full speed.jpg
+1583,fbc06877-8161-41ff-a421-d0bf78f4f752,21,To take the bull by the horns.,/Volumes/Disc/1Pictures/Flashcard/bull.jpg
+2462,a8d1f0e1-c134-40b4-8677-1f467abe4948,21,"Gosh, no! On the contrary!",/Volumes/Disc/1Pictures/Flashcard/on the contrary.jpg
+1590,cabfb536-c743-4983-a726-beed0c35b594,21,To speak French like a Spanish cow.,/Volumes/Disc/1Pictures/Flashcard/cow.jpg
 644,294cc8d0-38fd-4831-851c-cec6206058ff,1,back,/Volumes/Disc/1Pictures/Flashcard/back.jpg
+1604,1cd9ee98-dd81-4200-b4bb-f940b0ea3a56,21,I forgot my cheque book at my brother's house!,"/Volumes/Disc/1Pictures/Flashcard/cheque book, check book.jpg"
+1840,c956f1a1-5d5c-47ba-bc72-24337b5d9fb8,21,They are all in the army.,"/Volumes/Disc/1Pictures/Flashcard/all ,f.jpg"
+1812,f967e32d-0251-4954-be34-bf67aa4173e2,21,He wants to be a policeman to arrest (for arresting) burglars.,/Volumes/Disc/1Pictures/Flashcard/for.jpg
+1816,28d39647-e1be-40e9-973c-fb9530130f9e,21,"Either you come before, or you only come after nine o'clock.",/Volumes/Disc/1Pictures/Flashcard/either.jpg
+2496,1c68f176-1794-49c6-a8df-205b16d0f958,21,"If you're hungry, help yourself!",/Volumes/Disc/1Pictures/Flashcard/help yourself.jpg
+2464,b25aec1c-42cc-4a5b-82e3-76f84d79c680,21,Help! We (one) need help!,/Volumes/Disc/1Pictures/Flashcard/need.jpg
+1854,270c28ec-2dc3-4b21-a1de-ed6adda7ba07,21,The policeman asks whose car it is,/Volumes/Disc/1Pictures/Flashcard/whose.jpg
+1976,7b348d10-ae3c-46c8-8c94-e5e12b155b15,21,There were only five of us in the restaurant.,"/Volumes/Disc/1Pictures/Flashcard/only, but, solely.jpg"
+2486,7219885c-9eff-468c-a3e4-6dfda13ad45e,21,"Yes, certainly, it's okay!",/Volumes/Disc/1Pictures/Flashcard/certainly.jpg
 673,991ecb61-6e60-43cd-9e19-7ad64867bff1,1,"coach, bus","/Volumes/Disc/1Pictures/Flashcard/coach, bus.jpg"
-233,ed89b945-7c36-4a23-abb7-10eea5af64ad,1,to feel pain in,/Volumes/Disc/1Pictures/Flashcard/feel pain in.jpg
 228,7015ea6f-f0e5-4472-84fa-ec48a1760804,1,weather,/Volumes/Disc/1Pictures/Flashcard/weather.jpg
+2493,73cfcf2f-e500-48c9-b3e9-763a97f09e87,21,"Excuse me, I will be late, no doubt!",/Volumes/Disc/1Pictures/Flashcard/excuse me.jpg
+2494,53f370e9-ff4f-42b6-9b6f-869fd1b309e1,21,What a pity! It's a real pity!,/Volumes/Disc/1Pictures/Flashcard/what a pity!.jpg
+1670,51bdf8d9-c71c-44f6-803e-dfb2b80e150d,21,I posted the parcel two weeks ago.,"/Volumes/Disc/1Pictures/Flashcard/post ,v.jpg"
 264,45302cc0-7f90-4f67-b64f-f4715c2fa095,1,bottle,/Volumes/Disc/1Pictures/Flashcard/bottle.jpg
+2714,67a0d8ef-a8ec-4343-abfd-62d4d32f9bbc,21,Be careful! The painting is wet!,/Volumes/Disc/1Pictures/Flashcard/painting (picture).jpg
 286,05264a2b-137e-4a6f-9043-d1c32752f446,1,table,/Volumes/Disc/1Pictures/Flashcard/table.jpg
+1774,af11472b-4f67-409e-95a6-4894d2ae0f43,21,He is leaving for Germany again.,"/Volumes/Disc/1Pictures/Flashcard/still, again, yet.jpg"
 258,3d47fa69-6b4b-473c-b570-b76e06a5cc5c,1,to shiver,/Volumes/Disc/1Pictures/Flashcard/shiver.jpg
 259,411a8c5e-0bd9-434c-a5f5-eed923f4c82c,1,to vomit,/Volumes/Disc/1Pictures/Flashcard/vomit.jpg
-729,2b855bad-3a7d-45b0-b790-c968791b3336,1,to last,/Volumes/Disc/1Pictures/Flashcard/last.jpg
+729,2b855bad-3a7d-45b0-b790-c968791b3336,1,to last,"/Volumes/Disc/1Pictures/Flashcard/last ,v.jpg"
+1756,75fc2fac-b71a-4fab-bde5-c9f8ece53d1f,21,You leave also.,/Volumes/Disc/1Pictures/Flashcard/also.jpg
 280,bcb6b44e-19ef-4aa4-88ff-84dfd245d339,1,restaurant,/Volumes/Disc/1Pictures/Flashcard/restaurant.jpg
 739,cac79bb3-1963-4538-87f5-6d7b7a132e0a,1,to watch,/Volumes/Disc/1Pictures/Flashcard/watch.jpg
 692,3ef536d1-d41a-4c7b-a944-f7e47e505b9e,1,to buy,/Volumes/Disc/1Pictures/Flashcard/buy.jpg
 357,2a1ae662-062d-413f-a22a-3df66cad35be,1,summer,/Volumes/Disc/1Pictures/Flashcard/summer.jpg
+1912,358fbaa9-cee7-4a0b-8bfe-5962cefba4b8,21,My (male) friend is outside.,/Volumes/Disc/1Pictures/Flashcard/my (m).jpg
+1853,c23d3942-c017-4137-a2c8-e316c79ca1f2,21,"Good morning, how are you? (are you well)",/Volumes/Disc/1Pictures/Flashcard/you (formal).jpg
+1847,22b41d57-758a-49c6-8d07-758153f56882,21,And there is another one,"/Volumes/Disc/1Pictures/Flashcard/there, there it is.jpg"
 315,0ea48530-ad36-4fa4-9ada-66c44e46d2a0,1,"alone, single, sole","/Volumes/Disc/1Pictures/Flashcard/alone, single, sole.jpg"
+2897,9ad7a57c-dfbc-4e1f-bce4-af7eb9babd29,21,He took her in his arms with love.,/Volumes/Disc/1Pictures/Flashcard/with love.jpg
+2204,877cb2dc-4c7b-417a-9471-64094cf0d0fb,21,What do you want to do?,"/Volumes/Disc/1Pictures/Flashcard/wish, to want.jpg"
 300,4953b242-6934-4aef-96a1-d93852b21e8f,1,he,/Volumes/Disc/1Pictures/Flashcard/he.jpg
 339,3b0b5ce3-0ca0-4722-8511-aa267f552554,1,to be born,/Volumes/Disc/1Pictures/Flashcard/be born.jpg
 320,c8936117-03c1-4d4e-a7cb-79ac1406ed0b,1,with love,/Volumes/Disc/1Pictures/Flashcard/with love.jpg
 331,f98633ba-1451-4f06-ba78-16b85778e273,1,son,/Volumes/Disc/1Pictures/Flashcard/son.jpg
+1970,2c424ed2-a26c-4f7a-b472-348ed1be42d5,21,Hello! Are you OK?,/Volumes/Disc/1Pictures/Flashcard/hello!.jpg
+1986,9492b3f7-a7c7-4f88-8598-a646f25eaac6,21,I'm not hungry so I watch TV!,"/Volumes/Disc/1Pictures/Flashcard/then, so.jpg"
+1980,b73d745c-0047-4e3a-a434-65cc7443ec08,21,I often have a tea before going to sleep.,/Volumes/Disc/1Pictures/Flashcard/often.jpg
+1987,9bb2b579-22d6-4ae2-84ed-239b1733ec17,21,I've bought a lot of strawberries to make jam!,/Volumes/Disc/1Pictures/Flashcard/a lot.jpg
+2029,289e5fc2-6245-46b6-b9ee-54187db2bff1,21,He's able to drive but he's too tired.,/Volumes/Disc/1Pictures/Flashcard/be able.jpg
+2064,e4c456f9-7e23-4715-99b6-a7b3d3d68422,21,"Have you got croissants, please?",/Volumes/Disc/1Pictures/Flashcard/please (formal).jpg
 421,11b7846f-a0fd-4a4c-b025-51df90add957,1,pear,/Volumes/Disc/1Pictures/Flashcard/pear.jpg
 420,80dfea54-765f-4bd2-80b3-bebbdc384094,1,pea,/Volumes/Disc/1Pictures/Flashcard/pea.jpg
 412,a4eacac2-692a-463c-88de-c9593fb4d17b,1,strawberry,/Volumes/Disc/1Pictures/Flashcard/strawberry.jpg
 405,ef30ef2c-f2c8-451c-ac55-01cf23517fc1,1,carrot,/Volumes/Disc/1Pictures/Flashcard/carrot.jpg
 387,8b8e19db-68c5-4212-b7c3-bd93a00ab6f5,1,microwave oven,/Volumes/Disc/1Pictures/Flashcard/microwave oven.jpg
 402,ac5d7432-a618-4f1c-a9e9-4bb39dc5920d,1,pineapple,/Volumes/Disc/1Pictures/Flashcard/pineapple.jpg
+2017,306bc9ae-8645-49f1-a54b-03d34ab96c60,21,Their kitchen is nice!,/Volumes/Disc/1Pictures/Flashcard/their.jpg
+2439,99f0bf3a-c210-4a19-9fc4-096062eda0a3,21,There were many forest fires last year.,/Volumes/Disc/1Pictures/Flashcard/forest.jpg
+1996,29c3aab2-3260-47f9-afeb-7807e2545ffb,21,It's a good thing you came!,/Volumes/Disc/1Pictures/Flashcard/thing.jpg
+2013,5275a1f0-4a6a-4f78-b84c-75d0477dc969,21,What are they doing?,/Volumes/Disc/1Pictures/Flashcard/they (m).jpg
+2008,afff8bfd-91bb-4ece-b813-e9b6cc40b917,21,"Is there some coffee? No, there isn't any!","/Volumes/Disc/1Pictures/Flashcard/there isnt any, there arent any.jpg"
+2105,7aed6a70-07cc-43e8-b537-92271e1069c1,21,My sister is with me.,/Volumes/Disc/1Pictures/Flashcard/with.jpg
+2025,dba76885-11ef-48a6-aabc-d24283e25069,21,Thank you for coming!,/Volumes/Disc/1Pictures/Flashcard/thank you.jpg
+2032,8efe0046-a823-45d3-b189-01cb1ef34327,21,"It's always the same thing, or almost!",/Volumes/Disc/1Pictures/Flashcard/almost.jpg
+2053,5ad4d403-c71c-45fb-9742-d060a189c36b,21,I spent my holiday in a village somewhere in the south of France.,/Volumes/Disc/1Pictures/Flashcard/somewhere.jpg
+2149,cde4ccad-4cf4-4ed6-9971-e8997901b0cd,21,Do as you please!,"/Volumes/Disc/1Pictures/Flashcard/please ,v.jpg"
+2171,c0a7b40e-5360-40df-9867-fdb062724f04,21,Who wants to come with me?,/Volumes/Disc/1Pictures/Flashcard/who.jpg
+2179,0effb5f9-b4cb-43e1-a320-b3d4f19dd981,21,I know you are feeling sleepy but you have to wait before you rest.,/Volumes/Disc/1Pictures/Flashcard/know (facts).jpg
 499,ebd7b159-ed4c-49e8-b8d4-6c6b81dc34ed,1,terrible,/Volumes/Disc/1Pictures/Flashcard/terrible.jpg
+2390,d2e28c0f-270b-481f-9847-6d64520ae0ba,21,We went for a walk in fields in the countryside.,/Volumes/Disc/1Pictures/Flashcard/countryside.jpg
+2431,b57994ca-cda4-4fe4-98e0-237e3165d78e,21,There's a fire(place) in the living room.,/Volumes/Disc/1Pictures/Flashcard/fire (hearth).jpg
+2393,bb36dedc-ca29-4e43-b362-7106de59e721,21,There's a path which leads to a hill.,"/Volumes/Disc/1Pictures/Flashcard/path, way.jpg"
+2438,ab2cf1ea-b37a-4cc8-a0c1-5a96697c2ce9,21,Many flowers grow along the river.,/Volumes/Disc/1Pictures/Flashcard/river.jpg
+2446,071c70fb-1bfc-4187-9d38-685e31ca32a6,21,There's a lake at the bottom of the mountain.,/Volumes/Disc/1Pictures/Flashcard/lake.jpg
+2452,3075083e-871c-413b-a30f-26c13448b8f5,21,"Be careful, if you go straight on, you'll hit the wall!",/Volumes/Disc/1Pictures/Flashcard/wall.jpg
+2458,6cb5c611-6498-4fee-abb3-5e7ef42ad24f,21,I like playing tennis on trodden earth.,/Volumes/Disc/1Pictures/Flashcard/earth.jpg
+2509,afd1926b-7aec-492e-a640-a4230ba30756,21,Are you having a croissant with your coffee and cream?,/Volumes/Disc/1Pictures/Flashcard/croissant.jpg
+2481,4ccb2f34-5db3-4bb3-9427-866ae11ee16c,21,"He is going to the U.S.A, that's to say",/Volumes/Disc/1Pictures/Flashcard/thats to say.jpg
+2506,0dbf6832-ef95-4728-8c54-d7680aa88be3,21,Pass me the strawberry jam,/Volumes/Disc/1Pictures/Flashcard/jam.jpg
+2527,0397c8f3-2c7a-43f3-9d41-d5471a54df0d,21,It's the season for apricots!,/Volumes/Disc/1Pictures/Flashcard/apricot.jpg
+2507,377f4f24-91dd-48e6-9bf6-e78c465b5186,21,Do you want cream in your coffee?,/Volumes/Disc/1Pictures/Flashcard/cream.jpg
+2513,4cdb27b4-2aee-4d85-bf21-5e52403693cb,21,Will you want a tea after dessert?,/Volumes/Disc/1Pictures/Flashcard/dessert.jpg
+2565,66973cc8-750b-4996-a766-05a4926acf3e,21,Even if you aren't thirsty,"/Volumes/Disc/1Pictures/Flashcard/drink ,v.jpg"
+2564,4a857b31-2861-4cfb-a436-b6f4cd669793,21,My husband loves beef but it's a little expensive!,/Volumes/Disc/1Pictures/Flashcard/beef.jpg
+2542,14677993-aa78-4e6a-9553-433575f90ec8,21,We don't eat enough fruit and vegetables.,/Volumes/Disc/1Pictures/Flashcard/vegetable.jpg
+2536,a78a9146-7d1f-420a-a7ab-9ed5716dbb65,21,With sugar,/Volumes/Disc/1Pictures/Flashcard/lemon.jpg
+2533,7a4f9289-7d1c-4d44-ad7d-9600f663b059,21,My brother doesn't like mushrooms,/Volumes/Disc/1Pictures/Flashcard/mushroom.jpg
+2655,402c0917-0cd5-4e6b-aca4-87d4cc60c5ca,21,He has to shave everyday.,/Volumes/Disc/1Pictures/Flashcard/shave.jpg
+2539,5b9bfc04-203c-4743-895c-d42ca1e34ffd,21,Do you want French fries with your steak?,"/Volumes/Disc/1Pictures/Flashcard/chips, french fries.jpg"
+2587,5ec4f22f-6e63-474e-b401-9fe1dd9da63e,21,My brother loves mint tea.,/Volumes/Disc/1Pictures/Flashcard/tea.jpg
+2576,04ffd313-bdf0-474c-8a28-41b9b0a02fbd,21,For your daughter there's a slice of ham with fries.,/Volumes/Disc/1Pictures/Flashcard/ham.jpg
+2566,f3074089-36f1-4701-8eaf-11e1edea9baf,21,I'm cold! I'd like a warm drink such as chocolate.,/Volumes/Disc/1Pictures/Flashcard/drink.jpg
+2570,a63ccdcb-e322-4993-9302-63e7ea602e33,21,We drink cider with sweet pancakes.,/Volumes/Disc/1Pictures/Flashcard/cider.jpg
+2585,ab6f5e97-cffc-42d9-b812-0eeb585304c3,21,Mmmm! This steak is tender!,/Volumes/Disc/1Pictures/Flashcard/steak (1).jpg
+2578,5215e9c9-fab9-4231-a9b9-d3b262023e39,21,"Pass the milk for the cereals, please!",/Volumes/Disc/1Pictures/Flashcard/milk.jpg
+2646,3f317b7b-75a5-4baf-bf88-eced8ce0d5b7,21,I'm going to have a shower! Do you have shampoo?,/Volumes/Disc/1Pictures/Flashcard/shower.jpg
+2581,2f758991-b6c3-4edf-abd8-da4a3d3e814d,21,This chicken looks appetising!,/Volumes/Disc/1Pictures/Flashcard/chicken.jpg
+2652,85d07e67-d7f3-474f-8000-35e0f212435c,21,Your new soap smells good!,/Volumes/Disc/1Pictures/Flashcard/soap.jpg
+2589,19754acd-ec87-4cd0-9d72-cde3868d9519,21,Tuna is a big fish.,/Volumes/Disc/1Pictures/Flashcard/tuna fish.jpg
+2593,7f30cd30-ac37-4b56-96db-2c17e0dcc531,21,I have a big blister on my heel from my new shoes.,/Volumes/Disc/1Pictures/Flashcard/blister.jpg
+2725,b2575de5-3dfe-4d67-8ec4-6c7b9f43ee35,21,Our kitchen is a big and pleasant room.,/Volumes/Disc/1Pictures/Flashcard/kitchen.jpg
 541,42ebf298-e8b0-49e6-b45e-7999ccdcdeca,1,phone call,/Volumes/Disc/1Pictures/Flashcard/phone call.jpg
 613,de27a66f-6689-4160-8666-3811806e24af,1,to lend,/Volumes/Disc/1Pictures/Flashcard/lend.jpg
 584,3e844465-3ba0-4aae-86b0-f76311abba2f,1,tuna fish,/Volumes/Disc/1Pictures/Flashcard/tuna fish.jpg
+2604,7ba3fd65-4889-40e5-a6de-00daefc68349,21,"I was ill, I had the flu but now I'm feeling well!",/Volumes/Disc/1Pictures/Flashcard/well.jpg
 625,5b776981-efad-48ca-a786-8c905fda9230,1,mirror,/Volumes/Disc/1Pictures/Flashcard/mirror.jpg
+3052,e33ccdc2-4787-4d57-9955-bbc07450c7ba,21,That's exactly what I meant.,/Volumes/Disc/1Pictures/Flashcard/exactly.jpg
+2728,9d3f6f28-e21f-4b4b-af18-72d9cdc0d8c3,21,I also need electric appliances,/Volumes/Disc/1Pictures/Flashcard/electric.jpg
+2748,28bac190-0f54-4c22-9adc-72a152189c3a,21,We need a ball for this game!,"/Volumes/Disc/1Pictures/Flashcard/ball, bullet.jpg"
 683,ada7ee77-3e8f-4434-9e74-76833d810c9d,1,oil,/Volumes/Disc/1Pictures/Flashcard/oil.jpg
+2644,ffba41ca-4f35-43f9-9ac3-6d8e20ebb961,21,Pass the scissors to open the package of my new perfume!,/Volumes/Disc/1Pictures/Flashcard/scissors.jpg
+2653,458df9bf-7979-4b1a-b615-d1f24fab2221,21,He bathes in the swimming pool with his friends.,/Volumes/Disc/1Pictures/Flashcard/bathe.jpg
+2726,f9503c8a-6743-42f6-b7b7-529ae91b74c0,21,Hello! What do you have in the way of gas cookers?,"/Volumes/Disc/1Pictures/Flashcard/gas stove, gas cooker.jpg"
+3042,e962c38a-ba45-48e2-8c8c-61360f4e3ce9,21,It's approximately midday!,/Volumes/Disc/1Pictures/Flashcard/approximately.jpg
+3049,bcf75c30-8cf8-47fd-9b14-507f4fcaa2e3,21,It's completely stupid…,/Volumes/Disc/1Pictures/Flashcard/completely.jpg
 704,75fd9f71-d853-4ae1-98a6-832382672ef3,1,to go shopping,/Volumes/Disc/1Pictures/Flashcard/go shopping.jpg
+669,8fdae0cc-0d87-4a9f-baaa-1fdf75fbef46,1,ticket (b…),/Volumes/Disc/1Pictures/Flashcard/ticket (1).jpg
 651,1d0cf236-b923-4611-8106-d8d07ca1613e,1,lip,/Volumes/Disc/1Pictures/Flashcard/lip.jpg
+2957,95176ba1-3c20-4996-a3e4-de0b59b4435a,21,Do you believe in ghosts?,/Volumes/Disc/1Pictures/Flashcard/believe.jpg
+3048,92963d40-0ce2-49c3-9a66-701ed8746dc0,21,Each child has their own personality.,/Volumes/Disc/1Pictures/Flashcard/each.jpg
+3044,4b2657d8-faff-4fa3-b451-d2ccd62838e2,21,She has a sharp voice.,/Volumes/Disc/1Pictures/Flashcard/sharp.jpg
+2661,67d230f5-63a1-4829-b1e5-b1e9da300bc9,21,"Vacuum your bedroom, please!",/Volumes/Disc/1Pictures/Flashcard/bedroom.jpg
+2691,a9127346-61f9-4ff1-bf26-4f20e5f97f0d,21,"Pass me the matches, quick!",/Volumes/Disc/1Pictures/Flashcard/match.jpg
+3054,431f0037-b4b3-44cc-8cc2-39809c66245f,21,That's my big brother over there!,/Volumes/Disc/1Pictures/Flashcard/big.jpg
 721,6e819ca6-45af-4213-a6c6-c535fd4dbfaa,1,to wait for,/Volumes/Disc/1Pictures/Flashcard/wait for.jpg
+2678,293f2fdc-e404-4f02-a47c-2f0928908a1e,21,My alarm clock is under the pillow because it makes too much noise!,/Volumes/Disc/1Pictures/Flashcard/pillow.jpg
+2733,51c92feb-28db-4f42-9c2d-57a0684c8b67,21,"It smells of gas, have you switched off the stove?",/Volumes/Disc/1Pictures/Flashcard/gas.jpg
 681,44d77c49-d7db-49d2-90de-9d1235825c9e,1,station,/Volumes/Disc/1Pictures/Flashcard/station.jpg
+2696,812aa529-b414-418d-99e0-afb8dee5d28a,21,It's cold! Put the central heating on,/Volumes/Disc/1Pictures/Flashcard/central heating.jpg
+2683,61c3d8a1-ac4b-4fc4-ab86-907a7a3c7766,21,I'm going to go to sleep in front of the T.V.!,/Volumes/Disc/1Pictures/Flashcard/go to sleep.jpg
 662,d0a4914d-c6b0-42fa-b6f2-a479b00473f9,1,head,/Volumes/Disc/1Pictures/Flashcard/head.jpg
+2704,d10d0bef-3c92-40ef-b40a-2c0a94f80c66,21,This armchair is very comfortable.,/Volumes/Disc/1Pictures/Flashcard/armchair.jpg
+2719,829285f6-32d8-4f58-bbf3-763d52054121,21,"I have to go home, good bye!",/Volumes/Disc/1Pictures/Flashcard/go home.jpg
 708,c3064818-ab42-4826-8c94-2d99dc9c8b5e,1,to show,/Volumes/Disc/1Pictures/Flashcard/show.jpg
+2694,9e14a934-5214-4de2-b533-b97584c7a472,21,Do you want me to hoover the balcony?,/Volumes/Disc/1Pictures/Flashcard/balcony.jpg
+2769,11717d99-649d-46a0-970d-f3c93bcc8b79,21,I like reading the newspaper while listening to music on the radio.,/Volumes/Disc/1Pictures/Flashcard/newspaper.jpg
+2717,c24f3431-2d81-4491-8ac8-cbe9bdce885b,21,"Shut the door, it's raining!",/Volumes/Disc/1Pictures/Flashcard/door.jpg
+2743,5627accb-422d-420a-a71a-8a1cb3dfcf46,21,The stove warms up the kitchen.,/Volumes/Disc/1Pictures/Flashcard/stove.jpg
+2782,773689b2-5a9d-44da-919b-806d9edf6436,21,"What! You want to go to the theatre by bicycle! All right, okay!",/Volumes/Disc/1Pictures/Flashcard/theatre.jpg
 653,dacdb9b6-1096-48f1-aa19-e2b6ece1cc56,1,chin,/Volumes/Disc/1Pictures/Flashcard/chin.jpg
+2703,e5968608-aee5-45ac-bfd1-a9ff26a89987,21,Your keys are on the shelf!,/Volumes/Disc/1Pictures/Flashcard/shelf.jpg
 659,88886f76-ce4c-4166-965f-063ede55c0e4,1,foot,/Volumes/Disc/1Pictures/Flashcard/foot.jpg
 712,f6ec8dab-3d21-4e81-9d68-c0496d4e7e72,1,car park,/Volumes/Disc/1Pictures/Flashcard/car park.jpg
+672,643d4d54-cc5c-425c-9d5b-cc88e0264651,1,"lorry, truck (c…)","/Volumes/Disc/1Pictures/Flashcard/lorry, truck (1).jpg"
 698,2c592d92-eba6-4be9-b867-cc3d854d1ed0,1,customer,/Volumes/Disc/1Pictures/Flashcard/customer.jpg
+743,e58ed6e9-cfc7-4cfe-9cd5-3e77f6532bfb,1,"to finish (off), terminate",/Volumes/Disc/1Pictures/Flashcard/to finish (off).jpg
+2842,aef7b829-3671-4a5e-8fa6-86e8a64a8341,21,He is called Adrian in English and Adrien in French.,/Volumes/Disc/1Pictures/Flashcard/be called.jpg
+2853,19774f54-db29-47a6-bd64-e6c8cc1b955d,21,He hurt his elbow.,/Volumes/Disc/1Pictures/Flashcard/elbow.jpg
+2846,fd0824d3-5cbb-460e-be84-cbd784d1905b,21,He has the news about his neighbours and about everybody.,/Volumes/Disc/1Pictures/Flashcard/neighbour.jpg
+2831,aea6ec38-6dc7-40a4-9e20-0aac83f1bb16,21,She's looking at the crowd through the window: there are a lot of people.,/Volumes/Disc/1Pictures/Flashcard/crowd.jpg
+2761,8d24e011-63cc-41e2-b4e7-35bb096c13f7,21,I've smoked too many cigarettes last night at the disco.,/Volumes/Disc/1Pictures/Flashcard/cigarette.jpg
+2854,6e164d84-1622-45c3-9a34-99d1df9420b8,21,She has white teeth.,/Volumes/Disc/1Pictures/Flashcard/tooth.jpg
+2874,3c9ebf2c-6a62-4cfa-8ac9-e478626af844,21,She is pretty from head to toe.,/Volumes/Disc/1Pictures/Flashcard/head.jpg
+2851,ee272779-077a-4c9e-864e-e854674854d3,21,He is studying the human body.,/Volumes/Disc/1Pictures/Flashcard/body.jpg
+2821,d533beff-414b-4888-99e9-261f6be664ca,21,To be the oldest child is not always an advantage.,"/Volumes/Disc/1Pictures/Flashcard/older, oldest.jpg"
+2835,882ffe18-c736-43c9-b78b-193d193ea31d,21,An idiot is silly.,/Volumes/Disc/1Pictures/Flashcard/silly.jpg
+2946,2a89a6ab-f3b2-4c95-87b6-b6828ed0b10e,21,Tell me how your working day was!,/Volumes/Disc/1Pictures/Flashcard/tell.jpg
+2880,10395140-d220-40af-b03a-17e40941e587,21,I'm going to buy a new pair of shoes.,/Volumes/Disc/1Pictures/Flashcard/shoe.jpg
+2918,a25ec574-cd35-486e-bf75-18b5a060932c,21,My niece is my sister's daughter.,/Volumes/Disc/1Pictures/Flashcard/niece.jpg
+2833,32bd7727-9dd7-460e-bed2-50c533d7815c,21,Dirty kids!,/Volumes/Disc/1Pictures/Flashcard/child (kid).jpg
+2934,6129f727-dd25-45ba-a3b7-f10c2df4f5f2,21,Hello! We (one) give each other a kiss on the cheek!,/Volumes/Disc/1Pictures/Flashcard/kiss on cheek.jpg
+2836,bacf91d2-27fa-4988-b20f-0a033bdad159,21,There is a letter for Madam Curie.,/Volumes/Disc/1Pictures/Flashcard/Madam.jpg
+2905,0e3bae0f-9a08-45dc-b10b-ed70ec38c7dc,21,My brother-in-law is a good husband.,/Volumes/Disc/1Pictures/Flashcard/husband (spouse).jpg
+2860,ab4b7850-7320-4b33-b71e-0206c09ee152,21,They also have curly hair.,/Volumes/Disc/1Pictures/Flashcard/curly.jpg
+2843,478c142b-3488-4a37-bbb1-92b23b5b3fee,21,Everybody smiles on this photo!,/Volumes/Disc/1Pictures/Flashcard/everybody.jpg
+2855,24548fea-b3b3-421a-9bcc-cc36ef6014f2,21,Everybody has five fingers per hand.,/Volumes/Disc/1Pictures/Flashcard/finger.jpg
+2878,194286d4-72d6-4881-9628-87d79547eb4c,21,Put a hat on because of the sun!,/Volumes/Disc/1Pictures/Flashcard/hat.jpg
+2857,93460108-553e-401b-8508-eefb6f2462f5,21,She looked over her shoulder.,/Volumes/Disc/1Pictures/Flashcard/shoulder.jpg
+2894,bf9c8260-fa0c-4ccc-82d8-911a46a6d864,21,I've forgotten my sweater!,/Volumes/Disc/1Pictures/Flashcard/sweater.jpg
+2862,e4d0b293-c61b-4756-b36f-76d076696399,21,"A kiss on the cheek, not on the mouth!",/Volumes/Disc/1Pictures/Flashcard/cheek.jpg
+2893,10834e35-fd3a-4b77-90a0-bb9f0a2a6e48,21,You've got a nice blue dress!,/Volumes/Disc/1Pictures/Flashcard/dress.jpg
+2906,2c7e61fc-a748-4ac2-bf80-30d62b519b49,21,We are a small family.,/Volumes/Disc/1Pictures/Flashcard/family.jpg
+2914,8e5f613e-114b-4667-abbe-3491d8fe42dd,21,Ah! Here comes my husband!,/Volumes/Disc/1Pictures/Flashcard/husband.jpg
+2917,ffe5679f-c11c-40b6-a442-22a397080c5a,21,My nephew is my brother's son.,/Volumes/Disc/1Pictures/Flashcard/nephew.jpg
+3056,5e772730-98f5-400d-97c9-95c9f7e9eb55,21,It's a long way on foot.,/Volumes/Disc/1Pictures/Flashcard/long.jpg
+2924,2ec73469-313a-488e-87af-0a2323a0019e,21,Yes she's my sister!,/Volumes/Disc/1Pictures/Flashcard/sister.jpg
+2966,94de3773-01a7-42d7-9b7a-8e3f8fa52318,21,This dog is truly ugly and naughty!,/Volumes/Disc/1Pictures/Flashcard/ugly (unsightly).jpg
+2933,66a8e910-d3a3-4115-8c59-33205b0ec1a4,21,We were present at the meeting.,/Volumes/Disc/1Pictures/Flashcard/be present at.jpg
+2937,3218f74b-1b9f-49a0-892b-d891452b049b,21,I have to make a phone call to my office now.,/Volumes/Disc/1Pictures/Flashcard/phone call.jpg
+2948,0fe9ca79-73e2-4abd-b8cc-65fdbb053086,21,I love this town but I won't stay here.,/Volumes/Disc/1Pictures/Flashcard/stay.jpg
+2968,ddb3f669-9a22-490a-ba48-3787c2add8a7,21,Freedom or death!,/Volumes/Disc/1Pictures/Flashcard/liberty - freedom.jpg
+2998,e08a6530-a584-4e79-9f4a-1683d5c2a45a,21,"I'm so hungry, I want to eat straight away!",/Volumes/Disc/1Pictures/Flashcard/straight away (immediately).jpg
+2976,887d6443-b476-4bd6-a812-6a5cc79c26c8,21,It's a pleasure to see you again!,/Volumes/Disc/1Pictures/Flashcard/pleasure.jpg
+3008,d8c716ac-c9fe-4cda-a395-43e47456c2ce,21,I thought the sugar was salt and my soup is sweet.,/Volumes/Disc/1Pictures/Flashcard/sweet.jpg
+2996,056ee5a0-9389-49be-b09e-6968776591e8,21,I have a knife but no fork.,/Volumes/Disc/1Pictures/Flashcard/fork.jpg
+3015,4637d79e-d290-47ca-aab3-5f2b015121c0,21,Fill in the form using a bic,/Volumes/Disc/1Pictures/Flashcard/pen (biro).jpg
+2989,76cc15b5-8514-4305-9ee3-aec32c95415f,21,Are you hungry? What are you going to order?,"/Volumes/Disc/1Pictures/Flashcard/order, to lead.jpg"
+2992,b65eb978-19be-44fe-b645-f9f5baaf8eac,21,Give me a spoon to stir my coffee,/Volumes/Disc/1Pictures/Flashcard/spoon.jpg
+2991,d6d90195-6d00-4b6b-90f5-28b970774acc,21,I don't have a knife to cut the meat.,/Volumes/Disc/1Pictures/Flashcard/knife.jpg
+3017,55b4fbd6-e3eb-4009-85e3-f9224065a3ad,21,He stopped studying before his A-level.,/Volumes/Disc/1Pictures/Flashcard/stop (doing something).jpg
+3007,2a2b1ef0-c499-4423-b9b0-6d797e1c34b9,21,"One coffee with cream without sugar, please!",/Volumes/Disc/1Pictures/Flashcard/sugar.jpg
+3012,9f62d52c-0278-493e-8ab4-20a46c6951f0,21,I'm angry with my son,/Volumes/Disc/1Pictures/Flashcard/glass.jpg
+3020,6a860981-ceff-4563-b149-9447f1019a49,21,You are always the last to school.,/Volumes/Disc/1Pictures/Flashcard/school.jpg
+3019,edd015b5-fd62-4b02-8a0f-5b80ad2bfbcd,21,I have a lot of homework for tomorrow!,/Volumes/Disc/1Pictures/Flashcard/homework.jpg
+3035,d25bd32e-6fe4-4854-897e-083de255c344,21,It's a private but mixed school.,/Volumes/Disc/1Pictures/Flashcard/mixed.jpg
+3023,b808d460-70cf-408a-a5f3-b77016066863,21,Education is compulsory from six to sixteen years in France.,/Volumes/Disc/1Pictures/Flashcard/education.jpg
+3114,a1c0e059-baa3-40e9-92c4-7c12f6eaf8f6,21,We are in the 21st century.,/Volumes/Disc/1Pictures/Flashcard/century.jpg
+3072,1d6700fd-6b0b-454c-9f0d-d63cdeeae024,21,I've been a customer of this shop for fifteen years.,/Volumes/Disc/1Pictures/Flashcard/customer.jpg
+3068,bd950e15-314f-4e31-8a78-32cd6dd1050e,21,"I would like a ""croissant"". How much is it?",/Volumes/Disc/1Pictures/Flashcard/how much is it.jpg
+3055,89f238e2-dc9d-47ed-84de-308ab65652eb,21,He has wide (broad) shoulders.,/Volumes/Disc/1Pictures/Flashcard/wide.jpg
+3097,987c9cb9-de31-45e2-bc23-86fb5973350b,21,Tomorrow is his birthday and he'll be forty!,/Volumes/Disc/1Pictures/Flashcard/tomorrow.jpg
+3064,38964b11-1a16-485b-b722-40a728f1c2ba,21,There are too many people and it's too hot in this room!,"/Volumes/Disc/1Pictures/Flashcard/too, too much, too many.jpg"
+3059,954a2834-a49d-48d1-aadb-c62b9c17e3f6,21,There's nothing here!,/Volumes/Disc/1Pictures/Flashcard/nothing.jpg
+3138,4649713a-1c3a-49bf-acb0-00959b01eeaf,21,All the inhabitants go to church on Sunday.,/Volumes/Disc/1Pictures/Flashcard/inhabitant.jpg
+3112,dd55b7a8-8a67-4026-a992-e419bbbb5bd2,21,Nice watch! What's the time?,/Volumes/Disc/1Pictures/Flashcard/Whats the time.jpg
+3243,52e77ec6-e806-48a1-973d-b1f118cc2f53,21,Today it's fifteen degrees below zero.,/Volumes/Disc/1Pictures/Flashcard/degree.jpg
+3065,f7eb4c65-1729-4f9e-8b73-0ed375644874,21,"This afternoon, I'm going to make some purchases (do some shopping).",/Volumes/Disc/1Pictures/Flashcard/purchase.jpg
+3128,3542bfd2-be3d-4356-aafd-2f3358d41533,21,I work at my uncle's office.,/Volumes/Disc/1Pictures/Flashcard/office.jpg
+3232,1381627b-f26e-4b1c-a3e4-34bfc7805450,21,I made a mistake!,/Volumes/Disc/1Pictures/Flashcard/make a mistake.jpg
+3076,50ceb2f2-f6fb-48b3-a27a-e2e2a30ef882,21,I like to save money when I go shopping.,/Volumes/Disc/1Pictures/Flashcard/save (money).jpg
+3179,68ca2f04-2029-4592-8848-796991c247d1,21,The arrivals are on the opposite side of the airport.,/Volumes/Disc/1Pictures/Flashcard/arrival.jpg
+3209,b8f92b57-3ca1-4826-b075-48ca29ecd6bc,21,I am going to arrive at about 8 pm. just before the game begins.,/Volumes/Disc/1Pictures/Flashcard/arrive.jpg
+3170,198a88ed-6b96-4597-9d8d-601f088df28c,21,You should take the underground train in big cities!,/Volumes/Disc/1Pictures/Flashcard/underground train.jpg
+3218,7a6793ed-5080-4eb4-b0cf-942edf253ee9,21,You have to throw your rubbish in the bin!,"/Volumes/Disc/1Pictures/Flashcard/have to, must.jpg"
+3257,2c963205-0b29-4d2f-b37d-d8c6fcf51f86,21,"When there are clouds, it's dark.",/Volumes/Disc/1Pictures/Flashcard/dark.jpg
+3125,0b17dc1f-fbdb-4ef1-98bf-4599ff937aed,21,"Don't sit on the bench, the paint is fresh!",/Volumes/Disc/1Pictures/Flashcard/bench.jpg
+3144,f264d0e6-5f14-4567-a0a7-731cf56cd3cc,21,I live in a pleasant district.,/Volumes/Disc/1Pictures/Flashcard/district.jpg
+3143,fc109243-3bda-44d1-bfeb-9bb07601ca5c,21,There's a park behind the hospital.,/Volumes/Disc/1Pictures/Flashcard/park.jpg
+3127,5fecb490-0735-4231-8a06-8b78d49c07a8,21,You make noise when you eat cereal!,/Volumes/Disc/1Pictures/Flashcard/noise.jpg
+3135,392fe680-574c-400b-869f-3b2b571a0fe3,21,The policeman directs the traffic when there's a traffic jam.,/Volumes/Disc/1Pictures/Flashcard/traffic jam.jpg
+3140,ae882313-d89b-4c1c-97b3-d873b0f0baf2,21,They built a new hospital because the other one was too old.,/Volumes/Disc/1Pictures/Flashcard/hospital.jpg
+3205,8fd7c3de-8e8f-48a1-9b49-3101e59e45f8,21,We spent our holidays travelling.,/Volumes/Disc/1Pictures/Flashcard/travel.jpg
+3129,c17f42ae-476d-4819-9d1d-25edc8bfabc8,21,The restaurant is after the crossroads,/Volumes/Disc/1Pictures/Flashcard/crossroads.jpg
+3198,c2e1010f-dea0-4db6-b99d-cfe952569aef,21,The sand is very hot because of the sun!,/Volumes/Disc/1Pictures/Flashcard/sand.jpg
+3206,1afbe17d-748d-4197-baba-51ca78e751d2,21,Enjoy (your) holidays all (you) travellers!,/Volumes/Disc/1Pictures/Flashcard/traveller.jpg
+3244,dafbd55c-fece-4aac-b5d1-4dfce798b9f0,21,Your coffee is strong!,/Volumes/Disc/1Pictures/Flashcard/strong.jpg
+3173,10bf41ea-af9f-457f-a798-ad2a879a110e,21,Wait on the platform,/Volumes/Disc/1Pictures/Flashcard/platform.jpg
+3187,19269ca7-fa1c-431f-93be-81193e8a30b3,21,The guide is waiting outside the hotel.,/Volumes/Disc/1Pictures/Flashcard/guide.jpg
+3177,69da08da-256d-4748-8b98-b0217e4ddf69,21,To which airport do you go to take the plane?,/Volumes/Disc/1Pictures/Flashcard/airport.jpg
+3267,4913792f-2cdb-4a29-b00c-2ccfcda78345,21,There's someone in front of the door!,/Volumes/Disc/1Pictures/Flashcard/in front of.jpg
+3236,a2cc44b9-b351-47c3-b1c7-d21f218bccf0,21,You can use these tools!,/Volumes/Disc/1Pictures/Flashcard/to use (2).jpg
+3241,3db45594-b2bb-458f-af8b-3dc0e28b1da6,21,The weather has been cloudy for three days.,"/Volumes/Disc/1Pictures/Flashcard/cloudy, overcast.jpg"
+3256,8de69268-5c1e-4bab-a91a-83e4ef19dbf9,21,He stayed in the sun all day.,/Volumes/Disc/1Pictures/Flashcard/sun.jpg
+3235,56edb297-a58e-4bdd-bc3e-dd6028cd9dd8,21,He fell playing football.,/Volumes/Disc/1Pictures/Flashcard/fall.jpg
 1232,efeac270-25fe-45bd-a932-060e7fed7f24,2,driver,/Volumes/Disc/1Pictures/Flashcard/driver.jpg
+23,68fb20f5-da92-49cb-85ae-81f74851cc1f,1,either … or,/Volumes/Disc/1Pictures/Flashcard/either.jpg
 30,9e44da5d-d818-4290-a052-b1e1d31aabd2,1,adolescent (m/f),/Volumes/Disc/1Pictures/Flashcard/adolescent.jpg
 61,c301e7e5-8974-4682-998c-f6d0a9e07980,1,light bulb,/Volumes/Disc/1Pictures/Flashcard/light bulb.jpg
 66,0fc650e3-acee-491c-b43e-9b61504787f0,1,"to, at the home of","/Volumes/Disc/1Pictures/Flashcard/to, at the home of.jpg"
@@ -746,10 +1455,12 @@ refn,uuid,course,english,source_path
 547,4d776479-4e51-46ab-b48b-749dfb810033,1,letter,/Volumes/Disc/1Pictures/Flashcard/letter.jpg
 526,19f17996-c7ca-4b62-8175-4a059088e2a2,1,somewhere,/Volumes/Disc/1Pictures/Flashcard/somewhere.jpg
 661,4459b89e-32e9-4e63-98f0-37d759fc24d3,1,blood,/Volumes/Disc/1Pictures/Flashcard/blood.jpg
-800,04e578c2-8931-426d-a2e4-f1b5628df60a,1,to brush,/Volumes/Disc/1Pictures/Flashcard/brush.jpg
+780,e874e8d3-8b44-4ca9-a53f-24984dd4177f,1,to please,"/Volumes/Disc/1Pictures/Flashcard/please ,v.jpg"
+800,04e578c2-8931-426d-a2e4-f1b5628df60a,1,to brush,"/Volumes/Disc/1Pictures/Flashcard/brush ,v.jpg"
 810,ff9072cb-75f2-423b-a4dd-82b83e6cfcdc,1,bed,/Volumes/Disc/1Pictures/Flashcard/bed.jpg
 851,7c08ec8e-05f7-4c8e-8505-2154985a7855,1,to travel,/Volumes/Disc/1Pictures/Flashcard/travel.jpg
 654,74b52acf-b490-4681-b0e8-5b5369b75081,1,"thin, slim",/Volumes/Disc/1Pictures/Flashcard/thin - slim.jpg
+903,44b7f0a4-9ea4-4020-b6cf-a2bafbcd4130,1,to bring (ie. a person),/Volumes/Disc/1Pictures/Flashcard/bring (a person).jpg
 824,a8e4b957-9b44-42f6-9c93-a702ed6e9c51,1,camera,/Volumes/Disc/1Pictures/Flashcard/camera.jpg
 1227,c8a4f2e0-4ebb-4360-8f6c-4bab7784bb28,2,field (on database),/Volumes/Disc/1Pictures/Flashcard/field.jpg
 2014,56117706-069b-42f7-a89c-b7bad5a3fb8b,2,stomach (belly),/Volumes/Disc/1Pictures/Flashcard/stomach.jpg
@@ -758,6 +1469,9 @@ refn,uuid,course,english,source_path
 2354,0a6b45bf-4983-45e3-a30d-308b4e7336de,2,painting (chart),/Volumes/Disc/1Pictures/Flashcard/painting (picture).jpg
 2436,c35ece3c-7345-4ca9-8461-248499440b66,2,happy (2),/Volumes/Disc/1Pictures/Flashcard/happy.jpg
 2466,b73a4629-9620-416c-b832-231f77fb2949,2,guinea pig (2),/Volumes/Disc/1Pictures/Flashcard/guinea pig.jpg
+2885,5cf950e3-a4b2-47c3-9649-601f7b71c7be,22,It's in Italy that the painter Leonardo de Vinci was born.,/Volumes/Disc/1Pictures/Flashcard/Italy.jpg
+3666,c0c15446-c4b5-4771-9019-9968fd68b1d4,22,We can't change the past.,/Volumes/Disc/1Pictures/Flashcard/past.jpg
+3654,aeb4e0e0-be8b-4fe2-8611-a483c2728496,22,It's a year full of surprises.,/Volumes/Disc/1Pictures/Flashcard/year.jpg
 1189,301e91e4-9e0e-473c-8b9d-702f11e26a3c,2,shower (of rain),/Volumes/Disc/1Pictures/Flashcard/shower.jpg
 1585,64653cac-3f6d-420f-b61f-a29485c1fccb,2,suddenly (2),/Volumes/Disc/1Pictures/Flashcard/suddenly.jpg
 1689,fc557ba0-044a-4834-a723-b2c974f7c494,2,to have a sore throat,/Volumes/Disc/1Pictures/Flashcard/have a sore throat.jpg
@@ -769,6 +1483,7 @@ refn,uuid,course,english,source_path
 114,0edc1a41-cd8e-4dc4-be7e-47027deadde7,1,everywhere,/Volumes/Disc/1Pictures/Flashcard/everywhere.jpg
 394,36fd1f37-f290-4a2f-9067-213535f09c74,1,can opener,/Volumes/Disc/1Pictures/Flashcard/can opener.jpg
 629,b3130c4d-baf2-44c2-87ca-bc2f98f7e881,1,soap,/Volumes/Disc/1Pictures/Flashcard/soap.jpg
+582,aa70e039-2a7d-4b4d-ae02-abcfe62d7a62,1,steak (st…),/Volumes/Disc/1Pictures/Flashcard/steak (1).jpg
 785,91d5686c-d19b-4f27-8a1f-a7b16ba33648,1,"what, which","/Volumes/Disc/1Pictures/Flashcard/what, which.jpg"
 815,5b16234a-a1bb-4f41-8d38-32bc999bb6e6,1,curtain,/Volumes/Disc/1Pictures/Flashcard/curtain.jpg
 787,85bc578e-8cc4-44f8-908e-2b5c05d27a4e,1,who (whom),/Volumes/Disc/1Pictures/Flashcard/who (whom).jpg
@@ -778,8 +1493,6 @@ refn,uuid,course,english,source_path
 913,b63db711-b621-4890-b2c4-17f7e3732752,1,fat,/Volumes/Disc/1Pictures/Flashcard/fat.jpg
 963,a61c2fd7-d8d8-487e-913d-78d7d505374e,1,sharp (acute),/Volumes/Disc/1Pictures/Flashcard/sharp.jpg
 942,651dbcbb-ad6b-4448-8706-3e36464a7778,1,education,/Volumes/Disc/1Pictures/Flashcard/education.jpg
-1012,611e698d-92f8-4312-9c6c-68032e43729e,1,news (current events),/Volumes/Disc/1Pictures/Flashcard/news (current events).jpg
-2668,e36a07b1-4b3a-4e41-9685-6bbcd9155d78,2,to park (2),/Volumes/Disc/1Pictures/Flashcard/park.jpg
 19,b953f8aa-1c17-43a3-bd54-98a481421e5a,1,"through, by","/Volumes/Disc/1Pictures/Flashcard/through, by.jpg"
 68,e46df56c-b8da-4513-91b3-ec545be524a5,1,comfort,/Volumes/Disc/1Pictures/Flashcard/comfort.jpg
 88,bd279a41-bc57-474f-8eef-c86d889a995f,1,room (hall),/Volumes/Disc/1Pictures/Flashcard/room (hall).jpg
@@ -800,6 +1513,7 @@ refn,uuid,course,english,source_path
 63,e46c61de-fd32-4894-9937-ae8e81793833,1,balcony,/Volumes/Disc/1Pictures/Flashcard/balcony.jpg
 86,006b7951-8b95-40cd-bb33-fd617a625842,1,dust,/Volumes/Disc/1Pictures/Flashcard/dust.jpg
 71,2bd4913d-bcc2-44ca-8e8b-3404be07a63b,1,shelf,/Volumes/Disc/1Pictures/Flashcard/shelf.jpg
+1582,4a4171f0-bced-4fbe-b654-7c5cd20da40a,21,When the cat's away the mice will play.,/Volumes/Disc/1Pictures/Flashcard/mouse.jpg
 104,871d2b91-3eaa-42dc-af81-f65e37b941f8,1,"bottom, far end","/Volumes/Disc/1Pictures/Flashcard/bottom, far end.jpg"
 912,0b2c3ebd-cd8b-4611-a7e7-a749c79ebc60,1,"mad, crazy","/Volumes/Disc/1Pictures/Flashcard/mad, crazy.jpg"
 135,d9754f29-07c9-41b7-9fbc-8d77ef49278f,1,dinner,/Volumes/Disc/1Pictures/Flashcard/dinner.jpg
@@ -828,7 +1542,7 @@ refn,uuid,course,english,source_path
 471,37f07f1c-30d2-458b-a7ba-51b69c262768,1,village,/Volumes/Disc/1Pictures/Flashcard/village.jpg
 488,69c18139-4453-4549-afd7-7252187a0541,1,slow,/Volumes/Disc/1Pictures/Flashcard/slow.jpg
 492,a56e29d6-25af-4038-9595-a6f29807ad3f,1,"taken, engaged, busy",/Volumes/Disc/1Pictures/Flashcard/taken - engaged - busy.jpg
-953,584461fd-5e63-4150-a0ab-2e7a8f094696,1,subject,/Volumes/Disc/1Pictures/Flashcard/subject.jpg
+953,584461fd-5e63-4150-a0ab-2e7a8f094696,1,"subject (school, academic)",/Volumes/Disc/1Pictures/Flashcard/subject.jpg
 954,47cd6c99-5e95-4963-93c1-fa95acc6d3ef,1,mixed,/Volumes/Disc/1Pictures/Flashcard/mixed.jpg
 524,5da8c278-d6e0-46fb-8416-e986725a7d23,1,some (m),/Volumes/Disc/1Pictures/Flashcard/some.jpg
 554,3de6a210-fa67-4aa2-87e6-53e2087eeb32,1,to go for a walk,/Volumes/Disc/1Pictures/Flashcard/go for a walk.jpg
@@ -843,8 +1557,10 @@ refn,uuid,course,english,source_path
 668,cfe044de-c2ec-40f5-a76a-4a557830fb6f,1,plane,/Volumes/Disc/1Pictures/Flashcard/plane.jpg
 678,d5c369cf-c17e-489f-a0a9-2b7de2c4e16d,1,direction,/Volumes/Disc/1Pictures/Flashcard/direction.jpg
 711,fa811d6f-a8b0-4124-a63b-07cbd5641939,1,basket,/Volumes/Disc/1Pictures/Flashcard/basket.jpg
+719,ac3467f4-46c4-4306-808a-51344daf8514,1,to bring (a thing),/Volumes/Disc/1Pictures/Flashcard/bring (a thing).jpg
 726,9ba12c06-fca6-4de2-a9d9-80b381a45b57,1,to draw,/Volumes/Disc/1Pictures/Flashcard/draw.jpg
 748,51040292-8fbc-48db-b06b-5e7b36b89195,1,boot (shoe),/Volumes/Disc/1Pictures/Flashcard/boot (shoe).jpg
+1707,ce236250-4d97-4447-bda5-54e1d161c077,21,He has really dark hair.,"/Volumes/Disc/1Pictures/Flashcard/dark, deep colours.jpg"
 749,566a154c-5c3e-48c0-8667-bdc39899d7a1,1,hat,/Volumes/Disc/1Pictures/Flashcard/hat.jpg
 775,c64acd16-2ffe-4d06-9a38-7003e44e8335,1,happy,/Volumes/Disc/1Pictures/Flashcard/happy.jpg
 776,305d9045-bd24-48b6-833b-333ba903b0a9,1,them,/Volumes/Disc/1Pictures/Flashcard/them.jpg
@@ -856,66 +1572,208 @@ refn,uuid,course,english,source_path
 900,dc734431-2e6e-4712-a634-9fa0af074904,1,bull,/Volumes/Disc/1Pictures/Flashcard/bull.jpg
 915,f9634d3a-783c-4efb-8093-32ca7aa29835,1,ugly (unsightly),/Volumes/Disc/1Pictures/Flashcard/ugly (unsightly).jpg
 946,b252b906-f467-4627-80d9-a4a08c90b4e4,1,to study,/Volumes/Disc/1Pictures/Flashcard/study.jpg
-967,30609e1d-9a0e-4ba0-ad31-426f2717ac70,1,each,/Volumes/Disc/1Pictures/Flashcard/each.jpg
 968,74bf7a4f-4999-4a4b-a000-4390854a6aef,1,completely,/Volumes/Disc/1Pictures/Flashcard/completely.jpg
 969,eeb9af89-e7e4-4880-b491-439399b4dcb8,1,short,/Volumes/Disc/1Pictures/Flashcard/short.jpg
 989,4590ea65-fc30-46f4-a9dc-7490c7f013c5,1,"path, way","/Volumes/Disc/1Pictures/Flashcard/path, way.jpg"
-993,496061a3-cdd3-44f1-a9b3-058443d9e332,1,farm,/Volumes/Disc/1Pictures/Flashcard/farm.jpg
 995,39be3ffc-2224-4b79-a69d-9b8595fb2917,1,flower,/Volumes/Disc/1Pictures/Flashcard/flower.jpg
-1002,9c27c3a9-9312-4965-bd33-9d09def7758d,1,moon,/Volumes/Disc/1Pictures/Flashcard/moon.jpg
 999,5821b6ef-73c7-4279-974e-122f9c54e4b8,1,island,/Volumes/Disc/1Pictures/Flashcard/island.jpg
-1027,12c7045e-d807-4198-ab8b-295932042f66,1,to read,/Volumes/Disc/1Pictures/Flashcard/read.jpg
 1029,ac439bf6-5ddd-4a3c-a085-11fc1e62a395,1,hobby,/Volumes/Disc/1Pictures/Flashcard/hobby.jpg
+1447,efaa41fe-e0be-4004-8e56-f0e4c8d51655,21,This building is really tall!,"/Volumes/Disc/1Pictures/Flashcard/tall, high.jpg"
+1496,426b0383-2ab6-4b42-bafd-089ceed73338,21,He's a small boy!,/Volumes/Disc/1Pictures/Flashcard/small.jpg
+1530,612aa7b0-1ff5-4e1c-8660-d605191c9ad1,21,It's well known: bees make honey!,/Volumes/Disc/1Pictures/Flashcard/bee.jpg
+1555,1deecab2-6591-495f-8f5b-a5b470ca1232,21,As fat as a pig.,/Volumes/Disc/1Pictures/Flashcard/pig.jpg
+1651,ce60d60b-d483-4eb5-a4a4-996e17ce50d7,21,There's a packet for Mrs Dupond.,/Volumes/Disc/1Pictures/Flashcard/packet.jpg
+2488,09b8932e-a737-47d4-8014-a2464ab05cdc,21,Okay! See you tomorrow!,/Volumes/Disc/1Pictures/Flashcard/okay.jpg
+2468,33d0082c-7f83-4f3a-828f-1641024b1c06,21,The concert takes place this evening!,/Volumes/Disc/1Pictures/Flashcard/take place.jpg
+1659,c253cbd5-15bd-4e8b-810a-114462baf214,21,I'm going to the Post Office to buy stamps for my mail.,/Volumes/Disc/1Pictures/Flashcard/post.jpg
+1717,1fc5aba3-6a2b-4276-90bc-cf314e58b014,21,He was so pale I thought he was sick.,/Volumes/Disc/1Pictures/Flashcard/pale.jpg
+1770,5f02e26e-22ad-40bc-8231-e896680733ae,21,Be polite! Say good morning!,/Volumes/Disc/1Pictures/Flashcard/good morning.jpg
+1880,6cc4d692-5871-42d8-843b-4ebb04a4a6f5,21,I left the car outside.,"/Volumes/Disc/1Pictures/Flashcard/outside, out.jpg"
+1872,4a84391c-fbf4-4a35-be86-663d649e2f95,21,How do you always be late?,/Volumes/Disc/1Pictures/Flashcard/how.jpg
+2010,24afb82f-e82d-41a9-9e2e-d2ddb82c8e41,21,There are strawberries for dessert!,"/Volumes/Disc/1Pictures/Flashcard/there is, there are.jpg"
+2066,a8e963cd-1a35-4038-a4ac-44cbd2a92860,21,The bottle of water is on the table!,/Volumes/Disc/1Pictures/Flashcard/on.jpg
+2113,65093ee9-e5a2-40ed-9a71-2f1490867054,21,He's going to have problems.,/Volumes/Disc/1Pictures/Flashcard/have.jpg
+2119,e638ec6e-f7ff-4911-b18c-42d0e8333c26,21,Don't postpone to the next day what you can do today!,"/Volumes/Disc/1Pictures/Flashcard/do, to make.jpg"
+2127,0f6592aa-78d7-41a2-965c-641d298d4304,21,We know we are the best!,"/Volumes/Disc/1Pictures/Flashcard/us, we.jpg"
+2185,c7b415cb-4325-4029-b777-941d0d26f73e,21,The frying pan is in the cupboard,/Volumes/Disc/1Pictures/Flashcard/under.jpg
+2454,8db08b84-3c31-4800-8d5b-828a6e1a2c93,21,France is a country divided in twenty-two regions.,/Volumes/Disc/1Pictures/Flashcard/country.jpg
+2516,3473a59b-3d9e-419c-97f9-af5b74df13f8,21,Children like chocolate cakes!,/Volumes/Disc/1Pictures/Flashcard/cake (cream).jpg
+2534,bf0f768c-2256-4b79-a32c-231c96184eb9,21,"""The Cabbage Soup"" is a famous French movie.",/Volumes/Disc/1Pictures/Flashcard/cabbage.jpg
+2553,e12fda21-dc3f-4f79-8769-b81a06ab8988,21,The rice salad is in the fridge!,"/Volumes/Disc/1Pictures/Flashcard/salad, lettuce.jpg"
+2569,acb8ebea-a419-4131-9e62-9efa53a73b72,21,I like beef but I prefer duck.,/Volumes/Disc/1Pictures/Flashcard/duck.jpg
+2577,30915bc5-21ce-4d9e-9e58-70a88118ea0d,21,He wants to drink a pineapple juice.,/Volumes/Disc/1Pictures/Flashcard/juice.jpg
+2596,8627c904-2f6c-4e26-a31a-ff589c7ec9be,21,I feel pain everywhere!,/Volumes/Disc/1Pictures/Flashcard/feel pain in.jpg
+2609,96815dc1-e8ef-48e5-945b-4cf848adcd84,21,He has smoked since he was fifteen.,/Volumes/Disc/1Pictures/Flashcard/smoke.jpg
+2724,8db3f1f6-9bff-4b6e-8b5e-3c59e763822c,21,Put the bread in the freezer,/Volumes/Disc/1Pictures/Flashcard/freezer.jpg
+3050,af7bf051-0838-4ff5-a3a1-a60bb1bcdbfb,21,I'm short of ideas.,/Volumes/Disc/1Pictures/Flashcard/short.jpg
+2670,b0a290b3-9dcd-4635-ac7c-38333d4c62d3,21,Wait! I show you the pictures on my computer!,/Volumes/Disc/1Pictures/Flashcard/picture.jpg
+2699,5b834e76-8b47-4373-ac2a-f579a35e90cb,21,What comfort in this house!,/Volumes/Disc/1Pictures/Flashcard/comfort.jpg
+2718,2cc67a01-a7d5-4f55-a0be-49ab87a54e32,21,"Even if I hoover, a little dust always remains …",/Volumes/Disc/1Pictures/Flashcard/dust.jpg
 985,d3b14a6b-2894-488b-a8f9-c37cf0485b69,1,tree,/Volumes/Disc/1Pictures/Flashcard/tree.jpg
+2747,6c6d3635-5a96-455c-adc1-c1cb4c941747,21,Are we going to the dance?,/Volumes/Disc/1Pictures/Flashcard/dance.jpg
+2741,1a045c51-66b9-4506-945e-dbc0ca99e1c3,21,All the food is in the cupboard.,/Volumes/Disc/1Pictures/Flashcard/cupboard.jpg
+2834,aa2b493b-62ad-49d2-9de2-6c5b59675522,21,This man is always angry.,/Volumes/Disc/1Pictures/Flashcard/man.jpg
+2866,8199570b-334e-4ed6-aa85-715dd5637d9a,21,She has a thin body.,/Volumes/Disc/1Pictures/Flashcard/thin - slim.jpg
+2879,ba660672-74a8-416d-a0b5-2e4e83f922ca,21,There's a hole in my socks!,/Volumes/Disc/1Pictures/Flashcard/sock.jpg
+2903,93b3b1d7-b91b-4a7b-a3fd-0ce21c91ce27,21,It's sad to be divorced.,/Volumes/Disc/1Pictures/Flashcard/divorced.jpg
+2920,41db9d24-8e98-4607-a2ee-c85b6baf4c7f,21,Hello Dad! Where's Mum?,/Volumes/Disc/1Pictures/Flashcard/Dad.jpg
+2930,b42a85b3-fd29-4395-bbbc-2c4986107d71,21,Our friendship has lasted fifteen years.,/Volumes/Disc/1Pictures/Flashcard/friendship.jpg
+2942,f521b206-3288-4b34-9fc6-6c96a1a1a872,21,What about (one) playing beach volley?,/Volumes/Disc/1Pictures/Flashcard/play.jpg
+2956,f768a2c5-0f37-41e9-bc91-cd04ef9468c9,21,Everybody is against this new law.,/Volumes/Disc/1Pictures/Flashcard/against.jpg
+2971,9eb07174-06c2-4a49-8b03-6c3fc4a00d7a,21,He never lies to his parents.,/Volumes/Disc/1Pictures/Flashcard/lie.jpg
+2986,d85c981d-542f-4e19-95d1-e82edf5fe01d,21,"Good evening Sir, enjoy your meal!",/Volumes/Disc/1Pictures/Flashcard/enjoy your meal.jpg
+3006,206d26c5-e5bf-49b6-a083-c85893faa2bc,21,"Ah, the waiter is coming to serve us!",/Volumes/Disc/1Pictures/Flashcard/serve.jpg
+3009,ba73c89e-ce95-45ad-9196-6aa8efca54e2,21,You have the table number fifteen,/Volumes/Disc/1Pictures/Flashcard/table.jpg
+3028,8ac5cd6b-e43f-4520-957f-3169d31e5d5b,21,You'll have to give examples during the examination.,"/Volumes/Disc/1Pictures/Flashcard/examination, test.jpg"
+3057,09bbd5c1-d849-443a-9730-e8eaa1624576,21,I'm never late.,/Volumes/Disc/1Pictures/Flashcard/never.jpg
+3033,fcfcacc8-c101-44cb-9911-82c588f92c81,21,I wish you would remember your lessons!,/Volumes/Disc/1Pictures/Flashcard/lesson.jpg
+3062,4d6737ae-be1a-47c4-b4e1-c1f9b7275dc9,21,Everybody's here except you!,/Volumes/Disc/1Pictures/Flashcard/except.jpg
+3085,217d2b76-f344-4e26-9c92-4d326e5f355a,21,They are going to open the car park.,/Volumes/Disc/1Pictures/Flashcard/car park.jpg
+3118,47d845ef-9139-49be-93b5-3e6b37448155,21,Hurry up! We (one) are going straight away!,/Volumes/Disc/1Pictures/Flashcard/straight away (at once).jpg
+3131,c0cd431c-3453-459e-bc7e-7c5a438b42f3,21,There's too much traffic today!,/Volumes/Disc/1Pictures/Flashcard/traffic.jpg
+3158,fbb62f71-fde3-4f9c-b8f8-4a85047fff2f,21,There are many trucks on the motorway.,"/Volumes/Disc/1Pictures/Flashcard/lorry, truck (1).jpg"
+3178,58dd44a8-c033-48fe-9ddd-922ffcb28d9e,21,My camera and films are in my luggage.,/Volumes/Disc/1Pictures/Flashcard/camera.jpg
+3226,23baf91f-e1e2-4feb-81dc-ff398054bd67,21,He has lost weight!,/Volumes/Disc/1Pictures/Flashcard/lose.jpg
+3214,d4bf7d72-aa9d-4fbb-8601-8676f4caf6ee,21,You have to shout to be heard here!,/Volumes/Disc/1Pictures/Flashcard/shout.jpg
+3229,2277fbed-ac1e-4c79-8ae5-a21bf1d72f37,21,I sat down and I watched TV.,/Volumes/Disc/1Pictures/Flashcard/watch.jpg
+3230,7cd23382-d7bf-4c86-9162-96d44a80428c,21,I never sit down on the floor.,/Volumes/Disc/1Pictures/Flashcard/sit down.jpg
+3250,4833edcc-e8e5-4fb4-b10e-bb06fb4ddee5,21,"Take off your shoes, it's wet outside!",/Volumes/Disc/1Pictures/Flashcard/wet.jpg
+3258,4f1e5c51-17d5-48b2-a4c2-00af6acac51d,21,What's the temperature today? Thirty degrees!,/Volumes/Disc/1Pictures/Flashcard/temperature.jpg
+3276,057ea826-0063-4fb2-bad7-0b9b403d5432,21,My daughter writes with her left hand.,/Volumes/Disc/1Pictures/Flashcard/left.jpg
+3286,eb93cd64-fdb5-41bb-b19b-d92f02ffd307,21,His daughter lives near to here.,/Volumes/Disc/1Pictures/Flashcard/near to.jpg
 1007,58d1c714-f511-444b-bf73-7a9b4bc78c37,1,nature,/Volumes/Disc/1Pictures/Flashcard/nature.jpg
-987,d97e06e8-ca44-442d-b934-5acc70dc8dc2,1,countryside,/Volumes/Disc/1Pictures/Flashcard/countryside.jpg
-994,e5f35330-59fc-4a83-ab8e-bb2bb5b5b7df,1,fire (hearth),/Volumes/Disc/1Pictures/Flashcard/fire (hearth).jpg
 1006,0b1e7bad-9c86-4eca-a635-4b52e3749729,1,wall,/Volumes/Disc/1Pictures/Flashcard/wall.jpg
 1013,409a295b-dcba-4bec-9322-ac753fcf5b13,1,dance,/Volumes/Disc/1Pictures/Flashcard/dance.jpg
 1011,f9676f2c-f65a-4354-8520-a3b96e5614e5,1,earth,/Volumes/Disc/1Pictures/Flashcard/earth.jpg
-1028,cff6c804-b91b-4f03-a856-ff3a4498b53c,1,music,/Volumes/Disc/1Pictures/Flashcard/music.jpg
+1495,2a04240b-ed6d-4bed-b578-4e4711212e52,21,I phoned but it was engaged!,/Volumes/Disc/1Pictures/Flashcard/taken - engaged - busy.jpg
 1030,30d5313c-b385-43ad-aee5-23e95f311a0a,1,walk,/Volumes/Disc/1Pictures/Flashcard/walk.jpg
+1028,cff6c804-b91b-4f03-a856-ff3a4498b53c,1,music,/Volumes/Disc/1Pictures/Flashcard/music.jpg
 128,6fc1e785-8c98-4bc7-b6f0-0daa059bc0d4,1,cream,/Volumes/Disc/1Pictures/Flashcard/cream.jpg
 48,df894424-6c9d-45d9-9549-fab659a29287,1,silly,/Volumes/Disc/1Pictures/Flashcard/silly.jpg
 145,0462ef4c-6612-4993-85c7-b8a53478342f,1,soup,/Volumes/Disc/1Pictures/Flashcard/soup.jpg
 1036,5e460a9e-a641-430e-8ca8-f76c9bddab77,1,TV set,/Volumes/Disc/1Pictures/Flashcard/TV set.jpg
+1456,22b68dae-0d08-4ce6-9906-ff5ee35090ac,21,This story is incredible and very strange.,/Volumes/Disc/1Pictures/Flashcard/incredible.jpg
 45,71c01cd3-1f73-4501-9e8a-b1b098c6053a,1,cheerful,/Volumes/Disc/1Pictures/Flashcard/cheerful.jpg
+1445,311673eb-ec83-4615-9746-3fc91ceae3dc,21,That's easy to say!,/Volumes/Disc/1Pictures/Flashcard/easy.jpg
 62,0143baef-66f6-4ed6-a53c-941212133309,1,vacuum cleaner,/Volumes/Disc/1Pictures/Flashcard/vacuum cleaner.jpg
 130,8813ff3e-d758-494a-9834-f642ca292880,1,croissant,/Volumes/Disc/1Pictures/Flashcard/croissant.jpg
 56,195c2dc5-2261-4150-8740-76a27c819ebb,1,everybody,/Volumes/Disc/1Pictures/Flashcard/everybody.jpg
+1787,e1cae19e-face-40ae-b429-c58dafcf180b,21,He is always cheerful when he plays guitar.,/Volumes/Disc/1Pictures/Flashcard/when.jpg
 118,37b2877a-bb2a-4bb6-92cb-f43b8c74fb9e,1,straight on,/Volumes/Disc/1Pictures/Flashcard/straight on.jpg
 138,7e40c3d8-0877-4f93-97b8-52ff3b9fc811,1,ice cream,/Volumes/Disc/1Pictures/Flashcard/ice cream.jpg
+1506,fed0f2cc-6130-412b-ba0f-f692fa20f95f,21,"I'm ready, we (one) can leave!",/Volumes/Disc/1Pictures/Flashcard/ready.jpg
 136,72b5b58c-50aa-4f14-bf25-0e0bf51f0d5e,1,cheese,/Volumes/Disc/1Pictures/Flashcard/cheese.jpg
+1550,c2c1b9ee-98bb-4e74-a843-e37ddcee0381,21,To get on one's high horse.,/Volumes/Disc/1Pictures/Flashcard/horse.jpg
+1581,8fd52e3e-311f-4a9d-ad0e-366dc43f0382,21,When hens have teeth.,/Volumes/Disc/1Pictures/Flashcard/hen.jpg
+1551,53b808d9-9276-40c2-b901-1e065b290557,21,To fight like cat and dog.,/Volumes/Disc/1Pictures/Flashcard/dog.jpg
+1580,c4115bf4-c064-44af-b6bc-bed5e1c1fc97,21,To find the rare bird (to find the one person in a million).,/Volumes/Disc/1Pictures/Flashcard/bird.jpg
+2487,a2643ff2-3b64-49d8-9902-00963accfee8,21,"Sorry, are you okay? … So so!",/Volumes/Disc/1Pictures/Flashcard/so-so.jpg
+1653,8fdfdaff-83aa-409f-bdf1-0dd0a1f01ba1,21,You've lost a coin.,/Volumes/Disc/1Pictures/Flashcard/coin.jpg
+1743,46021888-33ad-43c8-8888-9763795cd74b,21,He has a male friend in the army.,/Volumes/Disc/1Pictures/Flashcard/friend (male).jpg
+2469,6c1ba0a3-eb07-4717-8bb3-9eab42d8adf8,21,I'm frightened of swimming!,/Volumes/Disc/1Pictures/Flashcard/be frightened.jpg
+2463,5d4ffb27-9245-4337-9b7b-0657ee1fa657,21,"He shouted, ""Help!"", but no-one came.",/Volumes/Disc/1Pictures/Flashcard/help!.jpg
+2559,8d23db49-454d-417b-969a-600c5cdda96b,21,Are you having pre-dinner drinks before eating?,/Volumes/Disc/1Pictures/Flashcard/pre-dinner drinks.jpg
 254,f5848ffc-a1d2-4b05-a979-d49e466c8f2d,1,to break,/Volumes/Disc/1Pictures/Flashcard/break.jpg
 265,890d2b9d-6efb-439b-bc12-9597b968ce9b,1,café,/Volumes/Disc/1Pictures/Flashcard/cafe.jpg
 266,0eeb4c19-296b-428a-8af0-719fb1084b00,1,"to order, to lead","/Volumes/Disc/1Pictures/Flashcard/order, to lead.jpg"
 288,8d0d6d9e-9b13-4987-b3f8-90d58941e0eb,1,toilets,/Volumes/Disc/1Pictures/Flashcard/toilets.jpg
 287,4c06bfde-1927-4d79-a597-d18c077c5852,1,cup,/Volumes/Disc/1Pictures/Flashcard/cup.jpg
 334,767582d0-dc0f-40fe-8ee9-8dbad1bb9116,1,grandfather,/Volumes/Disc/1Pictures/Flashcard/grandfather.jpg
+2144,d677ca11-6f9f-43b3-a531-ca4548d0649f,21,Where are you thinking of going on holiday?,/Volumes/Disc/1Pictures/Flashcard/think.jpg
 690,6f6ab3eb-1da4-4c83-9e4d-ce6388917bec,1,car,/Volumes/Disc/1Pictures/Flashcard/car.jpg
+1975,fc2e8531-0f4b-4709-bcd6-e4a44ff37f5f,21,He came alone.,"/Volumes/Disc/1Pictures/Flashcard/alone, single, sole.jpg"
 333,36429350-0b23-45f5-a1f3-2e2b27e6bc13,1,grandmother,/Volumes/Disc/1Pictures/Flashcard/grandmother.jpg
+1873,dc7423a0-c814-4f1b-9b32-5665fc139dec,21,When the weather is nice,/Volumes/Disc/1Pictures/Flashcard/in (inside).jpg
+1943,a963d9c6-17b1-4289-9c47-17c294448d4f,21,There's something strange.,/Volumes/Disc/1Pictures/Flashcard/something.jpg
+1908,49a9e7a2-8246-40ad-86d4-5aff7fa37afb,21,One day I'll show you my house!,/Volumes/Disc/1Pictures/Flashcard/my (f).jpg
+1931,816428d2-e810-4a6b-bc86-e7fb7d4fe075,21,Do you want a tea or a coffee?,/Volumes/Disc/1Pictures/Flashcard/or.jpg
+1889,0eef1342-f328-40ad-8bee-449b4de2473b,21,I live here and I know everybody.,/Volumes/Disc/1Pictures/Flashcard/here.jpg
+1915,099a180f-749a-4cfd-b6f1-ca655cb0b7ba,21,I only have a breakfast on Sunday because I don't have time on the other days.,/Volumes/Disc/1Pictures/Flashcard/only.jpg
+1937,6802e5eb-8926-4f71-9c38-d461faaa4683,21,Most of the bottles are broken.,/Volumes/Disc/1Pictures/Flashcard/most.jpg
+1983,6cfcf529-6007-4d8a-bb7f-37f542aa1169,21,We are going to Paris next Saturday!,"/Volumes/Disc/1Pictures/Flashcard/to, at.jpg"
 380,bedea04a-7525-4c17-9a55-35b6c4093964,1,saucepan,/Volumes/Disc/1Pictures/Flashcard/saucepan.jpg
+1993,dbe87724-58c9-4154-a226-e9c9f9a5a336,21,"It has rained a lot these last days, it's incredible!","/Volumes/Disc/1Pictures/Flashcard/this, these.jpg"
 458,e937ed70-8cf3-44ac-81cd-cfb4ec01c1e5,1,traffic jam,/Volumes/Disc/1Pictures/Flashcard/traffic jam.jpg
 392,7202fe49-6c84-4385-88bb-3822ad9c5a3f,1,to eat,/Volumes/Disc/1Pictures/Flashcard/eat.jpg
 426,24482a7f-9956-48cd-a906-de2fbc8d1df3,1,"salad, lettuce","/Volumes/Disc/1Pictures/Flashcard/salad, lettuce.jpg"
+1997,cb01b164-d4aa-41b2-9f28-0527949cb3b8,21,"It's raining, like yesterday!","/Volumes/Disc/1Pictures/Flashcard/as, like.jpg"
+2002,04124f37-3bbf-435f-9f15-327015b3f090,21,You shouldn't listen to what people say!,/Volumes/Disc/1Pictures/Flashcard/people.jpg
 457,80a0bf26-ef36-4208-b9d2-464af4c506a3,1,church,/Volumes/Disc/1Pictures/Flashcard/church.jpg
+2159,22fa7935-4ac0-41ed-abe9-52816db8ece5,21,When will you arrive?,"/Volumes/Disc/1Pictures/Flashcard/when ,q.jpg"
 489,1eab5172-c833-4337-92b1-6e3893c82c8e,1,free,/Volumes/Disc/1Pictures/Flashcard/free.jpg
+2485,93392423-4302-419d-bbbb-bc650ee163a5,21,Hello! How are you? …I'm fine!.,"/Volumes/Disc/1Pictures/Flashcard/things are fine, its okay.jpg"
+2471,5395b10e-7dc0-4c6a-81d8-0c717ecbc95c,21,He is right to search for a solution.,/Volumes/Disc/1Pictures/Flashcard/be right.jpg
+2472,aed194d4-0fd1-48d2-87ee-b0c33654a32c,21,"I'm right and you're wrong, as always!",/Volumes/Disc/1Pictures/Flashcard/be wrong.jpg
+2480,f1bc1784-21a1-4e38-97a8-57c8520dddbb,21,Well done France! You are going to play against Italy in the World Cup Final!,/Volumes/Disc/1Pictures/Flashcard/well done!.jpg
+2510,563ce0ae-aefd-44fc-9a62-920e96f4b12e,21,Please! I'd like a toasted cheese sandwich with fried egg.,/Volumes/Disc/1Pictures/Flashcard/toasted cheese sandwich with fried egg.jpg
 491,378a7ea8-1ac1-49a9-b874-6e7110d676de,1,"unhappy, unfortunate","/Volumes/Disc/1Pictures/Flashcard/unhappy, unfortunate.jpg"
+2528,baac3824-4968-4683-9c7e-e804ff76e24b,21,Do you want some pineapple cordial?,/Volumes/Disc/1Pictures/Flashcard/pineapple.jpg
+2526,9511c58e-575f-463d-8c01-78d07919b500,21,What I prefer for breakfast is slices of bread and butter.,/Volumes/Disc/1Pictures/Flashcard/slice of bread and butter.jpg
+2537,aa814dc2-aa0f-48d7-ada9-6c4921cdc07b,21,I'd like a medium-cooked steak with raw vegetables,"/Volumes/Disc/1Pictures/Flashcard/raw vegetables, salads.jpg"
+2558,39c8fab3-f2f9-4102-be79-a3edeea8fc2c,21,I'd like a cocktail without alcohol,/Volumes/Disc/1Pictures/Flashcard/alcohol.jpg
+2568,192640b9-722a-4882-b294-317d44eddaad,21,After a good meal I always have a coffee.,/Volumes/Disc/1Pictures/Flashcard/coffee.jpg
+2590,8d001732-f19b-4dd8-bbc9-e8456f8aa7f4,21,She doesn't eat meat because she's vegetarian.,/Volumes/Disc/1Pictures/Flashcard/meat.jpg
 543,3159c687-4da3-4dbd-a5be-4d6f78bd6894,1,to marry,/Volumes/Disc/1Pictures/Flashcard/marry.jpg
 544,5b5972f5-e2de-46cd-88be-c1187fb94155,1,invitation,/Volumes/Disc/1Pictures/Flashcard/invitation.jpg
 616,b32cdd17-76d1-4036-937f-80039b8d8693,1,"stamp, postmark","/Volumes/Disc/1Pictures/Flashcard/stamp, postmark.jpg"
 639,5a6570fe-5bd4-4bdc-979e-643000dae62d,1,body,/Volumes/Disc/1Pictures/Flashcard/body.jpg
+610,e3212690-c2a0-4095-911d-2cbe4500ea26,1,"post, mail",/Volumes/Disc/1Pictures/Flashcard/post.jpg
 555,036c90a1-6d9f-45c3-9d48-52947c9da193,1,to meet,/Volumes/Disc/1Pictures/Flashcard/meet.jpg
 631,dbdcfa3d-376c-4543-abd6-a08d307d1e24,1,to get washed,/Volumes/Disc/1Pictures/Flashcard/get washed.jpg
-682,a5f382a8-0ee7-4175-a7f9-b07bad9c5808,1,to park,/Volumes/Disc/1Pictures/Flashcard/park.jpg
+2648,7ec6d222-8415-4a07-8030-e8b8dab25b67,21,I'd like a big mirror in my bathroom.,/Volumes/Disc/1Pictures/Flashcard/mirror.jpg
+682,a5f382a8-0ee7-4175-a7f9-b07bad9c5808,1,to park,"/Volumes/Disc/1Pictures/Flashcard/park ,v.jpg"
 637,bef36250-d2fd-4d13-aafc-da296279c234,1,hair,/Volumes/Disc/1Pictures/Flashcard/hair.jpg
+2959,a87d0dfe-b0b6-4807-a51c-725a4a3996b4,21,When he's angry he makes me smile!,/Volumes/Disc/1Pictures/Flashcard/angry  (in anger).jpg
+2681,f18a54d8-b200-4c11-859a-70217cff876e,21,"Shut the curtains, please!",/Volumes/Disc/1Pictures/Flashcard/curtain.jpg
+2673,2517d385-90b1-4c8b-8742-15619cc3e8b7,21,Take off your coat and lie down for five minutes rest.,/Volumes/Disc/1Pictures/Flashcard/coat.jpg
 645,364fa189-949e-4af0-9009-9dad89459e88,1,shoulder,/Volumes/Disc/1Pictures/Flashcard/shoulder.jpg
 634,e88ef0cc-5fca-404a-989b-8157dfe02d49,1,shampoo,/Volumes/Disc/1Pictures/Flashcard/shampoo.jpg
 754,da5b8373-a8b9-4552-8c16-22a66b931619,1,raincoat,/Volumes/Disc/1Pictures/Flashcard/raincoat.jpg
 648,b4a5cdb6-de09-4d0e-ba0b-12cdfe7cc4b1,1,curly (frizzy),/Volumes/Disc/1Pictures/Flashcard/curly.jpg
+2698,ed405da1-94d4-425c-a583-36063fe74b7a,21,"OK, but don't forget your keys!",/Volumes/Disc/1Pictures/Flashcard/key (door).jpg
+2712,025f0821-5062-44f7-bf6b-f62b27772cba,21,I'm going to buy new furniture for my house.,/Volumes/Disc/1Pictures/Flashcard/furniture.jpg
+2708,c1ed66d4-89e5-4d00-8a50-a63a360015f1,21,"When it's sunny, we (one) eat in the garden.",/Volumes/Disc/1Pictures/Flashcard/garden.jpg
 762,8684e938-585a-430b-a21f-a5dad0e33fa0,1,purse,/Volumes/Disc/1Pictures/Flashcard/purse.jpg
 756,c81165f7-9ca7-4c39-950d-70399f1aaad7,1,skirt,/Volumes/Disc/1Pictures/Flashcard/skirt.jpg
+2705,62dd9c10-ebbd-462c-ac4b-2efa55b617fe,21,It's warm! Open the window and turn the central heating off!,/Volumes/Disc/1Pictures/Flashcard/window.jpg
+2722,66aa20e2-a5b4-4b86-85f8-445a9b0dab0e,21,Give me a bowl for my cereal!,/Volumes/Disc/1Pictures/Flashcard/bowl.jpg
+2740,b8c9ed02-b7a2-45b1-b151-fddfc500acd8,21,It's next to the bottle opener!,/Volumes/Disc/1Pictures/Flashcard/bottle opener.jpg
+2826,8445f3c7-17ad-4401-b750-be6330c2d5d0,21,This lady is also in the army.,/Volumes/Disc/1Pictures/Flashcard/lady.jpg
+2841,95bfcb53-cb3f-4712-ba70-d2a195407d51,21,Is there someone to look after the children?,/Volumes/Disc/1Pictures/Flashcard/someone.jpg
+2858,6e9da8c1-cdac-4ec7-afcc-bc005281b968,21,After a good meal he has a full stomach.,/Volumes/Disc/1Pictures/Flashcard/stomach.jpg
+2883,9ac68eb8-643d-4951-adb9-5e10fc977a56,21,It's raining! I'm going to take an overcoat or a raincoat and an umbrella!,/Volumes/Disc/1Pictures/Flashcard/raincoat.jpg
 764,441c4fb8-a04f-4a2a-9d63-c6a6ce1fdf73,1,dress,/Volumes/Disc/1Pictures/Flashcard/dress.jpg
+2840,d2a17cd1-9eb1-42d1-8fd7-ad61486328a5,21,According to the latest news they are still together.,/Volumes/Disc/1Pictures/Flashcard/news (pieces).jpg
+2925,4df6a923-f107-4a41-ad0a-17ab09c4305c,21,Auntie! (term of endearment) - She's my aunt.,/Volumes/Disc/1Pictures/Flashcard/aunt.jpg
+2850,be796fd7-c18c-4350-9e3f-e006d00666d5,21,He has a heart of stone.,/Volumes/Disc/1Pictures/Flashcard/heart.jpg
+2856,ea476ae4-9464-4c3c-88a0-b6e39353383f,21,He has a backache.,/Volumes/Disc/1Pictures/Flashcard/back.jpg
+2912,f4ddbfda-74bf-49c8-be42-ae83b66487db,21,My grandparents have three children.,/Volumes/Disc/1Pictures/Flashcard/grandparents.jpg
+2929,bc422591-5fa2-46ca-8b4d-b972daaa43d1,21,He helps his children to do their homework.,/Volumes/Disc/1Pictures/Flashcard/help.jpg
+2940,8170d890-0963-4934-9aab-de506f0b7a8b,21,We've sent the invitations for your birthday!,/Volumes/Disc/1Pictures/Flashcard/invitation.jpg
+2950,814b2cb8-19df-43c0-b746-0ae5a0c11ee3,21,"On Sunday, we (one) go for a walk along the canal.",/Volumes/Disc/1Pictures/Flashcard/go for a walk.jpg
+2949,24aac350-9364-4513-86c6-aeff5e26649a,21,My husband makes me laugh when he answers the phone!,/Volumes/Disc/1Pictures/Flashcard/laugh.jpg
+2974,4b0510b2-8be8-4244-bffa-9335d6f79a23,21,We are celebrating the birth of my nephew!,/Volumes/Disc/1Pictures/Flashcard/birth.jpg
+2982,a42ed6bd-7ed4-485a-898e-0305a2dba8fd,21,These crisps are really too greasy!,"/Volumes/Disc/1Pictures/Flashcard/truly, really.jpg"
+3011,257fe43a-4b4b-44b9-9f09-eedb86430ed1,21,"Where are the toilets, please?",/Volumes/Disc/1Pictures/Flashcard/toilets.jpg
+3077,d3abf94c-e73c-4af6-8fc8-01f9e6945e56,21,I will check if the amount is correct.,/Volumes/Disc/1Pictures/Flashcard/correct (accurate).jpg
+3142,a8f8ffe7-61f0-4967-a3d6-5d355dcd3186,21,Brake! (Stop!) Look at the road-sign!,/Volumes/Disc/1Pictures/Flashcard/sign (road-sign).jpg
+3120,64c9d7b7-180c-450a-a439-6b7737ac9f41,21,She has built her own business.,/Volumes/Disc/1Pictures/Flashcard/business.jpg
+3074,d5cc0050-06bc-4abe-ae5f-540d1fabeb7c,21,I spent a lot of money today!,/Volumes/Disc/1Pictures/Flashcard/spend (money).jpg
+3116,24bcc717-67b3-4419-aaa6-446a02f8468b,21,We had a good evening!,/Volumes/Disc/1Pictures/Flashcard/evening (period of time).jpg
+3121,5b583ba4-6a0c-4357-8170-e5a7996c67cc,21,There's a poster pasted on your car!,/Volumes/Disc/1Pictures/Flashcard/poster.jpg
+3167,e3ca38ee-9de5-4aa4-9d77-89496ab12749,21,What about (one) going to the café near the station?,/Volumes/Disc/1Pictures/Flashcard/station.jpg
+3166,d2097047-f1de-4cc4-a5c9-a70a793a48fb,21,Brake! The station is here! Park the car on this side.,/Volumes/Disc/1Pictures/Flashcard/brake.jpg
+3152,3413280f-6ba8-4176-a008-e93556da1e8e,21,I'm looking for the bus stop,/Volumes/Disc/1Pictures/Flashcard/stop.jpg
+3163,fdc25efd-4f29-4ed4-a069-b0bd1d9902d0,21,From sixteen years of age you (one) can learn to drive.,/Volumes/Disc/1Pictures/Flashcard/drive.jpg
+3180,55e0e3ab-f712-4a96-9656-6afe309bc95d,21,An adventure happened to me since my departure from the airport!,/Volumes/Disc/1Pictures/Flashcard/adventure.jpg
+3199,8cc1cbc5-c2a2-42a9-9b88-9127582a549f,21,"I'd like information about the duration of the journey, it's not written on the ticket.",/Volumes/Disc/1Pictures/Flashcard/ticket (2).jpg
+3252,d1781dc7-ea15-4c36-9ee4-143b321b2d02,21,He has his head in the clouds.,/Volumes/Disc/1Pictures/Flashcard/cloud.jpg
+3208,8653d00c-2405-4285-8937-599124d29be9,21,I am bringing my car to the garage and will arrive straightaway!,/Volumes/Disc/1Pictures/Flashcard/bring (a thing).jpg
+3245,819a309b-b217-40bc-9fb4-801c0945c389,21,It's cold! Shut the door!,/Volumes/Disc/1Pictures/Flashcard/cold.jpg
+3271,6f2d5bce-320b-4cd5-b019-91b040829bef,21,Our neighbours live directly opposite our home.,/Volumes/Disc/1Pictures/Flashcard/opposite.jpg
+3278,e2407ac9-96ed-48e9-879f-977152bad541,21,"Come on, there's shade over there!",/Volumes/Disc/1Pictures/Flashcard/over there.jpg
+3281,2dd04015-5bae-451f-af3d-b39114ab6bdf,21,"I'll go to the middle of the North Pole, it's too hot here!",/Volumes/Disc/1Pictures/Flashcard/north.jpg
+3283,6b7dd3b4-3204-4336-b5a5-4190b5c9b221,21,Toilets? This way!,/Volumes/Disc/1Pictures/Flashcard/this way.jpg
 1849,25733d08-7398-49b9-be61-73e85619ff4f,2,school (secondary),/Volumes/Disc/1Pictures/Flashcard/school.jpg
 1966,fafb5663-ef7b-4d9f-8566-f67df482e1ef,2,school (2),/Volumes/Disc/1Pictures/Flashcard/school.jpg
 2003,3b8034bb-ea0c-4fe3-9526-ec6c41526f7d,2,work,/Volumes/Disc/1Pictures/Flashcard/work.jpg

@@ -33,6 +33,6 @@ export async function setAnswerFeedbackSoundEnabled(
     return { success: false, error: error.message };
   }
 
-  revalidatePath("/admin/answer-sounds");
+  revalidatePath("/admin/sounds");
   return { success: true };
 }

@@ -41,7 +41,7 @@ export function PageContainer({
       className={cn(
         "mx-auto w-full transition-[max-width] duration-300 ease-in-out",
         sizeClasses[size],
-        withTopPadding && "pt-[80px]",
+        withTopPadding && "pt-8",
         className
       )}
     >

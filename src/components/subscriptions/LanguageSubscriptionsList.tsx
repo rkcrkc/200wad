@@ -40,7 +40,7 @@ export function LanguageSubscriptionsList({
     // Full-width divider separates the header section from the languages list.
     <div className="border-t border-bone-hover">
       {/* Column headers */}
-      <div className="grid items-center grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] px-8 pt-6 pb-3">
+      <div className="hidden sm:grid items-center grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] px-8 pt-6 pb-3">
         <span className="text-xs-medium text-muted-foreground">Language</span>
         <span className="text-xs-medium text-muted-foreground"># Courses</span>
         <span className="text-xs-medium text-muted-foreground"># Lessons</span>
@@ -54,7 +54,7 @@ export function LanguageSubscriptionsList({
           return (
             <Fragment key={lang.id}>
               {/* Inset row dividers respect the card's horizontal padding. */}
-              {i > 0 && <div className="mx-8 border-t border-bone-hover" />}
+              {i > 0 && <div className="mx-4 sm:mx-8 border-t border-bone-hover" />}
               <LanguageSubscriptionRow
                 lang={lang}
                 accessUnlocked={accessUnlocked}
@@ -69,7 +69,7 @@ export function LanguageSubscriptionsList({
         })}
 
         {languages.length === 0 && (
-          <div className="px-8 py-12 text-center">
+          <div className="px-4 sm:px-8 py-12 text-center">
             <p className="text-sm text-muted-foreground">No languages available yet.</p>
           </div>
         )}

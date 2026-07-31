@@ -1,6 +1,7 @@
 "use client";
 
 import { TriggerMedia } from "@/components/ui/TriggerMedia";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { AudioType } from "@/hooks/useAudio";
 import { AudioButton } from "@/components/ui/audio-button";
 import { AudioUploadButton } from "./AudioUploadButton";
@@ -113,6 +114,7 @@ export function MemoryTriggerCard({
   const isHorizontal = layout === "horizontal";
   const isPlayingTrigger = playingAudioType === "trigger";
   const audioDarkColor = getHighlightColorDark(gender);
+  const isMobile = useIsMobile();
 
   // In edit mode, the trigger speaker icon becomes an upload affordance.
   const audioControl =
@@ -176,7 +178,7 @@ export function MemoryTriggerCard({
               <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
             </div>
             <div className="w-full md:w-[45%]">
-              <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
+              <div className="h-[280px] w-full sm:h-[400px] animate-pulse rounded-lg bg-gray-100" />
             </div>
           </div>
         </div>
@@ -189,7 +191,7 @@ export function MemoryTriggerCard({
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
             <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
           </div>
-          <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
+          <div className="h-[280px] w-full sm:h-[400px] animate-pulse rounded-lg bg-gray-100" />
         </div>
       </div>
     );
@@ -251,7 +253,7 @@ export function MemoryTriggerCard({
     const factImageBlock = imageEditor ? (
       imageEditor
     ) : showImage && hasMedia ? (
-      <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
+      <div className="relative h-[280px] w-full sm:h-[400px] overflow-hidden rounded-lg">
         <TriggerMedia
           imageUrl={imageUrl}
           videoUrl={videoUrl}
@@ -262,11 +264,11 @@ export function MemoryTriggerCard({
         />
       </div>
     ) : showImage && !hasMedia ? (
-      <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">
+      <div className="flex h-[280px] w-full sm:h-[400px] items-center justify-center rounded-lg bg-gray-50">
         <span className="text-6xl">🖼️</span>
       </div>
     ) : (
-      <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
+      <div className="h-[280px] w-full sm:h-[400px] animate-pulse rounded-lg bg-gray-100" />
     );
 
     return (
@@ -299,12 +301,12 @@ export function MemoryTriggerCard({
                   wordId={wordId}
                   isEditMode={isEditMode}
                   onSave={onFieldSave}
-                  className="text-[22px] font-medium leading-normal"
-                  textareaClassName="text-[22px] font-medium"
+                  className="text-[18px] font-medium leading-normal sm:text-[22px]"
+                  textareaClassName="text-[18px] font-medium sm:text-[22px]"
                   rows={3}
                   variant="word"
                   renderPreview={(v) => (
-                    <p className="text-[22px] font-medium leading-normal">
+                    <p className="text-[18px] font-medium leading-normal sm:text-[22px]">
                       {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
                     </p>
                   )}
@@ -315,7 +317,7 @@ export function MemoryTriggerCard({
             <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
               <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
               <span className="word-audio-icon col-start-1 row-start-2 mr-3 flex h-[33px] items-center">{audioControl}</span>
-              <p className="col-start-2 row-start-2 text-[22px] font-medium leading-normal">
+              <p className="col-start-2 row-start-2 text-[18px] font-medium leading-normal sm:text-[22px]">
                 {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
               </p>
             </div>
@@ -352,12 +354,12 @@ export function MemoryTriggerCard({
                   wordId={wordId}
                   isEditMode={isEditMode}
                   onSave={onFieldSave}
-                  className="text-[22px] font-medium leading-normal"
-                  textareaClassName="text-[22px] font-medium"
+                  className="text-[18px] font-medium leading-normal sm:text-[22px]"
+                  textareaClassName="text-[18px] font-medium sm:text-[22px]"
                   rows={3}
                   variant="word"
                   renderPreview={(v) => (
-                    <p className="text-[22px] font-medium leading-normal">
+                    <p className="text-[18px] font-medium leading-normal sm:text-[22px]">
                       {parseFormattedText(v, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
                     </p>
                   )}
@@ -368,7 +370,7 @@ export function MemoryTriggerCard({
             <div className="grid grid-cols-[auto_1fr] items-start gap-y-1">
               <p className="col-start-2 row-start-1 text-small-medium text-muted-foreground/50">Imagine…</p>
               <span className="word-audio-icon col-start-1 row-start-2 mr-3 flex h-[33px] items-center">{audioControl}</span>
-              <p className="col-start-2 row-start-2 text-[22px] font-medium leading-normal">
+              <p className="col-start-2 row-start-2 text-[18px] font-medium leading-normal sm:text-[22px]">
                 {parseFormattedText(triggerText, { gender, headword: foreignWord, isPlaying: isPlayingTrigger, paragraphs: false })}
               </p>
             </div>
@@ -423,20 +425,49 @@ export function MemoryTriggerCard({
     imageEditor
   ) : showImage && hasMedia ? (
     imageOnly ? (
-      <div className="relative h-[400px] w-full overflow-hidden rounded-lg">
+      isMobile ? (
+        // Mobile: hug the image's natural dimensions, capped at 400px tall, so
+        // short/portrait images don't sit in a wasteful fixed letterbox.
+        <div className="w-full overflow-hidden rounded-lg">
+          <TriggerMedia
+            imageUrl={imageUrl}
+            videoUrl={videoUrl}
+            alt="Memory trigger"
+            priority
+            fit="natural"
+            className="mx-auto max-h-[400px] w-auto rounded-lg object-contain"
+          />
+        </div>
+      ) : (
+        <div className="relative h-[280px] w-full sm:h-[400px] overflow-hidden rounded-lg">
+          <TriggerMedia
+            imageUrl={imageUrl}
+            videoUrl={videoUrl}
+            alt="Memory trigger"
+            priority
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, 730px"
+          />
+        </div>
+      )
+    ) : isMobile ? (
+      <button
+        onClick={onPlayTriggerAudio}
+        className="block w-full cursor-pointer overflow-hidden rounded-lg"
+      >
         <TriggerMedia
           imageUrl={imageUrl}
           videoUrl={videoUrl}
           alt="Memory trigger"
           priority
-          className="object-contain"
-          sizes="(max-width: 768px) 100vw, 730px"
+          fit="natural"
+          className="mx-auto max-h-[400px] w-auto max-w-full rounded-lg object-contain"
         />
-      </div>
+      </button>
     ) : (
       <button
         onClick={onPlayTriggerAudio}
-        className="relative h-[400px] w-full cursor-pointer overflow-hidden rounded-lg"
+        className="relative h-[280px] w-full sm:h-[400px] cursor-pointer overflow-hidden rounded-lg"
       >
         <TriggerMedia
           imageUrl={imageUrl}
@@ -450,17 +481,17 @@ export function MemoryTriggerCard({
     )
   ) : showImage && !hasMedia ? (
     // No image but should show - show placeholder
-    <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-gray-50">
+    <div className="flex h-[280px] w-full sm:h-[400px] items-center justify-center rounded-lg bg-gray-50">
       <span className="text-6xl">🖼️</span>
     </div>
   ) : (
     // Image skeleton when clueLevel=0 but should show card
-    <div className="h-[400px] w-full animate-pulse rounded-lg bg-gray-100" />
+    <div className="h-[280px] w-full sm:h-[400px] animate-pulse rounded-lg bg-gray-100" />
   );
 
   return (
     <div className="w-full rounded-2xl bg-white shadow-card">
-      <div className="flex flex-col gap-5 px-6 py-5">
+      <div className="flex flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
         {!imageOnly && triggerBlock}
         {imageBlock}
       </div>
