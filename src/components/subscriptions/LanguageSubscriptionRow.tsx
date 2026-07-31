@@ -32,21 +32,21 @@ export function LanguageSubscriptionRow({
 
   return (
     <div>
-      <div className={`px-8 py-5 ${isExpanded ? "border-b border-bone-hover" : ""}`}>
-        <div className="grid items-center grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px]">
+      <div className={`relative px-4 py-4 sm:px-8 sm:py-5 ${isExpanded ? "border-b border-bone-hover" : ""}`}>
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] sm:items-center sm:gap-0">
           {/* Language */}
-          <div className="flex items-center gap-3">
+          <div className="order-1 flex items-center gap-3 pr-10 sm:order-none sm:pr-0">
             <span className="text-xl">{getFlagFromCode(lang.code)}</span>
             <span className="text-medium-semibold">{lang.name}</span>
           </div>
 
           {/* Courses */}
-          <div className="text-small-regular text-muted-foreground">
+          <div className="order-2 text-small-regular text-muted-foreground sm:order-none">
             {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
           </div>
 
           {/* Access */}
-          <div className="flex items-center">
+          <div className="order-3 flex items-center sm:order-none">
             {accessUnlocked ? (
               <span className="text-small-medium text-green-600">Unlocked</span>
             ) : (
@@ -63,7 +63,7 @@ export function LanguageSubscriptionRow({
           </div>
 
           {/* Action */}
-          <div className="flex items-center pr-4">
+          <div className={`order-4 items-center sm:order-none sm:flex sm:pr-4 ${showUnlockCta ? "flex" : "hidden sm:flex"}`}>
             {showUnlockCta &&
               (isSelected ? (
                 <Button
@@ -87,7 +87,7 @@ export function LanguageSubscriptionRow({
           </div>
 
           {/* Chevron */}
-          <div className="flex items-center justify-end">
+          <div className="absolute right-4 top-4 order-none flex items-center justify-end sm:static sm:right-auto sm:top-auto">
             <button
               onClick={onToggleExpand}
               aria-label={isExpanded ? "Collapse courses" : "Expand courses"}

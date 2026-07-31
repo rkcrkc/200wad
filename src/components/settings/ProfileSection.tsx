@@ -271,8 +271,8 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
   };
 
   return (
-    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
-      <div className="mb-6 flex items-start justify-between">
+    <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-card">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-xl font-semibold">Profile Information</h2>
         {!isEditing ? (
           <Button
@@ -392,7 +392,7 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
           </div>
 
           {/* Location Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm text-gray-600">
                 Hometown
@@ -513,7 +513,7 @@ export function ProfileSection({ settings }: ProfileSectionProps) {
 
           <div className="space-y-2">
             <div className="pt-2">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <p className="mb-1 text-sm text-gray-500">Hometown</p>
                   <div className="flex items-center gap-2 text-gray-700">

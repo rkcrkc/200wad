@@ -1,4 +1,5 @@
 export { StudyNavbar } from "./StudyNavbar";
+export { StudyProgressBar } from "./StudyProgressBar";
 export { StudyActionBar } from "./StudyActionBar";
 export { StudyWordListSidebar } from "./StudyWordListSidebar";
 export { WordTrackerDots } from "./WordTrackerDots";

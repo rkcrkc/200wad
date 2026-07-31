@@ -32,13 +32,15 @@ export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, i
         isSelected && "bg-bone-hover"
       )}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail — kept on mobile; the tile shrinks below md. The explicit
+          mobile width keeps this column tight (the header, which sets the
+          desktop widths, is hidden on mobile) so the text cell gets the rest. */}
       <td className={cn(
-        "bg-white px-6 py-4 transition-colors group-hover:bg-bone-hover",
+        "w-16 bg-white px-4 py-3 transition-colors group-hover:bg-bone-hover md:w-auto md:px-6 md:py-4",
         isFirst && "rounded-tl-xl",
         isLast && "rounded-bl-xl"
       )}>
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg md:h-10 md:w-10">
           {hasImage ? (
             <Image
               src={word.imageUrl!}
@@ -55,28 +57,35 @@ export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, i
         </div>
       </td>
 
-      {/* English */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* English — the only text cell on mobile, where the foreign headword
+          stacks beneath it (smaller/recessed). Below md this is the last
+          visible cell, so it reclaims the row's right corners. */}
+      <td className={cn(
+        "bg-white px-2 py-3 pr-4 transition-colors group-hover:bg-bone-hover md:py-4 md:pr-2",
+        isFirst && "rounded-tr-xl md:rounded-tr-none",
+        isLast && "rounded-br-xl md:rounded-br-none"
+      )}>
         <div className="truncate text-regular-semibold text-foreground" title={word.english}>{word.english}</div>
+        <div className="mt-0.5 truncate text-small-medium text-muted-foreground md:hidden" title={word.headword}>{word.headword}</div>
       </td>
 
-      {/* Headword (foreign) */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* Headword (foreign) — desktop-only column; stacks under English on mobile. */}
+      <td className="hidden bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover md:table-cell">
         <div className="truncate text-regular-medium text-foreground" title={word.headword}>{word.headword}</div>
       </td>
 
-      {/* Word Type */}
-      <td className="bg-white px-2 py-4 text-small-medium text-muted-foreground transition-colors group-hover:bg-bone-hover">
+      {/* Word Type — desktop-only */}
+      <td className="hidden bg-white px-2 py-4 text-small-medium text-muted-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
         {word.category === "word" ? (word.partOfSpeech || "—") : (word.category || "—")}
       </td>
 
-      {/* Status */}
-      <td className="whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* Status — desktop-only */}
+      <td className="hidden whitespace-nowrap bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover md:table-cell">
         <StatusPill status={statusType} />
       </td>
 
-      {/* Lesson */}
-      <td className="bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover">
+      {/* Lesson — desktop-only */}
+      <td className="hidden bg-white px-2 py-4 transition-colors group-hover:bg-bone-hover md:table-cell">
         {word.lessonNumber ? (
           <div
             className="truncate text-small-medium text-muted-foreground"
@@ -89,9 +98,9 @@ export function DictionaryRow({ word, onClick, isFirst, isLast, isHighlighted, i
         )}
       </td>
 
-      {/* Chevron - sticky on horizontal scroll */}
+      {/* Chevron — desktop-only, sticky on horizontal scroll. */}
       <td className={cn(
-        "sticky right-0 z-10 bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover",
+        "sticky right-0 z-10 hidden bg-white px-2 py-4 pr-6 transition-colors group-hover:bg-bone-hover md:table-cell",
         isFirst && "rounded-tr-xl",
         isLast && "rounded-br-xl",
         showScrollFade && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-white before:transition-colors group-hover:before:to-bone-hover"

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   getBestMatch,
   getMaxPossibleMistakes,
@@ -65,8 +66,10 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [showDiff, setShowDiff] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
+  const isMobile = useIsMobile();
 
   // Dead key composition for accented characters (Windows support)
   const { handleDeadKey, clearPending } = useDeadKeyComposition(languageCode, inputRef, setInput);
@@ -104,12 +107,14 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     },
   }), [showDiff, clearPending]);
 
-  // Focus input when it becomes visible
+  // Focus input when it becomes visible. Skipped on mobile so the on-screen
+  // keyboard doesn't pop open on every new word; mobile users tap the field
+  // (or an accent button) to start typing.
   useEffect(() => {
-    if (isVisible && !showDiff && inputRef.current) {
+    if (isVisible && !showDiff && !isMobile && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isVisible, showDiff]);
+  }, [isVisible, showDiff, isMobile]);
 
   // Reset state when word changes
   useEffect(() => {
@@ -206,6 +211,7 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
     if (!canProceed) {
       setShowWarning(true);
     } else {
+      if (isLastWord) setIsFinishing(true);
       onNextWord();
     }
   };
@@ -254,17 +260,22 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
   const feedbackDisplay = getFeedbackDisplay();
 
   return (
-    <div className="px-6 pt-2 pb-0">
+    <div className="px-4 pt-2 pb-0 sm:px-6">
       <div
         className={cn(
-          "flex items-center gap-4 rounded-2xl border-2 bg-white pl-4 pr-2 py-2 transition-colors",
+          "flex items-center gap-2 rounded-2xl border-2 bg-white pl-3 pr-1.5 py-1.5 transition-colors sm:gap-4 md:pl-4 md:pr-2 md:py-2",
           getBorderColor()
         )}
       >
+        {/* Leading column: the answer (or live input) with feedback stacked
+            beneath it on mobile; on sm+ it becomes a row so feedback sits inline
+            to the answer's right, as before. The Next button is the trailing,
+            vertically-centred item. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
         {/* Input field or diff display */}
         {showDiff && feedback ? (
           <div
-            className="flex-1 cursor-text text-xl font-medium"
+            className="min-w-0 flex-1 cursor-text truncate text-base font-medium sm:overflow-visible sm:whitespace-normal md:text-xl"
             onClick={handleRetry}
           >
             {feedback.grade === "correct" ? (
@@ -310,17 +321,31 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
             onKeyDown={handleKeyPress}
             onBlur={handleBlur}
             placeholder={`Type the ${languageName}${hasGender ? " + (m/f)" : ""}...`}
-            className="flex-1 bg-transparent text-xl font-medium text-foreground outline-none placeholder:text-black/50"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="go"
+            className="min-w-0 flex-1 bg-transparent text-base font-medium text-foreground outline-none placeholder:text-black/50 md:text-xl"
           />
         )}
 
-        {/* Feedback and button */}
-        <div className="flex items-center gap-4">
-          {feedbackDisplay && (
-            <span className={cn("text-regular-semibold", feedbackDisplay.textColor)}>
-              {feedbackDisplay.text}
-            </span>
-          )}
+        {/* Feedback text: stacked beneath the answer on mobile at ~2/3 the
+            answer size, inline to its right on sm+. Medium weight throughout. */}
+        {feedbackDisplay && (
+          <span
+            className={cn(
+              "text-[11px] font-medium sm:text-[15px]",
+              feedbackDisplay.textColor
+            )}
+          >
+            {feedbackDisplay.text}
+          </span>
+        )}
+        </div>
+
+        {/* Warning and button */}
+        <div className="flex items-center gap-2 sm:gap-4">
           {showWarning && (
             <span className="text-regular-semibold text-orange-500">
               Type the correct answer first
@@ -330,9 +355,23 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
           {/* Submit or Next button */}
           {showDiff ? (
             canProceed ? (
-              <Button ref={nextButtonRef} onClick={handleNextClick} className="gap-1.5">
-                {isLastWord ? "Finish lesson" : "Next word"}
-                <ChevronRight className="h-4 w-4" />
+              <Button
+                ref={nextButtonRef}
+                onClick={handleNextClick}
+                disabled={isFinishing}
+                className="gap-1.5"
+              >
+                {isLastWord ? "Finish lesson" : (
+                  <>
+                    <span className="sm:hidden">Next</span>
+                    <span className="hidden sm:inline">Next word</span>
+                  </>
+                )}
+                {isLastWord && isFinishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
               </Button>
             ) : (
               <Button onClick={handleRetry} className="gap-1.5">
@@ -341,9 +380,23 @@ export const AnswerInput = forwardRef<AnswerInputHandle, AnswerInputProps>(funct
               </Button>
             )
           ) : isAlreadyAnswered ? (
-            <Button ref={nextButtonRef} onClick={handleNextClick} className="gap-1.5">
-              {isLastWord ? "Finish lesson" : "Next word"}
-              <ChevronRight className="h-4 w-4" />
+            <Button
+              ref={nextButtonRef}
+              onClick={handleNextClick}
+              disabled={isFinishing}
+              className="gap-1.5"
+            >
+              {isLastWord ? "Finish lesson" : (
+                <>
+                  <span className="sm:hidden">Next</span>
+                  <span className="hidden sm:inline">Next word</span>
+                </>
+              )}
+              {isLastWord && isFinishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </Button>
           ) : !input.trim() && !strictMode ? (
             <Button

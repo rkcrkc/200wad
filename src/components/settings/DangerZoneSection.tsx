@@ -92,7 +92,7 @@ export function DangerZoneSection() {
   };
 
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-6">
+    <div className="rounded-2xl border border-red-200 bg-white p-4 sm:p-6">
       <h2 className="mb-6 text-xl font-semibold text-red-600">Danger Zone</h2>
 
       {/* Log Out */}

@@ -290,6 +290,13 @@ export function CheckoutFooterBar({
   const isLifetime = effectiveBilling === "lifetime";
   const displayCents = isAnnual ? Math.round(total / 12) : total;
 
+  const savingsChip =
+    annualSavingsCents > 0 ? (
+      <span className="rounded-full bg-green-500 px-2 py-0.5 text-xs font-semibold text-white">
+        Save {formatPrice(annualSavingsCents)}/year
+      </span>
+    ) : null;
+
   async function handleCheckout() {
     if (!selectedPlan) return;
     setIsCheckingOut(true);
@@ -320,13 +327,17 @@ export function CheckoutFooterBar({
 
   return (
     <div className={`fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]"}`}>
-      <div className="mx-auto max-w-content-md px-6 py-4">
-        {/* Main row */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Left side: cart summary */}
-          <div className="flex items-center gap-3">
-            <ShoppingCart className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <span className="text-xs-medium text-muted-foreground">Upgrade plan</span>
+      <div className="mx-auto max-w-content-md px-4 py-3 sm:px-6 sm:py-4">
+        {/* Header row: cart icon + section label */}
+        <div className="mb-3 flex items-center gap-3">
+          <ShoppingCart className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <span className="text-xs-medium text-muted-foreground">Upgrade plan</span>
+        </div>
+
+        {/* Controls row */}
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          {/* Left side: target + plan-type dropups */}
+          <div className="flex flex-nowrap items-center gap-3 sm:flex-wrap">
             <div className="flex flex-wrap items-center gap-2">
               <TargetDropup
                 activeKey={activeTargetKey}
@@ -345,9 +356,9 @@ export function CheckoutFooterBar({
             {/* Plan type selector */}
             {options.length > 0 && (
               <>
-                <div className="ml-1 h-8 w-px shrink-0 bg-gray-200" />
+                <div className="h-8 w-px shrink-0 bg-gray-200" />
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-xs-medium text-muted-foreground">Plan type</span>
+                  <span className="hidden text-xs-medium text-muted-foreground sm:inline">Plan type</span>
                   <PlanTypeDropup
                     value={effectiveBilling}
                     options={options}
@@ -359,25 +370,26 @@ export function CheckoutFooterBar({
           </div>
 
           {/* Right side: total and checkout */}
-          <div className="flex shrink-0 items-center gap-4">
-            <div className="text-right">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:shrink-0 sm:items-center sm:gap-4">
+            <div className="text-left sm:text-right">
               {creditBalanceCents > 0 && (
                 <div className="text-xs text-green-600">
                   {formatPrice(creditBalanceCents)} credit available
                 </div>
               )}
-              <div className="flex items-baseline justify-end">
+              <div className="flex items-baseline justify-start sm:justify-end">
                 <span className="text-regular-semibold">{formatPrice(displayCents)}</span>
                 {!isLifetime && (
                   <span className="text-small-regular text-muted-foreground">/month</span>
                 )}
+                {isAnnual && savingsChip && (
+                  <span className="ml-1.5 sm:hidden">{savingsChip}</span>
+                )}
               </div>
               {isAnnual && (
-                <p className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
-                  {annualSavingsCents > 0 && (
-                    <span className="rounded-full bg-green-500 px-2 py-0.5 text-xs font-semibold text-white">
-                      Save {formatPrice(annualSavingsCents)}/year
-                    </span>
+                <p className="flex items-center justify-start gap-1.5 text-xs text-muted-foreground sm:justify-end">
+                  {savingsChip && (
+                    <span className="hidden sm:inline">{savingsChip}</span>
                   )}
                   {formatPrice(total)} billed annually
                 </p>
@@ -386,11 +398,11 @@ export function CheckoutFooterBar({
                 <p className="text-xs text-muted-foreground">Pay once, access forever</p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-1.5">
+            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
               <Button
                 onClick={handleCheckout}
                 disabled={isCheckingOut || !selectedPlan}
-                className="group hover:bg-primary"
+                className="group w-full hover:bg-primary sm:w-auto"
               >
                 {isCheckingOut ? "Redirecting..." : "Proceed to Checkout"}
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

@@ -140,8 +140,8 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
   if (!mounted) return null;
 
   return (
-    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
-      <div className="mb-6 flex min-h-10 items-center justify-between gap-4">
+    <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-card">
+      <div className="mb-6 flex min-h-10 flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Preferences</h2>
         <div className="flex items-center gap-3">
           {saveError && (
@@ -172,7 +172,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
         </div>
       </div>
 
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div>
           <h3 className="font-medium">Daily XP goal</h3>
           <p className="text-sm text-gray-600">

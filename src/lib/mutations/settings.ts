@@ -514,3 +514,60 @@ export async function updateMarketingConsent(
   revalidatePath("/settings");
   return { success: true, error: null };
 }
+
+// ============================================
+// Study / test toggles (synced across devices)
+// ============================================
+
+/**
+ * Persist the study/test toggles that sync across devices — answer-feedback
+ * sounds and play-memory-trigger. Called from `useAudio` when a logged-in user
+ * flips a switch, and once on load to backfill a pre-existing localStorage
+ * preference into a still-null column. Only the keys provided are written, so a
+ * single-toggle change never clobbers the other. Word-audio volume is not
+ * synced (kept per-device) and has no column here.
+ */
+export async function updateStudySettingsAction(settings: {
+  soundEffectsEnabled?: boolean;
+  replayTriggerEnabled?: boolean;
+}): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const update: {
+    sound_effects_enabled?: boolean;
+    replay_trigger_enabled?: boolean;
+  } = {};
+  if (typeof settings.soundEffectsEnabled === "boolean") {
+    update.sound_effects_enabled = settings.soundEffectsEnabled;
+  }
+  if (typeof settings.replayTriggerEnabled === "boolean") {
+    update.replay_trigger_enabled = settings.replayTriggerEnabled;
+  }
+
+  // Nothing to write (e.g. a backfill call where localStorage was also empty).
+  if (Object.keys(update).length === 0) {
+    return { success: true, error: null };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update(update)
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("Error updating study settings:", error);
+    return { success: false, error: error.message };
+  }
+
+  // No revalidatePath: these toggles are read only by getUserStudySettings,
+  // which runs per-request (auth-gated, uncached), so nothing to invalidate.
+  return { success: true, error: null };
+}

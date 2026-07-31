@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, Suspense, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { Menu } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -24,6 +25,7 @@ import { ScrollablePills } from "@/components/schedule/ScrollablePills";
 import { PageShell } from "@/components/PageShell";
 import { PageContainer } from "@/components/PageContainer";
 import { PageTopBar } from "@/components/PageTopBar";
+import { DesktopOnly } from "@/components/DesktopOnly";
 import { MobileFloatingBar } from "@/components/ui/MobileFloatingBar";
 import { InlineSearch } from "@/components/InlineSearch";
 import { Popover } from "@/components/ui/popover";
@@ -31,10 +33,26 @@ import { CourseStatsBar } from "@/components/CourseStatsBar";
 import { SpecialLessonsRow } from "@/components/lessons/SpecialLessonsRow";
 import { LessonsList } from "@/components/LessonsList";
 import { TestsList } from "@/components/TestsList";
+import { CategoryFilter, type CategoryOption } from "@/components/CategoryFilter";
+import { DictionaryList } from "@/components/DictionaryList";
+import { WordDetailSidebar } from "@/components/WordDetailSidebar";
+import { StudyNavbar, StudyProgressBar, StudyActionBar, StudyWordListSidebar, StudySidebar, AnswerInput, TestAnswerInput, InformationNextButton, LessonCompletedModal, TestCompletedModal, StartTestModal, type TestWordResult, type TestAnswerResult } from "@/components/study";
+import { ProfileSection } from "@/components/settings/ProfileSection";
+import { PreferencesSection } from "@/components/settings/PreferencesSection";
+import { LanguageSubscriptionsList } from "@/components/subscriptions/LanguageSubscriptionsList";
+import { CheckoutFooterBar } from "@/components/subscriptions/CheckoutFooterBar";
+import type { UserSettings } from "@/lib/queries/settings";
+import type { SubscriptionLanguage, LanguageCourse } from "@/lib/queries/subscriptions";
+import type { UpgradeTarget } from "@/components/subscriptions/planCopy";
+import type { PricingPlan } from "@/types/database";
+import type { ExampleSentence, Lesson } from "@/types/database";
+import { WordPreviewProvider } from "@/context/WordPreviewContext";
 import { MobileStatsDropdown } from "@/components/ui/mobile-stats-dropdown";
 import type { LessonForScheduler } from "@/lib/queries/schedule";
 import type { LessonWithProgress } from "@/lib/queries/lessons";
 import type { TestForList } from "@/lib/queries/tests";
+import type { DictionaryWord } from "@/lib/queries/dictionary";
+import type { WordWithDetails } from "@/lib/queries/words";
 import type { LanguageGreetings } from "@/types/database";
 
 /**
@@ -330,6 +348,16 @@ function PrimitivesSection() {
       </Entry>
 
       <Entry
+        name="CategoryFilter"
+        source="src/components/CategoryFilter.tsx"
+        usedIn={["DictionaryList (filter words by category)"]}
+      >
+        <Swatch label="click the funnel — multi-select + count badge">
+          <CategoryFilterDemo />
+        </Swatch>
+      </Entry>
+
+      <Entry
         name="Popover"
         source="src/components/ui/popover.tsx"
         usedIn={[
@@ -562,6 +590,40 @@ function ScaffoldingSection() {
           </MobileFloatingBar>
         }
       />
+
+      <DescEntry
+        name="DesktopOnly"
+        source="src/components/DesktopOnly.tsx"
+        description="Gates a whole page behind the desktop breakpoint. Below md it hides its children and shows a short 'not available on mobile' message; at md and up the wrapper collapses (md:contents) so children lay out exactly as if it weren't there. CSS-only, so server pages render it without a hydration flash."
+        props={["children"]}
+        usedIn={[
+          "Leaderboard / Community",
+          "Trophies",
+          "Streaks",
+          "Shop",
+        ]}
+        mobileNote="Full block below 768px. Progress uses a lighter variant of the same idea — it keeps its four summary cards (stacked) and wraps only the chart + heatmap in hidden md:block."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · children pass through (md:contents)">
+              <DesktopOnly>
+                <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-400">
+                  page content
+                </div>
+              </DesktopOnly>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · unavailable message">
+              <MobileFrame>
+                <DesktopOnly>
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-400">
+                    page content
+                  </div>
+                </DesktopOnly>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -617,13 +679,23 @@ function PreviewVariant({
 function MobileFrame({
   children,
   width = 390,
+  flush = false,
+  height: fixedHeight,
 }: {
   children: ReactNode;
   width?: number;
+  /** Drop the inner padding so full-bleed content (e.g. a fixed drawer) sits
+   *  flush to the frame edges, matching how it renders on a real viewport. */
+  flush?: boolean;
+  /** Pin the frame to an explicit height instead of auto-sizing to content.
+   *  Needed for full-bleed `position:fixed` content, which doesn't contribute
+   *  to scrollHeight and so can't be measured. */
+  height?: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [body, setBody] = useState<HTMLElement | null>(null);
-  const [height, setHeight] = useState(320);
+  const [autoHeight, setAutoHeight] = useState(320);
+  const height = fixedHeight ?? autoHeight;
 
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument;
@@ -648,15 +720,15 @@ function MobileFrame({
     setBody(doc.body);
   }, []);
 
-  // Auto-size the frame height to its content.
+  // Auto-size the frame height to its content (unless an explicit height is set).
   useEffect(() => {
-    if (!body) return;
-    const update = () => setHeight(body.scrollHeight);
+    if (!body || fixedHeight !== undefined) return;
+    const update = () => setAutoHeight(body.scrollHeight);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(body);
     return () => ro.disconnect();
-  }, [body]);
+  }, [body, fixedHeight]);
 
   return (
     <div
@@ -671,7 +743,7 @@ function MobileFrame({
       />
       {body &&
         createPortal(
-          <div className="bg-background p-3">{children}</div>,
+          <div className={flush ? "bg-background" : "bg-background p-3"}>{children}</div>,
           body
         )}
     </div>
@@ -795,6 +867,75 @@ const MOCK_PREVIOUS_TEST_ROWS = [
   { lessonId: "p-1", lessonNumber: 1, lessonTitle: "Greetings & Introductions", lessonEmoji: "👋", lessonWordCount: 42, lessonStatus: "mastered", wordsLearned: 42, wordsMastered: 42, completionPercent: 100, testId: "s-1", milestone: "1-quarter", testNumber: 1, scorePercent: 92, newlyLearned: 4, newlyMastered: 2, pointsEarned: 116, maxPoints: 126 },
   { lessonId: "p-2", lessonNumber: 2, lessonTitle: "Numbers & Counting", lessonEmoji: "🔢", lessonWordCount: 15, lessonStatus: "learned", wordsLearned: 15, wordsMastered: 8, completionPercent: 100, testId: "s-2", milestone: "1-week", testNumber: 2, scorePercent: 64, newlyLearned: 3, newlyMastered: 1, isRetest: true, pointsEarned: 29, maxPoints: 45 },
 ] as unknown as TestForList[];
+
+// Sample dictionary rows. DictionaryWord is the flat row shape the table reads;
+// no cast-through-unknown needed since every field is provided. Statuses span
+// all four states so the Learning / Learned / Mastered tabs each have counts,
+// and categories/part-of-speech vary so the Word Type column and CategoryFilter
+// have something to show. `imageUrl` is null so rows use the 🗣️ fallback tile.
+const MOCK_DICTIONARY_WORDS: DictionaryWord[] = [
+  { id: "dw-1", english: "hello", headword: "ciao", partOfSpeech: "interjection", category: "word", imageUrl: null, status: "learning", lessonId: "l-1", lessonTitle: "Greetings & Introductions", lessonNumber: 1 },
+  { id: "dw-2", english: "goodbye", headword: "arrivederci", partOfSpeech: "interjection", category: "word", imageUrl: null, status: "learning", lessonId: "l-1", lessonTitle: "Greetings & Introductions", lessonNumber: 1 },
+  { id: "dw-3", english: "thank you", headword: "grazie", partOfSpeech: "interjection", category: "phrase", imageUrl: null, status: "learned", lessonId: "l-1", lessonTitle: "Greetings & Introductions", lessonNumber: 1 },
+  { id: "dw-4", english: "water", headword: "acqua", partOfSpeech: "noun", category: "word", imageUrl: null, status: "mastered", lessonId: "l-3", lessonTitle: "Food & Drink", lessonNumber: 3 },
+  { id: "dw-5", english: "bread", headword: "pane", partOfSpeech: "noun", category: "word", imageUrl: null, status: "learned", lessonId: "l-3", lessonTitle: "Food & Drink", lessonNumber: 3 },
+  { id: "dw-6", english: "one", headword: "uno", partOfSpeech: "number", category: "word", imageUrl: null, status: "learning", lessonId: "l-2", lessonTitle: "Numbers & Counting", lessonNumber: 2 },
+  { id: "dw-7", english: "How are you?", headword: "Come stai?", partOfSpeech: null, category: "sentence", imageUrl: null, status: "not-started", lessonId: "l-1", lessonTitle: "Greetings & Introductions", lessonNumber: 1 },
+  { id: "dw-8", english: "Rome is the capital of Italy", headword: "Roma è la capitale d'Italia", partOfSpeech: null, category: "fact", imageUrl: null, status: "not-started", lessonId: "l-4", lessonTitle: "Culture", lessonNumber: 4 },
+  { id: "dw-9", english: "please", headword: "per favore", partOfSpeech: "interjection", category: "phrase", imageUrl: null, status: "mastered", lessonId: "l-1", lessonTitle: "Greetings & Introductions", lessonNumber: 1 },
+  { id: "dw-10", english: "wine", headword: "vino", partOfSpeech: "noun", category: "word", imageUrl: null, status: "not-started", lessonId: "l-3", lessonTitle: "Food & Drink", lessonNumber: 3 },
+];
+
+// `myWords` = rows the user has any progress on (everything except not-started);
+// the list derives the Learning / Learned / Mastered tab buckets from status.
+const MOCK_DICTIONARY_MY_WORDS = MOCK_DICTIONARY_WORDS.filter(
+  (w) => w.status !== "not-started"
+);
+
+// A single fully-shaped word for the preview panel. WordWithDetails extends the
+// whole DB Word row plus collection fields; WordDetailView reads the collections
+// directly (relatedWords.compound.length, exampleSentences, testHistory, tips,
+// scoreStats) and null-guards every scalar, so a partial cast-through-unknown is
+// safe as long as those collections are present. Media/audio URLs are null so no
+// remote image domain or audio file is needed.
+const MOCK_WORD_DETAIL = {
+  id: "dw-1",
+  language_id: "it",
+  english: "hello",
+  headword: "ciao",
+  part_of_speech: "interjection",
+  gender: null,
+  category: "word",
+  notes: null,
+  sort_order: 0,
+  alternate_answers: [],
+  alternate_english_answers: [],
+  memory_trigger_text:
+    "Picture yourself waving CIAO — 'chow' — as you invite a friend to sit down and eat.",
+  memory_trigger_image_url: "/logo-placeholder.svg",
+  memory_trigger_video_url: null,
+  flashcard_image_url: null,
+  image_override_url: null,
+  video_override_url: null,
+  image_group_id: null,
+  audio_url_english: null,
+  audio_url_foreign: null,
+  audio_url_trigger: null,
+  status: "learning",
+  progress: null,
+  exampleSentences: [],
+  relatedWords: { compound: [], sentence: [], grammar: [] },
+  testHistory: [],
+  scoreStats: { totalPointsEarned: 0, totalMaxPoints: 0, scorePercent: 0, timesTested: 0 },
+  tips: [],
+} as unknown as WordWithDetails;
+
+// The panel's word-list dropdown only needs id / english / foreign.
+const MOCK_WORD_DETAIL_LIST = MOCK_DICTIONARY_WORDS.slice(0, 8).map((w) => ({
+  id: w.id,
+  english: w.english,
+  foreign: w.headword,
+}));
 
 function FeaturesSection() {
   return (
@@ -1104,6 +1245,478 @@ function FeaturesSection() {
           </div>
         }
       />
+
+      <PageGroupHeading>Dictionary page</PageGroupHeading>
+
+      <DescEntry
+        name="DictionaryList + DictionaryRow"
+        source="src/components/DictionaryList.tsx"
+        description="The dictionary's whole client surface: filter tabs (Learning / Learned / Mastered / This Course / All {Language}), an inline search + CategoryFilter, an A–Z letter filter, a sortable table of DictionaryRows, and a fixed word-count footer. Each DictionaryRow shows a thumbnail (🗣️ fallback), English, the headword, word type, a StatusPill, and its lesson, with a chevron that stays stuck to the right edge behind a gradient fade on horizontal scroll. Rows open the shared word-preview panel; the table paginates 50 at a time via an IntersectionObserver sentinel."
+        props={[
+          "myWords / courseWords / allWords: DictionaryWord[]",
+          "languageName?: string",
+          "— sort/letter/category/search state is internal",
+          "SortableHeader is a private sub-component",
+        ]}
+        usedIn={["Dictionary page (/course/[courseId]/dictionary)"]}
+        mobileNote="Current (pre-refactor) state — rendered so we can rework it here. Two things break below md: (1) the table sets a fixed <colgroup> plus min-w-[800px], so the seven columns keep their desktop widths and the whole table scrolls sideways instead of collapsing like LessonsList / TestsList; (2) the word-count footer is position:fixed with a hardcoded left-[240px] desktop-sidebar offset (useSidebarCollapsed defaults false), so on a 390px phone it's shoved into a ~150px sliver bottom-right. The A–Z letter filter already wraps. Target pattern: mirror LessonRow — hide the header, drop numeric/status columns into a meta sub-row, move column widths to per-th hidden md:table-cell, gate min-width to md, and make the footer flow-relative (or offset only at md)."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · full sortable table (footer contained to the frame)">
+              <div
+                className="relative overflow-hidden rounded-lg"
+                style={{ transform: "translateZ(0)", minHeight: 520 }}
+              >
+                <DictionaryListLive />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · current state — sideways scroll + offset footer">
+              <MobileFrame>
+                <DictionaryListLive />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <PageGroupHeading>Word preview panel</PageGroupHeading>
+
+      <DescEntry
+        name="WordDetailSidebar → WordDetailView + WordDetailActionBar"
+        source="src/components/WordDetailSidebar.tsx"
+        description="The global word-preview panel, owned by WordPreviewProvider and opened app-wide via openWord(). WordDetailSidebar is a fixed right-hand drawer (480 / 600 / 800px, cycled by the size button) that hosts WordDetailView (the scrollable English/headword/memory-trigger/related content, with inline admin editing) and pins WordDetailActionBar to its bottom (audio replay, prev/next, jump-to-word, status). Reached from DictionaryRow, lesson word lists, and header search."
+        props={[
+          "word: WordWithDetails",
+          "lessonTitle / lessonNumber / lessonId?, lessons?",
+          "wordList, currentIndex, totalWords",
+          "onClose / onPrevious / onNext / onJumpToWord",
+          "isAdmin?, showProgress?, isLocked?",
+        ]}
+        usedIn={[
+          "WordPreviewProvider (rendered globally)",
+          "Opened from DictionaryRow, lesson pages, header search",
+        ]}
+        mobileNote="Below md the drawer goes full width (max-md:!w-full overrides the inline pixel width), the size-cycle button is hidden, and the action bar switches to its compact layout — with prev/next surfaced inline and first/last + image toggle tucked into the ellipsis menu. (Preview note: the drawer is position:fixed, so the desktop box uses a transform to become its containing block and shows the true 600px drawer; the phone box renders it inside a real 390px iframe so the max-md width rule resolves — the compact action bar is JS-driven off window.matchMedia, which still sees the desktop parent, so verify that toggle in device devtools.)"
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · 600px drawer (md size), trapped in the frame">
+              <div
+                className="relative overflow-hidden rounded-xl bg-black/5"
+                style={{ height: 660, transform: "translateZ(0)" }}
+              >
+                <WordDetailSidebarLive />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · 100% width (max-md:!w-full), flush to edges">
+              <MobileFrame flush height={620}>
+                {/* Transformed box at the frame's exact height: it becomes the
+                    fixed drawer's containing block, so the drawer's inset-0
+                    fills top-to-bottom with no gap. Inside the iframe the
+                    drawer's max-md rule resolves at 390px, so it renders full
+                    width; `flush` drops the frame padding so it's edge-to-edge. */}
+                <div className="relative" style={{ height: 620, transform: "translateZ(0)" }}>
+                  <WordDetailSidebarLive />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <PageGroupHeading>Study &amp; Test mode</PageGroupHeading>
+
+      <DescEntry
+        name="StudyNavbar + StudyProgressBar"
+        source="src/components/study/StudyNavbar.tsx · StudyProgressBar.tsx"
+        description="The fixed 72px top chrome shared by the study and test flows. On desktop it's a single row: mode badge, lesson title, a 'Word X of Y' counter with inline WordTrackerDots, the timer, Exit, and (test mode) a running score. StudyProgressBar is a mobile-only 1px strip pinned directly under the navbar."
+        props={[
+          "StudyNavbar: mode?, lessonNumber/Title, currentWordIndex, totalWords, completedWordIndices, onJumpToWord, categories, testPointsEarned/MaxPoints, incorrectWords?",
+          "StudyProgressBar: currentWordIndex, totalWords, categories?",
+        ]}
+        usedIn={["StudyModeClient", "TestModeClient"]}
+        mobileNote="Below md the navbar keeps its 72px height but reflows into two rows. Row 1: a compact badge (drops the word 'mode' → just 'Study' / 'Test') + the lesson name (truncates) + an icon-only X exit. Row 2: the word count, running score (compact ⚡ n/n (%)) and timer in smaller, recessed text. The inline WordTrackerDots are dropped — StudyProgressBar takes over directly beneath the navbar as a thin full-width fill tracking the same 'Word X of Y' position. (Preview note: both are position:fixed, so the desktop box uses a transform to become their containing block; the phone box renders them in a real 390px iframe so the md: rules resolve — two rows + strip.)"
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · study · inline dots, no strip">
+              <div
+                className="relative overflow-hidden rounded-lg bg-black/5"
+                style={{ height: 96, transform: "translateZ(0)" }}
+              >
+                <StudyChromeLive mode="study" />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="desktop · test · running score">
+              <div
+                className="relative overflow-hidden rounded-lg bg-black/5"
+                style={{ height: 96, transform: "translateZ(0)" }}
+              >
+                <StudyChromeLive mode="test" />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · two rows (badge + lesson + X / stats), dots → strip">
+              <MobileFrame flush height={130}>
+                <div className="relative" style={{ height: 130, transform: "translateZ(0)" }}>
+                  <StudyChromeLive mode="test" />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="StudyActionBar"
+        source="src/components/study/StudyActionBar.tsx"
+        description="The fixed bottom bar for study and test. Left: current word · part of speech + the traffic-light ScoreIndicator. Right (desktop): clue (test), replay, first/prev/next/last, then a toggle cluster — edit (admin), accents, image mode, music, settings — each opening an upward dropdown."
+        props={[
+          "mode?, currentWordIndex, totalWords, englishWord, foreignWord, category, scoreStats, testHistory, wordStatus, correctStreak",
+          "onJumpToWord, onPreviousWord, onNextWord, onRestart, onRevealClue (test)",
+          "imageMode/onImageModeChange, music props, settings toggles, languageCode/onInsertCharacter (accents)",
+          "onOpenWordList? (mobile hamburger), isAdmin/onEditModeToggle",
+        ]}
+        usedIn={["StudyModeClient", "TestModeClient"]}
+        mobileNote="Below md the bar keeps the essentials inline — a word-list hamburger at the start, word info + score, then replay · prev/next (· clue in test) — and moves the rest into a `⋯` overflow bottom-sheet. The sheet holds image-mode plus accents / music / settings (each an accordion reusing the exact desktop dropdown body) and the admin edit toggle; first/last skip and accents leave the row (the phone keyboard handles accents natively). Tap `⋯` inside the phone frame to open the sheet (fixed inset-0, scrim + rounded-top panel)."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · study · full inline controls">
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <StudyActionBarLive mode="study" />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="desktop · test · clue + score">
+              <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <StudyActionBarLive mode="test" />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · essentials inline + ⋯ overflow sheet (tap ⋯)">
+              <MobileFrame flush height={340}>
+                <div className="relative h-full" style={{ transform: "translateZ(0)" }}>
+                  <div className="absolute inset-x-0 bottom-0 bg-white shadow-bar">
+                    <StudyActionBarLive mode="study" />
+                  </div>
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="StudyWordListSidebar"
+        source="src/components/study/StudyWordListSidebar.tsx"
+        description="The lesson's word list — a number, thumbnail, and word/translation per row, with the current word highlighted, auto-scroll-into-view, and top/bottom scroll fades. In test mode not-yet-reached rows show as disabled skeletons and answers stay hidden until answered."
+        props={[
+          "wordList, currentWordIndex, completedWordIndices, onJumpToWord, mode?",
+          "test-mode: testResults, hideSecondaryIndices, revealThumbnailIndices, primaryField, roundLabels",
+          "categories?, isOpen? / onClose? (mobile drawer)",
+        ]}
+        usedIn={["StudyModeClient", "TestModeClient"]}
+        mobileNote="Below md the fixed 240px rail is hidden and the list instead lives in a left slide-over drawer, opened by the StudyActionBar hamburger. Scrim + 85%-width (max 320px) panel that slides in from the left; a header with a close X sits above the same list. Tapping a word jumps and closes; the scrim, the X, or Esc also close it. The list renders as its own instance here (separate scroll refs from the desktop rail, since both stay mounted)."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="mobile · slide-over drawer (tap to open)">
+              <MobileFrame flush height={460}>
+                <div className="relative bg-[#faf8f3]" style={{ height: 460, transform: "translateZ(0)" }}>
+                  <StudyWordListDrawerLive />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="StudySidebar"
+        source="src/components/study/StudySidebar.tsx"
+        description="The right-column content stack for study/test: dismissible tip cards, a Notes card (system + editable user notes), an Example Sentences card, a Related Words card, and (admin) the DeveloperSection. Each content card is a white rounded-2xl shadow-card with an uppercase section label."
+        props={[
+          "wordId, systemNotes, userNotes, exampleSentences, relatedWords, isEnabled",
+          "onUserNotesChange, onRelatedClick?, isAdmin? / onSystemNotesChange?",
+          "tips / dismissedTipIds / onDismissTip, developer* fields (admin)",
+        ]}
+        usedIn={["StudyModeClient", "TestModeClient"]}
+        mobileNote="Below md the sidebar drops beneath the word card and its cards stack full-width. Cards stay fully expanded (no collapsing) — the same content as desktop, just single-column."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · cards in the right column">
+              <div className="max-w-[360px] rounded-lg bg-[#faf8f3] p-4">
+                <StudySidebarLive />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · cards stack full-width">
+              <MobileFrame flush height={520}>
+                <div className="min-h-full bg-[#faf8f3] p-4" style={{ transform: "translateZ(0)" }}>
+                  <StudySidebarLive />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="AnswerInput / TestAnswerInput"
+        source="src/components/study/AnswerInput.tsx"
+        description="The typed-answer field that sits in the fixed bottom bar (above StudyActionBar). A rounded bordered row: text input on the left, feedback word + Submit/Next button on the right. After submitting it locks to a character-level diff (green/red) and swaps Submit for Next. TestAnswerInput is the test-mode sibling with the same layout (no retry, adds clue handling). InformationNextButton reuses the row for read-only pages."
+        props={[
+          "wordId, languageName, languageCode?, validAnswers, isVisible, isLastWord",
+          "onSubmit, onNextWord, strictMode? (study) / clueLevel?, existingResult? (test)",
+        ]}
+        usedIn={["StudyModeClient", "TestModeClient"]}
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · study answer field">
+              <MobileFrame width={820}>
+                <AnswerInputDemo />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · study answer field">
+              <MobileFrame>
+                <AnswerInputDemo />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="feedback · correct (full marks, green)">
+              <MobileFrame width={820}>
+                <AnswerFeedbackDemo grade="correct" />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · feedback correct (full marks, green)">
+              <MobileFrame>
+                <AnswerFeedbackDemo grade="correct" />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="feedback · half correct (partial, amber diff)">
+              <MobileFrame width={820}>
+                <AnswerFeedbackDemo grade="half-correct" />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="feedback · incorrect (zero, red)">
+              <MobileFrame width={820}>
+                <AnswerFeedbackDemo grade="incorrect" />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="InformationNextButton"
+        source="src/components/study/InformationNextButton.tsx"
+        description="Read-only variant of the answer row used on information/fact pages that have no question to answer. Shows a muted 'Read and continue' label on the left and a Next / Finish lesson button on the right. The button auto-focuses on mount and a window Enter listener advances the page, so a learner can page through with the keyboard alone."
+        props={["isLastWord", "onNext"]}
+        usedIn={["StudyModeClient"]}
+        mobileNote="Shares the answer-row tightening below md: inner padding drops to pr-1.5 py-1.5 (vs pr-2 py-2) and the label shrinks to text-base (16px) before returning to text-xl at md."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · information page footer">
+              <MobileFrame width={820}>
+                <div inert>
+                  <InformationNextButton isLastWord={false} onNext={() => {}} />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · information page footer">
+              <MobileFrame>
+                <div inert>
+                  <InformationNextButton isLastWord={false} onNext={() => {}} />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="StartTestModal"
+        source="src/components/study/StartTestModal.tsx"
+        description="The pre-test setup dialog: pick a test direction (English→language, language→English, picture-only) and toggle Test twice / random order, then Start. Persists the last-used settings to localStorage. Wrapped by LessonStartTestModal in the app, which builds the test URL."
+        props={[
+          "languageName, lessonTitle, wordCount, wordsWithImages, defaultTestType?",
+          "onStart(testType, testTwice, randomOrder), onCancel",
+        ]}
+        usedIn={["StudyModeClient", "LessonStartTestModal"]}
+        mobileNote="Card is mx-4 w-full max-w-2xl and scrolls (max-h-[90vh]); the type options and settings are full-width stacked rows already. Padding tightens to p-5 below sm."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · start test setup">
+              <MobileFrame width={820} height={620} flush>
+                <StartTestModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · start test setup">
+              <MobileFrame height={640} flush>
+                <StartTestModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="LessonCompletedModal"
+        source="src/components/study/LessonCompletedModal.tsx"
+        description="Shown when a study lesson finishes. Built on CompletedModalShell: header with lesson title + elapsed time + view toggles, a tabbed WordGrid (All / Learning / Learned / Mastered), and a footer of tile actions (Start test / Study again / Not now). Clicking a word opens its detail view in place."
+        props={[
+          "lesson, words, wordProgressMap, elapsedSeconds, hideStartTest?",
+          "onStartTest, onStudyAgain, onDismiss",
+        ]}
+        usedIn={["StudyModeClient"]}
+        mobileNote="Shell padding tightens below sm (px-5/p-4 vs px-8/p-8), the title drops to text-2xl, the WordGrid shows 3 columns instead of 4/5, and the footer tiles wrap into a 2-col grid. Previews use synthetic words."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · lesson completed">
+              <MobileFrame width={820} height={620} flush>
+                <LessonCompletedModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · lesson completed">
+              <MobileFrame height={680} flush>
+                <LessonCompletedModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="TestCompletedModal"
+        source="src/components/study/TestCompletedModal.tsx"
+        description="Shown when a test finishes. Same CompletedModalShell frame as the lesson modal, but the header carries the score summary (XP, %, learned/mastered/vocab) and the footer adapts to the score: a perfect run offers Retest all / Done, an imperfect run offers Retest incorrect / Study incorrect / Retest all / Not now. WordGrid tiles show per-word XP."
+        props={[
+          "lesson, words, wordResultsMap, elapsedSeconds, totalPoints, maxPoints, scorePercent",
+          "newlyLearnedCount, masteredWordsCount, courseWordsMastered, newlyLearnedWordIds, masteredWordIds",
+          "onDone, onTestAgain, onRetestIncorrect, onStudyIncorrect",
+        ]}
+        usedIn={["TestModeClient"]}
+        mobileNote="Below sm the header stats condense to a headline line (time + score) plus a smaller learned/mastered/vocab line without dot separators; the column-count toggle is hidden. The up-to-4 footer actions become a 2x2 grid, and the WordGrid drops to 3 columns. Previews show an imperfect run with synthetic scores."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · test completed (imperfect)">
+              <MobileFrame width={820} height={620} flush>
+                <TestCompletedModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · test completed (imperfect)">
+              <MobileFrame height={720} flush>
+                <TestCompletedModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <PageGroupHeading>Settings &amp; Profile page</PageGroupHeading>
+
+      <DescEntry
+        name="Settings card wrapper"
+        source="src/components/settings/*Section.tsx"
+        description="Shared white rounded-2xl card that wraps every Settings section (Profile, Preferences, Billing, Security, Marketing email, Data export, Danger zone). Not a component — a repeated wrapper (rounded-2xl bg-white … shadow-card / red-bordered for Danger zone)."
+        props={["padding p-4 sm:p-6", "mb-6 rounded-2xl", "shadow-card"]}
+        usedIn={["Settings page (all sections)"]}
+        mobileNote="Card padding tightens to p-4 below sm (was a hardcoded p-6), restoring p-6 at sm+ so desktop is unchanged. Applied uniformly across all settings cards for consistent gutters on a phone."
+      />
+
+      <DescEntry
+        name="ProfileSection"
+        source="src/components/settings/ProfileSection.tsx"
+        description="Profile Information card with view/edit modes: avatar upload, name/username, hometown/current-location, nationalities, bio, website. Reads useUser() for avatar refresh and takes the persisted settings as a prop."
+        props={["settings: UserSettings", "useUser() (avatar refresh)"]}
+        usedIn={["Settings page"]}
+        mobileNote="Header row wraps below sm (flex-wrap gap-3) so the Edit / Cancel+Save actions drop under the title instead of overflowing. The edit-mode location fields go single-column (grid-cols-1 sm:grid-cols-2) and the view-mode Hometown/Location/Nationalities row stacks (grid-cols-1 sm:grid-cols-3). Card padding follows the shared p-4 sm:p-6 wrapper."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · view mode (3-col info grid)">
+              <ProfileSection settings={MOCK_USER_SETTINGS} />
+            </PreviewVariant>
+            <PreviewVariant label="mobile · stacked fields + wrapped header">
+              <MobileFrame>
+                <ProfileSection settings={MOCK_USER_SETTINGS} />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="PreferencesSection"
+        source="src/components/settings/PreferencesSection.tsx"
+        description="Preferences card with a staged Save/Cancel model: daily XP goal editor plus toggles for hover descriptions, related words, and word audio icons, and a reset-tips action. Local toggles persist to localStorage; the goal is server-backed."
+        props={["dailyXpGoal: number", "DailyGoalEditor", "localStorage prefs"]}
+        usedIn={["Settings page"]}
+        mobileNote="The header row wraps below sm (flex-wrap) so the Save/Cancel buttons drop beneath the 'Preferences' title. The Daily-XP-goal row stacks its label above the editor (flex-col gap-4 sm:flex-row sm:justify-between). Card padding follows the shared p-4 sm:p-6 wrapper."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · goal row inline, toggles right-aligned">
+              <PreferencesSection dailyXpGoal={50} />
+            </PreviewVariant>
+            <PreviewVariant label="mobile · goal row stacked">
+              <MobileFrame>
+                <PreferencesSection dailyXpGoal={50} />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <PageGroupHeading>Subscriptions page</PageGroupHeading>
+
+      <DescEntry
+        name="LanguageSubscriptionsList + LanguageSubscriptionRow"
+        source="src/components/subscriptions/LanguageSubscriptionRow.tsx"
+        description="The per-language subscription table: a desktop column-header row (Language / # Courses / # Lessons) over one row per language. Each row shows the flag+name, course count, access state (Unlocked or lessons + locked badge), an optional per-row unlock CTA (free plan only), and a chevron that expands the course list."
+        props={[
+          "languages, unlockedLanguageIds",
+          "canUnlockIndividually, selectedLanguageId",
+          "lang, accessUnlocked, showUnlockCta, isSelected",
+          "isExpanded, onToggleExpand, onUnlock",
+        ]}
+        usedIn={["Subscriptions page (language list)"]}
+        mobileNote="Below sm the fixed 5-col grid (240/180/1fr/220/40) becomes a stacked card and the desktop column-header row is hidden (hidden sm:grid), so each value stacks on its own line. The chevron floats to the card's top-right (absolute right-4 top-4) and returns to its grid column at sm (sm:static); the empty action cell is hidden on mobile to avoid a dead gap. Row padding tightens to px-4 py-4 (vs px-8 py-5) and the row dividers / empty state to mx-4 / px-4."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · 5-col grid with header row (Italian unlocked)">
+              <LanguageSubscriptionsListDemo />
+            </PreviewVariant>
+            <PreviewVariant label="mobile · stacked cards, inline labels, floated chevron">
+              <MobileFrame>
+                <LanguageSubscriptionsListDemo />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="CheckoutFooterBar"
+        source="src/components/subscriptions/CheckoutFooterBar.tsx"
+        description="Sticky bottom checkout bar shown when a user picks an upgrade target. A header row carries the cart icon + 'Upgrade plan' label; the controls row below holds the target dropup (All languages / each language) and plan-type dropup (Monthly / Annual / Lifetime) on the left, and the computed total (with annual-savings copy) + 'Proceed to Checkout' button on the right. Offsets for the sidebar width."
+        props={[
+          "target, plans, languages",
+          "creditBalanceCents",
+          "onChangeTarget, onClose",
+        ]}
+        usedIn={["Subscriptions page (checkout footer)"]}
+        mobileNote="A dedicated header row (cart icon + 'Upgrade plan') now sits above a controls row, which unsqueezes the desktop layout too. The controls row is flex justify-between on desktop (dropups left, total+CTA right) and stacks below sm (flex-col): the target/plan dropups sit above a total+CTA block, the dropups themselves wrap (flex-wrap), and the 'Proceed to Checkout' button goes full-width (w-full sm:w-auto). Inner padding tightens to px-4 py-3 (vs px-6 py-4). The fixed positioning and sidebar offset are unchanged. (Preview note: the bar is position:fixed, so each box uses a transform to become its containing block; on desktop it keeps its lg:left-[240px] sidebar offset, so it starts inset from the left inside the trapped box — that gap is the sidebar reservation, not a bug.)"
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · label row on top, dropups left + total/CTA right (offset for sidebar)">
+              <div
+                className="relative overflow-hidden rounded-lg bg-black/5"
+                style={{ height: 168, transform: "translateZ(0)" }}
+              >
+                <CheckoutFooterBarDemo />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · label row, dropups, then full-width CTA">
+              <MobileFrame flush height={280}>
+                <div className="relative" style={{ height: 280, transform: "translateZ(0)" }}>
+                  <CheckoutFooterBarDemo />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -1139,6 +1752,499 @@ function TabsDemo() {
       ]}
       activeTab={tab}
       onChange={setTab}
+    />
+  );
+}
+
+const CATEGORY_FILTER_OPTIONS: CategoryOption[] = [
+  { value: "word", label: "Words" },
+  { value: "sentence", label: "Sentences" },
+  { value: "phrase", label: "Phrases" },
+  { value: "fact", label: "Facts" },
+  { value: "information", label: "Information" },
+];
+
+function CategoryFilterDemo() {
+  const [selected, setSelected] = useState<string[]>([]);
+  return (
+    <CategoryFilter
+      options={CATEGORY_FILTER_OPTIONS}
+      selected={selected}
+      onChange={setSelected}
+    />
+  );
+}
+
+/**
+ * Live DictionaryList wired with sample data. DictionaryList calls
+ * useWordPreview(), which throws without a provider, so we wrap it in the real
+ * WordPreviewProvider (UserProvider is available app-wide from the root layout).
+ * The provider reads useSearchParams, so it sits inside a Suspense boundary.
+ * Opening a row fires fetchWordPreview() with a mock id that resolves to no
+ * word, so the panel never actually renders here — the block stays focused on
+ * the table itself.
+ */
+function DictionaryListLive() {
+  return (
+    <Suspense fallback={null}>
+      <WordPreviewProvider>
+        <DictionaryList
+          myWords={MOCK_DICTIONARY_MY_WORDS}
+          courseWords={MOCK_DICTIONARY_WORDS}
+          allWords={MOCK_DICTIONARY_WORDS}
+          languageName="Italian"
+        />
+      </WordPreviewProvider>
+    </Suspense>
+  );
+}
+
+/**
+ * Live word-preview drawer. WordDetailSidebar/View lean only on safe contexts:
+ * useAudio (self-contained), useUpgradeModal / useStudyExitGuard (return null
+ * without a provider), useText (built-in fallback). The one hard requirement is
+ * useWordPreview, so it's wrapped in WordPreviewProvider (inside Suspense for
+ * the provider's useSearchParams). Callbacks are inert no-ops — this is a static
+ * showcase, not a working navigator. The drawer is position:fixed, so callers
+ * must give it a transformed containing block (see the preview boxes below) to
+ * trap it instead of letting it overlay the whole catalog page.
+ */
+function WordDetailSidebarLive() {
+  return (
+    <Suspense fallback={null}>
+      <WordPreviewProvider>
+        <WordDetailSidebar
+          word={MOCK_WORD_DETAIL}
+          lessonTitle="Greetings & Introductions"
+          lessonNumber={1}
+          lessonId="app-ui-demo-lesson"
+          lessons={[{ id: "app-ui-demo-lesson", number: 1, title: "Greetings & Introductions" }]}
+          onClose={() => {}}
+          onPrevious={() => {}}
+          onNext={() => {}}
+          onJumpToWord={() => {}}
+          hasPrevious={false}
+          hasNext
+          currentIndex={0}
+          totalWords={MOCK_WORD_DETAIL_LIST.length}
+          wordList={MOCK_WORD_DETAIL_LIST}
+          showProgress
+        />
+      </WordPreviewProvider>
+    </Suspense>
+  );
+}
+
+/**
+ * Live study/test chrome: the fixed StudyNavbar plus the mobile-only
+ * StudyProgressBar that sits directly under it. Both are position:fixed, so
+ * callers must give them a transformed containing block (see the preview boxes)
+ * to trap them inside the frame instead of pinning to the catalog viewport.
+ * Callbacks are inert — this is a static showcase. On desktop the navbar shows
+ * its inline WordTrackerDots and the progress strip is hidden; inside the phone
+ * frame the dots hide and the thin strip appears.
+ */
+function StudyChromeLive({ mode = "study" }: { mode?: "study" | "test" }) {
+  const categories = ["greeting", "greeting", "greeting", "greeting", "greeting"];
+  return (
+    <>
+      <StudyNavbar
+        mode={mode}
+        courseName="Italian"
+        elapsedSeconds={128}
+        onExitLesson={() => {}}
+        lessonNumber={1}
+        lessonTitle="Greetings & Introductions"
+        currentWordIndex={2}
+        totalWords={categories.length}
+        completedWordIndices={[0, 1]}
+        onJumpToWord={() => {}}
+        categories={categories}
+        testPointsEarned={mode === "test" ? 12 : 0}
+        testMaxPoints={mode === "test" ? 18 : 0}
+      />
+      <StudyProgressBar
+        currentWordIndex={2}
+        totalWords={categories.length}
+        categories={categories}
+      />
+    </>
+  );
+}
+
+/**
+ * StudyActionBar rendered with mock data. It's an in-flow bar (not fixed), so it
+ * sits in a bordered box on desktop. On mobile the toggle cluster collapses into
+ * a `⋯` overflow bottom-sheet and a word-list hamburger appears at the start —
+ * tap them inside the phone frame to see the sheet (fixed inset-0 within the iframe).
+ */
+function StudyActionBarLive({ mode = "study" }: { mode?: "study" | "test" }) {
+  const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
+  return (
+    <StudyActionBar
+      mode={mode}
+      currentWordIndex={2}
+      totalWords={5}
+      englishWord="hello"
+      foreignWord="ciao"
+      partOfSpeech="interjection"
+      category="word"
+      wordList={[]}
+      completedWordIndices={[0, 1, 2]}
+      testHistory={[{ pointsEarned: 3, maxPoints: 3 }]}
+      scoreStats={{ totalPointsEarned: 9, totalMaxPoints: 12, scorePercent: 75, timesTested: 4 }}
+      wordStatus="learning"
+      correctStreak={1}
+      onJumpToWord={() => {}}
+      onPreviousWord={() => {}}
+      onNextWord={() => {}}
+      onRestart={() => {}}
+      hasSubmittedAnswer
+      languageCode="it"
+      onInsertCharacter={() => {}}
+      imageMode={imageMode}
+      onImageModeChange={setImageMode}
+      musicTracks={[]}
+      onOpenWordList={() => {}}
+      isAdmin
+      onEditModeToggle={() => {}}
+    />
+  );
+}
+
+/**
+ * StudyWordListSidebar's mobile drawer. The desktop 240px rail is `hidden md:flex`,
+ * so inside the 390px phone frame only the slide-over renders. The trigger mimics
+ * the real UX — a hamburger pinned bottom-left (where the StudyActionBar's word-list
+ * button sits). Tap it to slide the drawer in; tapping a word or the scrim closes it.
+ */
+function StudyWordListDrawerLive() {
+  const [open, setOpen] = useState(false);
+  const english = ["hello", "goodbye", "please", "thank you", "yes", "no", "water", "food"];
+  const foreign = ["ciao", "arrivederci", "per favore", "grazie", "sì", "no", "acqua", "cibo"];
+  const words = english.map((en, i) => ({
+    id: `w${i}`,
+    english: en,
+    foreign: foreign[i],
+    imageUrl: null,
+  }));
+  return (
+    <div className="relative h-full">
+      {/* Mimics the StudyActionBar hamburger: pinned to the bottom-left corner. */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Show words"
+        className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white text-foreground shadow-bar hover:bg-bone-hover"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <StudyWordListSidebar
+        wordList={words}
+        currentWordIndex={2}
+        completedWordIndices={[0, 1, 2]}
+        onJumpToWord={() => {}}
+        mode="study"
+        categories={words.map(() => "word")}
+        isOpen={open}
+        onClose={() => setOpen(false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Live StudySidebar wired with mock notes, example sentences, and related words.
+ * Demonstrates the mobile accordion: inside the phone frame each content card is
+ * collapsed behind a chevron header; the desktop preview shows them expanded.
+ */
+function StudySidebarLive() {
+  const [userNotes, setUserNotes] = useState<string | null>(
+    "Remember: 'ciao' works for both hello and goodbye."
+  );
+  const exampleSentences = [
+    {
+      id: "s1",
+      foreign_sentence: "Ciao, come stai?",
+      english_sentence: "Hi, how are you?",
+      thumbnail_image_url: null,
+    },
+    {
+      id: "s2",
+      foreign_sentence: "Ciao a tutti!",
+      english_sentence: "Hi everyone!",
+      thumbnail_image_url: null,
+    },
+  ] as unknown as ExampleSentence[];
+  const relatedWords = {
+    compound: [
+      {
+        id: "r1",
+        english: "goodbye",
+        headword: "arrivederci",
+        memory_trigger_image_url: null,
+      },
+    ],
+    sentence: [],
+    grammar: [],
+  };
+  return (
+    <StudySidebar
+      wordId="demo-word"
+      systemNotes="An informal greeting used at any time of day."
+      userNotes={userNotes}
+      exampleSentences={exampleSentences}
+      relatedWords={relatedWords}
+      isEnabled
+      onUserNotesChange={setUserNotes}
+    />
+  );
+}
+
+/**
+ * AnswerInput preview. The real input auto-focuses on mount and re-grabs focus on
+ * blur (so a learner never loses their cursor mid-answer). With two live instances
+ * on one page (desktop + mobile frames) they fight over focus, so the previews are
+ * wrapped in an `inert` container — display-only, which is all the catalog needs.
+ */
+function AnswerInputDemo() {
+  return (
+    <div inert>
+      <AnswerInput
+        wordId="demo"
+        languageName="Italian"
+        languageCode="it"
+        validAnswers={["ciao"]}
+        isVisible
+        isLastWord={false}
+        onSubmit={() => {}}
+        onNextWord={() => {}}
+      />
+    </div>
+  );
+}
+
+/**
+ * Post-submit feedback states. TestAnswerInput renders a locked, read-only
+ * result whenever `existingResult` is supplied, so we can show each grade
+ * without driving the input. Tone follows points earned: full marks = green
+ * (correct), partial = amber (half-correct diff), zero = red (incorrect).
+ */
+const FEEDBACK_RESULTS: Record<"correct" | "half-correct" | "incorrect", TestAnswerResult> = {
+  correct: {
+    isCorrect: true,
+    userAnswer: "ciao",
+    correctAnswer: "ciao",
+    mistakeCount: 0,
+    pointsEarned: 3,
+    maxPoints: 3,
+    scorePercent: 100,
+    grade: "correct",
+    scoreLetter: "A",
+  },
+  "half-correct": {
+    isCorrect: false,
+    userAnswer: "chao",
+    correctAnswer: "ciao",
+    mistakeCount: 1,
+    pointsEarned: 1,
+    maxPoints: 3,
+    scorePercent: 33,
+    grade: "half-correct",
+    scoreLetter: "D",
+  },
+  incorrect: {
+    isCorrect: false,
+    userAnswer: "buongiorno",
+    correctAnswer: "ciao",
+    mistakeCount: 4,
+    pointsEarned: 0,
+    maxPoints: 3,
+    scorePercent: 0,
+    grade: "incorrect",
+    scoreLetter: "F",
+  },
+};
+
+function AnswerFeedbackDemo({ grade }: { grade: "correct" | "half-correct" | "incorrect" }) {
+  return (
+    <div inert>
+      <TestAnswerInput
+        wordId="demo"
+        languageName="Italian"
+        languageCode="it"
+        validAnswers={["ciao"]}
+        isVisible
+        isLastWord={false}
+        clueLevel={0}
+        existingResult={FEEDBACK_RESULTS[grade]}
+        onSubmit={() => {}}
+        onNextWord={() => {}}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Completion / start-test modal previews (synthetic, self-contained data)
+// ---------------------------------------------------------------------------
+
+// A small synthetic lesson + word set so the completion modals render
+// deterministically in the catalog without touching real user data, auth, or
+// network queries. Images are null on purpose so WordGrid's built-in fallback
+// shows rather than depending on external URLs. Cast like the other demos.
+const MOCK_MODAL_LESSON = { number: 1, title: "Greetings & Introductions" } as unknown as Lesson;
+
+const MOCK_MODAL_WORDS = [
+  { id: "w1", english: "hello", headword: "ciao", status: "mastered", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+  { id: "w2", english: "goodbye", headword: "arrivederci", status: "learned", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+  { id: "w3", english: "please", headword: "per favore", status: "learning", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+  { id: "w4", english: "thank you", headword: "grazie", status: "learned", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+  { id: "w5", english: "yes", headword: "sì", status: "learning", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+  { id: "w6", english: "good morning", headword: "buongiorno", status: "mastered", category: "vocabulary", memory_trigger_image_url: null, flashcard_image_url: null, memory_trigger_video_url: null },
+] as unknown as WordWithDetails[];
+
+function StartTestModalDemo() {
+  return (
+    <StartTestModal
+      languageName="Italian"
+      lessonTitle="Greetings & Introductions"
+      wordCount={6}
+      wordsWithImages={4}
+      onStart={() => {}}
+      onCancel={() => {}}
+    />
+  );
+}
+
+function LessonCompletedModalDemo() {
+  return (
+    <LessonCompletedModal
+      lesson={MOCK_MODAL_LESSON}
+      words={MOCK_MODAL_WORDS}
+      wordProgressMap={new Map()}
+      elapsedSeconds={143}
+      onStartTest={() => {}}
+      onStudyAgain={() => {}}
+      onDismiss={() => {}}
+    />
+  );
+}
+
+function TestCompletedModalDemo() {
+  // Imperfect run so the full 4-action footer and the "Incorrect words" tab show.
+  const wordResultsMap = new Map<string, TestWordResult>([
+    ["w1", { wordId: "w1", pointsEarned: 3, maxPoints: 3, isCorrect: true, grade: "correct" }],
+    ["w2", { wordId: "w2", pointsEarned: 3, maxPoints: 3, isCorrect: true, grade: "correct" }],
+    ["w3", { wordId: "w3", pointsEarned: 2, maxPoints: 3, isCorrect: false, grade: "half-correct" }],
+    ["w4", { wordId: "w4", pointsEarned: 1, maxPoints: 3, isCorrect: false, grade: "half-correct" }],
+    ["w5", { wordId: "w5", pointsEarned: 0, maxPoints: 3, isCorrect: false, grade: "incorrect" }],
+    ["w6", { wordId: "w6", pointsEarned: 3, maxPoints: 3, isCorrect: true, grade: "correct" }],
+  ]);
+  return (
+    <TestCompletedModal
+      lesson={MOCK_MODAL_LESSON}
+      words={MOCK_MODAL_WORDS}
+      wordResultsMap={wordResultsMap}
+      elapsedSeconds={187}
+      totalPoints={12}
+      maxPoints={18}
+      scorePercent={67}
+      newlyLearnedCount={2}
+      masteredWordsCount={1}
+      courseWordsMastered={42}
+      newlyLearnedWordIds={["w1", "w6"]}
+      masteredWordIds={["w1"]}
+      onDone={() => {}}
+      onTestAgain={() => {}}
+      onRetestIncorrect={() => {}}
+      onStudyIncorrect={() => {}}
+    />
+  );
+}
+
+// --- Settings & Profile demos ---------------------------------------------
+
+// A fully-populated settings object so ProfileSection's view mode renders every
+// field (avatar, name/username, hometown/location, nationalities, bio, website).
+const MOCK_USER_SETTINGS = {
+  id: "app-ui-demo-user",
+  email: "sample@200wad.com",
+  name: "Sample Learner",
+  username: "sample_learner",
+  avatarUrl: null,
+  bio: "Learning Italian one word at a time.",
+  website: "https://example.com",
+  hometown: "London",
+  location: "Berlin",
+  nationalities: ["United Kingdom", "Germany"],
+  wordsPerDay: 20,
+  dailyXpGoal: 50,
+  marketingEmailConsent: true,
+  createdAt: new Date("2024-01-01").toISOString(),
+} as UserSettings;
+
+// --- Subscriptions demos ---------------------------------------------------
+
+const MOCK_SUB_COURSES: LanguageCourse[] = [
+  { id: "sub-c1", name: "Italian for Beginners", level: "A1", totalLessons: 20, wordCount: 240, thumbnailUrl: null, freeLessons: 3 },
+  { id: "sub-c2", name: "Everyday Italian", level: "A2", totalLessons: 18, wordCount: 210, thumbnailUrl: null, freeLessons: 3 },
+];
+
+const MOCK_SUBSCRIPTION_LANGUAGES: SubscriptionLanguage[] = [
+  { id: "sub-lang-it", name: "Italian", code: "it", courseCount: 2, totalWords: 450, totalLessons: 38, freeLessons: 6, courses: MOCK_SUB_COURSES },
+  { id: "sub-lang-fr", name: "French", code: "fr", courseCount: 1, totalWords: 300, totalLessons: 24, freeLessons: 3, courses: [{ id: "sub-c3", name: "French Foundations", level: "A1", totalLessons: 24, wordCount: 300, thumbnailUrl: null, freeLessons: 3 }] },
+  { id: "sub-lang-es", name: "Spanish", code: "es", courseCount: 3, totalWords: 600, totalLessons: 50, freeLessons: 9, courses: [{ id: "sub-c4", name: "Spanish Essentials", level: "A1", totalLessons: 26, wordCount: 320, thumbnailUrl: null, freeLessons: 3 }] },
+];
+
+// Only the fields CheckoutFooterBar reads (id/tier/billing_model/amount_cents).
+const MOCK_PRICING_PLANS = [
+  { id: "p-all-m", tier: "all-languages", billing_model: "monthly", amount_cents: 1499 },
+  { id: "p-all-a", tier: "all-languages", billing_model: "annual", amount_cents: 11988 },
+  { id: "p-all-l", tier: "all-languages", billing_model: "lifetime", amount_cents: 29900 },
+  { id: "p-lang-m", tier: "language", billing_model: "monthly", amount_cents: 999 },
+  { id: "p-lang-a", tier: "language", billing_model: "annual", amount_cents: 7188 },
+] as unknown as PricingPlan[];
+
+const MOCK_UPGRADE_TARGET: UpgradeTarget = {
+  tier: "all-languages",
+  targetId: null,
+  targetName: "All Languages",
+  flag: "🌍",
+};
+
+/**
+ * Live subscription list wrapped in the white card it sits in on the page, with
+ * one language pre-unlocked (Italian) and per-row unlock CTAs enabled so the
+ * locked/CTA states render. Selecting a row toggles its "Selected" state.
+ */
+function LanguageSubscriptionsListDemo() {
+  const [selected, setSelected] = useState<string | null>("sub-lang-fr");
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+      <LanguageSubscriptionsList
+        languages={MOCK_SUBSCRIPTION_LANGUAGES}
+        unlockedLanguageIds={["sub-lang-it"]}
+        canUnlockIndividually
+        selectedLanguageId={selected}
+        onUnlockLanguage={(lang) => setSelected(lang.id)}
+      />
+    </div>
+  );
+}
+
+/** Live checkout footer. It's position:fixed, so callers must trap it in a
+ *  transformed containing block (see the preview boxes). */
+function CheckoutFooterBarDemo() {
+  const [target, setTarget] = useState<UpgradeTarget>(MOCK_UPGRADE_TARGET);
+  return (
+    <CheckoutFooterBar
+      target={target}
+      plans={MOCK_PRICING_PLANS}
+      languages={MOCK_SUBSCRIPTION_LANGUAGES}
+      creditBalanceCents={0}
+      onChangeTarget={setTarget}
+      onClose={() => {}}
     />
   );
 }

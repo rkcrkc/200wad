@@ -35,6 +35,16 @@ interface TriggerMediaProps {
   className?: string;
   sizes?: string;
   priority?: boolean;
+  /**
+   * Layout mode:
+   * - "fill" (default): `<Image fill>` / absolutely-positioned `<video>` that
+   *   stretch to a parent-defined aspect box. No layout shift when swapping media.
+   * - "natural": in-flow media sized to its own intrinsic dimensions, so the
+   *   surrounding box hugs the media. The caller's `className` supplies the
+   *   constraints (e.g. `max-h-[400px] w-auto`). Used on mobile where a fixed
+   *   letterbox wastes vertical space.
+   */
+  fit?: "fill" | "natural";
 }
 
 /**
@@ -55,11 +65,40 @@ export function TriggerMedia({
   className,
   sizes,
   priority,
+  fit = "fill",
 }: TriggerMediaProps) {
   const [videoFailed, setVideoFailed] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
 
   const showVideo = !!videoUrl && !videoFailed && !reducedMotion;
+
+  // Natural mode: in-flow media sized to its intrinsic dimensions. The caller's
+  // `className` carries the sizing constraints (e.g. `max-h-[400px] w-auto`).
+  if (fit === "natural") {
+    if (showVideo) {
+      return (
+        <video
+          src={videoUrl!}
+          poster={imageUrl ?? undefined}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          aria-label={alt}
+          onError={() => setVideoFailed(true)}
+          className={className}
+        />
+      );
+    }
+    if (imageUrl) {
+      // Intrinsic dimensions are unknown at build time, so a plain <img> lets the
+      // box hug the file's real size; next/image `fill` can't do that.
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={imageUrl} alt={alt} className={className} />;
+    }
+    return null;
+  }
 
   if (showVideo) {
     return (

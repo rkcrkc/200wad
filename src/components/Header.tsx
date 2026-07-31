@@ -396,9 +396,9 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           ) : (
             // Logged in state (or preview mode)
             <>
-              {/* Admin Button - Only show for admins */}
+              {/* Admin Button - Only show for admins (hidden on mobile) */}
               {isAdmin && (
-                <Link href="/admin">
+                <Link href="/admin" className="hidden sm:block">
                   <Button>
                     Admin →
                   </Button>

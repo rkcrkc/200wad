@@ -137,6 +137,49 @@ export function TestCompletedModal({
     foreign: w.headword,
   }));
 
+  // View toggles (show/hide foreign, memory-trigger/flashcard, column count).
+  // Shared between the desktop single-row header and the condensed mobile header.
+  const viewToggles = (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => {
+          const next = !showForeign;
+          setShowForeign(next);
+          localStorage.setItem("completedModal:showForeign", String(next));
+        }}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+        title={showForeign ? "Hide foreign words" : "Show foreign words"}
+      >
+        {showForeign ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+      </button>
+      <button
+        onClick={() =>
+          setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
+        }
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+        title={
+          imageMode === "memory-trigger"
+            ? "Switch to flashcards"
+            : "Switch to memory triggers"
+        }
+      >
+        {imageMode === "memory-trigger" ? (
+          <Zap className="h-4 w-4" />
+        ) : (
+          <ImageIcon className="h-4 w-4" />
+        )}
+      </button>
+      {/* Column-count toggle only affects the desktop grid (mobile is fixed at 3 cols). */}
+      <button
+        onClick={() => setColumns(columns === 5 ? 4 : 5)}
+        className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone sm:flex"
+        title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   return (
     <CompletedModalShell onDismiss={onDone}>
       {!selectedWord && (
@@ -151,7 +194,7 @@ export function TestCompletedModal({
             </>
           }
         >
-          <div className="flex cursor-default items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div className="hidden cursor-default items-center justify-center gap-4 text-sm text-muted-foreground sm:flex">
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
               <span>{formatDuration(elapsedSeconds, { style: "timer" })}</span>
@@ -224,43 +267,29 @@ export function TestCompletedModal({
               </>
             )}
             <span>·</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  const next = !showForeign;
-                  setShowForeign(next);
-                  localStorage.setItem("completedModal:showForeign", String(next));
-                }}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-                title={showForeign ? "Hide foreign words" : "Show foreign words"}
-              >
-                {showForeign ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </button>
-              <button
-                onClick={() =>
-                  setImageMode(imageMode === "memory-trigger" ? "flashcard" : "memory-trigger")
-                }
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-                title={
-                  imageMode === "memory-trigger"
-                    ? "Switch to flashcards"
-                    : "Switch to memory triggers"
-                }
-              >
-                {imageMode === "memory-trigger" ? (
-                  <Zap className="h-4 w-4" />
-                ) : (
-                  <ImageIcon className="h-4 w-4" />
-                )}
-              </button>
-              <button
-                onClick={() => setColumns(columns === 5 ? 4 : 5)}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
-                title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
+            {viewToggles}
+          </div>
+
+          {/* Condensed mobile header: headline time + score, then a smaller
+              secondary line for learned/mastered/vocab (no dot separators). */}
+          <div className="flex flex-col items-center gap-2 sm:hidden">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                {formatDuration(elapsedSeconds, { style: "timer" })}
+              </span>
+              <span>
+                <span className="font-medium text-foreground">{formatNumber(totalPoints)}/{formatNumber(maxPoints)}</span> ({formatPercent(scorePercent)})
+              </span>
             </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span><span className="font-medium text-foreground">{formatNumber(totalLearnedCount)}</span> learned</span>
+              <span><span className="font-medium text-foreground">{formatNumber(totalMasteredCount)}</span> mastered</span>
+              {courseWordsMastered !== null && (
+                <span><span className="font-medium text-foreground">{formatNumber(courseWordsMastered)}</span> vocab</span>
+              )}
+            </div>
+            {viewToggles}
           </div>
         </CompletedModalShell.Header>
       )}
@@ -352,40 +381,44 @@ export function TestCompletedModal({
       ) : (
         <CompletedModalShell.Footer>
           {isPerfectScore ? (
-            <div className="flex justify-center gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:flex sm:justify-center sm:gap-4">
               <CompletedModalActionButton
-                icon={<RefreshCw className="h-6 w-6" />}
+                icon={<RefreshCw className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Retest all words"
+                mobileLabel="Retest all"
                 onClick={onTestAgain}
               />
               <CompletedModalActionButton
-                icon={<ArrowRight className="h-6 w-6" />}
+                icon={<ArrowRight className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Done"
                 onClick={onDone}
                 iconHover="shift"
               />
             </div>
           ) : (
-            <div className="flex justify-center gap-4">
+            <div className="grid grid-cols-3 gap-3 sm:flex sm:justify-center sm:gap-4">
               <CompletedModalActionButton
-                icon={<RotateCcw className="h-6 w-6" />}
+                icon={<RotateCcw className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Retest incorrect words"
                 onClick={onRetestIncorrect}
                 primary
+                className="col-span-3 sm:col-auto"
               />
               <CompletedModalActionButton
-                icon={<BookOpen className="h-6 w-6" />}
+                icon={<BookOpen className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Study incorrect words"
+                mobileLabel="Re-study"
                 onClick={onStudyIncorrect}
                 iconHover="none"
               />
               <CompletedModalActionButton
-                icon={<RefreshCw className="h-6 w-6" />}
+                icon={<RefreshCw className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Retest all words"
+                mobileLabel="Retest all"
                 onClick={onTestAgain}
               />
               <CompletedModalActionButton
-                icon={<ArrowRight className="h-6 w-6" />}
+                icon={<ArrowRight className="h-3.5 w-3.5 sm:h-6 sm:w-6" />}
                 label="Not now"
                 onClick={onDone}
                 iconHover="shift"

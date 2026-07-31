@@ -119,7 +119,7 @@ export function SecuritySection({ email }: SecuritySectionProps) {
   };
 
   return (
-    <div className="mb-6 rounded-2xl bg-white p-6 shadow-card">
+    <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-card">
       <h2 className="mb-6 text-xl font-semibold">Security</h2>
 
       {/* Email */}

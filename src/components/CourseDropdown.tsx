@@ -10,6 +10,7 @@ import {
 import { setCurrentCourse } from "@/lib/mutations/settings";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { formatPercent } from "@/lib/utils/helpers";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface CourseDropdownProps {
   languageFlag: string;
@@ -31,6 +32,7 @@ export function CourseDropdown({
   collapsed = false,
 }: CourseDropdownProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [groups, setGroups] = useState<DropdownLanguageGroup[] | null>(null);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
@@ -67,17 +69,21 @@ export function CourseDropdown({
     return () => window.removeEventListener("resize", recompute);
   }, [open, groups]);
 
+  // Hover open/close is desktop-only: touch devices have no hover, so on mobile
+  // the menu is toggled by tapping the trigger instead (see handleTriggerClick).
   const handleMouseEnter = useCallback(() => {
+    if (isMobile) return;
     if (closeTimer.current) {
       clearTimeout(closeTimer.current);
       closeTimer.current = null;
     }
     setOpen(true);
-  }, []);
+  }, [isMobile]);
 
   const handleMouseLeave = useCallback(() => {
+    if (isMobile) return;
     closeTimer.current = setTimeout(() => setOpen(false), 150);
-  }, []);
+  }, [isMobile]);
 
   // Close on Escape
   useEffect(() => {
@@ -88,6 +94,18 @@ export function CourseDropdown({
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [open]);
+
+  // Mobile has no mouseleave to close the menu, so close on any tap outside.
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    function handlePointerDown(e: PointerEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open, isMobile]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -107,6 +125,16 @@ export function CourseDropdown({
     [courseId, router]
   );
 
+  // On mobile the trigger toggles the menu (no hover); on desktop it keeps the
+  // original behaviour of navigating to the currently-selected course.
+  const handleTriggerClick = useCallback(() => {
+    if (isMobile) {
+      setOpen((prev) => !prev);
+      return;
+    }
+    handleSelectCourse(courseId);
+  }, [isMobile, courseId, handleSelectCourse]);
+
   const handleManageLanguages = useCallback(() => {
     setOpen(false);
     router.push("/dashboard?pick=true");
@@ -121,7 +149,7 @@ export function CourseDropdown({
     >
       {/* Trigger */}
       <div
-        onClick={() => handleSelectCourse(courseId)}
+        onClick={handleTriggerClick}
         className={`flex h-12 w-full cursor-pointer items-center rounded-[10px] transition-all hover:bg-bone-hover ${
           collapsed ? "justify-center" : ""
         }`}

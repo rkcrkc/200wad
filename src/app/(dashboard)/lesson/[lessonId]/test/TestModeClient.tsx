@@ -6,12 +6,15 @@ import { showAchievementToast } from "@/lib/toast/achievement";
 import { Course, Language, Lesson } from "@/types/database";
 import type { ToastTemplate } from "@/lib/queries/notification-config";
 import type { AnswerFeedbackSoundMap } from "@/lib/queries/answer-sounds";
+import type { UserStudySettings } from "@/lib/queries/study-settings";
 import { WordWithDetails, type WordStatus } from "@/lib/queries/words";
 import type { UserWordProgress } from "@/types/database";
 import { useAudio } from "@/hooks/useAudio";
 import { useStudyMusic } from "@/hooks/useStudyMusic";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import {
   StudyNavbar,
+  StudyProgressBar,
   StudyActionBar,
   StudyWordListSidebar,
   WordCard,
@@ -261,6 +264,8 @@ interface TestModeClientProps {
    * audio URL; only enabled sounds are present. Missing grade = no SFX.
    */
   answerFeedbackSounds?: AnswerFeedbackSoundMap;
+  /** Account-scoped study/test toggles (null fields = fall back to localStorage/default). */
+  studySettings?: UserStudySettings;
 }
 
 export function TestModeClient({
@@ -278,6 +283,7 @@ export function TestModeClient({
   priorMasteredCount = 0,
   toastTemplates = {},
   answerFeedbackSounds = {},
+  studySettings,
 }: TestModeClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -295,7 +301,11 @@ export function TestModeClient({
     setSoundEffectsEnabled,
     replayTriggerEnabled,
     setReplayTriggerEnabled,
-  } = useAudio();
+  } = useAudio({
+    initialSoundEffectsEnabled: studySettings?.soundEffectsEnabled ?? null,
+    initialReplayTriggerEnabled: studySettings?.replayTriggerEnabled ?? null,
+    isGuest,
+  });
   const {
     isEnabled: musicEnabled,
     selectedTrack,
@@ -372,6 +382,9 @@ export function TestModeClient({
   const isFinishingRef = useRef(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+  // Mobile-only word-list slide-over drawer
+  const [isWordListOpen, setIsWordListOpen] = useState(false);
+
   // Admin can force-preview the completion modal via ?preview=completed
   const previewCheckedRef = useRef(false);
   useEffect(() => {
@@ -420,6 +433,7 @@ export function TestModeClient({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const testAnswerInputRef = useRef<TestAnswerInputHandle>(null);
+  const keyboardInset = useKeyboardInset();
 
   // Guards so the first-time learned/mastered toasts can only fire once per
   // page load (defence-in-depth alongside the priorLearnedCount === 0 check).
@@ -2200,7 +2214,7 @@ export function TestModeClient({
   })();
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {/* Word list sidebar */}
       <StudyWordListSidebar
         wordList={testSequence.map((w) => ({
@@ -2218,10 +2232,14 @@ export function TestModeClient({
         revealThumbnailIndices={revealThumbnailIndices}
         primaryField={testType === "foreign-to-english" ? "foreign" : "english"}
         roundLabels={roundLabels}
+        isOpen={isWordListOpen}
+        onClose={() => setIsWordListOpen(false)}
       />
 
-      {/* Main content area */}
-      <div className="ml-[240px] flex min-h-0 flex-1 flex-col">
+      {/* Main content area. min-w-0 lets this flex item shrink to the viewport;
+          without it the media's intrinsic width stretches the column past the
+          screen edge on mobile when the picture appears. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col md:ml-[240px]">
         {/* Custom navbar */}
         <StudyNavbar
           courseName={course?.name}
@@ -2239,6 +2257,13 @@ export function TestModeClient({
           testPointsEarned={runningScore.pointsEarned}
           testMaxPoints={runningScore.maxPoints}
           incorrectWords={isRetest}
+        />
+
+        {/* Mobile progress strip under the navbar (dots hidden below md) */}
+        <StudyProgressBar
+          currentWordIndex={currentWordIndex}
+          totalWords={totalQuestions}
+          categories={testSequence.map((w) => w.category)}
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
@@ -2283,9 +2308,10 @@ export function TestModeClient({
             {(() => {
               const isFactPage = currentWord?.category === "fact";
               return (
-                /* Two columns: Memory Trigger (left), Notes/Sentences (right) */
-                <div className="flex w-full min-w-0 gap-4">
-                  <div className="flex w-[700px] shrink-0 flex-col gap-4">
+                /* Two columns: Memory Trigger (left), Notes/Sentences (right).
+                   Stacks on mobile, side-by-side from md. */
+                <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row">
+                  <div className="flex w-full flex-col gap-4 lg:w-[700px] lg:shrink-0">
                     {imageMode === "memory-trigger" ? (
                       <MemoryTriggerCard
                         imageUrl={currentWord?.memory_trigger_image_url}
@@ -2365,8 +2391,12 @@ export function TestModeClient({
           </div>
         </div>
 
-        {/* Fixed bottom container */}
-        <div className="fixed bottom-0 left-[240px] right-0 z-10 bg-white shadow-bar">
+        {/* Fixed bottom container. `bottom` is offset by the on-screen keyboard
+            height so it floats above the keyboard on mobile (0 on desktop). */}
+        <div
+          className="fixed left-0 right-0 z-10 bg-white shadow-bar md:left-[240px]"
+          style={{ bottom: keyboardInset }}
+        >
           {/* Test Answer Input */}
           <TestAnswerInput
             ref={testAnswerInputRef}
@@ -2402,6 +2432,7 @@ export function TestModeClient({
             onPreviousWord={() => handleJumpToWord(currentWordIndex - 1)}
             onNextWord={() => handleJumpToWord(currentWordIndex + 1)}
             onRestart={handleRestart}
+            onOpenWordList={() => setIsWordListOpen(true)}
             mode="test"
             clueLevel={clueLevel}
             onRevealClue={handleRevealClue}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, ChevronLeft, ChevronRight, ClipboardCheck, HelpCircle } from "lucide-react";
@@ -116,6 +116,37 @@ export function LessonPageContent({
     0
   );
   const xpMax = words.length * 3;
+
+  // Left/right arrow keys jump to the previous/next lesson, mirroring the
+  // footer nav. Inert while an overlay (history / start-test modal) is open,
+  // when a modifier is held (don't clobber browser back/forward), or when a
+  // form field / contenteditable is focused (don't hijack caret movement).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (showHistory || showStartTestModal) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
+      ) {
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && previousLesson) {
+        e.preventDefault();
+        router.push(`/lesson/${previousLesson.id}`);
+      } else if (e.key === "ArrowRight" && nextLesson) {
+        e.preventDefault();
+        router.push(`/lesson/${nextLesson.id}`);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previousLesson, nextLesson, showHistory, showStartTestModal, router]);
 
   const handleStartTest = (testType: TestType, testTwice: boolean, randomOrder: boolean) => {
     setShowStartTestModal(false);

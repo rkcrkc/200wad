@@ -85,6 +85,12 @@ export function DictionaryList({
 }: DictionaryListProps) {
   const searchParams = useSearchParams();
   const { scrollRef: dictScrollRef, canScrollRight } = useScrollFade();
+  // Separate tracker for the mobile letter-filter row's edge fades.
+  const {
+    scrollRef: letterScrollRef,
+    canScrollLeft: letterCanScrollLeft,
+    canScrollRight: letterCanScrollRight,
+  } = useScrollFade();
   const { openWord, selectedWordId } = useWordPreview();
   const sidebarCollapsed = useSidebarCollapsed();
   const urlWordId = searchParams.get("word");
@@ -344,47 +350,52 @@ export function DictionaryList({
         </div>
       </div>
 
-      {/* Letter filter */}
-      <div className="mb-4 flex flex-wrap gap-1">
-        {ALPHABET.map((letter) => {
-          const isAvailable = availableLetters.has(letter);
-          const isActive = letterFilter === letter;
-          return (
-            <button
-              key={letter}
-              onClick={() => isAvailable && handleLetterChange(isActive ? null : letter)}
-              disabled={!isAvailable}
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-white"
-                  : isAvailable
-                    ? "bg-white text-foreground hover:bg-bone-hover"
-                    : "bg-gray-100 text-gray-300 cursor-not-allowed"
-              )}
-            >
-              {letter}
-            </button>
-          );
-        })}
+      {/* Letter filter — a single horizontally-scrollable row on mobile (the
+          full A–Z won't fit), wrapping onto multiple rows from md up. The
+          edge gradients (mobile only) hint that the row scrolls. */}
+      <div className="relative mb-4">
+        <div ref={letterScrollRef} className="flex gap-1 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-x-visible">
+          {ALPHABET.map((letter) => {
+            const isAvailable = availableLetters.has(letter);
+            const isActive = letterFilter === letter;
+            return (
+              <button
+                key={letter}
+                onClick={() => isAvailable && handleLetterChange(isActive ? null : letter)}
+                disabled={!isAvailable}
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-white"
+                    : isAvailable
+                      ? "bg-white text-foreground hover:bg-bone-hover"
+                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                )}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
+        {/* Edge fades (mobile only) — each side only shows when scrollable that way. */}
+        {letterCanScrollLeft && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background to-transparent md:hidden" />
+        )}
+        {letterCanScrollRight && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent md:hidden" />
+        )}
       </div>
 
-      {/* Words Table */}
+      {/* Words Table — on mobile the columns collapse into a single stacked
+          cell per row (see DictionaryRow), so the header is hidden and the
+          800px min-width (which forces horizontal scroll) only applies from
+          md up. */}
       <div ref={dictScrollRef} className="overflow-x-auto rounded-xl pb-16">
-        <table className="min-w-[800px] w-full table-fixed border-collapse">
-          <colgroup>
-            <col style={{ width: 72 }} />
-            <col />
-            <col />
-            <col style={{ width: 120 }} />
-            <col style={{ width: 140 }} />
-            <col style={{ width: 160 }} />
-            <col style={{ width: 60 }} />
-          </colgroup>
+        <table className="w-full table-fixed border-collapse md:min-w-[800px]">
           {/* Table Header */}
-          <thead>
+          <thead className="hidden md:table-header-group">
             <tr className="whitespace-nowrap">
-              <th className="px-6 py-3"></th>
+              <th className="w-[72px] px-6 py-3"></th>
               <th className="px-2 py-3 text-left">
                 <SortableHeader
                   label="English"
@@ -403,7 +414,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-2 py-3 text-left">
+              <th className="w-[120px] px-2 py-3 text-left">
                 <SortableHeader
                   label="Word Type"
                   column="partOfSpeech"
@@ -412,7 +423,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-2 py-3 text-left">
+              <th className="w-[140px] px-2 py-3 text-left">
                 <SortableHeader
                   label="Status"
                   column="status"
@@ -421,7 +432,7 @@ export function DictionaryList({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-2 py-3 text-left">
+              <th className="w-[160px] px-2 py-3 text-left">
                 <SortableHeader
                   label="Lesson"
                   column="lessonNumber"
@@ -431,7 +442,7 @@ export function DictionaryList({
                 />
               </th>
               <th className={cn(
-                "sticky right-0 z-10 bg-background px-2 py-3",
+                "sticky right-0 z-10 w-[60px] bg-background px-2 py-3",
                 canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
               )}></th>
             </tr>
@@ -482,8 +493,9 @@ export function DictionaryList({
         <div ref={sentinelRef} className="h-1" />
       </div>
 
-      {/* Floating Footer */}
-      <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar px-6 py-3", sidebarCollapsed ? "left-[72px]" : "left-[240px]")}>
+      {/* Floating Footer — full width on mobile (no sidebar), insetting to
+          clear the nav rail from md up. */}
+      <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar px-6 py-3", sidebarCollapsed ? "left-0 md:left-[72px]" : "left-0 md:left-[240px]")}>
         <div className="mx-auto max-w-[1200px]">
           <span className="text-sm text-muted-foreground">
             {sortedWords.length === 0

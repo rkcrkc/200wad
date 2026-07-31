@@ -23,7 +23,7 @@ export function SummaryCards({ progress }: SummaryCardsProps) {
   const totalVocab = progress.wordsLearned + progress.wordsMastered;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* My Vocab */}
       <div className="rounded-2xl bg-white p-5 shadow-card">
         <div className="mb-2 flex items-center justify-between">

@@ -143,7 +143,7 @@ export function StartTestModal({
       />
 
       {/* Modal */}
-      <div className="relative mx-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+      <div className="relative mx-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-5 shadow-xl sm:p-6">
         {/* Title row with close button */}
         <div className="mb-1 flex items-start justify-between gap-4">
           <h2 className="text-xl-semibold text-foreground">{lessonTitle}</h2>
@@ -159,7 +159,7 @@ export function StartTestModal({
         </p>
 
         {/* Test type selection */}
-        <div className="mb-6 space-y-3">
+        <div className="mb-6 space-y-1.5 sm:space-y-3">
             {testTypes.map(({ type, icon }) => {
               const isDisabled = type === "picture-only" && !pictureOnlyAvailable;
               const isSelected = selectedType === type;

@@ -527,8 +527,10 @@ export function WordDetailView({
         </div>
       )}
 
-      {/* Tabs (sidebar only, when enabled) */}
+      {/* Tabs (sidebar only, when enabled) — hidden on mobile; the Word tab
+          content is the only section shown there. */}
       {isSidebar && showTabs && (
+        <div className="hidden md:block">
         <Tabs
           tabs={[
             { id: "word", label: "Word" },
@@ -565,6 +567,7 @@ export function WordDetailView({
             setSidebarTab(tabId as "word" | "test-history" | "lessons" | "related")
           }
         />
+        </div>
       )}
 
       {/* Word Card — only on the Word tab in sidebar (or always in page layout) */}
