@@ -83,6 +83,7 @@ export function TestCompletedModal({
   });
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
+  const [mobileColumns, setMobileColumns] = useState<2 | 3>(3);
   const replayRef = useRef<(() => void) | null>(null);
 
   const isPerfectScore = scorePercent === 100;
@@ -169,11 +170,18 @@ export function TestCompletedModal({
           <ImageIcon className="h-4 w-4" />
         )}
       </button>
-      {/* Column-count toggle only affects the desktop grid (mobile is fixed at 3 cols). */}
+      {/* Column-count toggle: 4/5 on desktop, 2/3 on the phone. */}
       <button
         onClick={() => setColumns(columns === 5 ? 4 : 5)}
         className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone sm:flex"
         title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => setMobileColumns(mobileColumns === 3 ? 2 : 3)}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone sm:hidden"
+        title={mobileColumns === 3 ? "Switch to 2 columns" : "Switch to 3 columns"}
       >
         <LayoutGrid className="h-4 w-4" />
       </button>
@@ -347,7 +355,7 @@ export function TestCompletedModal({
               className="mb-4"
             />
 
-            <WordGrid words={displayWords} imageMode={imageMode} showForeign={showForeign} columns={columns} wordResults={wordResultsMap} onWordClick={setSelectedWordId} />
+            <WordGrid words={displayWords} imageMode={imageMode} showForeign={showForeign} columns={columns} mobileColumns={mobileColumns} wordResults={wordResultsMap} onWordClick={setSelectedWordId} />
           </>
         )}
       </CompletedModalShell.Body>

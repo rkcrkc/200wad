@@ -15,7 +15,7 @@ export function WordCard({ word, index, onClick }: WordCardProps) {
 
   return (
     <div
-      className="flex cursor-pointer flex-col rounded-xl bg-white p-4 shadow-card transition-all hover:shadow-md"
+      className="flex cursor-pointer flex-col rounded-xl bg-white p-3 shadow-card transition-all hover:shadow-md sm:p-4"
       onClick={onClick}
       role="button"
       tabIndex={0}

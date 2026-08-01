@@ -7,6 +7,7 @@ import { TriggerMedia } from "@/components/ui/TriggerMedia";
 
 export type WordGridImageMode = "memory-trigger" | "flashcard";
 export type WordGridColumns = 4 | 5;
+export type WordGridMobileColumns = 2 | 3;
 
 export interface WordGridResult {
   grade: "correct" | "half-correct" | "incorrect";
@@ -19,8 +20,10 @@ interface WordGridProps {
   imageMode: WordGridImageMode;
   /** When false, hides the foreign headword so users can self-test. Defaults to true. */
   showForeign?: boolean;
-  /** Number of grid columns. Defaults to 5. */
+  /** Number of grid columns from sm up. Defaults to 5. */
   columns?: WordGridColumns;
+  /** Number of grid columns below sm (phone). Defaults to 3. */
+  mobileColumns?: WordGridMobileColumns;
   /** Optional test results keyed by word ID — shows score badge on each card. */
   wordResults?: Map<string, WordGridResult>;
   /** Show learning status pill on each card. */
@@ -38,13 +41,16 @@ export function WordGrid({
   imageMode,
   showForeign = true,
   columns = 5,
+  mobileColumns = 3,
   wordResults,
   showStatus = false,
   onWordClick,
 }: WordGridProps) {
-  // Explicit classes so Tailwind's scanner picks them up. Mobile shows 3
-  // columns regardless of the desktop 4/5 toggle so tiles stay legible at 390px.
-  const gridColsClass = columns === 4 ? "grid-cols-3 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5";
+  // Explicit classes so Tailwind's scanner picks them up. The phone column count
+  // (2 or 3) is independent of the desktop 4/5 toggle so tiles stay legible at 390px.
+  const mobileColsClass = mobileColumns === 2 ? "grid-cols-2" : "grid-cols-3";
+  const desktopColsClass = columns === 4 ? "sm:grid-cols-4" : "sm:grid-cols-5";
+  const gridColsClass = `${mobileColsClass} ${desktopColsClass}`;
   // 4-col tiles are wider, so give the image ~20% more height to balance proportions
   const imageHeightClass = columns === 4 ? "h-[134px]" : "h-28";
 
