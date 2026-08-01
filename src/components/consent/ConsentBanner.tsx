@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConsent } from "@/context/ConsentContext";
@@ -12,6 +13,10 @@ import { useConsent } from "@/context/ConsentContext";
  */
 export function ConsentBanner() {
   const { showBanner, acceptAll, rejectAll, close, hasDecided } = useConsent();
+  const pathname = usePathname();
+
+  // Admin CMS is internal-only; the consent card doesn't belong there.
+  if (pathname?.startsWith("/admin")) return null;
 
   if (!showBanner) return null;
 

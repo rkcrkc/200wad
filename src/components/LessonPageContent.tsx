@@ -187,14 +187,14 @@ export function LessonPageContent({
 
         {/* Row 2: Title + Stats */}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between xl:gap-8">
-          <h1 className="flex items-center gap-4 text-xxxl-semibold">
+          <h1 className="flex items-center gap-3 text-xxl-semibold sm:gap-4 sm:text-xxxl-semibold">
             {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
             {lesson.title}
           </h1>
 
           {/* Stats — hidden for QA lessons, which don't track progress/time/XP. */}
           {!studyOnly && (
-          <div className="flex cursor-default flex-wrap items-center gap-x-8 gap-y-2">
+          <div className="flex cursor-default flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-8">
             {/* Words learned */}
             <Popover
               className="flex flex-col items-start gap-1.5 cursor-default"
@@ -337,7 +337,7 @@ export function LessonPageContent({
                 <Tooltip label="Show study history">
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
+                    className="hidden h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige md:flex"
                   >
                     <ClipboardCheck className="h-5 w-5" />
                   </button>
@@ -350,16 +350,16 @@ export function LessonPageContent({
 
       {/* Fixed footer bar - hidden when showing history */}
       {!showHistory && words.length > 0 && (
-        <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar", sidebarCollapsed ? "left-[72px]" : "left-[240px]")}>
-          <div className="flex items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
+        <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar", sidebarCollapsed ? "left-0 md:left-[72px]" : "left-0 md:left-[240px]")}>
+          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 md:gap-4 md:px-6 md:py-4">
             {previousLesson ? (
               <Link
                 href={`/lesson/${previousLesson.id}`}
                 prefetch
-                className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
+                className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground md:max-w-44"
               >
                 <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="hidden min-w-0 flex-1 flex-col overflow-hidden md:flex">
                   <span className="text-xs text-muted-foreground">Previous</span>
                   <span className="block min-w-0 truncate text-regular-semibold text-foreground" title={`#${previousLesson.number} ${previousLesson.title}`}>
                     #{previousLesson.number} {previousLesson.title}
@@ -369,9 +369,9 @@ export function LessonPageContent({
             ) : (
               <div />
             )}
-            <div className="flex flex-1 items-center justify-center gap-4">
+            <div className="flex flex-1 items-center justify-center gap-3 md:gap-4">
               <PrimaryButton
-                className="flex-1 max-w-[240px]"
+                className="flex-1 md:max-w-[240px]"
                 href={`/lesson/${lesson.id}/study`}
               >
                 Study lesson
@@ -379,7 +379,7 @@ export function LessonPageContent({
               {!studyOnly && (
                 <PrimaryButton
                   variant="outline"
-                  className="flex-1 max-w-[240px]"
+                  className="flex-1 md:max-w-[240px]"
                   onClick={() => setShowStartTestModal(true)}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -393,9 +393,9 @@ export function LessonPageContent({
               <Link
                 href={`/lesson/${nextLesson.id}`}
                 prefetch
-                className="flex min-w-0 max-w-44 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground"
+                className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden text-left transition-colors hover:text-foreground md:max-w-44"
               >
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="hidden min-w-0 flex-1 flex-col overflow-hidden md:flex">
                   <span className="text-xs text-muted-foreground">Next</span>
                   <span className="block min-w-0 truncate text-regular-semibold text-foreground" title={`#${nextLesson.number} ${nextLesson.title}`}>
                     #{nextLesson.number} {nextLesson.title}

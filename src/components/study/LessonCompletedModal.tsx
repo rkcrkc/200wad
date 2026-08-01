@@ -58,6 +58,7 @@ export function LessonCompletedModal({
   });
   const [imageMode, setImageMode] = useState<"memory-trigger" | "flashcard">("memory-trigger");
   const [columns, setColumns] = useState<4 | 5>(5);
+  const [mobileColumns, setMobileColumns] = useState<2 | 3>(3);
   const [selectedWordId, setSelectedWordId] = useState<string | null>(null);
   const replayRef = useRef<(() => void) | null>(null);
 
@@ -141,10 +142,18 @@ export function LessonCompletedModal({
                   <ImageIcon className="h-4 w-4" />
                 )}
               </button>
+              {/* Desktop toggles 4/5 columns; the phone toggles 2/3. */}
               <button
                 onClick={() => setColumns(columns === 5 ? 4 : 5)}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone"
+                className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone sm:flex"
                 title={columns === 5 ? "Switch to 4 columns" : "Switch to 5 columns"}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setMobileColumns(mobileColumns === 3 ? 2 : 3)}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-bone sm:hidden"
+                title={mobileColumns === 3 ? "Switch to 2 columns" : "Switch to 3 columns"}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -233,6 +242,7 @@ export function LessonCompletedModal({
                 showForeign={showForeign}
                 showStatus
                 columns={columns}
+                mobileColumns={mobileColumns}
                 onWordClick={setSelectedWordId}
               />
             )}

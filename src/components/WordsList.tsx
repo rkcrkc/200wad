@@ -241,30 +241,25 @@ export function WordsList({
       ) : viewMode === "list" ? (
         <div ref={scrollRef} className="overflow-x-auto overflow-y-visible pt-10 -mt-10 rounded-xl">
           <table className="w-full table-fixed border-collapse">
-            <colgroup>
-              <col style={{ width: 72 }} />
-              <col style={{ width: 64 }} />
-              <col />
-              <col />
-              <col style={{ width: 140 }} />
-              <col style={{ width: 140 }} />
-              <col style={{ width: 60 }} />
-            </colgroup>
-            {/* Table Header */}
-            <thead>
+            {/* Table Header — hidden on mobile, where each row collapses into a
+                stacked cell (see WordRow). The column widths that a <colgroup>
+                used to hold now live on these header cells and govern the
+                desktop fixed layout; on mobile the visible body cells size the
+                columns instead. */}
+            <thead className="hidden md:table-header-group">
               <tr className="h-12 cursor-default whitespace-nowrap text-xs-medium text-muted-foreground">
-                <th className="px-6 py-3 text-left font-medium">#</th>
-                <th className="px-2 py-3"></th>
+                <th className="w-[72px] px-6 py-3 text-left font-medium">#</th>
+                <th className="w-[64px] px-2 py-3"></th>
                 <th className="px-2 py-3 text-left font-medium">English</th>
                 <th className="px-2 py-3 text-left font-medium">
                   {languageName ?? "Translation"}
                 </th>
-                <th className="px-2 py-3 text-left font-medium">Status</th>
-                <th className="px-2 py-3 text-left font-medium">
+                <th className="w-[140px] px-2 py-3 text-left font-medium">Status</th>
+                <th className="w-[140px] px-2 py-3 text-left font-medium">
                   Avg. score
                 </th>
                 <th className={cn(
-                  "sticky right-0 z-10 bg-background px-2 py-3",
+                  "sticky right-0 z-10 w-[60px] bg-background px-2 py-3",
                   canScrollRight && "before:pointer-events-none before:absolute before:right-full before:top-0 before:bottom-0 before:w-10 before:bg-gradient-to-r before:from-transparent before:to-background"
                 )}></th>
               </tr>
@@ -288,7 +283,7 @@ export function WordsList({
           </table>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           {filteredWords.map((word, index) => (
             <WordCard
               key={word.id}

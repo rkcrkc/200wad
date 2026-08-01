@@ -35,6 +35,9 @@ import { LessonsList } from "@/components/LessonsList";
 import { TestsList } from "@/components/TestsList";
 import { CategoryFilter, type CategoryOption } from "@/components/CategoryFilter";
 import { DictionaryList } from "@/components/DictionaryList";
+import { WordsList } from "@/components/WordsList";
+import { WordCard } from "@/components/WordCard";
+import { WordGrid } from "@/components/study/WordGrid";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { StudyNavbar, StudyProgressBar, StudyActionBar, StudyWordListSidebar, StudySidebar, AnswerInput, TestAnswerInput, InformationNextButton, LessonCompletedModal, TestCompletedModal, StartTestModal, type TestWordResult, type TestAnswerResult } from "@/components/study";
 import { ProfileSection } from "@/components/settings/ProfileSection";
@@ -937,6 +940,19 @@ const MOCK_WORD_DETAIL_LIST = MOCK_DICTIONARY_WORDS.slice(0, 8).map((w) => ({
   foreign: w.headword,
 }));
 
+// A handful of fully-shaped lesson words for the lesson word-list / card / grid
+// previews. Built off MOCK_WORD_DETAIL (the one fully-shaped word) with varied
+// status so the filter tabs (Not started / Learning / Learned / Mastered) all
+// populate. The image URL points at the local placeholder so no remote domain
+// is needed.
+const MOCK_LESSON_WORDS = [
+  { ...MOCK_WORD_DETAIL, id: "lw-1", english: "hello", headword: "ciao", status: "mastered" },
+  { ...MOCK_WORD_DETAIL, id: "lw-2", english: "goodbye", headword: "arrivederci", status: "learned" },
+  { ...MOCK_WORD_DETAIL, id: "lw-3", english: "thank you", headword: "grazie", status: "learning" },
+  { ...MOCK_WORD_DETAIL, id: "lw-4", english: "please", headword: "per favore", status: "learning" },
+  { ...MOCK_WORD_DETAIL, id: "lw-5", english: "water", headword: "acqua", status: "not-started" },
+] as unknown as WordWithDetails[];
+
 function FeaturesSection() {
   return (
     <div className="space-y-6">
@@ -1182,6 +1198,63 @@ function FeaturesSection() {
             </PreviewVariant>
           </div>
         }
+      />
+
+      <PageGroupHeading>Lesson page</PageGroupHeading>
+
+      <DescEntry
+        name="WordsList + WordRow / WordCard"
+        source="src/components/WordsList.tsx"
+        description="The lesson's vocabulary surface: filter tabs (All / Not started / Learning / Learned / Mastered), an inline search, a flashcard-mode button, and a list/grid view toggle. List view is a table of WordRows (number, thumbnail, English, headword, StatusPill, Avg. score, chevron); grid view swaps to WordCards. Rows/cards open the shared WordDetailSidebar in place."
+        props={[
+          "words: WordWithDetails[]",
+          "languageName?, lessonTitle, lessonNumber",
+          "wordsNotStarted / wordsLearning / wordsLearned / wordsMastered",
+          "onWordSelected?, rightContent? (e.g. the desktop history toggle)",
+        ]}
+        usedIn={["Lesson page (/lesson/[lessonId])"]}
+        mobileNote="Below md the table restacks like the dictionary: the header row is hidden and each WordRow keeps its number and thumbnail (dropped to 40px) but stacks the foreign headword beneath the English. The dedicated headword column, the Avg. score column and the chevron are all hidden md:table-cell, so the StatusPill (its size='sm' variant below md so the longest label can't bleed off the row) becomes the trailing cell and reclaims the row's right-hand corner rounding (handed back to the chevron at md). The number cell drops to text-xs-medium with tighter padding. The <colgroup> widths moved onto the hidden thead's th cells so desktop's fixed layout is byte-identical. Grid view stays 2-up on mobile (3 from sm) and each WordCard tightens its padding to p-3 (p-4 at sm). The lesson's Activity-History toggle (passed as rightContent) is hidden below md — that table is deferred to a separate restack."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · list view (full table)">
+              <WordsListLive />
+            </PreviewVariant>
+            <PreviewVariant label="mobile · restacked list (# / word stack / status)">
+              <MobileFrame>
+                <WordsListLive />
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="grid tiles · WordCard (toggle to grid view above)">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                {MOCK_LESSON_WORDS.slice(0, 3).map((w) => (
+                  <WordCard key={w.id} word={w} />
+                ))}
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · grid tiles (2-up)">
+              <MobileFrame>
+                <div className="grid grid-cols-2 gap-3">
+                  {MOCK_LESSON_WORDS.slice(0, 4).map((w) => (
+                    <WordCard key={w.id} word={w} />
+                  ))}
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="Lesson page action bar"
+        source="src/components/LessonPageContent.tsx"
+        description="The fixed bottom bar on a lesson page. Left/right on desktop: 'previous lesson' and 'next lesson' text links flanking two centred primary buttons — 'Study lesson' and 'Take test' (the latter carries an XP badge). Inline markup owned by LessonPageContent rather than an extracted component."
+        props={[
+          "previousLesson / nextLesson (links)",
+          "Study lesson + Take test buttons (max-w-[240px] on desktop)",
+          "sidebarCollapsed (drives the left inset)",
+        ]}
+        usedIn={["Lesson page (/lesson/[lessonId])"]}
+        mobileNote="The bar spans full width on a phone — the sidebar is off-canvas, so its desktop left-[72px]/left-[240px] inset resets to left-0 below md. The previous/next lesson links collapse to arrow-only below md (their Previous/Next label + title stack is hidden md:flex, the chevron stays), so the two primary buttons drop their max-w-[240px] cap and fill the middle. Inner padding tightens to px-4 py-3 (vs px-6 py-4). The page title downscales to text-xxl-semibold and the header stats row narrows its gap. (Description-only — the bar is inline in the page, not a standalone component to render here.)"
       />
 
       <PageGroupHeading>Tests hub</PageGroupHeading>
@@ -1561,7 +1634,7 @@ function FeaturesSection() {
           "onStartTest, onStudyAgain, onDismiss",
         ]}
         usedIn={["StudyModeClient"]}
-        mobileNote="Shell padding tightens below sm (px-5/p-4 vs px-8/p-8), the title drops to text-2xl, the WordGrid shows 3 columns instead of 4/5, and the footer tiles wrap into a 2-col grid. Previews use synthetic words."
+        mobileNote="Shell padding tightens below sm (px-5/p-4 vs px-8/p-8), the title drops to text-2xl, the WordGrid defaults to 3 columns (a phone-only toggle switches it to 2), and the footer tiles wrap into a 2-col grid. Previews use synthetic words."
         preview={
           <div className="space-y-4">
             <PreviewVariant label="desktop · lesson completed">
@@ -1588,7 +1661,7 @@ function FeaturesSection() {
           "onDone, onTestAgain, onRetestIncorrect, onStudyIncorrect",
         ]}
         usedIn={["TestModeClient"]}
-        mobileNote="Below sm the header stats condense to a headline line (time + score) plus a smaller learned/mastered/vocab line without dot separators; the column-count toggle is hidden. The up-to-4 footer actions become a 2x2 grid, and the WordGrid drops to 3 columns. Previews show an imperfect run with synthetic scores."
+        mobileNote="Below sm the header stats condense to a headline line (time + score) plus a smaller learned/mastered/vocab line without dot separators; the desktop 4/5 column toggle is swapped for a phone-only 2/3 toggle. The up-to-4 footer actions become a 2x2 grid, and the WordGrid defaults to 3 columns (toggle to 2). Previews show an imperfect run with synthetic scores."
         preview={
           <div className="space-y-4">
             <PreviewVariant label="desktop · test completed (imperfect)">
@@ -1599,6 +1672,33 @@ function FeaturesSection() {
             <PreviewVariant label="mobile · test completed (imperfect)">
               <MobileFrame height={720} flush>
                 <TestCompletedModalDemo />
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
+      <DescEntry
+        name="WordGrid"
+        source="src/components/study/WordGrid.tsx"
+        description="Grid of word tiles (image, headword, English, optional per-word XP score badge and StatusPill) shared by the lesson and test 'completed' modals. Image mode switches between the memory-trigger and flashcard surfaces; showForeign can hide the headword for self-testing, and columns toggles the desktop density between 4 and 5."
+        props={[
+          'words: WordWithDetails[]',
+          'imageMode: "memory-trigger" | "flashcard"',
+          "showForeign?, columns? (4 | 5), showStatus?",
+          "wordResults?: Map<id, { grade, pointsEarned, maxPoints }>",
+          "onWordClick?",
+        ]}
+        usedIn={["LessonCompletedModal", "TestCompletedModal"]}
+        mobileNote="The phone column count is independent of the desktop 4/5 toggle: mobileColumns (2 | 3, default 3) drives grid-cols-2|3 while columns drives sm:grid-cols-4|5. The completed modals expose a phone-only toggle for it. Tile gap tightens to gap-3 (gap-4 at sm)."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · 5-col grid with status pills">
+              <WordGrid words={MOCK_LESSON_WORDS} imageMode="memory-trigger" showStatus />
+            </PreviewVariant>
+            <PreviewVariant label="mobile · 3-col grid">
+              <MobileFrame>
+                <WordGrid words={MOCK_LESSON_WORDS} imageMode="memory-trigger" showStatus />
               </MobileFrame>
             </PreviewVariant>
           </div>
@@ -1793,6 +1893,32 @@ function DictionaryListLive() {
           courseWords={MOCK_DICTIONARY_WORDS}
           allWords={MOCK_DICTIONARY_WORDS}
           languageName="Italian"
+        />
+      </WordPreviewProvider>
+    </Suspense>
+  );
+}
+
+/**
+ * Live lesson word list. WordsList reads useUser() (app-wide from the root
+ * layout) and useSearchParams, so it sits inside a Suspense boundary; selecting
+ * a row renders WordDetailSidebar (which needs useWordPreview), so we also wrap
+ * in WordPreviewProvider to match DictionaryListLive. Callbacks are inert — the
+ * block stays focused on the list/grid itself.
+ */
+function WordsListLive() {
+  return (
+    <Suspense fallback={null}>
+      <WordPreviewProvider>
+        <WordsList
+          words={MOCK_LESSON_WORDS}
+          languageName="Italian"
+          wordsNotStarted={1}
+          wordsLearning={2}
+          wordsLearned={1}
+          wordsMastered={1}
+          lessonTitle="Greetings & Introductions"
+          lessonNumber={1}
         />
       </WordPreviewProvider>
     </Suspense>
