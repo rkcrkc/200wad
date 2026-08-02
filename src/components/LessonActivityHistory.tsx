@@ -197,19 +197,13 @@ export function LessonActivityHistory({
 
       {/* Activity Table */}
       <div className="overflow-x-auto pt-10 -mt-10 rounded-xl">
-        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: "60px" }} />
-            <col style={{ width: "240px" }} />
-            <col style={{ width: "200px" }} />
-            <col style={{ width: "140px" }} />
-            <col style={{ width: "180px" }} />
-            <col />
-          </colgroup>
-          {/* Table Header */}
+        <table className="w-full border-collapse md:table-fixed">
+          {/* Table Header. Column widths live on the th cells (md+) so the phone
+              can drop the #, Duration and filler columns without a colgroup
+              forcing their tracks. */}
           <thead>
             <tr className="h-12 whitespace-nowrap">
-              <th className="px-6 py-3 text-left">
+              <th className="hidden px-6 py-3 text-left md:table-cell md:w-[60px]">
                 <SortableHeader
                   label="#"
                   column="index"
@@ -218,7 +212,7 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-3 py-3 text-left">
+              <th className="px-3 py-3 text-left md:w-[240px]">
                 <SortableHeader
                   label="Date"
                   column="date"
@@ -227,10 +221,10 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-xs-medium font-medium text-muted-foreground">
+              <th className="px-3 py-3 text-left text-xs-medium font-medium text-muted-foreground md:w-[200px]">
                 Session Type
               </th>
-              <th className="px-3 py-3 text-left">
+              <th className="hidden px-3 py-3 text-left md:table-cell md:w-[140px]">
                 <SortableHeader
                   label="Duration"
                   column="duration"
@@ -239,7 +233,7 @@ export function LessonActivityHistory({
                   onSort={handleSort}
                 />
               </th>
-              <th className="px-3 py-3 text-left">
+              <th className="px-3 py-3 text-left md:w-[180px]">
                 {filter !== "study" ? (
                   <div className="flex items-center gap-2">
                     <SortableHeader
@@ -263,7 +257,7 @@ export function LessonActivityHistory({
                   </div>
                 )}
               </th>
-              <th className="px-3 py-3 text-left"></th>
+              <th className="hidden px-3 py-3 text-left md:table-cell"></th>
             </tr>
           </thead>
 
@@ -290,10 +284,10 @@ export function LessonActivityHistory({
                     index !== 0 && "border-t border-bone-hover"
                   )}
                 >
-                  {/* Index (chronological order) */}
+                  {/* Index (chronological order) — hidden on phone */}
                   <td
                     className={cn(
-                      "bg-white px-6 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover",
+                      "hidden bg-white px-6 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell",
                       index === 0 && "rounded-tl-xl",
                       index === filteredAndSortedActivities.length - 1 && "rounded-bl-xl"
                     )}
@@ -302,8 +296,14 @@ export function LessonActivityHistory({
                     {activity.chronologicalIndex}
                   </td>
 
-                  {/* Date */}
-                  <td className="bg-white px-3 py-5 text-small-medium transition-colors group-hover:bg-bone-hover">
+                  {/* Date — first visible cell on phone, so it reclaims the left rounding */}
+                  <td
+                    className={cn(
+                      "bg-white px-3 py-5 text-small-medium transition-colors group-hover:bg-bone-hover",
+                      index === 0 && "rounded-tl-xl md:rounded-tl-none",
+                      index === filteredAndSortedActivities.length - 1 && "rounded-bl-xl md:rounded-bl-none"
+                    )}
+                  >
                     {(() => {
                       const { date, time } = formatDate(activity.date);
                       return (
@@ -343,13 +343,20 @@ export function LessonActivityHistory({
                     </div>
                   </td>
 
-                  {/* Duration */}
-                  <td className="bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover">
+                  {/* Duration — hidden on phone */}
+                  <td className="hidden bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell">
                     {formatDetailedDuration(activity.durationSeconds)}
                   </td>
 
-                  {/* Score - always present but content hidden for study filter */}
-                  <td className="bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover">
+                  {/* Score - always present but content hidden for study filter.
+                      Last visible cell on phone, so it reclaims the right rounding. */}
+                  <td
+                    className={cn(
+                      "bg-white px-3 py-5 text-small-medium text-foreground transition-colors group-hover:bg-bone-hover",
+                      index === 0 && "rounded-tr-xl md:rounded-tr-none",
+                      index === filteredAndSortedActivities.length - 1 && "rounded-br-xl md:rounded-br-none"
+                    )}
+                  >
                     {filter !== "study" ? (
                       activity.type === "test" && activity.pointsEarned !== undefined && activity.maxPoints !== undefined ? (
                         <div className="flex items-center gap-2">
@@ -366,10 +373,10 @@ export function LessonActivityHistory({
                     )}
                   </td>
 
-                  {/* Empty column for remaining space */}
+                  {/* Empty column for remaining space — hidden on phone */}
                   <td
                     className={cn(
-                      "bg-white px-3 py-5 transition-colors group-hover:bg-bone-hover",
+                      "hidden bg-white px-3 py-5 transition-colors group-hover:bg-bone-hover md:table-cell",
                       index === 0 && "rounded-tr-xl",
                       index === filteredAndSortedActivities.length - 1 && "rounded-br-xl"
                     )}
