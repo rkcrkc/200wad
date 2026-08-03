@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, ChevronLeft, ChevronRight, ClipboardCheck, HelpCircle } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, ClipboardCheck, HelpCircle, Zap } from "lucide-react";
 import { WordsList } from "@/components/WordsList";
 import { LessonActivityHistory } from "@/components/LessonActivityHistory";
+import { MobileStatsDropdown, type MobileStat } from "@/components/ui/mobile-stats-dropdown";
+import { ListSearchProvider } from "@/context/ListSearchContext";
+import { ListSearchInput } from "@/components/ListSearchInput";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { StartTestModal } from "@/components/study";
 import { formatDuration, formatNumber, formatPercent } from "@/lib/utils/helpers";
@@ -117,6 +120,52 @@ export function LessonPageContent({
   );
   const xpMax = words.length * 3;
 
+  const learnedPercentage =
+    words.length > 0 ? ((wordsLearned + wordsMastered) / words.length) * 100 : 0;
+
+  // Mobile condenses the desktop stat row into a tap-to-expand dropdown (first
+  // stat inline, the rest behind a caret). Values reuse the desktop stat markup
+  // so the two stay in sync; MobileStatsDropdown wraps each in its own row.
+  const mobileStats: MobileStat[] = [
+    {
+      label: "Words learned",
+      value: (
+        <>
+          <ProgressRing value={learnedPercentage} size={20} />
+          <span className="text-regular-semibold">
+            {formatNumber(wordsLearned + wordsMastered)} / {formatNumber(words.length)}
+          </span>
+          <SubBadge variant="header">{formatPercent(learnedPercentage)}</SubBadge>
+        </>
+      ),
+    },
+    {
+      label: "Words mastered",
+      value: (
+        <>
+          <ProgressRing value={masteredPercentage} size={20} />
+          <span className="text-regular-semibold">
+            {formatNumber(wordsMastered)} / {formatNumber(words.length)}
+          </span>
+          <SubBadge variant="header">{formatPercent(masteredPercentage)}</SubBadge>
+        </>
+      ),
+    },
+    {
+      label: "Total time",
+      value: (
+        <>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-regular-semibold">{formatDuration(totalTimeSeconds)}</span>
+        </>
+      ),
+    },
+    {
+      label: "XP earned",
+      value: <XpBadge value={xpEarned} variant="default" size="md" />,
+    },
+  ];
+
   // Left/right arrow keys jump to the previous/next lesson, mirroring the
   // footer nav. Inert while an overlay (history / start-test modal) is open,
   // when a modifier is held (don't clobber browser back/forward), or when a
@@ -157,7 +206,7 @@ export function LessonPageContent({
   };
 
   return (
-    <>
+    <ListSearchProvider>
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4">
         {/* Row 1: Lesson # + Status pill */}
@@ -192,9 +241,10 @@ export function LessonPageContent({
             {lesson.title}
           </h1>
 
-          {/* Stats — hidden for QA lessons, which don't track progress/time/XP. */}
+          {/* Stats — hidden for QA lessons, which don't track progress/time/XP.
+              Desktop only; mobile uses the condensed dropdown row below. */}
           {!studyOnly && (
-          <div className="flex cursor-default flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-8">
+          <div className="hidden cursor-default flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-8 md:flex">
             {/* Words learned */}
             <Popover
               className="flex flex-col items-start gap-1.5 cursor-default"
@@ -293,6 +343,36 @@ export function LessonPageContent({
           </div>
           )}
         </div>
+
+        {/* Mobile header row: condensed stats dropdown (leading) + the WordsList
+            toolbar controls (trailing), which are hidden on mobile in WordsList.
+            Hidden while viewing history (it has its own back control). */}
+        <MobileStatsDropdown
+          stats={studyOnly ? [] : mobileStats}
+          trailing={
+            showHistory ? undefined : (
+              <>
+                <ListSearchInput placeholder="Filter words..." />
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
+                  aria-label="Flashcard mode (coming soon)"
+                >
+                  <Zap className="h-5 w-5" />
+                </button>
+                {activityHistory && (
+                  <Tooltip label="Show study history">
+                    <button
+                      onClick={() => setShowHistory(true)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-beige"
+                    >
+                      <ClipboardCheck className="h-5 w-5" />
+                    </button>
+                  </Tooltip>
+                )}
+              </>
+            )
+          }
+        />
       </div>
 
       {/* Content - Words List or Activity History */}
@@ -421,6 +501,6 @@ export function LessonPageContent({
           onCancel={() => setShowStartTestModal(false)}
         />
       )}
-    </>
+    </ListSearchProvider>
   );
 }

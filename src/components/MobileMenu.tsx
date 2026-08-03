@@ -5,14 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LucideIcon, X } from "lucide-react";
 import {
-  GraduationCap,
+  Home,
   BookOpen,
   ClipboardCheck,
   BookMarked,
   LineChart,
-  Trophy,
   Lock,
-  Gift,
   Settings,
   HelpCircle,
   UserPen,
@@ -25,24 +23,24 @@ import { Button } from "@/components/ui/button";
 
 // Base nav items - paths are dynamic based on course context
 const getNavItems = (courseId?: string) => [
-  { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: GraduationCap, label: "Schedule" },
+  { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: Home, label: "Home" },
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },
 ];
 
+// Leaderboard is intentionally omitted on mobile (hidden per product decision).
 const getSecondaryNavItems = (courseId?: string) => [
   { path: courseId ? `/course/${courseId}/progress` : "/progress", icon: LineChart, label: "Progress" },
-  { path: "/community", icon: Trophy, label: "Leaderboard" },
 ];
 
 // Account + utility links. These moved off the header profile dropdown (hidden
 // on mobile) so the menu is the single place to reach account actions.
+// Referrals is intentionally omitted on mobile (hidden per product decision).
 const bottomNavItems = [
   { path: "/profile", icon: UserPen, label: "Profile" },
   { path: "/settings", icon: Settings, label: "Settings" },
   { path: "/account/subscriptions", icon: CreditCard, label: "My Subscription" },
-  { path: "/referrals", icon: Gift, label: "Referrals" },
 ];
 
 interface MobileNavItemProps {

@@ -42,7 +42,6 @@ interface OnboardingModalProps {
 }
 
 type Step = "language" | "signup";
-type AuthMode = "signup" | "signin";
 
 export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }: OnboardingModalProps) {
   const [step, setStep] = useState<Step>("language");
@@ -53,7 +52,6 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
   const [selectedCourseId, setSelectedCourseId] = useState<string>(defaultCourseId);
 
   // Auth state
-  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -151,28 +149,6 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
     // Fallback to success screen if no session (requires email verification first)
     setSuccess(true);
     setLoading(false);
-  };
-
-  const handleSignin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
-    // Clear onboarding selection and refresh
-    localStorage.removeItem("onboarding_selection");
-    router.push(`/course/${selectedCourseId}/schedule`);
-    router.refresh();
   };
 
   // Success state after signup
@@ -292,16 +268,12 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
             >
               {selectedLanguage ? `Start ${selectedLanguage.name}` : "Continue"}
             </PrimaryButton>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode("signin");
-                setStep("signup");
-              }}
+            <Link
+              href="/login"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Already have an account? <span className="text-primary font-medium">Log in</span>
-            </button>
+            </Link>
           </div>
         </ModalFooter>
       </ModalShell>
@@ -313,14 +285,8 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
     <ModalShell fixedHeight fullScreenOnMobile>
       <GuestMobileNav className="h-[72px] shrink-0 px-4 md:hidden" />
       <ModalHeader className="pt-6 pb-5 sm:pt-8 sm:pb-6">
-        <h1 className="mb-2 text-3xl font-bold">
-          {authMode === "signup" ? "Create your account" : "Welcome back"}
-        </h1>
-        <p className="text-muted-foreground">
-          {authMode === "signup"
-            ? "Sign up to save your progress"
-            : "Sign in to continue learning"}
-        </p>
+        <h1 className="mb-2 text-3xl font-bold">Create your account</h1>
+        <p className="text-muted-foreground">Sign up to save your progress</p>
       </ModalHeader>
 
       <ModalBody scrollable className="bg-bone">
@@ -366,51 +332,37 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
                 className="border-border bg-white text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
                 placeholder="••••••••"
               />
-              {authMode === "signin" && (
-                <div className="mt-1 text-right">
-                  <a
-                    href="/forgot-password"
-                    className="text-primary text-sm hover:underline"
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-              )}
             </div>
 
-            {authMode === "signup" && (
-              <div>
-                <label
-                  htmlFor="modal-confirm-password"
-                  className="text-small-semibold text-foreground block"
-                >
-                  Confirm Password
-                </label>
-                <input
-                  id="modal-confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="border-border bg-white text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-            )}
-
-            {authMode === "signup" && (
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={marketingConsent}
-                  onChange={(e) => setMarketingConsent(e.target.checked)}
-                  className="border-border text-primary focus:ring-primary/20 mt-0.5 h-4 w-4 shrink-0 rounded"
-                />
-                <span className="text-small-regular text-muted-foreground">
-                  Email me learning tips and product news. Optional — you can unsubscribe anytime.
-                </span>
+            <div>
+              <label
+                htmlFor="modal-confirm-password"
+                className="text-small-semibold text-foreground block"
+              >
+                Confirm Password
               </label>
-            )}
+              <input
+                id="modal-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="border-border bg-white text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={marketingConsent}
+                onChange={(e) => setMarketingConsent(e.target.checked)}
+                className="border-border text-primary focus:ring-primary/20 mt-0.5 h-4 w-4 shrink-0 rounded"
+              />
+              <span className="text-small-regular text-muted-foreground">
+                Email me learning tips and product news. Optional — you can unsubscribe anytime.
+              </span>
+            </label>
           </div>
 
           <div className="relative">
@@ -422,81 +374,51 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
             </div>
           </div>
 
-          <SocialLoginButtons mode={authMode} />
+          <SocialLoginButtons mode="signup" />
         </div>
       </ModalBody>
 
       <ModalFooter>
         <div className="flex flex-col items-center gap-3">
-          <PrimaryButton
-            onClick={authMode === "signup" ? handleSignup : handleSignin}
-            loading={loading}
-            fullWidth
-          >
-            {loading
-              ? authMode === "signup"
-                ? "Creating account..."
-                : "Signing in..."
-              : authMode === "signup"
-                ? "Create account"
-                : "Sign in"}
+          <PrimaryButton onClick={handleSignup} loading={loading} fullWidth>
+            {loading ? "Creating account..." : "Create account"}
           </PrimaryButton>
-          {authMode === "signup" && (
-            <p className="text-muted-foreground text-center text-xs leading-relaxed">
-              By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
-              <Link
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          )}
-          {authMode === "signup" ? (
-            // Create-account: no Back button; center the sign-in toggle.
-            <p className="text-muted-foreground text-center text-sm">
+          <p className="text-muted-foreground text-center text-xs leading-relaxed">
+            By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
+          <div className="flex w-full items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => setStep("language")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ← Back
+            </button>
+            <p className="text-muted-foreground">
               Have an account?{" "}
-              <button
-                type="button"
-                onClick={() => setAuthMode("signin")}
-                className="text-primary font-medium hover:underline"
-              >
+              <Link href="/login" className="text-primary font-medium hover:underline">
                 Sign in
-              </button>
+              </Link>
             </p>
-          ) : (
-            <div className="flex w-full items-center justify-between text-sm">
-              <button
-                type="button"
-                onClick={() => setStep("language")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ← Back
-              </button>
-              <p className="text-muted-foreground">
-                Need an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setAuthMode("signup")}
-                  className="text-primary font-medium hover:underline"
-                >
-                  Sign up
-                </button>
-              </p>
-            </div>
-          )}
+          </div>
         </div>
       </ModalFooter>
     </ModalShell>

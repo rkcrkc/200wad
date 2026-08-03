@@ -2278,8 +2278,14 @@ export type Database = {
           alternate_answers: string[] | null
           alternate_english_answers: string[] | null
           audio_rerecord_english: boolean | null
+          audio_rerecord_english_female: boolean | null
+          audio_rerecord_english_male: boolean | null
           audio_rerecord_foreign: boolean | null
+          audio_rerecord_foreign_female: boolean | null
+          audio_rerecord_foreign_male: boolean | null
           audio_rerecord_trigger: boolean | null
+          audio_rerecord_trigger_female: boolean | null
+          audio_rerecord_trigger_male: boolean | null
           audio_url_english: string | null
           audio_url_foreign: string | null
           audio_url_trigger: string | null
@@ -2327,8 +2333,14 @@ export type Database = {
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
           audio_rerecord_english?: boolean | null
+          audio_rerecord_english_female?: boolean | null
+          audio_rerecord_english_male?: boolean | null
           audio_rerecord_foreign?: boolean | null
+          audio_rerecord_foreign_female?: boolean | null
+          audio_rerecord_foreign_male?: boolean | null
           audio_rerecord_trigger?: boolean | null
+          audio_rerecord_trigger_female?: boolean | null
+          audio_rerecord_trigger_male?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null
@@ -2376,8 +2388,14 @@ export type Database = {
           alternate_answers?: string[] | null
           alternate_english_answers?: string[] | null
           audio_rerecord_english?: boolean | null
+          audio_rerecord_english_female?: boolean | null
+          audio_rerecord_english_male?: boolean | null
           audio_rerecord_foreign?: boolean | null
+          audio_rerecord_foreign_female?: boolean | null
+          audio_rerecord_foreign_male?: boolean | null
           audio_rerecord_trigger?: boolean | null
+          audio_rerecord_trigger_female?: boolean | null
+          audio_rerecord_trigger_male?: boolean | null
           audio_url_english?: string | null
           audio_url_foreign?: string | null
           audio_url_trigger?: string | null

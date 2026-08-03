@@ -16,6 +16,7 @@ import {
 import type { LessonWithProgress } from "@/lib/queries/lessons";
 import type { LessonMilestoneScores } from "@/lib/queries/tests";
 import { useScrollFade } from "@/hooks/useScrollFade";
+import { useListSearch } from "@/context/ListSearchContext";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { PricingPlan } from "@/types/database";
@@ -94,7 +95,9 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
   const [sortColumn, setSortColumn] = useState<SortColumn>("number");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showStats, setShowStats] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Shared with the page header's mobile search (via ListSearchProvider); falls
+  // back to component-local state when rendered standalone (e.g. App UI catalog).
+  const { query: searchQuery, setQuery: setSearchQuery } = useListSearch();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -264,11 +267,15 @@ export function LessonsList({ lessons, languageFlag, languageName, languageId, m
         {/* Search + stats toggle don't apply to the QA view (7 static rows). */}
         {!isQaView && (
           <div className="flex flex-shrink-0 items-center gap-3">
-            <InlineSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Filter lessons..."
-            />
+            {/* Desktop search. On mobile it moves to the page header row (see
+                CourseStatsBar's mobileTrailing), so it's hidden here. */}
+            <div className="hidden md:block">
+              <InlineSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Filter lessons..."
+              />
+            </div>
             {/* Stats toggle button — the milestone-scores grid it reveals is a
                 wide desktop-only view, so the toggle is hidden on mobile. */}
             <Tooltip label={showStats ? t("tip_show_progress_view") : t("tip_show_test_scores")}>

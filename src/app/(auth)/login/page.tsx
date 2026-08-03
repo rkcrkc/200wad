@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 
 export default function LoginPage() {
@@ -99,9 +99,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <PrimaryButton type="submit" loading={loading} fullWidth>
             {loading ? "Signing in..." : "Sign in"}
-          </Button>
+          </PrimaryButton>
         </form>
 
         <p className="text-muted-foreground text-center text-sm">

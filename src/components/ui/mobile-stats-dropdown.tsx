@@ -17,6 +17,13 @@ interface MobileStatsDropdownProps {
   /** First entry renders inline; the rest live behind the caret. */
   stats: MobileStat[];
   className?: string;
+  /**
+   * Optional controls pinned to the trailing (right) edge of the same row —
+   * e.g. a page's search / view toggles. When present the row becomes a
+   * space-between layout with the stats dropdown leading. Rendered even when
+   * `stats` is empty, so callers can host controls on stat-less headers.
+   */
+  trailing?: ReactNode;
 }
 
 /**
@@ -28,7 +35,7 @@ interface MobileStatsDropdownProps {
  * per-stat popovers/tooltips that don't translate to touch, so callers keep
  * their own row behind `hidden md:flex` rather than sharing one renderer.
  */
-export function MobileStatsDropdown({ stats, className }: MobileStatsDropdownProps) {
+export function MobileStatsDropdown({ stats, className, trailing }: MobileStatsDropdownProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -40,32 +47,42 @@ export function MobileStatsDropdown({ stats, className }: MobileStatsDropdownPro
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  if (stats.length === 0) return null;
+  if (stats.length === 0 && !trailing) return null;
 
   const [first, ...rest] = stats;
 
   return (
-    <div className={cn("relative md:hidden", className)}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        disabled={rest.length === 0}
-        aria-expanded={open}
-        className="flex items-center gap-2"
-      >
-        <div className="flex flex-col items-start gap-1.5">
-          <span className="text-xs text-muted-foreground">{first.label}</span>
-          <div className="flex items-center gap-2">{first.value}</div>
-        </div>
-        {rest.length > 0 && (
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-              open && "rotate-180"
-            )}
-          />
-        )}
-      </button>
+    <div
+      className={cn(
+        "relative md:hidden",
+        trailing && "flex items-center justify-between gap-3",
+        className
+      )}
+    >
+      {first && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          disabled={rest.length === 0}
+          aria-expanded={open}
+          className="flex items-center gap-2"
+        >
+          <div className="flex flex-col items-start gap-1.5">
+            <span className="text-xs text-muted-foreground">{first.label}</span>
+            <div className="flex items-center gap-2">{first.value}</div>
+          </div>
+          {rest.length > 0 && (
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                open && "rotate-180"
+              )}
+            />
+          )}
+        </button>
+      )}
+
+      {trailing && <div className="flex items-center gap-1">{trailing}</div>}
 
       {open && rest.length > 0 && (
         <>

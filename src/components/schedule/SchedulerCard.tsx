@@ -131,8 +131,15 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               {lesson.title}
             </h2>
 
-            {/* Word Tags - 3 rows, horizontally scrollable */}
-            <ScrollablePills words={lesson.sampleWords} rows={3} />
+            {/* Word Tags — 2 rows on mobile (matches LessonPreviewCard), 3 on
+                desktop. ScrollablePills takes a fixed row count, so we render
+                each variant behind a breakpoint. */}
+            <div className="md:hidden">
+              <ScrollablePills words={lesson.sampleWords} rows={2} />
+            </div>
+            <div className="hidden md:block">
+              <ScrollablePills words={lesson.sampleWords} rows={3} />
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -144,7 +151,11 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
                   onClick={() => setShowStartTestModal(true)}
                 >
                   <span className="inline-flex items-center gap-2">
-                    {milestoneLabel ? `Start ${milestoneLabel} test` : "Start test"}
+                    {/* Mobile drops the milestone to keep the label short. */}
+                    <span className="md:hidden">Start test</span>
+                    <span className="hidden md:inline">
+                      {milestoneLabel ? `Start ${milestoneLabel} test` : "Start test"}
+                    </span>
                     <XpBadge value={xpAvailable} variant="on-primary" />
                   </span>
                 </PrimaryButton>

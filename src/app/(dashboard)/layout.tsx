@@ -13,6 +13,7 @@ import {
   getCurrentStreak,
   getDailyGoalProgress,
 } from "@/lib/queries";
+import { getContinueTarget } from "@/lib/queries/schedule";
 import { getTextOverrides } from "@/lib/queries/text";
 import { getSubscriptionDisplayInfo } from "@/lib/queries/subscriptionInfo";
 import { getEnabledTiers } from "@/lib/utils/accessControl";
@@ -69,6 +70,7 @@ export default async function DashboardLayout({
             leaderboardPosition,
             currentStreak,
             dailyGoal,
+            continueItem,
           ] = await Promise.all([
             getDueTestsCount(course.id),
             getUserLearningStats(course.id),
@@ -79,6 +81,9 @@ export default async function DashboardLayout({
             getUserLeaderboardPosition(null, "xp", "week"),
             getCurrentStreak(),
             getDailyGoalProgress(),
+            // Powers the mobile bottom nav's "Continue" deep-link on every
+            // dashboard page. Lightweight dedicated query — no full schedule build.
+            getContinueTarget(course.id),
           ]);
           return {
             stats: {
@@ -98,6 +103,7 @@ export default async function DashboardLayout({
               dailyGoal,
             },
             dueTestsCount,
+            continueItem,
           };
         })()
       : null;

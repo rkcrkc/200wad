@@ -206,8 +206,14 @@ export interface DeveloperData {
   picture_bad_svg: boolean;
   picture_mp4_defect: boolean;
   audio_rerecord_english: boolean;
+  audio_rerecord_english_male: boolean;
+  audio_rerecord_english_female: boolean;
   audio_rerecord_foreign: boolean;
+  audio_rerecord_foreign_male: boolean;
+  audio_rerecord_foreign_female: boolean;
   audio_rerecord_trigger: boolean;
+  audio_rerecord_trigger_male: boolean;
+  audio_rerecord_trigger_female: boolean;
   notes_in_memory_trigger: boolean;
 }
 
@@ -244,8 +250,14 @@ export async function saveDeveloperData(
       picture_bad_svg: data.picture_bad_svg,
       picture_mp4_defect: data.picture_mp4_defect,
       audio_rerecord_english: data.audio_rerecord_english,
+      audio_rerecord_english_male: data.audio_rerecord_english_male,
+      audio_rerecord_english_female: data.audio_rerecord_english_female,
       audio_rerecord_foreign: data.audio_rerecord_foreign,
+      audio_rerecord_foreign_male: data.audio_rerecord_foreign_male,
+      audio_rerecord_foreign_female: data.audio_rerecord_foreign_female,
       audio_rerecord_trigger: data.audio_rerecord_trigger,
+      audio_rerecord_trigger_male: data.audio_rerecord_trigger_male,
+      audio_rerecord_trigger_female: data.audio_rerecord_trigger_female,
       notes_in_memory_trigger: data.notes_in_memory_trigger,
     })
     .eq("id", wordId);

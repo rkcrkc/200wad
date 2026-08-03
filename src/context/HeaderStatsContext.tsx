@@ -11,27 +11,33 @@ import {
   type ReactNode,
 } from "react";
 import type { HeaderStats } from "@/components/DashboardContent";
+import type { ContinueItem } from "@/lib/queries/schedule";
 
 /**
  * Layout-streamed header data. Populated asynchronously by the dashboard
  * layout's slow query bundle (course progress, learning stats, due tests,
- * leaderboard rank). Stays `undefined` until the bundle resolves, which lets
- * the rest of the shell (children, providers) render immediately while the
- * Header/Sidebar gracefully show their unpopulated states.
+ * leaderboard rank, plus the mobile bottom nav's Continue target). Stays
+ * `undefined` until the bundle resolves, which lets the rest of the shell
+ * (children, providers) render immediately while the Header/Sidebar/bottom nav
+ * gracefully show their unpopulated states.
  */
 export interface HeaderStatsBundle {
   stats: HeaderStats;
   dueTestsCount: number;
+  /** Current scheduler item for the mobile bottom nav's Continue tab. */
+  continueItem: ContinueItem | null;
 }
 
 interface HeaderStatsContextValue {
   stats: HeaderStats | undefined;
   dueTestsCount: number | undefined;
+  continueItem: ContinueItem | null | undefined;
 }
 
 const HeaderStatsContext = createContext<HeaderStatsContextValue>({
   stats: undefined,
   dueTestsCount: undefined,
+  continueItem: undefined,
 });
 
 const HeaderStatsSetterContext = createContext<
@@ -53,6 +59,7 @@ export function HeaderStatsProvider({
   const [bundle, setBundle] = useState<HeaderStatsContextValue>({
     stats: undefined,
     dueTestsCount: undefined,
+    continueItem: undefined,
   });
 
   // Stable setter reference: without useCallback this closure was a new
@@ -64,9 +71,15 @@ export function HeaderStatsProvider({
   // settled promise can't churn state by reference.
   const setter = useCallback((b: HeaderStatsBundle) => {
     setBundle((prev) =>
-      prev.stats === b.stats && prev.dueTestsCount === b.dueTestsCount
+      prev.stats === b.stats &&
+      prev.dueTestsCount === b.dueTestsCount &&
+      prev.continueItem === b.continueItem
         ? prev
-        : { stats: b.stats, dueTestsCount: b.dueTestsCount }
+        : {
+            stats: b.stats,
+            dueTestsCount: b.dueTestsCount,
+            continueItem: b.continueItem,
+          }
     );
   }, []);
 

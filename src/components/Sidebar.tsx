@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LucideIcon } from "lucide-react";
 import {
-  GraduationCap,
+  Home,
   BookOpen,
   ClipboardCheck,
   BookMarked,
@@ -24,7 +24,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 
 // Base nav items - paths are dynamic based on course context
 const getNavItems = (courseId?: string) => [
-  { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: GraduationCap, label: "Schedule" },
+  { path: courseId ? `/course/${courseId}/schedule` : "/schedule", icon: Home, label: "Home" },
   { path: `/course/${courseId || ""}`, icon: BookOpen, label: "Lessons" },
   { path: courseId ? `/course/${courseId}/tests` : "/tests", icon: ClipboardCheck, label: "Tests" },
   { path: courseId ? `/course/${courseId}/dictionary` : "/dictionary", icon: BookMarked, label: "Dictionary" },

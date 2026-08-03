@@ -2377,8 +2377,14 @@ export function TestModeClient({
                       pictureBadSvg={currentWord?.picture_bad_svg}
                       pictureMp4Defect={currentWord?.picture_mp4_defect}
                       audioRerecordEnglish={currentWord?.audio_rerecord_english}
+                      audioRerecordEnglishMale={currentWord?.audio_rerecord_english_male}
+                      audioRerecordEnglishFemale={currentWord?.audio_rerecord_english_female}
                       audioRerecordForeign={currentWord?.audio_rerecord_foreign}
+                      audioRerecordForeignMale={currentWord?.audio_rerecord_foreign_male}
+                      audioRerecordForeignFemale={currentWord?.audio_rerecord_foreign_female}
                       audioRerecordTrigger={currentWord?.audio_rerecord_trigger}
+                      audioRerecordTriggerMale={currentWord?.audio_rerecord_trigger_male}
+                      audioRerecordTriggerFemale={currentWord?.audio_rerecord_trigger_female}
                       notesInMemoryTrigger={currentWord?.notes_in_memory_trigger}
                       videoUrl={currentWord?.memory_trigger_video_url}
                       onVideoRemoved={handleVideoRemoved}

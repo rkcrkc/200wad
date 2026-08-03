@@ -72,7 +72,11 @@ export function PrimaryButton(props: PrimaryButtonProps) {
     <Button
       size="xl"
       variant={buttonVariant}
-      className={cn(heightClass, widthClass, outlineClasses, className)}
+      // While loading the button also becomes disabled; the base Button's
+      // `transition-all` would otherwise crossfade the `disabled:opacity-50`
+      // change at the same moment the label swaps to "…ing", leaving a ghosted
+      // double-text paint on mobile Safari. Snap instantly during loading.
+      className={cn(heightClass, widthClass, outlineClasses, loading && "transition-none", className)}
       onClick={onClick}
       type={type}
       disabled={disabled || loading}

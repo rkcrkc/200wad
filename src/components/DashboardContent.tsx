@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
+import { MobileBottomNav } from "./schedule/MobileBottomNav";
 import { UpgradeModal, type UpgradeLanguageOption } from "./UpgradeModal";
 import { EmailVerificationReminder } from "./auth/EmailVerificationReminder";
 import { CourseProvider, useCourseContext, useSetCourseContext } from "@/context/CourseContext";
@@ -304,10 +305,11 @@ function DashboardShell({
               <DefaultContextSetter context={defaultCourseContext} />
               <Header showSidebar={false} stats={streamedStats} showPreviewMode={showPreviewMode} languageFlags={languageFlags} />
               <div className={contentWrapperClass}>
-                <main className="bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-6 md:px-8 lg:px-[60px] lg:pb-10">
+                <main className="bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-24 md:px-8 md:pb-6 lg:px-[60px] lg:pb-10">
                   {children}
                 </main>
               </div>
+              {!showPreviewMode && <MobileBottomNav />}
               {!showPreviewMode && <EmailVerificationReminder />}
             </WordPreviewProvider>
           </TextProvider>
@@ -328,10 +330,11 @@ function DashboardShell({
                 <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} languageFlags={languageFlags} />
                 <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} collapsed={sidebarCollapsed} />
                 <div className={contentWrapperClass}>
-                  <main className={`bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-6 md:px-8 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
+                  <main className={`bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-24 md:px-8 md:pb-6 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
                     {children}
                   </main>
                 </div>
+                {!showPreviewMode && <MobileBottomNav />}
                 <UpgradeModalWithContext
                   isOpen={upgradeModalOpen}
                   onClose={handleCloseUpgradeModal}
