@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "@/lib/supabase/utils";
 import { Course, Language, Lesson, UserLessonProgress } from "@/types/database";
@@ -87,6 +88,173 @@ export interface ScheduleData {
 
 export interface GetScheduleDataResult extends ScheduleData {
   error: string | null;
+}
+
+/**
+ * The current scheduler item the mobile bottom nav's "Continue" tab jumps into.
+ * Mirrors the scheduler's default priority so Continue targets the same
+ * lesson/test the Scheduler card surfaces. Null when the user is fully caught
+ * up (no lesson or test queued) — the Continue tab is hidden in that case.
+ */
+export interface ContinueItem {
+  lessonId: string;
+  mode: "test" | "lesson";
+  title: string;
+  wordCount: number;
+  milestone?: string | null;
+}
+
+/**
+ * Lightweight "Continue" target for the mobile bottom nav, rendered on every
+ * dashboard page via the streamed header bundle. Mirrors the scheduler's
+ * default priority — Worst Words → oldest due test → next lesson — but does
+ * NONE of the heavy per-lesson word/image aggregation that `getScheduleData`
+ * does (that work only feeds the schedule page's cards). It touches just
+ * `lessons` + `user_lesson_progress` + the worst-words cooldown/RPC, so the
+ * global nav no longer pays for a full schedule build on non-schedule pages.
+ *
+ * Returns null when the learner is fully caught up (no lesson/test queued),
+ * in which case the Continue tab is hidden.
+ *
+ * Wrapped in React `cache()` for per-request dedupe (the layout is the only
+ * caller today, but this keeps parity with `getScheduleData`).
+ */
+export const getContinueTarget = cache(getContinueTargetImpl);
+
+async function getContinueTargetImpl(
+  courseId: string
+): Promise<ContinueItem | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Lessons in scheduler order. Only the columns the Continue deep-link needs
+  // — deliberately no lesson_words/words joins (those are the expensive part of
+  // getScheduleData and irrelevant to picking a single target).
+  const { data: lessons, error: lessonsError } = await supabase
+    .from("lessons")
+    .select("id, title, word_count, sort_order, number")
+    .eq("course_id", courseId)
+    .order("sort_order")
+    .order("number");
+
+  if (lessonsError || !lessons || lessons.length === 0) return null;
+
+  // Guests have no progress — Continue jumps into the first lesson.
+  if (!user) {
+    const first = lessons[0];
+    return {
+      lessonId: first.id,
+      mode: "lesson",
+      title: first.title,
+      wordCount: first.word_count ?? 0,
+    };
+  }
+
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+
+  // Lesson progress (for due tests + next-lesson) and the last completed Worst
+  // Words test (for the weekly cooldown) in parallel.
+  const [{ data: progressRows }, { data: lastWorst }] = await Promise.all([
+    supabase
+      .from("user_lesson_progress")
+      .select("lesson_id, status, next_milestone, next_test_due_at")
+      .eq("user_id", user.id)
+      .in(
+        "lesson_id",
+        lessons.map((l) => l.id)
+      ),
+    supabase
+      .from("study_sessions")
+      .select("ended_at")
+      .eq("user_id", user.id)
+      .eq("auto_lesson_type", "worst")
+      .eq("course_id", courseId)
+      .eq("session_type", "test")
+      .not("ended_at", "is", null)
+      .order("ended_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  // 1. Worst Words — top priority, surfaced once per week. Only pay for the RPC
+  //    when off cooldown; if it returns ≥1 word, that's the Continue target.
+  //    (Mirrors getWorstWordsAutoLesson's cooldown + RPC gate.)
+  const lastEndedMs = lastWorst?.ended_at
+    ? new Date(lastWorst.ended_at).getTime()
+    : null;
+  const offCooldown =
+    lastEndedMs === null || nowMs - lastEndedMs >= WORST_WORDS_COOLDOWN_MS;
+  if (offCooldown) {
+    const autoLessonWordLimit = await getAutoLessonWordLimit();
+    const { data: worstRpcRows } = await supabase.rpc(
+      "select_best_worst_words_for_course",
+      { p_course_id: courseId, p_type: "worst", p_limit: autoLessonWordLimit }
+    );
+    const worstCount = (worstRpcRows ?? []).filter((r) => !!r.word_id).length;
+    if (worstCount > 0) {
+      return {
+        lessonId: createAutoLessonId("worst", courseId),
+        mode: "lesson",
+        title: "Worst Words",
+        wordCount: worstCount,
+      };
+    }
+  }
+
+  const progressByLesson = new Map(
+    (progressRows ?? [])
+      .filter((p): p is typeof p & { lesson_id: string } => p.lesson_id !== null)
+      .map((p) => [p.lesson_id, p])
+  );
+
+  // 2. Oldest due test — milestone set and next_test_due_at in the past.
+  const dueTests = (progressRows ?? [])
+    .filter(
+      (p) =>
+        p.lesson_id &&
+        p.next_milestone &&
+        p.next_test_due_at &&
+        p.next_test_due_at <= nowIso
+    )
+    .sort((a, b) =>
+      (a.next_test_due_at ?? "").localeCompare(b.next_test_due_at ?? "")
+    );
+  if (dueTests.length > 0) {
+    const dueLesson = lessons.find((l) => l.id === dueTests[0].lesson_id);
+    if (dueLesson) {
+      return {
+        lessonId: dueLesson.id,
+        mode: "test",
+        title: dueLesson.title,
+        wordCount: dueLesson.word_count ?? 0,
+        milestone: dueTests[0].next_milestone,
+      };
+    }
+  }
+
+  // 3. Next lesson — first lesson with no progress row (fresh content wins),
+  //    then first started-but-not-mastered lesson. Mirrors the scheduler's
+  //    fallback minus the needs-review tier (which needs per-word data this
+  //    light query intentionally skips).
+  const nextLesson =
+    lessons.find((l) => !progressByLesson.has(l.id)) ??
+    lessons.find((l) => {
+      const p = progressByLesson.get(l.id);
+      return p && p.status !== "mastered";
+    });
+  if (nextLesson) {
+    return {
+      lessonId: nextLesson.id,
+      mode: "lesson",
+      title: nextLesson.title,
+      wordCount: nextLesson.word_count ?? 0,
+    };
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -501,9 +669,16 @@ export async function getDueTestsCount(courseId?: string): Promise<number> {
 }
 
 /**
- * Get all schedule data for the schedule page
+ * Get all schedule data for the schedule page.
+ *
+ * Wrapped in React `cache()` for per-request dedupe. The mobile bottom nav's
+ * global Continue target no longer rides on this heavy query — it uses the
+ * lightweight `getContinueTarget` above — so this now runs only where the full
+ * scheduler UI is actually rendered (the schedule page).
  */
-export async function getScheduleData(
+export const getScheduleData = cache(getScheduleDataImpl);
+
+async function getScheduleDataImpl(
   courseId: string
 ): Promise<GetScheduleDataResult> {
   const supabase = await createClient();
@@ -556,15 +731,26 @@ export async function getScheduleData(
 
   const lessonIds = allLessons.map((l) => l.id);
 
-  // For guests, return first lesson as next and all as new
+  // Only the first 6 of each grid section ever render (LessonGridSection slices
+  // to 6). Cap to 7 so sample-word/image fetches don't fan out across a whole
+  // (potentially hundreds-of-lessons) course. Shared by the guest branch and
+  // the logged-in grid below.
+  const GRID_CAP = 7;
+
+  // For guests, return the first lesson as next and the first grid page as new.
+  // Sample words/images are fetched only for that capped slice — the rest of
+  // the course never renders, so fetching artwork for all of it was pure waste.
   if (isGuest) {
+    const guestLessonsData = allLessons.slice(0, GRID_CAP);
+    const guestLessonIds = guestLessonsData.map((l) => l.id);
+
     const [sampleWords, images] = await Promise.all([
-      getLessonSampleWords(supabase, lessonIds),
-      getLessonImages(supabase, lessonIds),
+      getLessonSampleWords(supabase, guestLessonIds),
+      getLessonImages(supabase, guestLessonIds),
     ]);
 
     const schedulerLessons = transformToSchedulerFormat(
-      allLessons,
+      guestLessonsData,
       sampleWords,
       images,
       undefined
@@ -576,7 +762,7 @@ export async function getScheduleData(
       worstWordsAutoLesson: null,
       isFirstLesson: true,
       dueTestsCount: 0,
-      totalLessons: schedulerLessons.length,
+      totalLessons: allLessons.length,
       newLessons: schedulerLessons,
       recentLessons: [],
       needsReviewLessons: [],
@@ -597,13 +783,19 @@ export async function getScheduleData(
     after(() => recordTestDueNotifications(userId));
   }
 
-  // Get lesson progress and lesson_words in parallel; user_word_progress is fetched
-  // after so it can be scoped to this course's words. lesson_words and
-  // user_word_progress both use .range() pagination — PostgREST's 1,000-row max-rows
-  // cap otherwise silently truncates single-request responses.
+  // Get lesson progress, lesson_words, and the set of "information" word IDs in
+  // parallel; user_word_progress is fetched after so it can be scoped to this
+  // course's words. Dropping the old `words(category)` embed off lesson_words is
+  // the big win here: that nested join cost ~1.5s on large courses (it runs a
+  // per-row lookup against the 23k-row words table). Instead we fetch the small
+  // set of information-category word IDs once (~255 rows, uses the category
+  // index) and filter locally. lesson_words / user_word_progress use .range()
+  // pagination — PostgREST's 1,000-row max-rows cap otherwise silently
+  // truncates single-request responses.
   const [
     { data: lessonProgress },
     lessonWordsRows,
+    informationWordRows,
   ] = await Promise.all([
     supabase
       .from("user_lesson_progress")
@@ -613,20 +805,29 @@ export async function getScheduleData(
     fetchAllRows<{
       lesson_id: string | null;
       word_id: string | null;
-      words: { category: string | null } | null;
     }>(
       (from, to) =>
         supabase
           .from("lesson_words")
-          .select("lesson_id, word_id, words(category)")
+          .select("lesson_id, word_id")
           .in("lesson_id", lessonIds)
           .range(from, to),
       { label: "getScheduleData:lesson_words" }
     ),
+    fetchAllRows<{ id: string }>(
+      (from, to) =>
+        supabase
+          .from("words")
+          .select("id")
+          .eq("category", "information")
+          .range(from, to),
+      { label: "getScheduleData:information_words" }
+    ),
   ]);
 
+  const informationWordIds = new Set(informationWordRows.map((w) => w.id));
   const testableRows = lessonWordsRows.filter(
-    (lw) => (lw.words as unknown as { category: string | null })?.category !== "information"
+    (lw) => !(lw.word_id && informationWordIds.has(lw.word_id))
   );
   const courseWordIds = new Set(
     testableRows.map((lw) => lw.word_id).filter((id): id is string => id !== null)
@@ -904,6 +1105,12 @@ export async function getScheduleData(
     return bDate.localeCompare(aDate);
   });
 
+  // Cap to GRID_CAP (defined above) so getLessonSampleWords/getLessonImages
+  // don't fan out across every lesson in a large course when only a handful of
+  // grid cards render. needsReview is already sliced to 6 below.
+  const newLessonsForGrid = newLessonsData.slice(0, GRID_CAP);
+  const recentLessonsForGrid = recentLessonsData.slice(0, GRID_CAP);
+
   // "Needs review" grid threshold: requires ≥5 lessons started AND ≥3
   // qualifying candidates (independent of the scheduler fallback above).
   const startedLessonsCount = lessonProgress?.length ?? 0;
@@ -912,28 +1119,46 @@ export async function getScheduleData(
     ? reviewCandidates.slice(0, 6).map((c) => c.lesson)
     : [];
 
-  // Get sample words and images for grid lessons (dedupe lesson IDs)
+  // Get sample words and images for grid lessons (dedupe lesson IDs). Only the
+  // capped grid slices need artwork/sample words — never the full course.
   const gridLessonIds = Array.from(
     new Set([
-      ...newLessonsData.map((l) => l.id),
-      ...recentLessonsData.map((l) => l.id),
+      ...newLessonsForGrid.map((l) => l.id),
+      ...recentLessonsForGrid.map((l) => l.id),
       ...needsReviewLessonsData.map((l) => l.id),
     ])
   );
 
-  const [gridSampleWords, gridImages] = await Promise.all([
+  // Grid sample words + images and the Worst Words auto-lesson resolve in
+  // parallel. The worst-words RPC (~800ms) previously ran sequentially after
+  // the grid fetches; folding it into this Promise.all overlaps it with them.
+  // Its failures are swallowed here (returns null) so a missing auto-lesson
+  // never breaks the rest of the schedule.
+  const [gridSampleWords, gridImages, worstWordsAutoLesson] = await Promise.all([
     getLessonSampleWords(supabase, gridLessonIds),
     getLessonImages(supabase, gridLessonIds),
+    getWorstWordsAutoLesson(
+      supabase,
+      courseId,
+      user.id,
+      lessonIds,
+      courseWordIds,
+      userWordProgress,
+      nowMs
+    ).catch((err) => {
+      console.error("Error computing worst-words auto-lesson:", err);
+      return null;
+    }),
   ]);
 
   const newLessons = transformToSchedulerFormat(
-    newLessonsData,
+    newLessonsForGrid,
     gridSampleWords,
     gridImages,
     liveStatusByLesson
   );
   const recentLessons = transformToSchedulerFormat(
-    recentLessonsData,
+    recentLessonsForGrid,
     gridSampleWords,
     gridImages,
     liveStatusByLesson
@@ -944,25 +1169,6 @@ export async function getScheduleData(
     gridImages,
     liveStatusByLesson
   );
-
-  // Worst Words auto-lesson — surfaced once per week as the top scheduler
-  // priority. Reuses `userWordProgress` and `courseWordIds` already in scope
-  // to avoid extra round-trips. Failures are swallowed: a missing auto-lesson
-  // shouldn't break the rest of the schedule.
-  let worstWordsAutoLesson: LessonForScheduler | null = null;
-  try {
-    worstWordsAutoLesson = await getWorstWordsAutoLesson(
-      supabase,
-      courseId,
-      user.id,
-      lessonIds,
-      courseWordIds,
-      userWordProgress,
-      nowMs
-    );
-  } catch (err) {
-    console.error("Error computing worst-words auto-lesson:", err);
-  }
 
   return {
     dueTests,
