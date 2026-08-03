@@ -899,8 +899,14 @@ export function StudyModeClient({
                 picture_bad_svg: data.picture_bad_svg,
                 picture_mp4_defect: data.picture_mp4_defect,
                 audio_rerecord_english: data.audio_rerecord_english,
+                audio_rerecord_english_male: data.audio_rerecord_english_male,
+                audio_rerecord_english_female: data.audio_rerecord_english_female,
                 audio_rerecord_foreign: data.audio_rerecord_foreign,
+                audio_rerecord_foreign_male: data.audio_rerecord_foreign_male,
+                audio_rerecord_foreign_female: data.audio_rerecord_foreign_female,
                 audio_rerecord_trigger: data.audio_rerecord_trigger,
+                audio_rerecord_trigger_male: data.audio_rerecord_trigger_male,
+                audio_rerecord_trigger_female: data.audio_rerecord_trigger_female,
                 notes_in_memory_trigger: data.notes_in_memory_trigger,
               }
             : w,
@@ -1629,8 +1635,14 @@ export function StudyModeClient({
                 pictureBadSvg={currentWord.picture_bad_svg}
                 pictureMp4Defect={currentWord.picture_mp4_defect}
                 audioRerecordEnglish={currentWord.audio_rerecord_english}
+                audioRerecordEnglishMale={currentWord.audio_rerecord_english_male}
+                audioRerecordEnglishFemale={currentWord.audio_rerecord_english_female}
                 audioRerecordForeign={currentWord.audio_rerecord_foreign}
+                audioRerecordForeignMale={currentWord.audio_rerecord_foreign_male}
+                audioRerecordForeignFemale={currentWord.audio_rerecord_foreign_female}
                 audioRerecordTrigger={currentWord.audio_rerecord_trigger}
+                audioRerecordTriggerMale={currentWord.audio_rerecord_trigger_male}
+                audioRerecordTriggerFemale={currentWord.audio_rerecord_trigger_female}
                 notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                 onDeveloperDataChange={handleDeveloperDataChange}
               />
@@ -1733,8 +1745,14 @@ export function StudyModeClient({
                       pictureBadSvg={currentWord.picture_bad_svg}
                       pictureMp4Defect={currentWord.picture_mp4_defect}
                       audioRerecordEnglish={currentWord.audio_rerecord_english}
+                      audioRerecordEnglishMale={currentWord.audio_rerecord_english_male}
+                      audioRerecordEnglishFemale={currentWord.audio_rerecord_english_female}
                       audioRerecordForeign={currentWord.audio_rerecord_foreign}
+                      audioRerecordForeignMale={currentWord.audio_rerecord_foreign_male}
+                      audioRerecordForeignFemale={currentWord.audio_rerecord_foreign_female}
                       audioRerecordTrigger={currentWord.audio_rerecord_trigger}
+                      audioRerecordTriggerMale={currentWord.audio_rerecord_trigger_male}
+                      audioRerecordTriggerFemale={currentWord.audio_rerecord_trigger_female}
                       notesInMemoryTrigger={currentWord.notes_in_memory_trigger}
                       onDeveloperDataChange={handleDeveloperDataChange}
                       videoUrl={currentWord.memory_trigger_video_url}

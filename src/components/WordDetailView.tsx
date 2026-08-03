@@ -1065,8 +1065,14 @@ export function WordDetailView({
               pictureBadSvg={word.picture_bad_svg}
               pictureMp4Defect={word.picture_mp4_defect}
               audioRerecordEnglish={word.audio_rerecord_english}
+              audioRerecordEnglishMale={word.audio_rerecord_english_male}
+              audioRerecordEnglishFemale={word.audio_rerecord_english_female}
               audioRerecordForeign={word.audio_rerecord_foreign}
+              audioRerecordForeignMale={word.audio_rerecord_foreign_male}
+              audioRerecordForeignFemale={word.audio_rerecord_foreign_female}
               audioRerecordTrigger={word.audio_rerecord_trigger}
+              audioRerecordTriggerMale={word.audio_rerecord_trigger_male}
+              audioRerecordTriggerFemale={word.audio_rerecord_trigger_female}
               notesInMemoryTrigger={word.notes_in_memory_trigger}
               videoUrl={effectiveVideoUrl}
               onVideoRemoved={() => setVideoRemoved(true)}

@@ -26,8 +26,14 @@ interface InformationCardProps {
   pictureBadSvg?: boolean | null;
   pictureMp4Defect?: boolean | null;
   audioRerecordEnglish?: boolean | null;
+  audioRerecordEnglishMale?: boolean | null;
+  audioRerecordEnglishFemale?: boolean | null;
   audioRerecordForeign?: boolean | null;
+  audioRerecordForeignMale?: boolean | null;
+  audioRerecordForeignFemale?: boolean | null;
   audioRerecordTrigger?: boolean | null;
+  audioRerecordTriggerMale?: boolean | null;
+  audioRerecordTriggerFemale?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /** Callback when developer data is saved (so parent can update its cached word) */
   onDeveloperDataChange?: (data: DeveloperData) => void;
@@ -49,8 +55,14 @@ export function InformationCard({
   pictureBadSvg,
   pictureMp4Defect,
   audioRerecordEnglish,
+  audioRerecordEnglishMale,
+  audioRerecordEnglishFemale,
   audioRerecordForeign,
+  audioRerecordForeignMale,
+  audioRerecordForeignFemale,
   audioRerecordTrigger,
+  audioRerecordTriggerMale,
+  audioRerecordTriggerFemale,
   notesInMemoryTrigger,
   onDeveloperDataChange,
 }: InformationCardProps) {
@@ -147,8 +159,14 @@ export function InformationCard({
           pictureBadSvg={pictureBadSvg}
           pictureMp4Defect={pictureMp4Defect}
           audioRerecordEnglish={audioRerecordEnglish}
+          audioRerecordEnglishMale={audioRerecordEnglishMale}
+          audioRerecordEnglishFemale={audioRerecordEnglishFemale}
           audioRerecordForeign={audioRerecordForeign}
+          audioRerecordForeignMale={audioRerecordForeignMale}
+          audioRerecordForeignFemale={audioRerecordForeignFemale}
           audioRerecordTrigger={audioRerecordTrigger}
+          audioRerecordTriggerMale={audioRerecordTriggerMale}
+          audioRerecordTriggerFemale={audioRerecordTriggerFemale}
           notesInMemoryTrigger={notesInMemoryTrigger}
           onSaved={onDeveloperDataChange}
         />

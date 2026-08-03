@@ -15,8 +15,14 @@ interface DeveloperSectionProps {
   pictureBadSvg?: boolean | null;
   pictureMp4Defect?: boolean | null;
   audioRerecordEnglish?: boolean | null;
+  audioRerecordEnglishMale?: boolean | null;
+  audioRerecordEnglishFemale?: boolean | null;
   audioRerecordForeign?: boolean | null;
+  audioRerecordForeignMale?: boolean | null;
+  audioRerecordForeignFemale?: boolean | null;
   audioRerecordTrigger?: boolean | null;
+  audioRerecordTriggerMale?: boolean | null;
+  audioRerecordTriggerFemale?: boolean | null;
   notesInMemoryTrigger?: boolean | null;
   /**
    * Effective trigger video URL for this word. When present, a "Remove video"
@@ -42,8 +48,14 @@ export function DeveloperSection({
   pictureBadSvg: initialPictureBadSvg,
   pictureMp4Defect: initialPictureMp4Defect,
   audioRerecordEnglish: initialAudioRerecordEnglish,
+  audioRerecordEnglishMale: initialAudioRerecordEnglishMale,
+  audioRerecordEnglishFemale: initialAudioRerecordEnglishFemale,
   audioRerecordForeign: initialAudioRerecordForeign,
+  audioRerecordForeignMale: initialAudioRerecordForeignMale,
+  audioRerecordForeignFemale: initialAudioRerecordForeignFemale,
   audioRerecordTrigger: initialAudioRerecordTrigger,
+  audioRerecordTriggerMale: initialAudioRerecordTriggerMale,
+  audioRerecordTriggerFemale: initialAudioRerecordTriggerFemale,
   notesInMemoryTrigger: initialNotesInMemoryTrigger,
   videoUrl,
   onVideoRemoved,
@@ -60,8 +72,14 @@ export function DeveloperSection({
   const [pictureBadSvg, setPictureBadSvg] = useState(initialPictureBadSvg || false);
   const [pictureMp4Defect, setPictureMp4Defect] = useState(initialPictureMp4Defect || false);
   const [audioRerecordEnglish, setAudioRerecordEnglish] = useState(initialAudioRerecordEnglish || false);
+  const [audioRerecordEnglishMale, setAudioRerecordEnglishMale] = useState(initialAudioRerecordEnglishMale || false);
+  const [audioRerecordEnglishFemale, setAudioRerecordEnglishFemale] = useState(initialAudioRerecordEnglishFemale || false);
   const [audioRerecordForeign, setAudioRerecordForeign] = useState(initialAudioRerecordForeign || false);
+  const [audioRerecordForeignMale, setAudioRerecordForeignMale] = useState(initialAudioRerecordForeignMale || false);
+  const [audioRerecordForeignFemale, setAudioRerecordForeignFemale] = useState(initialAudioRerecordForeignFemale || false);
   const [audioRerecordTrigger, setAudioRerecordTrigger] = useState(initialAudioRerecordTrigger || false);
+  const [audioRerecordTriggerMale, setAudioRerecordTriggerMale] = useState(initialAudioRerecordTriggerMale || false);
+  const [audioRerecordTriggerFemale, setAudioRerecordTriggerFemale] = useState(initialAudioRerecordTriggerFemale || false);
   const [notesInMemoryTrigger, setNotesInMemoryTrigger] = useState(initialNotesInMemoryTrigger || false);
   const [isSavingDeveloperData, setIsSavingDeveloperData] = useState(false);
   const [videoRemoved, setVideoRemoved] = useState(false);
@@ -83,8 +101,14 @@ export function DeveloperSection({
     setPictureBadSvg(initialPictureBadSvg || false);
     setPictureMp4Defect(initialPictureMp4Defect || false);
     setAudioRerecordEnglish(initialAudioRerecordEnglish || false);
+    setAudioRerecordEnglishMale(initialAudioRerecordEnglishMale || false);
+    setAudioRerecordEnglishFemale(initialAudioRerecordEnglishFemale || false);
     setAudioRerecordForeign(initialAudioRerecordForeign || false);
+    setAudioRerecordForeignMale(initialAudioRerecordForeignMale || false);
+    setAudioRerecordForeignFemale(initialAudioRerecordForeignFemale || false);
     setAudioRerecordTrigger(initialAudioRerecordTrigger || false);
+    setAudioRerecordTriggerMale(initialAudioRerecordTriggerMale || false);
+    setAudioRerecordTriggerFemale(initialAudioRerecordTriggerFemale || false);
     setNotesInMemoryTrigger(initialNotesInMemoryTrigger || false);
     setVideoRemoved(false);
   }
@@ -102,8 +126,14 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
       audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_english_male: audioRerecordEnglishMale,
+      audio_rerecord_english_female: audioRerecordEnglishFemale,
       audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_foreign_male: audioRerecordForeignMale,
+      audio_rerecord_foreign_female: audioRerecordForeignFemale,
       audio_rerecord_trigger: audioRerecordTrigger,
+      audio_rerecord_trigger_male: audioRerecordTriggerMale,
+      audio_rerecord_trigger_female: audioRerecordTriggerFemale,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -145,8 +175,14 @@ export function DeveloperSection({
       picture_bad_svg: field === "bad_svg" ? checked : pictureBadSvg,
       picture_mp4_defect: field === "mp4_defect" ? checked : pictureMp4Defect,
       audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_english_male: audioRerecordEnglishMale,
+      audio_rerecord_english_female: audioRerecordEnglishFemale,
       audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_foreign_male: audioRerecordForeignMale,
+      audio_rerecord_foreign_female: audioRerecordForeignFemale,
       audio_rerecord_trigger: audioRerecordTrigger,
+      audio_rerecord_trigger_male: audioRerecordTriggerMale,
+      audio_rerecord_trigger_female: audioRerecordTriggerFemale,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -168,8 +204,14 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
       audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_english_male: audioRerecordEnglishMale,
+      audio_rerecord_english_female: audioRerecordEnglishFemale,
       audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_foreign_male: audioRerecordForeignMale,
+      audio_rerecord_foreign_female: audioRerecordForeignFemale,
       audio_rerecord_trigger: audioRerecordTrigger,
+      audio_rerecord_trigger_male: audioRerecordTriggerMale,
+      audio_rerecord_trigger_female: audioRerecordTriggerFemale,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -193,8 +235,14 @@ export function DeveloperSection({
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
       audio_rerecord_english: audioRerecordEnglish,
+      audio_rerecord_english_male: audioRerecordEnglishMale,
+      audio_rerecord_english_female: audioRerecordEnglishFemale,
       audio_rerecord_foreign: audioRerecordForeign,
+      audio_rerecord_foreign_male: audioRerecordForeignMale,
+      audio_rerecord_foreign_female: audioRerecordForeignFemale,
       audio_rerecord_trigger: audioRerecordTrigger,
+      audio_rerecord_trigger_male: audioRerecordTriggerMale,
+      audio_rerecord_trigger_female: audioRerecordTriggerFemale,
       notes_in_memory_trigger: checked,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -205,12 +253,61 @@ export function DeveloperSection({
   };
 
   const handleAudioCheckboxChange = async (
-    track: "english" | "foreign" | "trigger",
+    field:
+      | "english"
+      | "english_male"
+      | "english_female"
+      | "foreign"
+      | "foreign_male"
+      | "foreign_female"
+      | "trigger"
+      | "trigger_male"
+      | "trigger_female",
     checked: boolean,
   ) => {
-    if (track === "english") setAudioRerecordEnglish(checked);
-    else if (track === "foreign") setAudioRerecordForeign(checked);
-    else setAudioRerecordTrigger(checked);
+    // Start from current state, then apply the change plus parent/child
+    // invariants so the flags can never end up inconsistent for reporting:
+    //  - Unchecking a parent track clears its gendered children.
+    //  - Checking a gendered child auto-checks its parent track.
+    const next = {
+      english: audioRerecordEnglish,
+      english_male: audioRerecordEnglishMale,
+      english_female: audioRerecordEnglishFemale,
+      foreign: audioRerecordForeign,
+      foreign_male: audioRerecordForeignMale,
+      foreign_female: audioRerecordForeignFemale,
+      trigger: audioRerecordTrigger,
+      trigger_male: audioRerecordTriggerMale,
+      trigger_female: audioRerecordTriggerFemale,
+    };
+    next[field] = checked;
+
+    if (field === "english" && !checked) {
+      next.english_male = false;
+      next.english_female = false;
+    } else if (field === "foreign" && !checked) {
+      next.foreign_male = false;
+      next.foreign_female = false;
+    } else if (field === "trigger" && !checked) {
+      next.trigger_male = false;
+      next.trigger_female = false;
+    } else if ((field === "english_male" || field === "english_female") && checked) {
+      next.english = true;
+    } else if ((field === "foreign_male" || field === "foreign_female") && checked) {
+      next.foreign = true;
+    } else if ((field === "trigger_male" || field === "trigger_female") && checked) {
+      next.trigger = true;
+    }
+
+    setAudioRerecordEnglish(next.english);
+    setAudioRerecordEnglishMale(next.english_male);
+    setAudioRerecordEnglishFemale(next.english_female);
+    setAudioRerecordForeign(next.foreign);
+    setAudioRerecordForeignMale(next.foreign_male);
+    setAudioRerecordForeignFemale(next.foreign_female);
+    setAudioRerecordTrigger(next.trigger);
+    setAudioRerecordTriggerMale(next.trigger_male);
+    setAudioRerecordTriggerFemale(next.trigger_female);
 
     setIsSavingDeveloperData(true);
     const data: DeveloperData = {
@@ -220,9 +317,15 @@ export function DeveloperSection({
       picture_missing: pictureMissing,
       picture_bad_svg: pictureBadSvg,
       picture_mp4_defect: pictureMp4Defect,
-      audio_rerecord_english: track === "english" ? checked : audioRerecordEnglish,
-      audio_rerecord_foreign: track === "foreign" ? checked : audioRerecordForeign,
-      audio_rerecord_trigger: track === "trigger" ? checked : audioRerecordTrigger,
+      audio_rerecord_english: next.english,
+      audio_rerecord_english_male: next.english_male,
+      audio_rerecord_english_female: next.english_female,
+      audio_rerecord_foreign: next.foreign,
+      audio_rerecord_foreign_male: next.foreign_male,
+      audio_rerecord_foreign_female: next.foreign_female,
+      audio_rerecord_trigger: next.trigger,
+      audio_rerecord_trigger_male: next.trigger_male,
+      audio_rerecord_trigger_female: next.trigger_female,
       notes_in_memory_trigger: notesInMemoryTrigger,
     };
     const result = await saveDeveloperData(wordId, data);
@@ -406,6 +509,31 @@ export function DeveloperSection({
               <span className="text-small-regular text-foreground">Re-record English</span>
             </label>
 
+            {audioRerecordEnglish && (
+              <div className="ml-6 flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordEnglishMale}
+                    onChange={(e) => handleAudioCheckboxChange("english_male", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Male</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordEnglishFemale}
+                    onChange={(e) => handleAudioCheckboxChange("english_female", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Female</span>
+                </label>
+              </div>
+            )}
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -417,6 +545,31 @@ export function DeveloperSection({
               <span className="text-small-regular text-foreground">Re-record Foreign</span>
             </label>
 
+            {audioRerecordForeign && (
+              <div className="ml-6 flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordForeignMale}
+                    onChange={(e) => handleAudioCheckboxChange("foreign_male", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Male</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordForeignFemale}
+                    onChange={(e) => handleAudioCheckboxChange("foreign_female", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Female</span>
+                </label>
+              </div>
+            )}
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -427,6 +580,31 @@ export function DeveloperSection({
               />
               <span className="text-small-regular text-foreground">Re-record Memory Trigger</span>
             </label>
+
+            {audioRerecordTrigger && (
+              <div className="ml-6 flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordTriggerMale}
+                    onChange={(e) => handleAudioCheckboxChange("trigger_male", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Male</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={audioRerecordTriggerFemale}
+                    onChange={(e) => handleAudioCheckboxChange("trigger_female", e.target.checked)}
+                    disabled={isSavingDeveloperData}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-small-regular text-foreground">Female</span>
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="h-px w-full bg-black/10" />
