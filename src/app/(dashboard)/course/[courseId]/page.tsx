@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageShell } from "@/components/PageShell";
 import { CourseStatsBar } from "@/components/CourseStatsBar";
+import { ListSearchProvider } from "@/context/ListSearchContext";
+import { ListSearchInput } from "@/components/ListSearchInput";
 import { notFound } from "next/navigation";
 import { getFlagFromCode } from "@/lib/utils/flags";
 import { getAdminUser } from "@/lib/utils/adminGuard";
@@ -48,46 +50,51 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   return (
     <PageShell withTopPadding={false} className="pt-8">
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="text-page-header">All Lessons</h1>
+      {/* Shares the header's mobile search with LessonsList's filter (they're
+          siblings; the search moves into the header row on mobile). */}
+      <ListSearchProvider>
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-page-header">All Lessons</h1>
 
-        {/* Stats */}
-        <CourseStatsBar
-          wordsLearned={stats.wordsLearned}
-          wordsMastered={stats.wordsMastered}
-          totalWords={stats.totalWords}
-          lessonsLearned={lessonsLearned}
-          lessonsMastered={lessonsMastered}
-          totalLessons={totalLessons}
-        />
-      </div>
+          {/* Stats */}
+          <CourseStatsBar
+            wordsLearned={stats.wordsLearned}
+            wordsMastered={stats.wordsMastered}
+            totalWords={stats.totalWords}
+            lessonsLearned={lessonsLearned}
+            lessonsMastered={lessonsMastered}
+            totalLessons={totalLessons}
+            mobileTrailing={<ListSearchInput placeholder="Filter lessons..." />}
+          />
+        </div>
 
-      {/* Special lessons (auto-generated): Lost Mastery, Unmastered, Worst, Notes, Best */}
-      {!isGuest && lessons.length > 0 && <SpecialLessonsRow lessons={lessons} />}
+        {/* Special lessons (auto-generated): Lost Mastery, Unmastered, Worst, Notes, Best */}
+        {!isGuest && lessons.length > 0 && <SpecialLessonsRow lessons={lessons} />}
 
-      {/* Lessons List with Filter Tabs */}
-      {lessons.length === 0 ? (
-        <EmptyState title="No lessons available yet for this course." />
-      ) : (
-        <LessonsList
-          lessons={lessons}
-          languageFlag={languageFlag}
-          languageName={language?.name}
-          languageId={language?.id}
-          milestoneScores={milestoneScores}
-          plans={plansResult.plans}
-          enabledTiers={enabledTiers}
-          copy={pricingCopy}
-          qaFlagCounts={qaFlagCounts ?? undefined}
-          courseId={courseId}
-        />
-      )}
+        {/* Lessons List with Filter Tabs */}
+        {lessons.length === 0 ? (
+          <EmptyState title="No lessons available yet for this course." />
+        ) : (
+          <LessonsList
+            lessons={lessons}
+            languageFlag={languageFlag}
+            languageName={language?.name}
+            languageId={language?.id}
+            milestoneScores={milestoneScores}
+            plans={plansResult.plans}
+            enabledTiers={enabledTiers}
+            copy={pricingCopy}
+            qaFlagCounts={qaFlagCounts ?? undefined}
+            courseId={courseId}
+          />
+        )}
 
-      {/* Guest CTA */}
-      {isGuest && lessons.length > 0 && (
-        <GuestCTA title="Sign up to save your learning progress" />
-      )}
+        {/* Guest CTA */}
+        {isGuest && lessons.length > 0 && (
+          <GuestCTA title="Sign up to save your learning progress" />
+        )}
+      </ListSearchProvider>
     </PageShell>
   );
 }

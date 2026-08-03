@@ -11,6 +11,7 @@ import { WordCard } from "@/components/WordCard";
 import { WordDetailSidebar } from "@/components/WordDetailSidebar";
 import { WordWithDetails } from "@/lib/queries/words";
 import { useUser } from "@/context/UserContext";
+import { useListSearch } from "@/context/ListSearchContext";
 import { cn } from "@/lib/utils";
 
 interface WordsListProps {
@@ -48,7 +49,9 @@ export function WordsList({
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const [initialWordHandled, setInitialWordHandled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Shared with the page header's mobile search (via ListSearchProvider); falls
+  // back to component-local state when rendered standalone (e.g. App UI catalog).
+  const { query: searchQuery, setQuery: setSearchQuery } = useListSearch();
 
   // Detect if accessed from dictionary
   const fromDictionary = searchParams.get("from") === "dictionary";
@@ -191,7 +194,10 @@ export function WordsList({
           activeTab={effectiveActiveTab}
           onChange={(tabId) => setActiveTab(tabId as FilterTab)}
         />
-        <div className="flex items-center gap-1">
+        {/* Desktop toolbar controls. On mobile these move to the page header
+            row (see LessonPageContent's MobileStatsDropdown trailing), so the
+            whole cluster — including the grid/display toggle — is hidden here. */}
+        <div className="hidden items-center gap-1 md:flex">
           <InlineSearch
             value={searchQuery}
             onChange={setSearchQuery}

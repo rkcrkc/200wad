@@ -326,27 +326,32 @@ export function DictionaryList({
 
   return (
     <>
-      {/* Filter tabs */}
-      <div className="mb-4 flex items-center justify-between">
-        <Tabs
-          tabs={tabs}
-          activeTab={filter}
-          onChange={(tabId) => handleFilterChange(tabId as FilterType)}
-        />
+      {/* Filter tabs — the pill strip scrolls horizontally on overflow (via
+          ScrollFadeRow) so it can't bleed off-axis on a phone; the search +
+          category cluster stays pinned in the trailing slot. */}
+      <div className="mb-4 flex items-center gap-3">
+        {/* min-w-0 lets the tab strip shrink below its content width so
+            ScrollFadeRow's overflow-x-auto actually scrolls. */}
+        <div className="min-w-0 flex-1">
+          <Tabs
+            tabs={tabs}
+            activeTab={filter}
+            onChange={(tabId) => handleFilterChange(tabId as FilterType)}
+            fadeClassName="from-background"
+          />
+        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <InlineSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Filter words..."
-            />
-            <CategoryFilter
-              options={CATEGORY_OPTIONS}
-              selected={selectedCategories}
-              onChange={setSelectedCategories}
-            />
-          </div>
+        <div className="flex flex-shrink-0 items-center gap-1">
+          <InlineSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Filter words..."
+          />
+          <CategoryFilter
+            options={CATEGORY_OPTIONS}
+            selected={selectedCategories}
+            onChange={setSelectedCategories}
+          />
         </div>
       </div>
 

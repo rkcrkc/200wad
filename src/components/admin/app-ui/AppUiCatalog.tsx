@@ -1123,9 +1123,10 @@ function FeaturesSection() {
         props={[
           "wordsLearned, wordsMastered, totalWords",
           "lessonsLearned, lessonsMastered, totalLessons",
+          "mobileTrailing? (controls pinned to the mobile stats row)",
         ]}
         usedIn={["All Lessons page header"]}
-        mobileNote="The four-stat row wraps raggedly on a phone, so mobile shows only the first stat inline with a down-caret; tapping opens a dropdown listing the other three vertically. Desktop keeps the full row + per-stat popovers."
+        mobileNote="The four-stat row wraps raggedly on a phone, so mobile shows only the first stat inline with a down-caret; tapping opens a dropdown listing the other three vertically. The optional mobileTrailing slot pins the LessonsList search to the right edge of that same row (its desktop home is the toolbar). Desktop keeps the full row + per-stat popovers."
         preview={
           <div className="space-y-4">
             <PreviewVariant label="desktop · four-stat row">
@@ -1185,7 +1186,7 @@ function FeaturesSection() {
           "milestoneScores?, plans?, qaFlagCounts?, courseId?",
         ]}
         usedIn={["All Lessons page"]}
-        mobileNote="Below md the row collapses to a single visible cell — every other td, the action cell included, is display:none, so no column reserves width. The chevron (or lock) rides inside the lesson cell's flex line, and that cell also takes the table's corner rounding (the number and action cells reclaim it at md). The emoji tile drops to 32px. The four numeric columns, the status column and the study/test shortcuts are dropped (status moves into a meta sub-row with XP and the word count), the table's min-width becomes md-only so it fits the viewport, and the stats toggle is hidden. Row tap opens the lesson."
+        mobileNote="Below md the row collapses to a single visible cell — every other td, the action cell included, is display:none, so no column reserves width. The chevron (or lock) rides inside the lesson cell's flex line, and that cell also takes the table's corner rounding (the number and action cells reclaim it at md). The emoji tile drops to 32px. The four numeric columns, the status column and the study/test shortcuts are dropped (status moves into a meta sub-row with XP and the word count), the table's min-width becomes md-only so it fits the viewport. Both the inline search and the (desktop-only) stats toggle are hidden below md — the search relocates to the All Lessons header row via CourseStatsBar's mobileTrailing, staying wired to the list filter through ListSearchContext. Row tap opens the lesson."
         preview={
           <div className="space-y-4">
             <PreviewVariant label="desktop · full table">
@@ -1213,7 +1214,7 @@ function FeaturesSection() {
           "onWordSelected?, rightContent? (e.g. the desktop history toggle)",
         ]}
         usedIn={["Lesson page (/lesson/[lessonId])"]}
-        mobileNote="Below md the table restacks like the dictionary: the header row is hidden and each WordRow keeps its number and thumbnail (dropped to 40px) but stacks the foreign headword beneath the English. The dedicated headword column, the Avg. score column and the chevron are all hidden md:table-cell, so the StatusPill (its size='sm' variant below md so the longest label can't bleed off the row) becomes the trailing cell and reclaims the row's right-hand corner rounding (handed back to the chevron at md). The number cell drops to text-xs-medium with tighter padding. The <colgroup> widths moved onto the hidden thead's th cells so desktop's fixed layout is byte-identical. Grid view stays 2-up on mobile (3 from sm) and each WordCard tightens its padding to p-3 (p-4 at sm). The lesson's Activity-History toggle (passed as rightContent) is hidden below md — that table is deferred to a separate restack."
+        mobileNote="Below md the table restacks like the dictionary: the header row is hidden and each WordRow keeps its number and thumbnail (dropped to 40px) but stacks the foreign headword beneath the English. The dedicated headword column, the Avg. score column and the chevron are all hidden md:table-cell, so the StatusPill (its size='sm' variant below md so the longest label can't bleed off the row) becomes the trailing cell and reclaims the row's right-hand corner rounding (handed back to the chevron at md). The number cell drops to text-xs-medium with tighter padding. The <colgroup> widths moved onto the hidden thead's th cells so desktop's fixed layout is byte-identical. Grid view stays 2-up on mobile (3 from sm) and each WordCard tightens its padding to p-3 (p-4 at sm). The whole toolbar control cluster — inline search, flashcard button, list/grid toggle, and the Activity-History rightContent — is hidden below md and relocated to the Lesson page header row via the shared MobileStatsDropdown trailing slot; search stays wired through ListSearchContext, and the desktop-only grid toggle is simply dropped on a phone."
         preview={
           <div className="space-y-4">
             <PreviewVariant label="desktop · list view (full table)">

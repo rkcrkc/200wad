@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Popover } from "@/components/ui/popover";
 import { SubBadge } from "@/components/ui/sub-badge";
 import { MobileStatsDropdown, type MobileStat } from "@/components/ui/mobile-stats-dropdown";
@@ -13,6 +14,9 @@ interface CourseStatsBarProps {
   lessonsLearned: number;
   lessonsMastered: number;
   totalLessons: number;
+  /** Controls pinned to the trailing edge of the mobile stats row (e.g. the
+   *  LessonsList search), hidden on desktop where they live in the toolbar. */
+  mobileTrailing?: ReactNode;
 }
 
 export function CourseStatsBar({
@@ -22,6 +26,7 @@ export function CourseStatsBar({
   lessonsLearned,
   lessonsMastered,
   totalLessons,
+  mobileTrailing,
 }: CourseStatsBarProps) {
   const { t } = useText();
 
@@ -48,7 +53,7 @@ export function CourseStatsBar({
 
   return (
     <>
-      <MobileStatsDropdown stats={mobileStats} />
+      <MobileStatsDropdown stats={mobileStats} trailing={mobileTrailing} />
 
       {/* Desktop: full four-stat row with per-stat popovers. */}
       <div className="hidden cursor-default flex-wrap items-center gap-x-8 gap-y-2 md:flex">
