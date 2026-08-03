@@ -36,14 +36,14 @@ npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/datab
 
 ## Notion Bug Board
 
-Bugs and small tasks for this project are tracked in the Notion **🐛 Bugs** database. Use the Notion MCP tools (`notion-fetch`, `notion-query-data-sources`, `notion-update-page`, `notion-create-pages`) to read and write it.
+Bugs and tasks for this project are tracked in the Notion **🐛 Bugs** database. Use the Notion MCP tools (`notion-fetch`, `notion-query-data-sources`, `notion-update-page`, `notion-create-pages`) to read and write it.
 
 - **Database:** https://app.notion.com/p/30556628fa3b806ba294f6d0b3d2fdd5
 - **Data source ID (use this for queries/updates):** `collection://30556628-fa3b-8061-9457-000b513631ba`
 
 **Schema**
 - `Name` (title) — the bug description.
-- `Section` (select) — Admin, Study Mode, Test Mode, Dashboard, Upgrade Flow, Profile, Onboarding, Kevin Notes, Pictures, LESSONS, DICTIONARY, GOOD PICS FOR PROMOS, SCHEDULE, SCORING, TURBOBOOSTERS TESTING, TOASTS.
+- `Section` (select) — Admin, Study Mode, Test Mode, Dashboard, Upgrade Flow, Profile, Onboarding, Kevin Notes, Pictures, LESSONS, DICTIONARY, GOOD PICS FOR PROMOS, SCHEDULE, SCORING, TURBOBOOSTERS TESTING, TOASTS, Web Mobile.
 - `Severity` (select) — Low, Medium, High.
 - `Status` (status) — Not started → In progress → In review → Done, plus **Push to v2** (deferred, treat as out of scope for now).
 
@@ -53,9 +53,10 @@ Bugs and small tasks for this project are tracked in the Notion **🐛 Bugs** da
 - `view://35356628-fa3b-805e-b6b3-000ca5f28032` — **v2** (Push to v2).
 
 **Working agreement**
-- When asked to work on "the board", "bugs", or a bug by name, query the data source rather than guessing. Default to the **To do** filter (`Status` is not Done and not Push to v2); ignore **Push to v2** items unless explicitly asked.
+- When asked to work on "the board", "bugs", "tasks" or a bug/task by name, query the data source rather than guessing. Default to the **To do** filter (`Status` is not Done and not Push to v2); ignore **Push to v2** items unless explicitly asked.
 - Match bugs to code by `Section` — it maps to app areas (e.g. Study Mode → study session flow, Upgrade Flow → subscriptions/paywall, Admin → `src/app/admin/`).
 - **Never change a bug's `Status` (or any other property) without asking first.** Report what you fixed and propose the status change; the user makes it. Same for creating new bug pages.
+- **If you complete a piece of work that wasn't already on the board, add it to the board with status `In review`** (matched to the right `Section`), so it's captured for the user to verify and close out.
 - Bug fixes still follow the Feature Workflow below when non-trivial — spec first, ask about UX forks, run the quality checklist.
 
 ## Feature Workflow
