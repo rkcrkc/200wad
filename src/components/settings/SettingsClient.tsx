@@ -18,7 +18,7 @@ interface SettingsClientProps {
 export function SettingsClient({ email, dailyXpGoal, marketingEmailConsent }: SettingsClientProps) {
   return (
     <div>
-      <h1 className="mb-8 text-3xl font-semibold">Settings</h1>
+      <h1 className="mb-8 text-page-header">Settings</h1>
 
       <PreferencesSection dailyXpGoal={dailyXpGoal} />
       <BillingSection />

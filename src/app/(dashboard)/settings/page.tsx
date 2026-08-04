@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     return (
       <PageContainer size="sm">
         <div className="rounded-2xl bg-white p-8 text-center shadow-card">
-          <h1 className="mb-4 text-3xl font-semibold">Create an Account</h1>
+          <h1 className="mb-4 text-page-header">Create an Account</h1>
           <p className="mb-6 text-gray-600">
             Sign up to save your progress and access your settings from any
             device.

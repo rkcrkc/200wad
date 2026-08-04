@@ -20,7 +20,7 @@ export default async function ReferralsPage() {
     return (
       <PageContainer size="sm">
         <div className="rounded-2xl bg-white p-8 text-center shadow-card">
-          <h1 className="mb-4 text-3xl font-semibold">Refer & Earn</h1>
+          <h1 className="mb-4 text-page-header">Refer & Earn</h1>
           <p className="mb-6 text-gray-600">
             Sign up to get your referral link and start earning credits.
           </p>
@@ -46,7 +46,7 @@ export default async function ReferralsPage() {
   return (
     <PageContainer size="sm">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold">Refer & Earn</h1>
+        <h1 className="text-page-header">Refer & Earn</h1>
         <p className="mt-1 text-muted-foreground">
           Share 200 Words a Day with friends and earn credits for every successful referral
         </p>
