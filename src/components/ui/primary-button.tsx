@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils";
 
 type BaseProps = {
   variant?: "primary" | "outline";
+  /**
+   * `default` is the full-size CTA (52px, generous padding). `sm` is a compact
+   * variant (44px, tighter padding, smaller chevron) for space-constrained rows
+   * like the lesson footer bar on mobile.
+   */
+  size?: "default" | "sm";
   className?: string;
   children: React.ReactNode;
   /** Stretch to fill container width. Shortcut for `w-full`. */
@@ -34,9 +40,11 @@ type AsButtonProps = BaseProps & {
 export type PrimaryButtonProps = AsLinkProps | AsButtonProps;
 
 export function PrimaryButton(props: PrimaryButtonProps) {
-  const { variant = "primary", className, children, fullWidth } = props;
+  const { variant = "primary", size = "default", className, children, fullWidth } = props;
   const buttonVariant = variant === "outline" ? "outline" : "default";
-  const heightClass = "h-[52px]";
+  const compact = size === "sm";
+  const baseSize = compact ? "default" : "xl";
+  const heightClass = compact ? "h-11" : "h-[52px]";
   const widthClass = fullWidth ? "w-full" : "";
   const outlineClasses =
     variant === "outline" ? "border-primary text-primary" : "";
@@ -50,7 +58,9 @@ export function PrimaryButton(props: PrimaryButtonProps) {
     <>
       {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
       {children}
-      {showChevron ? <ChevronRight className="ml-2 h-5 w-5" /> : null}
+      {showChevron ? (
+        <ChevronRight className={compact ? "ml-1.5 h-4 w-4" : "ml-2 h-5 w-5"} />
+      ) : null}
     </>
   );
 
@@ -58,7 +68,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
     return (
       <Button
         asChild
-        size="xl"
+        size={baseSize}
         variant={buttonVariant}
         className={cn(heightClass, widthClass, outlineClasses, className)}
       >
@@ -70,7 +80,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
   const { onClick, type = "button" } = props as AsButtonProps;
   return (
     <Button
-      size="xl"
+      size={baseSize}
       variant={buttonVariant}
       // While loading the button also becomes disabled; the base Button's
       // `transition-all` would otherwise crossfade the `disabled:opacity-50`
