@@ -168,9 +168,9 @@ export function SchedulerSection({
   };
 
   return (
-    <section className="mt-12 mb-16">
+    <section className="mt-6 mb-10 md:mt-12 md:mb-16">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between md:mb-8">
         <h2 className="text-xxl-semibold text-foreground">{heading}</h2>
         <Button asChild variant="ghost" size="sm" className="hidden gap-1.5 md:inline-flex">
           <Link href={linkHref}>

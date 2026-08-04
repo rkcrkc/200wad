@@ -13,7 +13,7 @@ export function UnlockAllLanguagesCallout() {
 
   return (
     <AllLanguagesUpsellCard
-      description="Get every lesson in every language, current and future, with one subscription."
+      description="Get every lesson in every language"
       buttonLabel="Upgrade plan"
       onButtonClick={openUpgradeAllLanguages}
     />

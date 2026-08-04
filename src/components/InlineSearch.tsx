@@ -50,7 +50,10 @@ export function InlineSearch({ value, onChange, placeholder = "Filter..." }: Inl
       <div
         className={cn(
           "overflow-hidden transition-all duration-200",
-          isOpen ? "w-[180px] mr-1" : "w-0"
+          // Cap the expanded width to a fraction of the viewport on small
+          // screens so the input can't push the header row past the viewport
+          // edge (which gave the whole page a horizontal scroll on mobile).
+          isOpen ? "w-[180px] max-w-[45vw] mr-1" : "w-0"
         )}
       >
         <div className="relative">
@@ -61,7 +64,7 @@ export function InlineSearch({ value, onChange, placeholder = "Filter..." }: Inl
             onChange={(e) => onChange(e.target.value)}
             onBlur={handleBlur}
             placeholder={placeholder}
-            className="h-9 w-[180px] rounded-lg border border-gray-200 bg-white px-3 pr-8 text-sm outline-none focus:border-primary"
+            className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 pr-8 text-sm outline-none focus:border-primary"
           />
           {hasValue && (
             <button

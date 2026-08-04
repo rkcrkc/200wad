@@ -67,7 +67,7 @@ export function WordRow({ word, index, onClick, isFirst, isLast, isSelected, sho
 
       {/* Translation (English) — the foreign headword stacks beneath it on
           mobile, where the dedicated headword column is hidden. */}
-      <td className={cn("px-2 py-4 text-medium-medium transition-colors group-hover:bg-bone-hover", "bg-white")}>
+      <td className={cn("px-2 py-4 text-regular-medium transition-colors group-hover:bg-bone-hover md:text-medium-medium", "bg-white")}>
         <span className="block truncate" title={word.english}>{word.english}</span>
         <span className="mt-0.5 block truncate text-small-medium text-muted-foreground md:hidden" title={word.headword}>{word.headword}</span>
       </td>

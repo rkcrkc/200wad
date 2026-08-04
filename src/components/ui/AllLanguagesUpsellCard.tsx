@@ -29,20 +29,20 @@ export function AllLanguagesUpsellCard({
   selected = false,
 }: AllLanguagesUpsellCardProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 p-5 text-white shadow-card sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 p-4 text-white shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-xl">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/15 text-base sm:h-10 sm:w-10 sm:text-xl">
           🌍
         </div>
         <div className="min-w-0">
-          <h3 className="text-xl-semibold">Unlock all languages</h3>
-          <p className="text-base text-white/80">{description}</p>
+          <h3 className="text-large-semibold sm:text-xl-semibold">Unlock all languages</h3>
+          <p className="text-sm text-white/80 sm:text-base">{description}</p>
         </div>
       </div>
       <button
         type="button"
         onClick={onButtonClick}
-        className={`group inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium ${
+        className={`group inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium sm:w-auto ${
           selected
             ? "border border-white/70 text-white"
             : "bg-white text-primary"

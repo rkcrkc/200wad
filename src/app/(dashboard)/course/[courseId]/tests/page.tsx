@@ -35,9 +35,9 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
   const { lessons } = lessonsResult;
 
   return (
-    <PageShell withTopPadding={false} className="pt-8">
+    <PageShell withTopPadding={false} className="pt-6 md:pt-8">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="mb-4 flex flex-col gap-3 md:mb-6 md:flex-row md:items-center md:justify-between md:gap-4">
           <h1 className="text-page-header">Tests</h1>
 
           {/* Mobile: Total XP inline (the page's headline ledger stat), the
@@ -99,6 +99,7 @@ export default async function CourseTestsPage({ params }: TestsPageProps) {
             <Tooltip
               align="right"
               position="below"
+              tappable
               label={
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold">Total XP (This course)</span>

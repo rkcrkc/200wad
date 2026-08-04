@@ -128,7 +128,7 @@ export default async function CourseSchedulePage({ params, searchParams }: Sched
     : needsReviewLessons;
 
   return (
-    <PageShell greetings={greetings} greetingUserName={userName} initialTimeOfDay={initialTimeOfDay} withTopPadding={false} className="pt-12 pb-20">
+    <PageShell greetings={greetings} greetingUserName={userName} initialTimeOfDay={initialTimeOfDay} withTopPadding={false} className="pt-6 md:pt-12">
         {hasContent ? (
           <>
             {/* Scheduler Section - shows test or next lesson */}

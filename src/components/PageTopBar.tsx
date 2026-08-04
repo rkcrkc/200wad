@@ -67,7 +67,7 @@ export function PageTopBar({
   return (
     <div
       className={cn(
-        "mb-6 items-center justify-between",
+        "mb-4 items-center justify-between md:mb-6",
         hasLeadContent ? "flex" : "hidden md:flex"
       )}
     >
@@ -75,13 +75,13 @@ export function PageTopBar({
       {greeting ? (
         greetingTranslation ? (
           <Tooltip label={greetingTranslation} position="below">
-            <p className="cursor-default text-[18px] font-medium text-muted-foreground">
+            <p className="cursor-default text-regular-medium text-muted-foreground md:text-medium-medium">
               <span className="mr-2">{greetingEmoji}</span>
               {greeting}
             </p>
           </Tooltip>
         ) : (
-          <p className="text-[18px] font-medium text-muted-foreground">
+          <p className="text-regular-medium text-muted-foreground md:text-medium-medium">
             <span className="mr-2">{greetingEmoji}</span>
             {greeting}
           </p>

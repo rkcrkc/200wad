@@ -73,7 +73,7 @@ export function LessonGridSection({
   return (
     <section>
       {/* Header */}
-      <div className={`${showTabs ? "mb-6" : "mb-8"} flex items-center justify-between`}>
+      <div className={`${showTabs ? "mb-4 md:mb-6" : "mb-4 md:mb-8"} flex items-center justify-between`}>
         <h2 className="text-xxl-semibold text-foreground">{heading}</h2>
         <Button asChild variant="ghost" size="sm" className="hidden gap-1.5 md:inline-flex">
           <Link href={`/course/${courseId}`}>

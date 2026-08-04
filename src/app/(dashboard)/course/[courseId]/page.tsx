@@ -49,12 +49,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const languageFlag = getFlagFromCode(language?.code);
 
   return (
-    <PageShell withTopPadding={false} className="pt-8">
+    <PageShell withTopPadding={false} className="pt-6 md:pt-8">
       {/* Shares the header's mobile search with LessonsList's filter (they're
           siblings; the search moves into the header row on mobile). */}
       <ListSearchProvider>
         {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 md:mb-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <h1 className="text-page-header">All Lessons</h1>
 
           {/* Stats */}

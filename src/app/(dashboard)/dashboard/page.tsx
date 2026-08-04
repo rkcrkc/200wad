@@ -19,7 +19,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GuestCTA } from "@/components/GuestCTA";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { MobileFloatingBar } from "@/components/ui/MobileFloatingBar";
 
 export default async function DashboardPage({
   searchParams,
@@ -176,23 +175,10 @@ export default async function DashboardPage({
           allLanguagesStats={allLanguagesStats}
           copy={copy}
         >
-          <div
-            className="space-y-8"
-            style={
-              showUnlockAll
-                ? { paddingBottom: "var(--floating-bar-h, 0px)" }
-                : undefined
-            }
-          >
-          {/* Unlock all languages promo. Inline at the top on desktop; docks to
-              the bottom of the viewport on mobile via MobileFloatingBar, which
-              publishes its height to --floating-bar-h so the padding above
-              reserves exact clearance for it. */}
-          {showUnlockAll && (
-            <MobileFloatingBar>
-              <UnlockAllLanguagesCallout />
-            </MobileFloatingBar>
-          )}
+          <div className="space-y-8">
+          {/* Unlock all languages promo — inline above My Languages on all
+              breakpoints. */}
+          {showUnlockAll && <UnlockAllLanguagesCallout />}
 
           {/* My Languages */}
           <section>

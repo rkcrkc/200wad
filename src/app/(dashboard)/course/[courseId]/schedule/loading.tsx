@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function ScheduleLoading() {
   return (
-    <div className="mx-auto w-full max-w-content-md pt-12 pb-20">
+    <div className="mx-auto w-full max-w-content-md pt-12">
       {/* PageTopBar: greeting (left) + width toggle (right) */}
       <div className="mb-6 flex items-center justify-between">
         <Skeleton className="h-6 w-64" />
