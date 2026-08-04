@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -16,6 +16,7 @@ export function Tooltip({
   position = "above",
   align = "center",
   portal = false,
+  tappable = false,
 }: {
   children: React.ReactNode;
   /** Tooltip body. String for short labels; ReactNode for richer content. */
@@ -30,6 +31,13 @@ export function Tooltip({
    * triggers that live inside a scroll container, such as heatmap cells.
    */
   portal?: boolean;
+  /**
+   * Also reveal on tap and toggle back off on a second tap, an outside tap, or
+   * a short timeout. Use for passive info / `(?)` triggers whose content is
+   * otherwise unreachable on touch (no hover) — not for action buttons, whose
+   * tap already runs their own handler.
+   */
+  tappable?: boolean;
 }) {
   if (portal) {
     return (
@@ -55,11 +63,78 @@ export function Tooltip({
           ? "left-0"
           : "left-1/2 -translate-x-1/2";
 
+  if (tappable) {
+    return (
+      <TappableTooltip
+        label={label}
+        positionClass={positionClass}
+        alignClass={alignClass}
+      >
+        {children}
+      </TappableTooltip>
+    );
+  }
+
   return (
     <div className="group/tip relative">
       {children}
       <div
-        className={`tooltip-hover pointer-events-none absolute z-50 w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white opacity-0 transition-opacity group-hover/tip:opacity-100 ${positionClass} ${alignClass}`}
+        className={`tooltip-hover tooltip-hover-only pointer-events-none absolute z-50 w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white opacity-0 transition-opacity group-hover/tip:opacity-100 ${positionClass} ${alignClass}`}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tap-aware variant of the CSS tooltip: keeps desktop hover but also toggles on
+ * tap, dismissing on a second tap, an outside pointer, or a short timeout — so
+ * passive info triggers stay reachable on touch devices.
+ */
+function TappableTooltip({
+  children,
+  label,
+  positionClass,
+  alignClass,
+}: {
+  children: ReactNode;
+  label: ReactNode;
+  positionClass: string;
+  alignClass: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onOutside = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const timer = window.setTimeout(() => setOpen(false), 4000);
+    document.addEventListener("pointerdown", onOutside);
+    return () => {
+      document.removeEventListener("pointerdown", onOutside);
+      window.clearTimeout(timer);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={ref}
+      className="group/tip relative"
+      onClick={(e) => {
+        e.stopPropagation();
+        setOpen((v) => !v);
+      }}
+    >
+      {children}
+      <div
+        className={`tooltip-hover absolute z-50 w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white transition-opacity ${positionClass} ${alignClass} ${
+          open
+            ? "opacity-100"
+            : "pointer-events-none opacity-0 group-hover/tip:opacity-100"
+        }`}
       >
         {label}
       </div>
@@ -69,7 +144,7 @@ export function Tooltip({
 
 /** Shared label styling for both the CSS and portal tooltip variants. */
 const LABEL_CLASS =
-  "pointer-events-none w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white";
+  "tooltip-hover-only pointer-events-none w-max max-w-[280px] rounded-lg bg-foreground px-3 py-1.5 text-xs font-normal leading-snug text-white";
 
 /**
  * Portal variant: the label is measured against the trigger's viewport rect on
