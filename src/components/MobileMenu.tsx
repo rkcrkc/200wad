@@ -41,6 +41,7 @@ const bottomNavItems = [
   { path: "/profile", icon: UserPen, label: "Profile" },
   { path: "/settings", icon: Settings, label: "Settings" },
   { path: "/account/subscriptions", icon: CreditCard, label: "My Subscription" },
+  { path: "/help", icon: HelpCircle, label: "Help" },
 ];
 
 interface MobileNavItemProps {
@@ -213,7 +214,6 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               onClick={onClose}
             />
           ))}
-          <div className="my-2 h-px shrink-0 bg-gray-100" role="separator" />
           {getSecondaryNavItems(courseId).map((item) => (
             <MobileNavItem
               key={item.label}
@@ -235,25 +235,6 @@ export function MobileMenu({ isOpen, onClose, dueTestsCount, onViewPlans, freeLe
               onClick={onClose}
             />
           ))}
-          <button
-            onClick={onClose}
-            className="flex h-12 w-full shrink-0 items-center rounded-[10px] transition-all hover:bg-gray-50"
-          >
-            <div className="flex items-center gap-3 pl-4">
-              <HelpCircle
-                className="h-5 w-5 shrink-0"
-                strokeWidth={1.67}
-                style={{ color: "rgba(20,21,21,0.75)" }}
-              />
-              <span
-                className="text-[15px] font-semibold leading-[1.35] tracking-[-0.225px]"
-                style={{ color: "rgba(20,21,21,0.75)" }}
-              >
-                Help
-              </span>
-            </div>
-          </button>
-
           <div className="my-2 h-px shrink-0 bg-gray-100" role="separator" />
 
           {/* Sign out — POSTs to the logout route, mirroring the profile dropdown.

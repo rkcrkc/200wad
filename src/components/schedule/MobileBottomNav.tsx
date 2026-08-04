@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, ClipboardCheck, ChevronRight, type LucideIcon } from "lucide-react";
+import { Home, BookOpen, ClipboardCheck, ArrowRight, type LucideIcon } from "lucide-react";
 import { LessonStartTestModal } from "@/components/study";
 import { useCourseContext } from "@/context/CourseContext";
 import { useHeaderStats } from "@/context/HeaderStatsContext";
@@ -20,7 +20,8 @@ export type { ContinueItem };
  * `courseId` comes from CourseContext (set per-course by the layout) and the
  * `continueItem` target streams in via the header-stats bundle, so the bar is
  * self-sufficient and needs no props. Hidden when there's no current course
- * (e.g. a logged-in user mid-onboarding) since its tabs are course-scoped.
+ * (e.g. a logged-in user mid-onboarding) since its tabs are course-scoped, and
+ * on the lesson detail page (/lesson/<id>), which runs its own focused layout.
  */
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -29,6 +30,16 @@ export function MobileBottomNav() {
   const [showStartTestModal, setShowStartTestModal] = useState(false);
 
   if (!courseId) return null;
+
+  // Suppress the global tab bar on the lesson detail page — it has its own
+  // full-bleed layout and CTAs. Matches only /lesson/<id>; the /study and /test
+  // sub-flows already opt out upstream in DashboardContent.
+  if (/^\/lesson\/[^/]+$/.test(pathname)) return null;
+
+  // Also suppress it during the subscriptions/checkout flow: that page runs its
+  // own fixed CheckoutFooterBar at the bottom edge, so a competing tab bar just
+  // clutters a focused, transactional screen.
+  if (pathname === "/account/subscriptions") return null;
 
   const homeHref = `/course/${courseId}/schedule`;
   const lessonsHref = `/course/${courseId}`;
@@ -53,13 +64,13 @@ export function MobileBottomNav() {
           (continueItem.mode === "lesson" ? (
             <NavTab
               href={`/lesson/${continueItem.lessonId}/study`}
-              icon={ChevronRight}
-              label="Continue"
+              icon={ArrowRight}
+              label="Next"
             />
           ) : (
             <NavTab
-              icon={ChevronRight}
-              label="Continue"
+              icon={ArrowRight}
+              label="Next"
               onClick={() => setShowStartTestModal(true)}
             />
           ))}
