@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Lock, X, Check, ChevronDown } from "lucide-react";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { Tabs } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { createDirectCheckout } from "@/lib/mutations/checkout";
 import type { PricingPlan } from "@/types/database";
@@ -310,6 +309,8 @@ interface PricingCardProps {
   tone?: "amber" | "plain";
   /** Replaces the default icon + title (e.g. with a language picker). */
   header?: React.ReactNode;
+  /** CTA rendered at the bottom of the card (kept attached to the plan). */
+  action: React.ReactNode;
 }
 
 /** Short "For ..." subtitle shown beneath a card's title. */
@@ -317,7 +318,7 @@ function AudienceLine({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-sm italic text-muted-foreground">{children}</p>;
 }
 
-function PricingCard({ title, icon, tier, plans, billingModel, features, audience, badge, tone = "amber", header }: PricingCardProps) {
+function PricingCard({ title, icon, tier, plans, billingModel, features, audience, badge, tone = "amber", header, action }: PricingCardProps) {
   const plan = getPlanByTierAndModel(plans, tier, billingModel);
   const monthly = getPlanByTierAndModel(plans, tier, "monthly");
 
@@ -333,7 +334,7 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, audienc
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-t-3xl border-b-0 shadow-card",
+        "flex h-full flex-col overflow-hidden rounded-3xl shadow-card",
         isPlain
           ? "border border-beige bg-white"
           : "border-2 border-amber-200 bg-amber-50/50"
@@ -382,7 +383,7 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, audienc
       </div>
 
       {/* Features */}
-      <div className="px-5 py-4">
+      <div className="flex flex-1 flex-col px-5 py-4">
         <ul className="space-y-2.5">
           {features.map((feature) => (
             <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -391,6 +392,8 @@ function PricingCard({ title, icon, tier, plans, billingModel, features, audienc
             </li>
           ))}
         </ul>
+        {/* CTA pinned to the bottom so buttons align across columns. */}
+        <div className="mt-auto pt-8">{action}</div>
       </div>
     </div>
   );
@@ -407,7 +410,7 @@ function FreePlanCard({
 }) {
   const { features, audience } = buildFreeContent(copy, freeLessons);
   return (
-    <div className="overflow-hidden rounded-t-3xl border border-b-0 border-beige bg-white shadow-card">
+    <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-beige bg-white shadow-card">
       {/* Header section */}
       <div className="bg-bone px-5 py-4">
         {/* Icon row */}
@@ -432,7 +435,7 @@ function FreePlanCard({
       </div>
 
       {/* Features */}
-      <div className="px-5 py-4">
+      <div className="flex flex-1 flex-col px-5 py-4">
         <ul className="space-y-2.5">
           {features.map((feature) => (
             <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -441,6 +444,12 @@ function FreePlanCard({
             </li>
           ))}
         </ul>
+        {/* Current plan is non-actionable; kept for parity with the paid cards. */}
+        <div className="mt-auto pt-8">
+          <PrimaryButton variant="outline" fullWidth disabled>
+            Current Plan
+          </PrimaryButton>
+        </div>
       </div>
     </div>
   );
@@ -533,7 +542,7 @@ export function UpgradeModal({
         : "";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:items-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
@@ -542,21 +551,23 @@ export function UpgradeModal({
       />
 
       {/* Modal */}
-      <div className="relative mx-4 w-full max-w-6xl h-[90vh] overflow-hidden rounded-3xl bg-white shadow-xl flex flex-col">
-        {/* Fixed top bar */}
-        <div className="shrink-0 flex items-center justify-end bg-bone px-6 py-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+      <div className="relative w-full max-w-6xl h-[calc(100dvh-2rem)] overflow-hidden rounded-3xl bg-white shadow-xl flex flex-col sm:h-[90dvh] sm:max-h-[calc(100dvh-2rem)]">
+        {/* Close button floats over the content so it stays reachable while the
+            header scrolls. No fixed bar means no bone/white seam revealed by
+            iOS rubber-band overscroll. */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 z-10 rounded-full bg-bone/80 p-1.5 text-muted-foreground backdrop-blur hover:bg-black/5 hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
-        {/* Scrollable content */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* Scrollable content. Bone background so a top overscroll bounce reveals
+            bone (matching the header), never a white flash. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-bone">
           {/* Header section with beige background */}
-          <div className="shrink-0 bg-bone px-6 pb-6">
+          <div className="shrink-0 bg-bone px-6 pb-6 pt-6">
             {/* Lock icon */}
             <div className="mb-4 flex justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white">
@@ -578,47 +589,44 @@ export function UpgradeModal({
           </div>
 
           {/* Body */}
-          <div className="flex min-h-0 flex-1 flex-col px-6 pt-6">
-            {/* Billing toggle */}
+          <div className="flex min-h-0 flex-1 flex-col bg-white px-6 pt-6">
+            {/* Billing toggle: full-width segmented on mobile, centered pills on
+                desktop. Savings are surfaced on the plan cards, so the segments
+                stay label-only and always fit the row without scrolling. */}
             {availableOptions.length > 1 && (
-              <div className="mb-5">
-                <Tabs
-                  className="justify-center"
-                  tabs={availableOptions.map((opt) => {
-                    const badge =
-                      opt.value === "annual"
-                        ? "save $$"
-                        : opt.value === "lifetime"
-                          ? "best value"
-                          : null;
+              <div className="mb-5 flex justify-center">
+                <div role="tablist" className="flex w-full gap-2 sm:w-auto">
+                  {availableOptions.map((opt) => {
                     const isActive = opt.value === billingModel;
-                    return {
-                      id: opt.value,
-                      label: badge ? (
-                        <span className="flex items-center gap-1.5">
-                          {opt.label}
-                          <span
-                            className={cn(
-                              "rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-600",
-                              isActive ? "bg-white" : "bg-green-200"
-                            )}
-                          >
-                            {badge}
-                          </span>
-                        </span>
-                      ) : (
-                        opt.label
-                      ),
-                    };
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        onClick={() => setBillingModel(opt.value)}
+                        className={cn(
+                          "flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-center text-sm font-medium leading-[1.35] tracking-[-0.01em] transition-colors sm:flex-none sm:px-4",
+                          isActive
+                            ? "bg-beige text-foreground"
+                            : "text-foreground/50 hover:text-foreground/75"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
                   })}
-                  activeTab={billingModel}
-                  onChange={(id) => setBillingModel(id as BillingModel)}
-                />
+                </div>
               </div>
             )}
 
-            {/* Pricing cards */}
-            <div className={cn("grid flex-1 grid-cols-1 gap-4", gridCols)}>
+            {checkoutError && (
+              <p className="mb-3 text-center text-sm text-destructive">{checkoutError}</p>
+            )}
+
+            {/* Pricing cards — each is self-contained (header, features, CTA) so
+                nothing gets divorced when the grid collapses to one column. */}
+            <div className={cn("grid grid-cols-1 items-stretch gap-4 pb-6", gridCols)}>
               <FreePlanCard
                 freeLessons={freeLessons}
                 copy={copy?.free}
@@ -643,6 +651,16 @@ export function UpgradeModal({
                       />
                     ) : undefined
                   }
+                  action={
+                    <PrimaryButton
+                      fullWidth
+                      loading={checkoutTier === "language"}
+                      disabled={checkoutTier !== null && checkoutTier !== "language"}
+                      onClick={() => handleCheckout("language")}
+                    >
+                      Upgrade plan
+                    </PrimaryButton>
+                  }
                 />
               )}
               {showAllLanguagesTier && (
@@ -655,47 +673,19 @@ export function UpgradeModal({
                   features={allLanguagesContent.features}
                   audience={allLanguagesContent.audience}
                   tone="plain"
+                  action={
+                    <PrimaryButton
+                      fullWidth
+                      loading={checkoutTier === "all-languages"}
+                      disabled={checkoutTier !== null && checkoutTier !== "all-languages"}
+                      onClick={() => handleCheckout("all-languages")}
+                    >
+                      Upgrade plan
+                    </PrimaryButton>
+                  }
                 />
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Fixed footer with CTAs styled as card bottoms */}
-        <div className="shrink-0 px-6 pb-6">
-          {checkoutError && (
-            <p className="mb-3 text-center text-sm text-destructive">{checkoutError}</p>
-          )}
-          <div className={cn("grid grid-cols-1 gap-4", gridCols)}>
-            <div className="rounded-b-3xl border border-t-0 border-beige bg-white px-5 py-4 shadow-card">
-              <PrimaryButton variant="outline" fullWidth disabled>
-                Current Plan
-              </PrimaryButton>
-            </div>
-            {showLanguageTier && (
-              <div className="rounded-b-3xl border-2 border-t-0 border-amber-200 bg-amber-50/50 px-5 py-4 shadow-card">
-                <PrimaryButton
-                  fullWidth
-                  loading={checkoutTier === "language"}
-                  disabled={checkoutTier !== null && checkoutTier !== "language"}
-                  onClick={() => handleCheckout("language")}
-                >
-                  Upgrade plan
-                </PrimaryButton>
-              </div>
-            )}
-            {showAllLanguagesTier && (
-              <div className="rounded-b-3xl border border-t-0 border-beige bg-white px-5 py-4 shadow-card">
-                <PrimaryButton
-                  fullWidth
-                  loading={checkoutTier === "all-languages"}
-                  disabled={checkoutTier !== null && checkoutTier !== "all-languages"}
-                  onClick={() => handleCheckout("all-languages")}
-                >
-                  Upgrade plan
-                </PrimaryButton>
-              </div>
-            )}
           </div>
         </div>
       </div>
