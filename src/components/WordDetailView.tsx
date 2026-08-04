@@ -338,6 +338,18 @@ export function WordDetailView({
     };
   }, [stopAudio]);
 
+  // Stop any in-flight audio when the word changes. In sidebar/modal layouts
+  // autoPlayAudio is false, so the auto-play effect above early-returns and
+  // never registers its stop-on-change cleanup; and those layouts' prev/next
+  // buttons bypass handlePrevious/handleNext. Without this, a replay started on
+  // one word keeps playing after navigating to the next/previous word.
+  useEffect(() => {
+    return () => {
+      audioSequenceCancelledRef.current = true;
+      stopAudio();
+    };
+  }, [word.id, stopAudio]);
+
   // Handle keyboard navigation (only in page layout — sidebar handles its own keys)
   useEffect(() => {
     if (layout === "sidebar") return;
@@ -592,7 +604,7 @@ export function WordDetailView({
             alternateEnglishAnswers={word.alternate_english_answers || []}
           />
         ) : (
-        <div className={isSidebar ? "w-full rounded-2xl bg-white px-6 py-4 shadow-card" : "w-full rounded-2xl bg-white p-6 shadow-card"}>
+        <div className={isSidebar ? "w-full rounded-2xl bg-white px-4 py-3 shadow-card md:px-6 md:py-4" : "w-full rounded-2xl bg-white p-4 shadow-card md:p-6"}>
           <div className={isSidebar ? "flex flex-col gap-3" : "flex flex-col gap-3"}>
             {/* English word */}
             <button
@@ -633,7 +645,7 @@ export function WordDetailView({
         {isSidebar && sidebarTab === "test-history" ? (
           // Test History Tab Content
           word.testHistory.length > 0 ? (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+            <div className="w-full rounded-2xl bg-white p-4 shadow-card md:p-6">
               <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
                 TEST HISTORY
               </span>
@@ -691,7 +703,7 @@ export function WordDetailView({
               </div>
             </div>
           ) : (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+            <div className="w-full rounded-2xl bg-white p-4 shadow-card md:p-6">
               <p className="text-sm text-muted-foreground">No test history yet.</p>
             </div>
           )
@@ -776,7 +788,7 @@ export function WordDetailView({
               // Locked state — trigger text is fully visible; only the image is
               // blurred behind the upgrade CTA.
               <div className="w-full rounded-2xl bg-white shadow-card">
-                <div className="flex flex-col gap-5 p-6">
+                <div className="flex flex-col gap-5 p-4 md:p-6">
                   {/* Trigger text — reuses the unlocked shell so geometry
                       (audio-button alignment, line-height, sidebar vs page
                       sizing) matches exactly; only the characters are masked
@@ -871,7 +883,7 @@ export function WordDetailView({
             // Memory Trigger mode
             hasMemoryTrigger && (
               <div className="w-full rounded-2xl bg-white shadow-card">
-                <div className="flex flex-col gap-5 p-6">
+                <div className="flex flex-col gap-5 p-4 md:p-6">
                   {/* Trigger text */}
                   {triggerText && (
                     word.category === "fact" ? (
@@ -947,7 +959,7 @@ export function WordDetailView({
         {/* Right column - Notes, Examples, Related */}
         <div className="flex flex-1 flex-col gap-6">
           {/* Notes - always show */}
-          <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+          <div className="w-full rounded-2xl bg-white p-4 shadow-card md:p-6">
             <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
               NOTES
             </span>
@@ -1081,7 +1093,7 @@ export function WordDetailView({
 
           {/* Example Sentences */}
           {word.exampleSentences && word.exampleSentences.length > 0 && (
-            <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+            <div className="w-full rounded-2xl bg-white p-4 shadow-card md:p-6">
               <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
                 EXAMPLE SENTENCES
               </span>
@@ -1246,7 +1258,7 @@ function RelatedEntriesCard({
   }
 
   return (
-    <div className="w-full rounded-2xl bg-white p-6 shadow-card">
+    <div className="w-full rounded-2xl bg-white p-4 shadow-card md:p-6">
       <span className="mb-4 block text-xs font-medium uppercase tracking-wide text-foreground/50">
         RELATED WORDS
       </span>

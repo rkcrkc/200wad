@@ -264,7 +264,7 @@ export function TestCompletedModal({
             )}
             {courseWordsMastered !== null && (
               <>
-                <Tooltip label="Total words learned across course" position="below">
+                <Tooltip label="Total words learned across course" position="below" tappable>
                   <span className="inline-flex items-center gap-1.5">
                     <span><span className="font-medium text-foreground">{formatNumber(courseWordsMastered)}</span> total vocab</span>
                     {newlyLearnedCount > 0 && (

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
@@ -26,6 +26,17 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "200 Words a Day",
   description: "Learn languages effectively with 200 words a day",
+};
+
+// `interactive-widget: resizes-content` makes the on-screen keyboard shrink the
+// layout viewport (rather than overlay it) on Chromium/Android, so `position:
+// fixed` bottom bars — like the study/test action bar — sit above the keyboard
+// without JS. iOS Safari ignores this and still overlays, so the visual-viewport
+// `useKeyboardInset` hook remains the fallback there.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({

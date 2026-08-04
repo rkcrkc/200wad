@@ -244,7 +244,7 @@ export function LessonActivityHistory({
                       onSort={handleSort}
                     />
                     {averageTestScore !== null && averageTestScore !== undefined && (
-                      <Tooltip label="Average test score">
+                      <Tooltip label="Average test score" tappable>
                         <SubBadge variant="header">
                           {formatPercent(averageTestScore)}
                         </SubBadge>

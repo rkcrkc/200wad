@@ -146,6 +146,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                     label={AUTO_LESSON_EXPLANATIONS[autoLessonInfo.type]}
                     position="below"
                     align="left"
+                    tappable
                   >
                     <span
                       role="img"
@@ -157,7 +158,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
                   </Tooltip>
                 )}
               </div>
-              <h1 className="flex items-center gap-4 text-xxxl-semibold">
+              <h1 className="flex items-center gap-4 text-page-header">
                 {resolvedLesson.emoji && <span className="text-2xl">{resolvedLesson.emoji}</span>}
                 {resolvedLesson.title}
               </h1>

@@ -188,12 +188,15 @@ export function WordsList({
   return (
     <div>
       {/* Filter Tabs + Page controls */}
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <Tabs
-          tabs={tabs}
-          activeTab={effectiveActiveTab}
-          onChange={(tabId) => setActiveTab(tabId as FilterTab)}
-        />
+      <div className="mb-4 flex min-h-9 items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <Tabs
+            tabs={tabs}
+            activeTab={effectiveActiveTab}
+            onChange={(tabId) => setActiveTab(tabId as FilterTab)}
+            fadeClassName="from-background"
+          />
+        </div>
         {/* Desktop toolbar controls. On mobile these move to the page header
             row (see LessonPageContent's MobileStatsDropdown trailing), so the
             whole cluster — including the grid/display toggle — is hidden here. */}

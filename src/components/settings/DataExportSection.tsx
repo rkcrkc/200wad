@@ -48,7 +48,7 @@ export function DataExportSection() {
     <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-card">
       <h2 className="mb-6 text-xl font-semibold">Your data</h2>
 
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between sm:gap-6">
         <div>
           <h3 className="font-medium">Download my data</h3>
           <p className="text-sm text-gray-600">

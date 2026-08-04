@@ -161,10 +161,11 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
         lesson.isLocked && "opacity-60"
       )}
     >
-      {/* Lesson number — desktop-only column; on mobile it's prepended to the
-          title so the row keeps more width for the name. */}
+      {/* Lesson number — leading column on every breakpoint (matches WordRow):
+          compact with smaller text and tighter padding on mobile, restored at
+          md. Owns the row's left corners. */}
       <td className={cn(
-        "hidden bg-white px-4 py-3 text-regular-medium text-foreground transition-colors group-hover:bg-bone-hover md:table-cell md:px-6 md:py-4",
+        "w-10 bg-white py-4 pl-3 pr-1 text-xs-medium transition-colors group-hover:bg-bone-hover md:w-auto md:px-6 md:text-regular-medium",
         isFirst && "rounded-tl-xl",
         isLast && "rounded-bl-xl"
       )}>
@@ -174,13 +175,13 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
       {/* Lesson: emoji + title (status stacks beneath the title on mobile, and
           the chevron rides along on the right).
 
-          Below md this is the only visible cell, so it owns all four corners of
-          the table. From md up the number and action cells sit either side of
-          it and reclaim them. */}
+          On mobile it's the last visible cell (the number sits to its left and
+          the action cell is hidden), so it owns the row's right corners. From
+          md up the action cell reclaims them. */}
       <td className={cn(
         "bg-white px-2 py-3 pr-4 transition-colors group-hover:bg-bone-hover md:py-4 md:pr-2",
-        isFirst && "rounded-t-xl md:rounded-t-none",
-        isLast && "rounded-b-xl md:rounded-b-none"
+        isFirst && "rounded-tr-xl md:rounded-none",
+        isLast && "rounded-br-xl md:rounded-none"
       )}>
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-base md:h-10 md:w-10 md:text-xl">
@@ -188,7 +189,7 @@ export function LessonRow({ lesson, isFirst, isLast, showStats, milestoneScores,
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-medium-semibold text-foreground">
-              <span className="md:hidden">{lesson.number}. </span>{lesson.title}
+              {lesson.title}
             </div>
             {/* Mobile: available XP leads, then the word count; status pill
                 trails. Desktop uses the dedicated columns below. */}

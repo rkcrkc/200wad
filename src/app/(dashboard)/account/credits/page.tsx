@@ -7,7 +7,7 @@ export default function CreditsHistoryPage() {
     <PageContainer size="sm">
       <BackButton href="/referrals" label="Referrals" />
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold">Credits History</h1>
+        <h1 className="text-page-header">Credits History</h1>
         <p className="mt-1 text-muted-foreground">
           Track your earned and used credits
         </p>

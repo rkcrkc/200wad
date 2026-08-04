@@ -25,11 +25,14 @@ export function useKeyboardInset(): number {
     };
 
     update();
+    // Only react to `resize` (keyboard open/close), not `scroll`. On iOS Safari
+    // a fixed bottom bar becomes visual-viewport-relative once the keyboard is
+    // up; tracking `vv.scroll` made the bar chase the scroll offset and stick
+    // mid-screen. Reacting to resize alone keeps the inset pinned to the
+    // keyboard height for the session.
     vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
     return () => {
       vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
     };
   }, []);
 

@@ -55,7 +55,7 @@ export function MobileStatsDropdown({ stats, className, trailing }: MobileStatsD
     <div
       className={cn(
         "relative md:hidden",
-        trailing && "flex items-center justify-between gap-3",
+        trailing && "flex min-w-0 items-center justify-between gap-3",
         className
       )}
     >
@@ -82,7 +82,7 @@ export function MobileStatsDropdown({ stats, className, trailing }: MobileStatsD
         </button>
       )}
 
-      {trailing && <div className="flex items-center gap-1">{trailing}</div>}
+      {trailing && <div className="flex min-w-0 items-center gap-1">{trailing}</div>}
 
       {open && rest.length > 0 && (
         <>
@@ -93,7 +93,7 @@ export function MobileStatsDropdown({ stats, className, trailing }: MobileStatsD
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <div className="absolute left-0 top-full z-20 mt-2 flex min-w-[240px] flex-col gap-3 rounded-xl border border-border bg-white p-4 shadow-card">
+          <div className="absolute left-0 top-full z-20 mt-2 flex min-w-[240px] max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-xl border border-border bg-white p-4 shadow-card">
             {rest.map((s) => (
               <div key={s.label} className="flex items-center justify-between gap-6">
                 <span className="text-xs text-muted-foreground">{s.label}</span>

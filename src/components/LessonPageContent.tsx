@@ -41,7 +41,7 @@ function AutoLessonHelpIcon({ lessonId }: { lessonId: string }) {
   const info = parseAutoLessonId(lessonId);
   if (!info) return null;
   return (
-    <Tooltip label={AUTO_LESSON_EXPLANATIONS[info.type]} position="below" align="left">
+    <Tooltip label={AUTO_LESSON_EXPLANATIONS[info.type]} position="below" align="left" tappable>
       <button
         type="button"
         aria-label="How this lesson is built"
@@ -208,7 +208,7 @@ export function LessonPageContent({
   return (
     <ListSearchProvider>
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4">
+      <div className="mb-4 flex flex-col gap-2 md:mb-8 md:gap-4">
         {/* Row 1: Lesson # + Status pill */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -236,7 +236,7 @@ export function LessonPageContent({
 
         {/* Row 2: Title + Stats */}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between xl:gap-8">
-          <h1 className="flex items-center gap-3 text-xxl-semibold sm:gap-4 sm:text-xxxl-semibold">
+          <h1 className="flex min-w-0 items-center gap-3 break-words text-page-header sm:gap-4">
             {lesson.emoji && <span className="text-2xl">{lesson.emoji}</span>}
             {lesson.title}
           </h1>
@@ -377,7 +377,7 @@ export function LessonPageContent({
 
       {/* Content - Words List or Activity History */}
 
-      <div className={words.length > 0 && !showHistory ? "pb-24" : ""}>
+      <div className={words.length > 0 && !showHistory ? "pb-[calc(6rem+env(safe-area-inset-bottom))]" : ""}>
         {/* Activity History - keep mounted, toggle visibility */}
         {activityHistory && (
           <div className={showHistory ? "" : "hidden"}>
@@ -431,7 +431,7 @@ export function LessonPageContent({
       {/* Fixed footer bar - hidden when showing history */}
       {!showHistory && words.length > 0 && (
         <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar", sidebarCollapsed ? "left-0 md:left-[72px]" : "left-0 md:left-[240px]")}>
-          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 md:gap-4 md:px-6 md:py-4">
+          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:gap-4 md:px-6 md:py-4">
             {previousLesson ? (
               <Link
                 href={`/lesson/${previousLesson.id}`}
@@ -451,19 +451,23 @@ export function LessonPageContent({
             )}
             <div className="flex flex-1 items-center justify-center gap-3 md:gap-4">
               <PrimaryButton
-                className="flex-1 md:max-w-[240px]"
+                size="sm"
+                className="min-w-0 flex-1 md:h-[52px] md:max-w-[240px] md:px-6 md:text-base"
                 href={`/lesson/${lesson.id}/study`}
               >
-                Study lesson
+                <span className="md:hidden">Study</span>
+                <span className="hidden md:inline">Study lesson</span>
               </PrimaryButton>
               {!studyOnly && (
                 <PrimaryButton
                   variant="outline"
-                  className="flex-1 md:max-w-[240px]"
+                  size="sm"
+                  className="min-w-0 flex-1 md:h-[52px] md:max-w-[240px] md:px-6 md:text-base"
                   onClick={() => setShowStartTestModal(true)}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    Take test
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span className="md:hidden">Test</span>
+                    <span className="hidden md:inline">Take test</span>
                     <XpBadge value={xpMax} variant="available-blue" />
                   </span>
                 </PrimaryButton>

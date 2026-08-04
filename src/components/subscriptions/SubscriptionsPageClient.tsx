@@ -38,6 +38,7 @@ interface SubscriptionsPageClientProps {
 export function SubscriptionsPageClient({ data }: SubscriptionsPageClientProps) {
   const [upgradeTarget, setUpgradeTarget] = useState<UpgradeTarget | null>(null);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   const showAllLanguagesTier = data.enabledTiers.includes("all-languages");
   const showLanguageTier = data.enabledTiers.includes("language");
@@ -125,7 +126,10 @@ export function SubscriptionsPageClient({ data }: SubscriptionsPageClientProps) 
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      style={upgradeTarget ? { paddingBottom: footerHeight + 16 } : undefined}
+    >
       {showCallout && (
         <AllLanguagesCallout
           plans={data.plans}
@@ -146,6 +150,9 @@ export function SubscriptionsPageClient({ data }: SubscriptionsPageClientProps) 
           onSwitchLanguage={() => setSwitchOpen(true)}
           onManageBilling={handleManageBilling}
         />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl bg-white shadow-card">
         <LanguageSubscriptionsList
           languages={data.languages}
           unlockedLanguageIds={unlockedLanguageIds}
@@ -163,6 +170,7 @@ export function SubscriptionsPageClient({ data }: SubscriptionsPageClientProps) 
           creditBalanceCents={data.creditBalanceCents}
           onChangeTarget={setUpgradeTarget}
           onClose={() => setUpgradeTarget(null)}
+          onHeightChange={setFooterHeight}
         />
       )}
 

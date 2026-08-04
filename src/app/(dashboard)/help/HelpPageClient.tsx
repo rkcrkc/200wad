@@ -6,8 +6,7 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
-  List,
-  X,
+  ChevronLeft,
   ChevronsUpDown,
   HelpCircle,
   BookOpen,
@@ -33,7 +32,6 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
   const sidebarCollapsed = useSidebarCollapsed();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | undefined>(initialSlug);
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
@@ -94,10 +92,15 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
       }
       setActiveSlug(slug);
       router.push(`/help/${slug}`, { scroll: false });
-      setSidebarOpen(false);
     },
     [router]
   );
+
+  // Mobile: return from an entry to the topic index
+  const goToIndex = useCallback(() => {
+    setActiveSlug(undefined);
+    router.push("/help", { scroll: false });
+  }, [router]);
 
   // Restore sidebar scroll position after re-render
   useLayoutEffect(() => {
@@ -273,8 +276,9 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
         )}
       </div>
 
-      {/* Floating cards — pinned to the bottom of the index */}
-      <div className="space-y-3 p-4">
+      {/* Floating cards — pinned to the bottom of the index.
+          Extra bottom padding on phones clears the global MobileBottomNav. */}
+      <div className="space-y-3 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-4">
         <button
           type="button"
           className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
@@ -286,10 +290,7 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
         </button>
         <button
           type="button"
-          onClick={() => {
-            setSidebarOpen(false);
-            setFeedbackOpen(true);
-          }}
+          onClick={() => setFeedbackOpen(true)}
           className="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-md transition-all hover:shadow-lg"
         >
           <MessageSquarePlus className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.67} />
@@ -311,94 +312,72 @@ export function HelpPageClient({ entries, initialSlug }: HelpPageClientProps) {
       {/* Spacer for fixed sidebar */}
       <div className="hidden lg:block lg:w-[280px] lg:shrink-0" />
 
-      {/* Mobile sidebar button */}
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg lg:hidden"
-        aria-label="Open help index"
-      >
-        <List className="h-5 w-5" />
-      </button>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/30 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div className="fixed inset-y-0 left-0 z-50 w-[300px] bg-background shadow-xl lg:hidden">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                <span className="text-sm font-semibold">Help Index</span>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="rounded-lg p-1 hover:bg-white"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              {sidebarContent}
-            </div>
-          </div>
-        </>
-      )}
-
       {/* Content area */}
       <div className="flex-1 overflow-auto">
         {selectedEntry ? (
-          <div className="mx-auto max-w-3xl px-6 py-8">
-            <div className="rounded-xl bg-white p-6 lg:p-10">
-              <h1 className="text-page-header mb-2">{selectedEntry.title}</h1>
-              <Badge variant="beige" className="mb-6 text-muted-foreground">
-                {selectedEntry.category}
-              </Badge>
-              <div className="prose prose-gray mt-4 max-w-none prose-a:text-primary prose-a:underline prose-a:decoration-dotted prose-a:underline-offset-2 hover:prose-a:decoration-solid">
-                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>{selectedEntry.content}</ReactMarkdown>
+          <>
+            {/* Mobile: sticky back-to-index bar (desktop keeps the persistent sidebar) */}
+            <div className="sticky top-0 z-10 flex items-center border-b border-gray-200 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+              <button
+                onClick={goToIndex}
+                className="flex items-center gap-1 text-sm font-medium text-primary"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                All topics
+              </button>
+            </div>
+            <div className="mx-auto max-w-3xl px-6 py-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+              <div className="rounded-xl bg-white p-6 lg:p-10">
+                <h1 className="text-page-header mb-2">{selectedEntry.title}</h1>
+                <Badge variant="beige" className="mb-6 text-muted-foreground">
+                  {selectedEntry.category}
+                </Badge>
+                <div className="prose prose-gray mt-4 max-w-none prose-a:text-primary prose-a:underline prose-a:decoration-dotted prose-a:underline-offset-2 hover:prose-a:decoration-solid">
+                  <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>{selectedEntry.content}</ReactMarkdown>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="mx-auto max-w-3xl px-6 py-12">
-            <div className="text-center">
-              <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
-              <h1 className="text-xxl-semibold mb-3">Help</h1>
-              <p className="text-regular-semibold text-muted-foreground">
-                Everything you need to know about using 200 Words a Day
-              </p>
-            </div>
+          <>
+            {/* Mobile: the topic index becomes the page (master view) */}
+            <div className="h-full lg:hidden">{sidebarContent}</div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-5 shadow-card">
-                <BookOpen className="mb-3 h-6 w-6 text-primary" />
-                <h3 className="text-regular-semibold mb-1">Browse Topics</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use the sidebar to explore {categoryNames.length} categories covering {entries.length} topics — from lessons and tests to memory techniques and settings.
+            {/* Desktop: intro cards alongside the persistent sidebar */}
+            <div className="mx-auto hidden max-w-3xl px-6 py-12 lg:block">
+              <div className="text-center">
+                <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
+                <h1 className="text-xxl-semibold mb-3">Help</h1>
+                <p className="text-regular-semibold text-muted-foreground">
+                  Everything you need to know about using 200 Words a Day
                 </p>
               </div>
-              <div className="rounded-xl bg-white p-5 shadow-card">
-                <Search className="mb-3 h-6 w-6 text-primary" />
-                <h3 className="text-regular-semibold mb-1">Search</h3>
-                <p className="text-sm text-muted-foreground">
-                  Looking for something specific? Type in the search bar to filter entries by title or content.
-                </p>
-              </div>
-              <div className="rounded-xl bg-white p-5 shadow-card">
-                <MessageCircleQuestion className="mb-3 h-6 w-6 text-primary" />
-                <h3 className="text-regular-semibold mb-1">Linked Entries</h3>
-                <p className="text-sm text-muted-foreground">
-                  Many help entries link to related topics. Click any blue link within an entry to jump straight to it.
-                </p>
-              </div>
-              <div className="rounded-xl bg-white p-5 shadow-card">
-                <List className="mb-3 h-6 w-6 text-primary" />
-                <h3 className="text-regular-semibold mb-1">On Mobile</h3>
-                <p className="text-sm text-muted-foreground">
-                  Tap the blue button in the bottom-right corner to open the topic index and navigate between entries.
-                </p>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl bg-white p-5 shadow-card">
+                  <BookOpen className="mb-3 h-6 w-6 text-primary" />
+                  <h3 className="text-regular-semibold mb-1">Browse Topics</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use the sidebar to explore {categoryNames.length} categories covering {entries.length} topics — from lessons and tests to memory techniques and settings.
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-5 shadow-card">
+                  <Search className="mb-3 h-6 w-6 text-primary" />
+                  <h3 className="text-regular-semibold mb-1">Search</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Looking for something specific? Type in the search bar to filter entries by title or content.
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white p-5 shadow-card">
+                  <MessageCircleQuestion className="mb-3 h-6 w-6 text-primary" />
+                  <h3 className="text-regular-semibold mb-1">Linked Entries</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Many help entries link to related topics. Click any blue link within an entry to jump straight to it.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 

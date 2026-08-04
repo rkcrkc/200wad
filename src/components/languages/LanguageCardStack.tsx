@@ -45,7 +45,11 @@ export function LanguageCardStack({
 
   return (
     <div>
-      <div className="flex flex-wrap items-stretch gap-3">
+      {/* Mobile: a single horizontally-scrolling row of fixed-width cards
+          (scrollbar hidden). The -mx-2/p-2 pair keeps cards aligned with the
+          page content while giving the selected card's ring room so the
+          overflow doesn't clip it. Desktop (md+): the cards wrap in flow. */}
+      <div className="-mx-2 flex snap-x items-stretch gap-3 overflow-x-auto p-2 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:p-0 [&::-webkit-scrollbar]:hidden">
         {items.map(({ language }) => {
           const flag = getFlagFromCode(language.code);
           const isSelected = language.id === selectedId;
@@ -56,9 +60,11 @@ export function LanguageCardStack({
             <div
               key={language.id}
               className={cn(
-                "relative flex min-h-44 w-full flex-col rounded-2xl border bg-white shadow-card transition-all md:min-h-0 md:w-52 md:shrink-0",
+                "relative flex w-44 shrink-0 snap-start flex-col rounded-2xl border bg-white shadow-card transition-all md:w-52",
                 isSelected
-                  ? "border-primary ring-2 ring-primary"
+                  // Inset ring so the selection band sits inside the card's box
+                  // (an outer ring would be clipped by the scroll container).
+                  ? "border-primary ring-2 ring-inset ring-primary"
                   : "border-black/5 hover:border-black/15 hover:shadow-card-hover"
               )}
             >
@@ -79,7 +85,7 @@ export function LanguageCardStack({
                   <div className="flex items-center gap-1">
                     <ProgressRing
                       value={language.progressPercent}
-                      size={44}
+                      size={36}
                       showValue
                     />
                     <div className="pointer-events-auto">

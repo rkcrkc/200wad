@@ -95,7 +95,7 @@ export function SubscriptionHeader({
   }
 
   return (
-    <div className="px-8 py-6">
+    <div className="px-4 pt-6 pb-4 sm:px-8 sm:py-6">
       <div className="flex flex-col items-start gap-4 sm:grid sm:grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] sm:items-start sm:gap-0">
         {/* Current plan — aligns with the Language column below */}
         <div className="min-w-0">
@@ -112,7 +112,7 @@ export function SubscriptionHeader({
         {/* Access — aligns with the # Courses column below */}
         <div className="min-w-0 sm:col-start-2 sm:col-span-2">
           <p className="text-xs-medium text-muted-foreground">Access</p>
-          <p className="mt-1.5 text-large-semibold">{accessText}</p>
+          <p className="mt-1.5 text-large-medium">{accessText}</p>
           {accessSubtext && (
             <p className="mt-1.5 text-small-regular text-muted-foreground">
               {accessSubtext}

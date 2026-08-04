@@ -13,7 +13,7 @@ interface TipCardProps {
 
 export function TipCard({ tipId, title, body, emoji, onDismiss }: TipCardProps) {
   return (
-    <div className="w-full rounded-2xl border-[1.5px] border-[#F0C878] bg-[#FFF9E6] px-5 py-4 shadow-card">
+    <div className="w-full rounded-2xl border-[1.5px] border-[#F0C878] bg-[#FFF9E6] px-4 py-3 shadow-card md:px-5 md:py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           {title && (

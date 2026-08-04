@@ -94,11 +94,11 @@ export function SpecialLessonsRow({ lessons, mode = "lesson" }: SpecialLessonsRo
   if (cards.length === 0) return null;
 
   return (
-    <section className="mb-6">
+    <section className="mb-4 md:mb-6">
       <div className="relative -mx-4 sm:mx-0">
         <div
           ref={scrollerRef}
-          className="flex snap-x gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:px-0 [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:scroll-pl-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
           role="list"
         >
           {cards}

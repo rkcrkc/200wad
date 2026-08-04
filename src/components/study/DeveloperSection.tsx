@@ -354,7 +354,7 @@ export function DeveloperSection({
 
   return (
     <div className={cardClasses}>
-      <div className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-5 p-4 md:p-6">
         <span className="study-card-label uppercase tracking-wide text-foreground/50">
           DEVELOPER
         </span>

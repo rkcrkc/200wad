@@ -32,17 +32,8 @@ export function GuestMobileNav({ className }: GuestMobileNavProps) {
 
   return (
     <div className={cn("flex items-center justify-between", className)}>
-      <Link href={homeHref} className="flex items-center" aria-label="200 Words a Day home">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-placeholder.svg" alt="200 Words a Day" className="h-9 w-auto" />
-      </Link>
       <div className="flex items-center gap-1">
-        <Link
-          href="/login"
-          className="text-regular-semibold text-foreground hover:bg-bone-hover flex h-10 items-center rounded-[10px] px-3 transition-all"
-        >
-          Sign in
-        </Link>
+        {/* Hamburger — leading (far left) so it matches the app header. */}
         <button
           type="button"
           className="hover:bg-bone-hover flex h-10 w-10 items-center justify-center rounded-[10px] transition-all"
@@ -50,7 +41,17 @@ export function GuestMobileNav({ className }: GuestMobileNavProps) {
         >
           <Menu className="text-foreground h-6 w-6" />
         </button>
+        <Link href={homeHref} className="flex items-center" aria-label="200 Words a Day home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-placeholder.svg" alt="200 Words a Day" className="h-9 w-auto" />
+        </Link>
       </div>
+      <Link
+        href="/login"
+        className="text-regular-semibold text-foreground hover:bg-bone-hover flex h-10 items-center rounded-[10px] px-3 transition-all"
+      >
+        Sign in
+      </Link>
     </div>
   );
 }

@@ -293,7 +293,7 @@ function DashboardShell({
   // reverts to the fixed-header layout. See Header.tsx headerClasses.
   const contentWrapperClass = showPreviewMode
     ? "h-[calc(100dvh-72px)] overflow-visible md:h-screen md:pt-[72px]"
-    : "h-screen overflow-visible pt-[72px]";
+    : "h-dvh overflow-visible pt-[72px]";
 
   if (!showSidebar) {
     // No sidebar - full width content with fixed header; only main scrolls
@@ -305,7 +305,7 @@ function DashboardShell({
               <DefaultContextSetter context={defaultCourseContext} />
               <Header showSidebar={false} stats={streamedStats} showPreviewMode={showPreviewMode} languageFlags={languageFlags} />
               <div className={contentWrapperClass}>
-                <main className="bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-24 md:px-8 md:pb-6 lg:px-[60px] lg:pb-10">
+                <main className="bg-background h-full overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-[8px] pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-8 md:pb-6 lg:px-[60px] lg:pb-10">
                   {children}
                 </main>
               </div>
@@ -330,7 +330,7 @@ function DashboardShell({
                 <Header showSidebar={true} stats={streamedStats} showPreviewMode={showPreviewMode} dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} languageFlags={languageFlags} />
                 <Sidebar dueTestsCount={streamedDueTestsCount} onViewPlans={handleViewPlans} freeLessons={displayInfo?.freeLessons} collapsed={sidebarCollapsed} />
                 <div className={contentWrapperClass}>
-                  <main className={`bg-background h-full overflow-auto overscroll-contain px-4 pt-[8px] pb-24 md:px-8 md:pb-6 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
+                  <main className={`bg-background h-full overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-[8px] pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-8 md:pb-6 lg:px-10 lg:pb-10 ${sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}>
                     {children}
                   </main>
                 </div>

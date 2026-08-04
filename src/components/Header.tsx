@@ -137,7 +137,7 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
           <div className="flex min-w-0 items-center pr-4">
             {/* Logo / Course Selector - smaller on mobile, full width on lg. */}
             <div
-              className={`-ml-4 flex w-auto min-w-0 px-4 ${
+              className={`flex w-auto min-w-0 pr-4 md:-ml-4 md:pl-4 ${
                 sidebarCollapsed ? "md:w-[72px]" : "md:w-[240px]"
               }`}
             >
@@ -438,19 +438,19 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
                   <ProfileDropdown />
                 </div>
               )}
-            </>
-          )}
 
-          {/* Hamburger menu — trailing (far right) on mobile so the course
-              picker leads. Hidden at md+ where the sidebar takes over. */}
-          {showSidebar && showAsLoggedIn && (
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:hidden"
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5 text-muted-foreground" />
-            </button>
+              {/* Hamburger menu — trailing (far right) on mobile. Hidden at md+
+                  where the sidebar takes over. */}
+              {showSidebar && (
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-bone-hover md:hidden"
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5 text-muted-foreground" />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

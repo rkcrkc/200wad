@@ -499,8 +499,9 @@ export function DictionaryList({
       </div>
 
       {/* Floating Footer — full width on mobile (no sidebar), insetting to
-          clear the nav rail from md up. */}
-      <div className={cn("fixed bottom-0 right-0 z-10 bg-white shadow-bar px-6 py-3", sidebarCollapsed ? "left-0 md:left-[72px]" : "left-0 md:left-[240px]")}>
+          clear the nav rail from md up. On mobile it also sits above the fixed
+          MobileBottomNav (z-30, ~60px + safe-area) so the two don't collide. */}
+      <div className={cn("fixed bottom-[calc(60px+env(safe-area-inset-bottom))] right-0 z-10 bg-white shadow-bar px-6 py-3 md:bottom-0", sidebarCollapsed ? "left-0 md:left-[72px]" : "left-0 md:left-[240px]")}>
         <div className="mx-auto max-w-[1200px]">
           <span className="text-sm text-muted-foreground">
             {sortedWords.length === 0

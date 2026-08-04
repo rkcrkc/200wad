@@ -50,6 +50,20 @@ export function CourseAccordionCard({
     expansion.lessons[0] ??
     null;
 
+  // Progress ring + CTA share markup across the desktop (inline in the header
+  // row) and mobile (their own row beneath) layouts.
+  const progressRing = (
+    <ProgressRing value={course.progressPercent} size={36} showValue />
+  );
+  const cta = (className?: string) => (
+    <Button asChild className={cn("group", className)}>
+      <Link href={`/course/${course.id}/schedule`}>
+        {course.isCurrent ? "Continue studying" : "Study Now"}
+        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </Link>
+    </Button>
+  );
+
   return (
     <div className="relative">
       {course.isCurrent && (
@@ -64,38 +78,54 @@ export function CourseAccordionCard({
           course.isCurrent && "border border-primary ring-2 ring-primary"
         )}
       >
-        {/* Summary row */}
-      <div className="flex items-center gap-4 p-6">
-        {/* Thumbnail placeholder */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-bone text-2xl">
-          📘
-        </div>
-
-        {/* Name + difficulty + lesson count */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <h3 className="truncate text-xxl-semibold">{course.name}</h3>
-            <CourseLevelBadge level={course.level} className="shrink-0" />
+        {/* Summary */}
+      <div className="p-4 md:p-6">
+        {/* Header row */}
+        <div className="flex items-center gap-3 md:gap-4">
+          {/* Thumbnail placeholder */}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bone text-xl md:h-12 md:w-12 md:text-2xl">
+            📘
           </div>
-          <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-            {metaText}
-          </p>
+
+          {/* Name + (desktop) difficulty + description */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3">
+              <h3 className="truncate text-large-semibold md:text-xxl-semibold">
+                {course.name}
+              </h3>
+              {/* Badge sits inline with the name on desktop. */}
+              <CourseLevelBadge
+                level={course.level}
+                className="hidden shrink-0 md:inline-flex"
+              />
+            </div>
+            {/* Description is hidden on mobile to keep the header compact. */}
+            {metaText && (
+              <p className="mt-0.5 hidden line-clamp-1 text-sm text-muted-foreground md:block">
+                {metaText}
+              </p>
+            )}
+          </div>
+
+          {/* Mobile trailing slot: difficulty badge, then the progress ring. */}
+          <div className="flex shrink-0 items-center gap-2 md:hidden">
+            <CourseLevelBadge level={course.level} size="sm" />
+            {progressRing}
+          </div>
+
+          {/* Progress + CTA stay inline on desktop. */}
+          <div className="hidden items-center gap-4 md:flex">
+            {progressRing}
+            {cta("shrink-0")}
+          </div>
         </div>
 
-        {/* Progress */}
-        <ProgressRing value={course.progressPercent} size={40} showValue />
-
-        {/* Course CTA */}
-        <Button asChild className="group shrink-0">
-          <Link href={`/course/${course.id}/schedule`}>
-            {course.isCurrent ? "Continue studying" : "Study Now"}
-            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </Button>
+        {/* Mobile: the CTA fills its own row beneath the header. */}
+        <div className="mt-4 md:hidden">{cta("w-full")}</div>
       </div>
 
       {/* Detail: lesson tabs + the active lesson's words */}
-      <div className="border-t border-bone-hover px-6 py-6">
+      <div className="border-t border-bone-hover p-4 md:px-6 md:py-6">
         {expansion.error ? (
           <p className="py-4 text-center text-sm text-gray-500">
             Couldn&apos;t load this course.

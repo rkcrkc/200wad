@@ -173,7 +173,7 @@ export function MemoryTriggerCard({
     if (isHorizontal) {
       return (
         <div className="w-full rounded-2xl bg-white shadow-card">
-          <div className="flex flex-col gap-6 p-8 md:flex-row">
+          <div className="flex flex-col gap-6 p-4 md:p-8 md:flex-row">
             <div className="flex-1">
               <div className="h-8 w-full animate-pulse rounded bg-gray-100" />
             </div>
@@ -186,7 +186,7 @@ export function MemoryTriggerCard({
     }
     return (
       <div className="w-full rounded-2xl bg-white shadow-card">
-        <div className="flex flex-col gap-5 p-6">
+        <div className="flex flex-col gap-5 p-4 md:p-6">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
             <div className="h-8 flex-1 animate-pulse rounded bg-gray-100" />
@@ -273,7 +273,7 @@ export function MemoryTriggerCard({
 
     return (
       <div className="w-full rounded-2xl bg-white shadow-card">
-        <div className="flex flex-col gap-6 p-8 md:flex-row">
+        <div className="flex flex-col gap-6 p-4 md:p-8 md:flex-row">
           <div className="flex-1">{factTriggerBlock}</div>
           <div className="w-full md:w-[45%]">{factImageBlock}</div>
         </div>
@@ -491,7 +491,7 @@ export function MemoryTriggerCard({
 
   return (
     <div className="w-full rounded-2xl bg-white shadow-card">
-      <div className="flex flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
+      <div className="flex flex-col gap-4 px-3 py-3 md:gap-5 md:px-6 md:py-5">
         {!imageOnly && triggerBlock}
         {imageBlock}
       </div>

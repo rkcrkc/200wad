@@ -70,7 +70,7 @@ export function InformationCard({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="w-full rounded-2xl bg-white p-8">
+      <div className="w-full rounded-2xl bg-white p-4 md:p-8">
       {/* Title */}
       {canEdit ? (
         <EditableText

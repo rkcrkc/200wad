@@ -15,7 +15,11 @@ export function Skeleton({
     <div
       aria-hidden="true"
       className={cn(
-        "animate-pulse rounded-md bg-black/10",
+        // `max-w-full` keeps fixed-width placeholders (e.g. `w-96`) from
+        // bleeding past a narrow parent on mobile; on wider screens the parent
+        // exceeds the fixed width so it's a no-op. Callers can override with
+        // `max-w-none` if they ever need a skeleton wider than its container.
+        "max-w-full animate-pulse rounded-md bg-black/10",
         className
       )}
       {...props}

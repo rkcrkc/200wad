@@ -21,6 +21,7 @@ export function LevelCard({ data }: { data: UserLevelData }) {
         <Tooltip
           align="left"
           position="above"
+          tappable
           label={
             <p className="max-w-[240px] text-[13px] leading-[1.4]">
               Your experience level is based on your total XP and lessons
@@ -38,7 +39,7 @@ export function LevelCard({ data }: { data: UserLevelData }) {
       </div>
 
       {/* Top stats: current tier, lifetime XP, lessons mastered. */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Current level">
           <LevelBadge name={current.name} color={current.color} size="lg" />
         </Stat>
@@ -74,7 +75,7 @@ export function LevelCard({ data }: { data: UserLevelData }) {
       </div>
 
       {/* Reference ladder: every tier with its XP and lessons-mastered gates. */}
-      <div className="mt-6 overflow-hidden rounded-xl border border-gray-100">
+      <div className="mt-6 hidden overflow-hidden rounded-xl border border-gray-100 sm:block">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="bg-bone text-small-medium text-muted-foreground">

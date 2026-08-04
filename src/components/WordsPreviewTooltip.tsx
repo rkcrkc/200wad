@@ -97,7 +97,19 @@ export function WordsPreviewTooltip({
     : `${wordCount}`;
 
   if (isAutoLesson || wordCount === 0) {
-    return <>{label}</>;
+    // Non-interactive: render the label with the same base styling as the
+    // hoverable trigger (minus the hover affordance) so it looks identical.
+    return (
+      <span
+        className={
+          isPill
+            ? "rounded-full px-2.5 py-1 text-sm font-medium text-muted-foreground"
+            : undefined
+        }
+      >
+        {label}
+      </span>
+    );
   }
 
   return (

@@ -96,6 +96,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               <WordsPreviewTooltip
                 lessonId={lesson.id}
                 wordCount={lesson.word_count || lesson.sampleWords.length}
+                isAutoLesson={isAuto}
                 variant="pill"
               />
               <StatusPill status={statusType} />

@@ -200,142 +200,147 @@
 }
 
 /* 200WAD Typography Utilities */
+/* Typography utilities — defined with @utility (not @layer utilities) so that
+   Tailwind v4 generates responsive/state variants for them (e.g.
+   md:text-medium-medium). Classes authored inside @layer utilities do not get
+   variants generated in v4. */
+
+/* Page Header - Bricolage Grotesque / Bold / 40px / -2.5% / 1.35
+   Scales down on small viewports; reaches 40px desktop max. */
+@utility text-page-header {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw + 12px, 40px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 40;
+}
+
+/* XXXL / Semibold - Bricolage Grotesque / Semibold / 32px / -2.5% / 1.35
+   Scales down on small viewports; reaches 32px desktop max. */
+@utility text-xxxl-semibold {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.5vw + 14px, 32px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 32;
+}
+
+/* XXL / Semibold - Bricolage Grotesque / Semibold / 28px / -2.5% / 1.35
+   Scales down on small viewports; reaches 28px desktop max. */
+@utility text-xxl-semibold {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 1.9vw + 14px, 28px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 28;
+}
+
+/* XL / Medium - Inter Display / Medium / 24px / -2.5% / 1.35
+   Scales down on small viewports; reaches 24px desktop max. */
+@utility text-xl-medium {
+  font-size: clamp(20px, 1.25vw + 15px, 24px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 32;
+}
+
+/* XL / Semibold - Inter Display / Semibold / 24px / -2.5% / 1.35
+   Scales down on small viewports; reaches 24px desktop max. */
+@utility text-xl-semibold {
+  font-size: clamp(20px, 1.25vw + 15px, 24px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 32;
+}
+
+/* Large / Medium - Inter Display / Medium / 20px / -2% / 1.35 */
+@utility text-large-medium {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 32;
+}
+
+/* Large / Semibold - Inter Display / Semibold / 20px / -2% / 1.35 */
+@utility text-large-semibold {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 32;
+}
+
+/* Medium / Medium - Inter / Medium / 18px / -1.5% / 1.35 */
+@utility text-medium-medium {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+/* Medium / Semibold - Inter / Semibold / 18px / -1.5% / 1.35 */
+@utility text-medium-semibold {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+/* Regular / Semibold - Inter / Semibold / 15px / -1.5% / 1.35 */
+@utility text-regular-semibold {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+/* Regular / Medium - Inter / Medium / 15px / -1.5% / 1.35 */
+@utility text-regular-medium {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+/* Small / Semibold - Inter / Semibold / 14px / -1% / 1.35 */
+@utility text-small-semibold {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* Small / Medium - Inter / Medium / 14px / -1% / 1.35 */
+@utility text-small-medium {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* Small / Regular - Inter / Regular / 14px / -0.5% / 1.35 */
+@utility text-small-regular {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+/* XS / Medium - Inter / Medium / 13px / -1% / 1.35 */
+@utility text-xs-medium {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
 @layer utilities {
-  /* Page Header - Bricolage Grotesque / Bold / 40px / -2.5% / 1.35
-     Scales down on small viewports; reaches 40px desktop max. */
-  .text-page-header {
-    font-family: var(--font-display);
-    font-size: clamp(28px, 4vw + 12px, 40px);
-    font-weight: 700;
-    line-height: 1.35;
-    letter-spacing: -0.025em;
-    font-variation-settings: "opsz" 40;
-  }
-
-  /* XXXL / Semibold - Bricolage Grotesque / Semibold / 32px / -2.5% / 1.35
-     Scales down on small viewports; reaches 32px desktop max. */
-  .text-xxxl-semibold {
-    font-family: var(--font-display);
-    font-size: clamp(24px, 2.5vw + 14px, 32px);
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.025em;
-    font-variation-settings: "opsz" 32;
-  }
-
-  /* XXL / Semibold - Bricolage Grotesque / Semibold / 28px / -2.5% / 1.35
-     Scales down on small viewports; reaches 28px desktop max. */
-  .text-xxl-semibold {
-    font-family: var(--font-display);
-    font-size: clamp(22px, 1.9vw + 14px, 28px);
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.025em;
-    font-variation-settings: "opsz" 28;
-  }
-
-  /* XL / Medium - Inter Display / Medium / 24px / -2.5% / 1.35
-     Scales down on small viewports; reaches 24px desktop max. */
-  .text-xl-medium {
-    font-size: clamp(20px, 1.25vw + 15px, 24px);
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.025em;
-    font-variation-settings: "opsz" 32;
-  }
-
-  /* XL / Semibold - Inter Display / Semibold / 24px / -2.5% / 1.35
-     Scales down on small viewports; reaches 24px desktop max. */
-  .text-xl-semibold {
-    font-size: clamp(20px, 1.25vw + 15px, 24px);
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.025em;
-    font-variation-settings: "opsz" 32;
-  }
-
-  /* Large / Medium - Inter Display / Medium / 20px / -2% / 1.35 */
-  .text-large-medium {
-    font-size: 20px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.02em;
-    font-variation-settings: "opsz" 32;
-  }
-
-  /* Large / Semibold - Inter Display / Semibold / 20px / -2% / 1.35 */
-  .text-large-semibold {
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.02em;
-    font-variation-settings: "opsz" 32;
-  }
-
-  /* Medium / Medium - Inter / Medium / 18px / -1.5% / 1.35 */
-  .text-medium-medium {
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.015em;
-  }
-
-  /* Medium / Semibold - Inter / Semibold / 18px / -1.5% / 1.35 */
-  .text-medium-semibold {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.015em;
-  }
-
-  /* Regular / Semibold - Inter / Semibold / 15px / -1.5% / 1.35 */
-  .text-regular-semibold {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.015em;
-  }
-
-  /* Regular / Medium - Inter / Medium / 15px / -1.5% / 1.35 */
-  .text-regular-medium {
-    font-size: 15px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.015em;
-  }
-
-  /* Small / Semibold - Inter / Semibold / 14px / -1% / 1.35 */
-  .text-small-semibold {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-  }
-
-  /* Small / Medium - Inter / Medium / 14px / -1% / 1.35 */
-  .text-small-medium {
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-  }
-
-  /* Small / Regular - Inter / Regular / 14px / -0.5% / 1.35 */
-  .text-small-regular {
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.35;
-    letter-spacing: -0.005em;
-  }
-
-  /* XS / Medium - Inter / Medium / 13px / -1% / 1.35 */
-  .text-xs-medium {
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-  }
-
   /* Card labels - 12px (one step smaller than xs, avoids Tailwind conflict) */
   .study-card-label {
     font-size: 12px;
@@ -502,6 +507,16 @@
 /* Hide hover tooltips when user preference is off */
 body.hide-tooltips .tooltip-hover {
   display: none !important;
+}
+
+/* Hover-only tooltips are noise on touch devices: there's no hover to reveal
+   them, and a tap already runs the trigger's own action. Tap-toggle tooltips
+   (the `tappable` variant, used for passive `(?)` info) are intentionally
+   exempt so they stay reachable on touch. */
+@media (hover: none) {
+  .tooltip-hover-only {
+    display: none !important;
+  }
 }
 
 /* Hide related-words card when user preference is off */

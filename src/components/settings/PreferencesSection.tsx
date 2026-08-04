@@ -190,7 +190,8 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
 
       <div className="my-4 h-px bg-gray-200" />
 
-      <div className="flex items-center justify-between">
+      {/* Hover-only preference — hidden on touch layouts where there is no hover. */}
+      <div className="hidden items-center justify-between sm:flex">
         <div>
           <h3 className="font-medium">Hide hover descriptions</h3>
           <p className="text-sm text-gray-600">
@@ -203,7 +204,7 @@ export function PreferencesSection({ dailyXpGoal }: PreferencesSectionProps) {
         />
       </div>
 
-      <div className="my-4 h-px bg-gray-200" />
+      <div className="my-4 hidden h-px bg-gray-200 sm:block" />
 
       <div className="flex items-center justify-between">
         <div>

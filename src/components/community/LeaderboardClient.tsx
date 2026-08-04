@@ -343,7 +343,7 @@ export function LeaderboardClient({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-semibold">Leaderboard</h1>
+            <h1 className="text-page-header">Leaderboard</h1>
             {rewardBands.length > 0 && (
               <Popover
                 position="below"

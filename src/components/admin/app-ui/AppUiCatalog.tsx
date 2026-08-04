@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense, type ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo, Suspense, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Menu } from "lucide-react";
+import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -22,6 +22,7 @@ import { SchedulerSection } from "@/components/schedule/SchedulerSection";
 import { LessonGridSection } from "@/components/schedule/LessonGridSection";
 import { LessonPreviewCard } from "@/components/schedule/LessonPreviewCard";
 import { ScrollablePills } from "@/components/schedule/ScrollablePills";
+import { MobileBottomNav } from "@/components/schedule/MobileBottomNav";
 import { PageShell } from "@/components/PageShell";
 import { PageContainer } from "@/components/PageContainer";
 import { PageTopBar } from "@/components/PageTopBar";
@@ -50,6 +51,9 @@ import type { UpgradeTarget } from "@/components/subscriptions/planCopy";
 import type { PricingPlan } from "@/types/database";
 import type { ExampleSentence, Lesson } from "@/types/database";
 import { WordPreviewProvider } from "@/context/WordPreviewContext";
+import { CourseProvider, useSetCourseContext } from "@/context/CourseContext";
+import { HeaderStatsProvider, type HeaderStatsBundle } from "@/context/HeaderStatsContext";
+import type { ContinueItem } from "@/lib/queries/schedule";
 import { MobileStatsDropdown } from "@/components/ui/mobile-stats-dropdown";
 import type { LessonForScheduler } from "@/lib/queries/schedule";
 import type { LessonWithProgress } from "@/lib/queries/lessons";
@@ -157,6 +161,7 @@ function PrimitivesSection() {
           "SchedulerCard (Start test / Study lesson)",
           "Onboarding & signup flows",
           "Checkout footer",
+          "Lesson detail footer bar (size=sm)",
         ]}
       >
         <Swatch label="variant=primary">
@@ -164,6 +169,14 @@ function PrimitivesSection() {
         </Swatch>
         <Swatch label="variant=outline">
           <PrimaryButton variant="outline">Maybe later</PrimaryButton>
+        </Swatch>
+        <Swatch label="size=sm">
+          <PrimaryButton size="sm">Study</PrimaryButton>
+        </Swatch>
+        <Swatch label="size=sm · outline">
+          <PrimaryButton size="sm" variant="outline">
+            Test
+          </PrimaryButton>
         </Swatch>
       </Entry>
 
@@ -963,6 +976,52 @@ function FeaturesSection() {
         here first so we can rework the mobile/tablet variants in isolation.
       </p>
 
+      <PageGroupHeading>Global navigation</PageGroupHeading>
+
+      <DescEntry
+        name="MobileBottomNav"
+        source="src/components/schedule/MobileBottomNav.tsx"
+        description="Mobile-only floating bottom tab bar, rendered globally by DashboardContent on dashboard pages. Tabs: Home (schedule), Lessons, Tests, and a Continue tab that deep-links into the current scheduler item — Study for a due lesson, or the test-start modal for a due test. It reads courseId from CourseContext and its Continue target from the streamed header-stats bundle, so it needs no props."
+        props={[
+          "No props — reads courseId (CourseContext) + continueItem (HeaderStatsContext)",
+        ]}
+        usedIn={["DashboardContent (global — sidebar and full-width shells)"]}
+        mobileNote="Mobile-only (md:hidden), position:fixed to the viewport bottom with a safe-area inset for the home indicator. Hidden entirely when there's no active course (e.g. mid-onboarding) and on the lesson detail page (/lesson/<id>), which runs its own focused layout; the /study and /test flows already opt out upstream in DashboardContent. The active tab is derived from the pathname."
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="mobile · lesson due (Continue → Study)">
+              <MobileFrame flush height={96}>
+                <div className="relative" style={{ height: 96, transform: "translateZ(0)" }}>
+                  <MobileBottomNavLive
+                    continueItem={{
+                      lessonId: "app-ui-demo-lesson",
+                      mode: "lesson",
+                      title: "Greetings & Introductions",
+                      wordCount: 12,
+                    }}
+                  />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · test due (Continue → start-test modal)">
+              <MobileFrame flush height={96}>
+                <div className="relative" style={{ height: 96, transform: "translateZ(0)" }}>
+                  <MobileBottomNavLive
+                    continueItem={{
+                      lessonId: "app-ui-demo-lesson",
+                      mode: "test",
+                      title: "Greetings & Introductions",
+                      wordCount: 12,
+                      milestone: null,
+                    }}
+                  />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
+      />
+
       <PageGroupHeading>Schedule page</PageGroupHeading>
 
       <Entry
@@ -1255,7 +1314,26 @@ function FeaturesSection() {
           "sidebarCollapsed (drives the left inset)",
         ]}
         usedIn={["Lesson page (/lesson/[lessonId])"]}
-        mobileNote="The bar spans full width on a phone — the sidebar is off-canvas, so its desktop left-[72px]/left-[240px] inset resets to left-0 below md. The previous/next lesson links collapse to arrow-only below md (their Previous/Next label + title stack is hidden md:flex, the chevron stays), so the two primary buttons drop their max-w-[240px] cap and fill the middle. Inner padding tightens to px-4 py-3 (vs px-6 py-4). The page title downscales to text-xxl-semibold and the header stats row narrows its gap. (Description-only — the bar is inline in the page, not a standalone component to render here.)"
+        mobileNote="The bar spans full width on a phone — the sidebar is off-canvas, so its desktop left-[72px]/left-[240px] inset resets to left-0 below md. The previous/next lesson links collapse to arrow-only below md (their Previous/Next label + title stack is hidden md:flex, the chevron stays), so the two primary buttons drop their max-w-[240px] cap and fill the middle. Inner padding tightens to px-4 py-3 (vs px-6 py-4). (Preview note: the bar is position:fixed and its markup is inline in LessonPageContent — not an extracted component — so it's reproduced here and trapped in a transformed box; on desktop it keeps its md:left-[240px] sidebar offset, so it starts inset from the left, which is the sidebar reservation, not a bug.)"
+        preview={
+          <div className="space-y-4">
+            <PreviewVariant label="desktop · prev/next links flanking Study + Take test (offset for sidebar)">
+              <div
+                className="relative overflow-hidden rounded-lg bg-black/5"
+                style={{ height: 120, transform: "translateZ(0)" }}
+              >
+                <LessonActionBarDemo />
+              </div>
+            </PreviewVariant>
+            <PreviewVariant label="mobile · arrow-only links, full-width Study / Test buttons">
+              <MobileFrame flush height={120}>
+                <div className="relative" style={{ height: 120, transform: "translateZ(0)" }}>
+                  <LessonActionBarDemo />
+                </div>
+              </MobileFrame>
+            </PreviewVariant>
+          </div>
+        }
       />
 
       <PageGroupHeading>Tests hub</PageGroupHeading>
@@ -1826,6 +1904,43 @@ function FeaturesSection() {
 // Interactive demos
 // ---------------------------------------------------------------------------
 
+/**
+ * Live mobile bottom nav. The real bar reads courseId from CourseContext and its
+ * Continue target from HeaderStatsContext, so we seed both: a CourseProvider fed
+ * a demo courseId (via CourseIdSeed → useSetCourseContext) and a
+ * HeaderStatsProvider given a resolved bundle carrying the continueItem. It's
+ * `position:fixed` + `md:hidden`, so it only renders inside the phone frame,
+ * pinned to the frame's bottom. Links are inert here (no matching routes).
+ */
+function MobileBottomNavLive({
+  continueItem = null,
+}: {
+  continueItem?: ContinueItem | null;
+}) {
+  const promise = useMemo(
+    () =>
+      Promise.resolve<HeaderStatsBundle>({
+        stats: { wordsPerDay: 0, courseProgressPercent: 0 },
+        dueTestsCount: 0,
+        continueItem,
+      }),
+    [continueItem]
+  );
+  return (
+    <CourseProvider>
+      <CourseIdSeed courseId="app-ui-demo-course" />
+      <HeaderStatsProvider promise={promise}>
+        <MobileBottomNav />
+      </HeaderStatsProvider>
+    </CourseProvider>
+  );
+}
+
+function CourseIdSeed({ courseId }: { courseId: string }) {
+  useSetCourseContext({ courseId });
+  return null;
+}
+
 function SwitchDemo() {
   const [on, setOn] = useState(true);
   return <Switch checked={on} onCheckedChange={setOn} />;
@@ -2356,6 +2471,64 @@ function LanguageSubscriptionsListDemo() {
         selectedLanguageId={selected}
         onUnlockLanguage={(lang) => setSelected(lang.id)}
       />
+    </div>
+  );
+}
+
+/**
+ * Live lesson-page action bar. Its markup is inline in LessonPageContent (not an
+ * extracted component), so it's reproduced here with mock prev/next lessons and
+ * XP. It's position:fixed with a left-0 md:left-[240px] sidebar offset, so
+ * callers trap it in a transformed containing block (see the preview boxes);
+ * the responsive classes render the desktop vs mobile treatments themselves.
+ */
+function LessonActionBarDemo() {
+  return (
+    <div className="fixed bottom-0 right-0 left-0 z-10 bg-white shadow-bar md:left-[240px]">
+      <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:gap-4 md:px-6 md:py-4">
+        {/* Previous lesson (arrow-only below md) */}
+        <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden text-left md:max-w-44">
+          <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <div className="hidden min-w-0 flex-1 flex-col overflow-hidden md:flex">
+            <span className="text-xs text-muted-foreground">Previous</span>
+            <span className="block min-w-0 truncate text-regular-semibold text-foreground">
+              #4 Numbers
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center gap-3 md:gap-4">
+          <PrimaryButton
+            size="sm"
+            className="min-w-0 flex-1 md:h-[52px] md:max-w-[240px] md:px-6 md:text-base"
+          >
+            <span className="md:hidden">Study</span>
+            <span className="hidden md:inline">Study lesson</span>
+          </PrimaryButton>
+          <PrimaryButton
+            variant="outline"
+            size="sm"
+            className="min-w-0 flex-1 md:h-[52px] md:max-w-[240px] md:px-6 md:text-base"
+          >
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span className="md:hidden">Test</span>
+              <span className="hidden md:inline">Take test</span>
+              <XpBadge value={90} variant="available-blue" />
+            </span>
+          </PrimaryButton>
+        </div>
+
+        {/* Next lesson (arrow-only below md) */}
+        <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden text-left md:max-w-44">
+          <div className="hidden min-w-0 flex-1 flex-col overflow-hidden md:flex">
+            <span className="text-xs text-muted-foreground">Next</span>
+            <span className="block min-w-0 truncate text-regular-semibold text-foreground">
+              #6 Colours
+            </span>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </div>
+      </div>
     </div>
   );
 }

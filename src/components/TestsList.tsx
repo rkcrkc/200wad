@@ -58,7 +58,7 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
                 "px-2 py-3 text-left font-medium"
               )}>
                 {filter === "previous" ? (
-                  <Tooltip label="Average lesson test score">
+                  <Tooltip label="Average lesson test score" tappable>
                     <span className="inline-flex items-center gap-1.5">
                       Score
                       {averageScore != null && averageScore > 0 && (
@@ -76,6 +76,7 @@ export function TestsList({ dueTests, previousTests, averageScore }: TestsListPr
                 <th className="w-[80px] px-2 py-3 text-center font-medium">
                   <Tooltip
                     align="right"
+                    tappable
                     label={
                       <span className="block whitespace-normal">
                         XP earned — 3 XP per word answered perfectly

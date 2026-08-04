@@ -28,7 +28,7 @@ function CourseRowInner({
   return (
     <>
       {/* Thumbnail + name span the Language + Current Plan columns */}
-      <div className="col-span-2 flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3 sm:col-span-2">
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-bone text-xl">
           {course.thumbnailUrl ? (
             <Image
@@ -47,9 +47,10 @@ function CourseRowInner({
         </span>
       </div>
 
-      {/* Lessons column: free/locked split when locked, else lessons + words */}
+      {/* Lessons column: free/locked split when locked, else lessons + words.
+          Indented under the name on mobile to align with the stacked layout. */}
       {locked ? (
-        <div className="flex items-center gap-2 text-small-regular text-muted-foreground">
+        <div className="flex items-center gap-2 pl-[52px] text-small-regular text-muted-foreground sm:pl-0">
           <span>{course.totalLessons} {course.totalLessons === 1 ? "lesson" : "lessons"}</span>
           <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-small-medium text-warning">
             <Lock className="h-3 w-3 shrink-0" />
@@ -57,15 +58,14 @@ function CourseRowInner({
           </span>
         </div>
       ) : (
-        <div className="flex flex-col gap-0.5 text-small-regular text-muted-foreground">
-          <span>{course.totalLessons} {course.totalLessons === 1 ? "lesson" : "lessons"}</span>
-          <span>{course.wordCount} {course.wordCount === 1 ? "word" : "words"}</span>
+        <div className="pl-[52px] text-small-regular text-muted-foreground sm:pl-0">
+          {course.totalLessons} {course.totalLessons === 1 ? "lesson" : "lessons"}
         </div>
       )}
 
-      {/* Action + chevron columns (reserved, keeps the Lessons column aligned) */}
-      <span />
-      <span />
+      {/* Action + chevron columns (reserved on desktop, keeps alignment) */}
+      <span className="hidden sm:block" />
+      <span className="hidden sm:block" />
     </>
   );
 }
@@ -76,7 +76,7 @@ export function ExpandableCourseList({
 }: ExpandableCourseListProps) {
   if (courses.length === 0) {
     return (
-      <div className="bg-white px-8 py-4">
+      <div className="bg-white px-4 py-4 sm:px-8">
         <p className="text-sm text-muted-foreground">No courses available yet.</p>
       </div>
     );
@@ -99,8 +99,8 @@ export function ExpandableCourseList({
         return (
           <Fragment key={course.id}>
             {/* Divider inset to align with the row's horizontal padding */}
-            {i > 0 && <div className="mx-8 border-t border-bone-hover" />}
-            <div className="grid grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] items-center px-8 py-3">
+            {i > 0 && <div className="mx-4 border-t border-bone-hover sm:mx-8" />}
+            <div className="flex flex-col gap-1 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] sm:items-center sm:gap-0 sm:px-8">
               <CourseRowInner
                 course={course}
                 lockedCount={lockedCount}

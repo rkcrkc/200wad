@@ -9,7 +9,7 @@ interface SummaryCardsProps {
 }
 
 const InfoIcon = ({ content }: { content: React.ReactNode }) => (
-  <Tooltip align="right" position="above" label={content}>
+  <Tooltip align="right" position="above" tappable label={content}>
     <span
       aria-label="More info"
       className="flex h-4 w-4 items-center justify-center text-muted-foreground/60"
