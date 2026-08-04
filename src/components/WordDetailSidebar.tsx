@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { X, ChevronsRightLeft, ChevronsLeftRight } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -441,6 +442,12 @@ export function WordDetailSidebar({
 
   const isVisible = entered && !closing;
 
+  // Render through a portal on document.body so `position: fixed` resolves
+  // against the viewport, not a transformed ancestor (which was clipping the
+  // sheet's top off-screen on mobile).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -457,14 +464,31 @@ export function WordDetailSidebar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleClose, onPrevious, onNext, hasPrevious, hasNext]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
-      {/* Sidebar panel */}
+      {/* Mobile scrim — on phones the panel is a bottom sheet, so dim the study
+          screen behind it and let a tap dismiss. Hidden on desktop, where the
+          panel is a side rail and the rest of the screen stays interactive. */}
+      <div
+        onClick={handleClose}
+        aria-hidden
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${
+          isVisible ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Panel: a bottom sheet on mobile (slides up, rounded top, capped
+          height), a side rail on desktop (slides in from the right, full
+          height). */}
       <div
         ref={sidebarRef}
         style={{ width: sidebarWidth }}
-        className={`fixed top-0 right-0 bottom-0 z-50 flex flex-col bg-bone shadow-2xl transition-[width,transform] duration-300 ease-out max-md:!w-full ${
-          isVisible ? "translate-x-0" : "translate-x-full"
+        className={`fixed z-50 flex flex-col overflow-hidden bg-bone shadow-2xl transition-[width,transform] duration-300 ease-out inset-x-0 bottom-0 top-16 rounded-t-2xl max-md:!w-full md:inset-x-auto md:top-0 md:right-0 md:bottom-0 md:rounded-none md:overflow-visible ${
+          isVisible
+            ? "translate-x-0 translate-y-0"
+            : "translate-y-full md:translate-x-full md:translate-y-0"
         }`}
       >
         {/* Header */}
@@ -559,7 +583,7 @@ export function WordDetailSidebar({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 md:px-6 md:pt-6">
           <WordDetailView
             word={localWord}
             lessonTitle={lessonTitle}
@@ -624,6 +648,7 @@ export function WordDetailSidebar({
           onEditModeToggle={() => setIsEditMode((v) => !v)}
         />
       </div>
-    </>
+    </>,
+    document.body
   );
 }
