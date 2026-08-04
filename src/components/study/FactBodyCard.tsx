@@ -42,7 +42,7 @@ export function FactBodyCard({
 
   return (
     <div className={cardClasses}>
-      <div className="flex flex-col gap-3 p-6">
+      <div className="flex flex-col gap-3 p-4 md:p-6">
         {!isVisible ? (
           <div className="space-y-2">
             <div className="h-6 w-full animate-pulse rounded bg-gray-100" />

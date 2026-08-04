@@ -711,7 +711,7 @@ export function StudyActionBar({
   };
 
   return (
-    <div className="px-4 py-4 sm:px-6">
+    <div className="px-4 py-2.5 sm:px-6 sm:py-4">
       <div className="flex items-center justify-between gap-4">
         {/* Left section - word info, score */}
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">

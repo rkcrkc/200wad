@@ -159,7 +159,7 @@ export function StudySidebar({
       <div className="flex w-full min-w-0 flex-col gap-4">
         {/* Notes skeleton */}
         <div className={cardClasses}>
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             <div className="mb-5 h-3 w-16 animate-pulse rounded bg-gray-200" />
             <div className="h-20 w-full animate-pulse rounded bg-gray-100" />
           </div>
@@ -167,7 +167,7 @@ export function StudySidebar({
 
         {/* Example sentences skeleton */}
         <div className={cardClasses}>
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             <div className="mb-5 h-3 w-36 animate-pulse rounded bg-gray-200" />
             <div className="space-y-4">
               <div className="h-16 w-full animate-pulse rounded bg-gray-100" />
@@ -178,7 +178,7 @@ export function StudySidebar({
 
         {/* Related words skeleton */}
         <div className={cardClasses}>
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             <div className="mb-5 h-3 w-28 animate-pulse rounded bg-gray-200" />
             <div className="h-16 w-full animate-pulse rounded bg-gray-100" />
           </div>
@@ -206,7 +206,7 @@ export function StudySidebar({
 
       {/* Notes Card */}
       <div className={cardClasses}>
-        <div className="flex flex-col gap-5 p-6">
+        <div className="flex flex-col gap-5 p-4 md:p-6">
           <span className="study-card-label uppercase tracking-wide text-foreground/50">
             NOTES
           </span>
@@ -331,7 +331,7 @@ export function StudySidebar({
       {/* Example Sentences Card */}
       {exampleSentences.length > 0 && (
         <div className={cardClasses}>
-          <div className="flex flex-col gap-5 p-6">
+          <div className="flex flex-col gap-5 p-4 md:p-6">
           <span className="study-card-label uppercase tracking-wide text-foreground/50">
             EXAMPLE SENTENCES
           </span>
@@ -483,7 +483,7 @@ function RelatedEntriesCard({
   if (entries.length === 0) return null;
   return (
     <div className={cn(cardClasses, "related-words-card")}>
-      <div className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-5 p-4 md:p-6">
         <div className="flex items-center justify-between gap-2">
           <span className="study-card-label uppercase tracking-wide text-foreground/50">
             RELATED WORDS
@@ -492,6 +492,7 @@ function RelatedEntriesCard({
             label="Find related words distracting? You can hide this card in Settings → Preferences."
             position="below"
             align="right"
+            tappable
           >
             <Info
               className="h-4 w-4 text-foreground/40 hover:text-foreground/70 transition-colors"

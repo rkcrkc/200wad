@@ -2267,7 +2267,7 @@ export function TestModeClient({
         />
 
         {/* Scrollable content: WordCard full width, then two columns (pt for fixed navbar) */}
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-[160px] pt-[90px]">
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[160px] pt-[90px] sm:px-6">
           <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
             {/* Word Card - full width */}
             <div className="w-full">
@@ -2540,7 +2540,7 @@ export function TestModeClient({
       {/* Exit Confirmation Modal */}
       {showExitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-xl-semibold text-foreground mb-2">Exit test?</h2>
             <p className="text-regular text-muted-foreground mb-6">
               Your test scores will be lost. Are you sure you want to exit?

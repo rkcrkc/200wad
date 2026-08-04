@@ -72,14 +72,14 @@ export function WordCard({
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white px-4 py-3 shadow-card sm:px-6 sm:py-4">
+    <div className="w-full rounded-2xl bg-white px-3 py-2.5 shadow-card md:px-6 md:py-4">
       {/* Words container */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-0.5 md:gap-2">
         {/* English word row */}
         {showEnglish ? (
           <button
             onClick={isEditMode ? undefined : onPlayEnglishAudio}
-            className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
+            className="flex min-h-[34px] cursor-pointer items-center gap-3 rounded-lg text-left md:min-h-[42px]"
           >
             {isEditMode && onUploadEnglishAudio ? (
               <AudioUploadButton onUpload={onUploadEnglishAudio} />
@@ -106,7 +106,7 @@ export function WordCard({
             )}
           </button>
         ) : (
-          <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />
+          <div className="h-[34px] w-full animate-pulse rounded-lg bg-gray-100 md:h-[42px]" />
         )}
 
         {/* Alternate English answers - edit mode only */}
@@ -126,7 +126,7 @@ export function WordCard({
         {showForeign ? (
           <button
             onClick={isEditMode ? undefined : onPlayForeignAudio}
-            className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg text-left"
+            className="flex min-h-[34px] cursor-pointer items-center gap-3 rounded-lg text-left md:min-h-[42px]"
           >
             {isEditMode && onUploadForeignAudio ? (
               <AudioUploadButton onUpload={onUploadForeignAudio} />
@@ -153,7 +153,7 @@ export function WordCard({
             )}
           </button>
         ) : (
-          <div className="h-[42px] w-full animate-pulse rounded-lg bg-gray-100" />
+          <div className="h-[34px] w-full animate-pulse rounded-lg bg-gray-100 md:h-[42px]" />
         )}
 
         {/* Alternate foreign answers - edit mode only */}
