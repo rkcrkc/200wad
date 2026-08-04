@@ -37,8 +37,7 @@ export function LanguageSubscriptionsList({
   }
 
   return (
-    // Full-width divider separates the header section from the languages list.
-    <div className="border-t border-bone-hover">
+    <div>
       {/* Column headers */}
       <div className="hidden sm:grid items-center grid-cols-[minmax(0,240px)_minmax(0,180px)_1fr_220px_40px] px-8 pt-6 pb-3">
         <span className="text-xs-medium text-muted-foreground">Language</span>
@@ -53,8 +52,16 @@ export function LanguageSubscriptionsList({
           const accessUnlocked = unlockedLanguageIds.includes(lang.id);
           return (
             <Fragment key={lang.id}>
-              {/* Inset row dividers respect the card's horizontal padding. */}
-              {i > 0 && <div className="mx-4 sm:mx-8 border-t border-bone-hover" />}
+              {/* Row dividers are inset to the card padding, but span full-width
+                  when the previous language is expanded so the divider below its
+                  last course row reaches both card edges. */}
+              {i > 0 && (
+                <div
+                  className={`border-t border-bone-hover ${
+                    expandedLanguageIds.has(languages[i - 1].id) ? "" : "mx-4 sm:mx-8"
+                  }`}
+                />
+              )}
               <LanguageSubscriptionRow
                 lang={lang}
                 accessUnlocked={accessUnlocked}

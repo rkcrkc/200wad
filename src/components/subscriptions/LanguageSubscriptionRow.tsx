@@ -40,26 +40,33 @@ export function LanguageSubscriptionRow({
             <span className="text-medium-semibold">{lang.name}</span>
           </div>
 
-          {/* Courses */}
-          <div className="order-2 text-small-regular text-muted-foreground sm:order-none">
-            {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
-          </div>
+          {/* Courses + lessons: one dot-separated row on mobile, separate grid columns on desktop */}
+          <div className="order-2 flex flex-wrap items-center gap-x-2 gap-y-1 sm:contents">
+            {/* Courses */}
+            <div className="text-small-regular text-foreground">
+              {lang.courseCount} {lang.courseCount === 1 ? "course" : "courses"}
+            </div>
 
-          {/* Access */}
-          <div className="order-3 flex items-center sm:order-none">
-            {accessUnlocked ? (
-              <span className="text-small-medium text-green-600">Unlocked</span>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-small-regular text-muted-foreground">
-                  {lang.totalLessons} {lang.totalLessons === 1 ? "lesson" : "lessons"}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-small-medium text-warning">
-                  <Lock className="h-3 w-3 shrink-0" />
-                  {lockedLessons} locked
-                </span>
-              </div>
-            )}
+            <span className="text-small-regular text-muted-foreground sm:hidden" aria-hidden="true">
+              ·
+            </span>
+
+            {/* Access */}
+            <div className="flex items-center">
+              {accessUnlocked ? (
+                <span className="text-small-medium text-green-600">Unlocked</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-small-regular text-foreground">
+                    {lang.totalLessons} {lang.totalLessons === 1 ? "lesson" : "lessons"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-small-medium text-warning">
+                    <Lock className="h-3 w-3 shrink-0" />
+                    {lockedLessons} locked
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Action */}

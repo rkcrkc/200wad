@@ -17,6 +17,8 @@ interface CheckoutFooterBarProps {
   creditBalanceCents: number;
   onChangeTarget: (target: UpgradeTarget) => void;
   onClose: () => void;
+  /** Reports the bar's rendered height so the page can reserve space for it. */
+  onHeightChange?: (height: number) => void;
 }
 
 interface TargetOption {
@@ -74,7 +76,7 @@ function PlanTypeDropup({
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute bottom-full right-0 z-50 mb-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -201,8 +203,25 @@ export function CheckoutFooterBar({
   creditBalanceCents,
   onChangeTarget,
   onClose,
+  onHeightChange,
 }: CheckoutFooterBarProps) {
   const sidebarCollapsed = useSidebarCollapsed();
+
+  // Report the bar's height (and changes to it) so the page can pad its content
+  // by the same amount, keeping the last rows clear of this fixed overlay.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !onHeightChange) return;
+    const report = () => onHeightChange(el.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      onHeightChange(0);
+    };
+  }, [onHeightChange]);
 
   // Every purchasable target: the all-languages bundle (when offered) followed
   // by each individual language. Drives the selected-target pill's dropup.
@@ -326,8 +345,8 @@ export function CheckoutFooterBar({
   }
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]"}`}>
-      <div className="mx-auto max-w-content-md px-4 py-3 sm:px-6 sm:py-4">
+    <div ref={rootRef} className={`fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]"}`}>
+      <div className="mx-auto max-w-content-md px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-4">
         {/* Header row: cart icon + section label */}
         <div className="mb-3 flex items-center gap-3">
           <ShoppingCart className="h-5 w-5 shrink-0 text-muted-foreground" />
