@@ -15,6 +15,7 @@ import { GuestMobileNav } from "./GuestMobileNav";
 import { CourseDropdown } from "./CourseDropdown";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { DailyGoalRing } from "./header/DailyGoalRing";
+import { MobileCourseProgress } from "./header/MobileCourseProgress";
 import type { HeaderStats } from "./DashboardContent";
 import { formatDuration, formatNumber, formatPercent, formatRatioPercent } from "@/lib/utils/helpers";
 import { useText } from "@/context/TextContext";
@@ -208,6 +209,16 @@ export function Header({ showSidebar = true, stats, showPreviewMode = false, due
               </Link>
             )}
           </div>
+
+          {/* Mobile-only course progress ring — sits beside the course name.
+              Desktop shows the full stats row below instead (this is md:hidden). */}
+          {showAsLoggedIn && effectiveStats && hasContext && courseId && (
+            <MobileCourseProgress
+              courseId={courseId}
+              stats={effectiveStats}
+              allCourseTotalTimeSeconds={courseContext.allCourseTotalTimeSeconds}
+            />
+          )}
 
           {/* Sidebar collapse toggle - desktop only, sits left of back/forward */}
           {showSidebar && showAsLoggedIn && onToggleSidebar && (
