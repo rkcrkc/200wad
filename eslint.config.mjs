@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Archived landing concepts: kept in git for reference, not built or linted.
+    "src/_archive/**",
   ]),
 ]);
 

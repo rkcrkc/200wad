@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { Inter, Bricolage_Grotesque, Spline_Sans_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,6 +15,15 @@ const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   display: "swap",
 });
+
+// Brand eyebrow/caption face for the marketing site (`.site` utilities read
+// `--font-mono`). Loaded globally like the other brand fonts; only used under `.site`.
+const splineMono = Spline_Sans_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 import { UserProvider } from "@/context/UserContext";
 import { ConsentProvider } from "@/context/ConsentContext";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
@@ -23,7 +32,16 @@ import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { FlagEmojiPolyfill } from "@/components/providers/FlagEmojiPolyfill";
 import { createClient } from "@/lib/supabase/server";
 
+// Resolve every page's relative `canonical`/OpenGraph URL against the apex
+// marketing host in production — all indexable pages are marketing pages, and
+// their canonicals (e.g. "/", "/pricing") must point at the apex, not the app
+// subdomain. Falls back to the app origin, then to undefined in dev/"combined"
+// (where Next resolves against the request origin).
+const metadataBaseUrl =
+  process.env.NEXT_PUBLIC_MARKETING_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+
 export const metadata: Metadata = {
+  ...(metadataBaseUrl ? { metadataBase: new URL(metadataBaseUrl) } : {}),
   title: "200 Words a Day",
   description: "Learn languages effectively with 200 words a day",
 };
@@ -67,7 +85,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable} ${splineMono.variable}`}>
       <body className="font-sans antialiased">
         <FlagEmojiPolyfill />
         <ConsentProvider>

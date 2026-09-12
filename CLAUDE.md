@@ -135,10 +135,46 @@ Types auto-generated in `src/types/database.ts` with convenience aliases (User, 
 
 ## Design System
 
-Colors: background `#faf8f3`, primary `#0b6cff`, success `#00c950`, warning `#ff9224`, destructive `#fb2c36`
+There are **two layers**, and they must not leak into each other:
 
-Typography utilities (defined in `src/app/globals.css` — these are the ONLY ones; do not invent new ones like `.text-xxl-medium`). Display tier is sized `xl (24) < xxl (28) < xxxl (32) < page-header (40)`; the Bricolage Grotesque display face is used for `.text-page-header`, `.text-xxxl-semibold`, and `.text-xxl-semibold`:
+1. **App UI layer** — the authenticated product. Tokens + `.text-*` utilities in
+   `src/app/globals.css` + shadcn. Flat surfaces. Used everywhere except the marketing site.
+2. **Marketing `.site` brand layer** — the marketing website (Landing page etc.).
+   Everything is scoped under a single `.site` wrapper in `src/styles/site.css`. See
+   the "Marketing `.site` brand layer" subsection below.
+
+**Scoping rule (hard constraint):** marketing tokens stay under `.site`, never `:root`.
+The app's `:root` sets `--accent: #f2ead9` (tan); the brand `--accent` is blue — promoting
+the brand tokens to `:root` would corrupt the app. Likewise the app layer never uses
+`.site` utilities. The two share only deliberately single-sourced **atoms** (see below).
+
+Colors (app layer): background `#faf8f3`, primary `#0b6cff`, success `#00c950`, warning `#ff9224`, destructive `#fb2c36`
+
+Typography utilities (app layer; defined in `src/app/globals.css` — these are the ONLY ones for the app UI; do not invent new ones like `.text-xxl-medium`). Display tier is sized `xl (24) < xxl (28) < xxxl (32) < page-header (40)`; the Bricolage Grotesque display face is used for `.text-page-header`, `.text-xxxl-semibold`, and `.text-xxl-semibold`:
 `.text-page-header` (40px/700, Bricolage), `.text-xxxl-semibold` (32px/600, Bricolage), `.text-xxl-semibold` (28px/600, Bricolage), `.text-xl-medium` (24px/500), `.text-xl-semibold` (24px/600), `.text-large-medium` (20px/500), `.text-large-semibold` (20px/600), `.text-medium-medium` (18px/500), `.text-medium-semibold` (18px/600), `.text-regular-medium` (15px/500), `.text-regular-semibold` (15px/600), `.text-small-regular` (14px/400), `.text-small-medium` (14px/500), `.text-small-semibold` (14px/600), `.text-xs-medium` (13px/500)
+
+### Marketing `.site` brand layer
+
+The canonical brand skin for the marketing website, in `src/styles/site.css`, scoped
+under one `.site` wrapper. It is the flattened successor to the old layered
+`concept-d.css → concept-f.css → concept-g.css` cascade. Imported by the `LandingG`
+component (`src/components/landing/`); future marketing pages adopt it page-by-page.
+
+- **Signature surfaces** (the brand identity the flat app deliberately lacks): bordered
+  + hard-offset-shadow `.card` / `.pill` / `.btn` / `.arrow` with press-into-shadow hover.
+- **Display ramp:** heavy Bricolage ExtraBold (800), −2% tracking, 24–56px —
+  `.heading-xl/-l/-ml/-m/-s/-xs`, `.h-hero`. Body/labels: `.body`, `.label-lg`,
+  `.label-heavy`, `.callout`. Eyebrows: `.eyebrow` (Spline Sans Mono `--font-mono`,
+  loaded globally in the root layout). Highlight: `.mark`. Layout: `.container`.
+- **Utilities are unprefixed** (`.site .card`, `.site .heading-s`) — the `.site` scope
+  is the namespace, so the old `g-` prefix is gone. Don't reintroduce prefixes.
+- **Shared atoms (DRY the crossover):** `.site` references the app's tokens for values
+  that are identical across both layers rather than re-declaring them — `--accent:
+  var(--primary)` (brand blue is always consistent), `--paper-2: var(--secondary)`,
+  and `var(--success)`/`var(--destructive)`. `.site` owns only the divergent brand
+  tokens (warm `--ink`, `--paper`, `--tan`, `--marker`, `--mono-soft`, `--grey-2`).
+- When styling a marketing page, **reuse these `.site` utilities/tokens** — do not add
+  off-palette values or invent new brand utilities.
 
 ## Key Patterns
 

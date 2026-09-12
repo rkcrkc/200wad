@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConsent } from "@/context/ConsentContext";
+import { marketingUrl } from "@/lib/host";
 
 /**
  * Bottom-corner cookie consent card. Prior opt-in: analytics stay off until the
@@ -43,7 +44,7 @@ export function ConsentBanner() {
         <p className="mt-2 text-small-regular leading-relaxed text-foreground/70">
           We use essential cookies to make the site work. With your OK we also use analytics cookies
           to understand how it&rsquo;s used and improve it. See our{" "}
-          <Link href="/privacy" className="font-medium text-primary underline">
+          <Link href={marketingUrl("/privacy")} className="font-medium text-primary underline">
             Privacy Policy
           </Link>
           .

@@ -1,16 +1,76 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { Database } from "@/types/database";
+import { classifyHost, appUrl, marketingUrl } from "@/lib/host";
+
+// Product areas that live on the app subdomain. On the apex (marketing) host these
+// 307 to `app.200wad.com{path}`; in combined/dev mode nothing is gated.
+const APP_PREFIXES = [
+  "/course",
+  "/dashboard",
+  "/admin",
+  "/account",
+  "/tests",
+  "/dictionary",
+  "/schedule",
+  "/profile",
+  "/settings",
+  "/shop",
+  "/streak",
+  "/trophies",
+  "/community",
+  "/referrals",
+  "/help",
+];
+
+// Auth *pages* live on the app host too (per sign-off). NB: `/auth/*` callbacks are
+// NOT included — those are functional handlers that must resolve on either host.
+const AUTH_PAGE_PREFIXES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+  "/join",
+];
+
+// Marketing/legal areas that live on the apex host. On the app subdomain these 307
+// back to the marketing host so the app stays "app only".
+const MARKETING_ONLY_PREFIXES = [
+  "/home",
+  "/how-it-works",
+  "/pricing",
+  "/learn",
+  "/with",
+  "/for",
+  "/guides",
+  "/about",
+  "/welcome-back",
+  "/go",
+  "/lp",
+  "/terms",
+  "/privacy",
+  "/refunds",
+];
+
+function matchesPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
+  // Share the auth session across apex + app subdomains. Set to `.200wad.com` in
+  // production; unset locally and on previews (localhost can't use that domain).
+  const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(cookieDomain ? { cookieOptions: { domain: cookieDomain } } : {}),
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -38,6 +98,25 @@ export async function updateSession(request: NextRequest) {
 
   // Routes accessible without authentication
   const pathname = request.nextUrl.pathname;
+
+  // ── Host-based split (apex marketing ⇄ app subdomain) ──────────────────────
+  // Only active in production where both hosts are configured; "combined"
+  // (localhost / previews / unset env) keeps today's single-host behaviour.
+  const hostKind = classifyHost(request.headers.get("host"));
+  const search = request.nextUrl.search;
+  if (hostKind === "apex") {
+    // Product + auth pages belong on the app subdomain.
+    if (matchesPrefix(pathname, APP_PREFIXES) || matchesPrefix(pathname, AUTH_PAGE_PREFIXES)) {
+      return NextResponse.redirect(appUrl(`${pathname}${search}`), 307);
+    }
+    // Everything else on apex (/, marketing/legal, /auth/* callbacks) is served here.
+  } else if (hostKind === "app") {
+    // Marketing/legal pages belong on the apex host.
+    if (matchesPrefix(pathname, MARKETING_ONLY_PREFIXES)) {
+      return NextResponse.redirect(marketingUrl(`${pathname}${search}`), 307);
+    }
+  }
+
   const isAuthRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
@@ -50,28 +129,8 @@ export async function updateSession(request: NextRequest) {
   const DEFAULT_COURSE_ID = "6d60eb7e-7317-4c18-a0a9-6123cc37d5b8";
   const isGuestSchedule = pathname === `/course/${DEFAULT_COURSE_ID}/schedule`;
   // Public marketing site — logged-out visitors are the audience, so these must
-  // never bounce to the app onboarding flow.
-  const MARKETING_PREFIXES = [
-    "/home",
-    "/how-it-works",
-    "/pricing",
-    "/learn",
-    "/with",
-    "/for",
-    "/guides",
-    "/about",
-    "/welcome-back",
-    "/go",
-    "/lp",
-    // Public legal pages — linked from signup/footer, must be reachable by
-    // logged-out guests (otherwise they bounce to onboarding and read as dead).
-    "/terms",
-    "/privacy",
-    "/refunds",
-  ];
-  const isMarketingRoute = MARKETING_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
+  // never bounce to the app onboarding flow. Same set as the host-redirect list.
+  const isMarketingRoute = matchesPrefix(pathname, MARKETING_ONLY_PREFIXES);
   const isPublicRoute =
     pathname === "/" || isAuthRoute || isGuestSchedule || isMarketingRoute;
 

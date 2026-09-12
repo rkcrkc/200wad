@@ -1,0 +1,415 @@
+/* 200 Words a Day — marketing / brand design system ("site").
+ *
+ * The canonical brand skin for the marketing website. This is the flattened
+ * successor to the layered concept-d.css → concept-f.css → concept-g.css cascade
+ * that Landing G (Concept G) was built on: their combined computed result is
+ * resolved here into ONE stylesheet, scoped under a single `.site` wrapper class.
+ *
+ * SCOPE — everything lives under `.site` and must stay there. The app UI uses a
+ * different system (globals.css tokens + `.text-*` utilities + shadcn, flat
+ * surfaces). Critically, the app's `:root` defines `--accent: #f2ead9` (tan) while
+ * the brand `--accent` is blue; promoting these tokens to `:root` would corrupt the
+ * app. The `.site` scope is the namespace — utilities are intentionally unprefixed
+ * (`.site .card`, `.site .heading-s`) since the app has no global `.card`/`.btn`
+ * classes to collide with.
+ *
+ * SHARED ATOMS — values that are identical across app + brand are single-sourced
+ * from globals rather than re-declared: brand blue `--accent: var(--primary)`, and
+ * the beige `--paper-2: var(--secondary)`. Fonts (`--font-bricolage`/`--font-inter`)
+ * are already global; the brand mono face is exposed as `--font-mono` by the
+ * marketing layout. Note: redefining `--accent` inside `.site` also shifts Tailwind's
+ * `--color-accent` for `.site` descendants — intended (brand accent = blue).
+ *
+ * BRAND SIGNATURE — the bordered + hard-offset-shadow surfaces (`.card`/`.pill`/
+ * `.btn`/`.arrow`, press-into-shadow hover) and the heavy Bricolage ExtraBold display
+ * ramp are the brand identity the flat app deliberately lacks, and live only here.
+ */
+
+.site {
+  /* ── Brand tokens ──────────────────────────────────────────────────────── */
+  --ink: #191510; /* warm near-black (brand runs warmer than the app's #141515) */
+  --ink-soft: #4a4237; /* muted body copy */
+  --mono-soft: #625f5c; /* eyebrows / captions / muted labels */
+  --grey-2: #878583; /* secondary UI grey / sub-heading */
+  --tan: #ecdfc3; /* soft chip fill (Tab Pill / Badge) */
+  --paper: #f6f1e6; /* page background */
+  --paper-2: var(--secondary); /* alt band / dot texture — shared beige (#f2ead9) */
+  --card: #fffdf7; /* off-white surface (ghost button fill) */
+  --accent: var(--primary); /* shared brand blue (#0b6cff) */
+  --marker: #ffe14d; /* highlighter yellow */
+  --marker-2: #ffd21f; /* deeper highlighter (star fills) */
+
+  /* ── Base ──────────────────────────────────────────────────────────────── */
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--paper-2) 1.3px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+
+/* Display headings — Bricolage ExtraBold, tight tracking (the brand's heavy ramp). */
+.site h1,
+.site h2,
+.site h3 {
+  font-family: var(--font-bricolage), sans-serif;
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.site .h-hero {
+  font-size: clamp(40px, 6.2vw, 56px);
+}
+
+/* Eyebrows / captions — Spline Sans Mono, uppercase, wide tracking, muted. */
+.site .eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mono-soft);
+}
+.site .eyebrow.sm {
+  font-size: 11px;
+}
+
+/* Highlighter marker — one highlight per headline. */
+.site .mark {
+  background: linear-gradient(180deg, transparent 55%, var(--marker) 55%);
+  padding: 0 0.08em;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────
+   Bricolage Bold, ink border, hard offset shadow, press-into-shadow on hover. */
+.site .btn {
+  font-family: var(--font-bricolage), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  border: 2px solid var(--ink);
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+  text-decoration: none;
+  display: inline-block;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.site .btn:hover,
+.site .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.site .btn.ghost {
+  background: var(--card);
+  color: var(--ink);
+}
+.site .btn.big {
+  font-size: 16px;
+  padding: 13px 22px;
+}
+/* Secondary CTA — pill on off-white with ink text + trailing icon. */
+.site .btn.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffdf7;
+  color: var(--ink);
+  border-radius: 9999px;
+  font-size: 16px;
+  padding: 12px 20px;
+}
+/* Yellow fill — used on tinted surfaces where off-white wouldn't read. */
+.site .btn.secondary.marker {
+  background: var(--marker);
+}
+
+/* ── Surfaces ──────────────────────────────────────────────────────────────
+   Crisp white, chunky 3px ink border, big radius, hard offset shadow. */
+.site .card {
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 30px;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+/* Soft tan chip, borderless. */
+.site .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  background: var(--tan);
+}
+
+/* Quotes / testimonials — upright Inter, never italic (no Newsreader face). */
+.site .quote {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-style: normal;
+  line-height: 1.32;
+}
+
+.site :where(a, button, [tabindex]):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Figma text styles ──────────────────────────────────────────────────────
+   Named classes for the "200W/…" styles so call sites name the style instead of
+   re-declaring size/weight/tracking inline. */
+
+/* 200W/Heading/XL — Bricolage ExtraBold 48 / 1.06 / -2%. Section headings. */
+.site .heading-xl {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+/* 200W/Heading/L — Bricolage ExtraBold 36 / 1.2 / -2%. */
+.site .heading-l {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+/* 200W/Heading/Medium Large — Bricolage ExtraBold 32 / 1.25 / -2%. */
+.site .heading-ml {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+/* 200W/Heading/Medium — Bricolage ExtraBold 28 / 1.25 / -2%, muted. */
+.site .heading-m {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: clamp(22px, 3.2vw, 28px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--grey-2);
+}
+/* 200W/Heading/S — Bricolage 24 / 1.3 / -1%. Word Demo Card headwords. */
+.site .heading-s {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+/* 200W/Heading/XS — Bricolage 20 / 1.3 / -1%. */
+.site .heading-xs {
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+/* 200W/Body/Medium — Inter 16 / 1.5 / -1%. Hero subheading + body copy. */
+.site .body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+/* 200W/Label Heavy/Regular — Inter SemiBold 14 / 1.2 / -1.5%. */
+.site .label-heavy {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+/* 200W/Label/Medium Large — Inter Medium 18 / 1.35 / -1%. Answer-bar text. */
+.site .label-lg {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* Callout labels — hand-annotation text on the Word Demo bubbles. */
+.site .callout {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  color: var(--mono-soft);
+}
+
+/* ── Layout container — 1440 frame with responsive gutters. ───────────────── */
+.site .container {
+  margin-inline: auto;
+  max-width: 1440px;
+  padding-inline: 20px;
+}
+@media (min-width: 640px) {
+  .site .container {
+    padding-inline: 40px;
+  }
+}
+@media (min-width: 1024px) {
+  .site .container {
+    padding-inline: 80px;
+  }
+}
+
+/* ── Carousel arrows — icon buttons that press into their shadow on hover. ─── */
+.site .arrow {
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.site .arrow:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.site .arrow:disabled {
+  opacity: 0.3;
+}
+
+/* ── Equalizer icon — bars pulse while audio plays; idle holds a static wave. ─ */
+.site .eqbar {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(0.4);
+}
+.site .eqbar:nth-child(1) {
+  transform: scaleY(0.5);
+}
+.site .eqbar:nth-child(2) {
+  transform: scaleY(1);
+}
+.site .eqbar:nth-child(3) {
+  transform: scaleY(0.65);
+}
+.site .eqbar:nth-child(4) {
+  transform: scaleY(0.85);
+}
+.site .eq-on .eqbar {
+  animation: site-eq 0.9s ease-in-out infinite;
+}
+.site .eq-on .eqbar:nth-child(1) {
+  animation-duration: 0.86s;
+  animation-delay: 0s;
+}
+.site .eq-on .eqbar:nth-child(2) {
+  animation-duration: 1.06s;
+  animation-delay: 0.16s;
+}
+.site .eq-on .eqbar:nth-child(3) {
+  animation-duration: 0.74s;
+  animation-delay: 0.3s;
+}
+.site .eq-on .eqbar:nth-child(4) {
+  animation-duration: 0.96s;
+  animation-delay: 0.1s;
+}
+@keyframes site-eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── Marquee — seamless infinite scroller (two identical groups, -50% slide). ─ */
+.site .marquee {
+  overflow: hidden;
+}
+.site .marquee__track {
+  display: flex;
+  width: max-content;
+  animation: site-marquee var(--marquee-dur, 30s) linear infinite;
+}
+.site .marquee:not(.marquee--steady):hover .marquee__track {
+  animation-play-state: paused;
+}
+.site .marquee--reverse .marquee__track {
+  animation-direction: reverse;
+}
+.site .marquee__group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+@keyframes site-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── Progress lines — the hero Word Demo Card's per-step sweep. ────────────── */
+.site .progress-fill {
+  transform: scaleX(0);
+  animation: site-progress-fill var(--fill-ms, 10s) linear forwards;
+}
+@keyframes site-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ── Card deal — incoming card animates up from the back-stack offset. ─────── */
+.site .card-deal {
+  animation: site-card-deal 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes site-card-deal {
+  from {
+    transform: translate(14px, 14px) scale(0.965);
+    opacity: 0.35;
+  }
+  to {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .site * {
+    transition: none !important;
+    animation: none !important;
+  }
+  .site .marquee__track {
+    width: 100%;
+  }
+  .site .marquee__group {
+    flex: 1;
+    justify-content: space-around;
+  }
+  .site .marquee__group[aria-hidden="true"] {
+    display: none;
+  }
+  .site .progress-fill {
+    transform: scaleX(1);
+  }
+}
+
+/* Mobile — soften the hard shadow so it doesn't clip. */
+@media (max-width: 640px) {
+  .site .card {
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+}
