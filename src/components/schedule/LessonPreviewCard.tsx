@@ -48,15 +48,20 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
       <div className="flex min-w-0 flex-col pt-8 pb-0">
         {/* Lesson Number & Status */}
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-regular-semibold text-muted-foreground">
+          <p className="text-small-semibold text-muted-foreground md:text-regular-semibold">
             Lesson #{lesson.number}
           </p>
-          <StatusPill status={statusType} />
+          <span className="md:hidden">
+            <StatusPill status={statusType} size="sm" />
+          </span>
+          <span className="hidden md:inline-flex">
+            <StatusPill status={statusType} />
+          </span>
         </div>
 
         {/* Title */}
         <Link href={`/lesson/${lesson.id}`}>
-          <h3 className="mb-5 truncate text-xxl-semibold text-foreground">
+          <h3 className="mb-4 truncate text-xxl-semibold text-foreground md:mb-5">
             {lesson.title}
           </h3>
         </Link>
@@ -69,6 +74,7 @@ export function LessonPreviewCard({ lesson }: LessonPreviewCardProps) {
       <div className="flex items-center gap-3 pt-6 pb-6">
         <PrimaryButton
           className="flex-1"
+          size="responsive"
           href={`/lesson/${lesson.id}/study`}
         >
           <span className="inline-flex items-center gap-2">

@@ -11,9 +11,10 @@ type BaseProps = {
   /**
    * `default` is the full-size CTA (52px, generous padding). `sm` is a compact
    * variant (44px, tighter padding, smaller chevron) for space-constrained rows
-   * like the lesson footer bar on mobile.
+   * like the lesson footer bar on mobile. `responsive` renders `sm` on mobile
+   * and `default` from the `md` breakpoint up.
    */
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "responsive";
   className?: string;
   children: React.ReactNode;
   /** Stretch to fill container width. Shortcut for `w-full`. */
@@ -43,8 +44,20 @@ export function PrimaryButton(props: PrimaryButtonProps) {
   const { variant = "primary", size = "default", className, children, fullWidth } = props;
   const buttonVariant = variant === "outline" ? "outline" : "default";
   const compact = size === "sm";
-  const baseSize = compact ? "default" : "xl";
-  const heightClass = compact ? "h-11" : "h-[52px]";
+  const responsive = size === "responsive";
+  // Underlying Button size: the `responsive` case starts from the compact
+  // `default` bundle and layers desktop overrides via `responsiveClass`.
+  const baseSize = compact || responsive ? "default" : "xl";
+  const heightClass = responsive
+    ? "h-11 md:h-[52px]"
+    : compact
+      ? "h-11"
+      : "h-[52px]";
+  // Desktop overrides that re-inflate the compact base to the full CTA at `md`:
+  // padding, text size and the xl hover expansion.
+  const responsiveClass = responsive
+    ? "md:px-8 md:text-base md:hover:gap-3 md:hover:px-[30px]"
+    : "";
   const widthClass = fullWidth ? "w-full" : "";
   const outlineClasses =
     variant === "outline" ? "border-primary text-primary" : "";
@@ -59,7 +72,15 @@ export function PrimaryButton(props: PrimaryButtonProps) {
       {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
       {children}
       {showChevron ? (
-        <ChevronRight className={compact ? "ml-1.5 h-4 w-4" : "ml-2 h-5 w-5"} />
+        <ChevronRight
+          className={
+            responsive
+              ? "ml-1.5 h-4 w-4 md:ml-2 md:h-5 md:w-5"
+              : compact
+                ? "ml-1.5 h-4 w-4"
+                : "ml-2 h-5 w-5"
+          }
+        />
       ) : null}
     </>
   );
@@ -70,7 +91,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
         asChild
         size={baseSize}
         variant={buttonVariant}
-        className={cn(heightClass, widthClass, outlineClasses, className)}
+        className={cn(heightClass, responsiveClass, widthClass, outlineClasses, className)}
       >
         <Link href={(props as AsLinkProps).href}>{content}</Link>
       </Button>
@@ -86,7 +107,7 @@ export function PrimaryButton(props: PrimaryButtonProps) {
       // `transition-all` would otherwise crossfade the `disabled:opacity-50`
       // change at the same moment the label swaps to "…ing", leaving a ghosted
       // double-text paint on mobile Safari. Snap instantly during loading.
-      className={cn(heightClass, widthClass, outlineClasses, loading && "transition-none", className)}
+      className={cn(heightClass, responsiveClass, widthClass, outlineClasses, loading && "transition-none", className)}
       onClick={onClick}
       type={type}
       disabled={disabled || loading}

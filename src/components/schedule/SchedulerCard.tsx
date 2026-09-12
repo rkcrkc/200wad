@@ -108,7 +108,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               Word count is dropped on mobile. */}
           <div className="mb-2 flex items-center justify-between md:hidden">
             {!isAuto ? (
-              <p className="text-regular-semibold text-muted-foreground">
+              <p className="text-small-semibold text-muted-foreground">
                 {`Lesson #${lesson.number}`}
               </p>
             ) : (
@@ -128,7 +128,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
             )}
 
             {/* Title */}
-            <h2 className="text-page-header mb-4 truncate text-foreground">
+            <h2 className="text-page-header mb-3 truncate text-foreground md:mb-4">
               {lesson.title}
             </h2>
 
@@ -149,6 +149,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               <span className="animate-button-pulse-delayed inline-flex flex-1 rounded-xl">
                 <PrimaryButton
                   className="animate-button-pulse w-full"
+                  size="responsive"
                   onClick={() => setShowStartTestModal(true)}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -165,6 +166,7 @@ export function SchedulerCard({ lesson, mode, flushTop = false }: SchedulerCardP
               <span className="animate-button-pulse-delayed inline-flex flex-1 rounded-xl">
                 <PrimaryButton
                   className="animate-button-pulse w-full"
+                  size="responsive"
                   href={`/lesson/${lesson.id}/study`}
                 >
                   <span className="inline-flex items-center gap-2">
