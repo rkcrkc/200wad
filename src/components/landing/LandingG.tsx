@@ -37,13 +37,21 @@ export const landingMetadata: Metadata = {
     description:
       "The stupidly easy way to learn vocab that sticks — every word hooked onto an absurd cartoon you can't forget.",
     url: "/",
-    // TODO: add a 1200×630 OG banner under public/marketing/ and reference it here.
+    images: [
+      {
+        url: "/marketing/og-banner.png",
+        width: 1200,
+        height: 630,
+        alt: "200 Words a Day — the French word for poster is l'affiche (sounds like 'la fish'): a mermaid putting up a poster of a fish.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "200 Words a Day — The stupidly easy way to learn vocab that sticks",
     description:
       "The stupidly easy way to learn vocab that sticks — every word hooked onto an absurd cartoon you can't forget.",
+    images: ["/marketing/og-banner.png"],
   },
 };
 
