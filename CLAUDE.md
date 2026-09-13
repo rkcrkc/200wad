@@ -21,6 +21,30 @@ Regenerate Supabase types:
 npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database-generated.ts
 ```
 
+## Local marketing/app subdomain testing
+
+`npm run dev` on `localhost:3000` runs in **combined** mode — `classifyHost()` returns
+`"combined"` unless it matches a configured apex/app host, so `/` always redirects into
+the app and you never see the `LandingG` marketing page. To exercise the production
+apex⇄app host split (marketing at apex, product on the app subdomain, cross-host 307
+redirects, shared auth cookie) locally:
+
+```bash
+sudo npm run dev:site   # next dev -p 80
+```
+- Marketing: `http://200wad.test/`  •  App: `http://app.200wad.test/`
+- **Machine-local setup (one-time, do NOT commit):**
+  - `.env.local` sets `NEXT_PUBLIC_MARKETING_URL=http://200wad.test`,
+    `NEXT_PUBLIC_APP_URL=http://app.200wad.test`, `NEXT_PUBLIC_COOKIE_DOMAIN=.200wad.test`.
+    These MUST NOT be committed — they'd break production host detection.
+  - `/etc/hosts`: `127.0.0.1 200wad.test app.200wad.test`
+  - Passwordless sudo scoped to just this command in `/etc/sudoers.d/200wad-dev`.
+- **Why port 80:** `classifyHost()` strips the port from the incoming host but keeps it
+  on the configured URL, so any non-default port falls back to combined mode. Running on
+  80 keeps the port out of the comparison.
+- **Why `.test` not `.local`:** macOS reserves `.local` for Bonjour/mDNS, which hijacks
+  resolution before `/etc/hosts` is consulted. `.test` is the reserved testing TLD.
+
 ## Migrations
 
 `supabase_migrations.schema_migrations` (the ledger) is the only trustworthy record of what actually ran. Local filenames have drifted from it before — see the "Migration ledger drift" bug card.
