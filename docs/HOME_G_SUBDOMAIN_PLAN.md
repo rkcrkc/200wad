@@ -4,10 +4,11 @@ Make **Landing G** the live marketing homepage at the apex domain, move the
 authenticated app to `app.` on the same domain, share the login session across
 both, and archive the other landing concepts out of the published build.
 
-> **Apex domain:** `200words-a-day.com` (confirmed live domain, hosted on SiteSell /
-> Solo Build It). Production launch host TBD (`200words-a-day.com` vs a shorter
-> `200wad.com`); the plan text below still uses `200wad.com` as a placeholder in
-> places — treat `200words-a-day.com` as authoritative.
+> **Apex domain:** `200words-a-day.com` — **confirmed production launch domain**
+> (the existing domain, hosted on SiteSell / Solo Build It; a shorter `200wad.com`
+> was considered but dropped for less explanatory power). Production app will live at
+> `app.200words-a-day.com`. The plan text below still uses `200wad.com` as a
+> placeholder in places — treat `200words-a-day.com` as authoritative.
 >
 > **Staging (current):** the app runs on Vercel behind two SiteSell "Infin It!"
 > subdomains pointed at the Vercel project's **Production** environment:
