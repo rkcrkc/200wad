@@ -109,6 +109,11 @@ export type HelpEntry = Database["public"]["Tables"]["help_entries"]["Row"];
 export type HelpEntryInsert = Database["public"]["Tables"]["help_entries"]["Insert"];
 export type HelpEntryUpdate = Database["public"]["Tables"]["help_entries"]["Update"];
 
+// Blog types
+export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
+export type BlogAuthor = Database["public"]["Tables"]["blog_authors"]["Row"];
+export type BlogCategory = Database["public"]["Tables"]["blog_categories"]["Row"];
+
 // Tips types
 export type Tip = Database["public"]["Tables"]["tips"]["Row"];
 export type TipInsert = Database["public"]["Tables"]["tips"]["Insert"];

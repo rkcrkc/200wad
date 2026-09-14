@@ -304,3 +304,58 @@ export const createCheckoutSchema = z.object({
 });
 
 export type CreateCheckoutInput = z.infer<typeof createCheckoutSchema>;
+
+// ============================================================================
+// BLOG SCHEMAS
+// ============================================================================
+
+// Slug is optional everywhere: the mutation derives it from title/name via
+// slugify() when left blank. When supplied it must already be slug-shaped.
+const slugField = z
+  .string()
+  .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens")
+  .optional()
+  .nullable();
+
+export const createBlogPostSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  slug: slugField,
+  excerpt: z.string().max(500).optional().nullable(),
+  body: z.string().optional().nullable(),
+  cover_image_url: z.string().url("Must be a valid URL").optional().nullable(),
+  author_id: z.string().uuid("An author is required"),
+  category_id: z.string().uuid().optional().nullable(),
+  language_id: z.string().uuid().optional().nullable(),
+  is_published: z.boolean().optional().default(false),
+  is_featured: z.boolean().optional().default(false),
+  published_at: z.string().datetime().optional().nullable(),
+});
+
+export const updateBlogPostSchema = createBlogPostSchema.partial();
+
+export type CreateBlogPostInput = z.input<typeof createBlogPostSchema>;
+export type UpdateBlogPostInput = z.input<typeof updateBlogPostSchema>;
+
+export const createBlogAuthorSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  slug: slugField,
+  role: z.string().max(200).optional().nullable(),
+  bio: z.string().max(2000).optional().nullable(),
+  avatar_url: z.string().url("Must be a valid URL").optional().nullable(),
+});
+
+export const updateBlogAuthorSchema = createBlogAuthorSchema.partial();
+
+export type CreateBlogAuthorInput = z.input<typeof createBlogAuthorSchema>;
+export type UpdateBlogAuthorInput = z.input<typeof updateBlogAuthorSchema>;
+
+export const createBlogCategorySchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  slug: slugField,
+  sort_order: z.number().int().min(0).optional().default(0),
+});
+
+export const updateBlogCategorySchema = createBlogCategorySchema.partial();
+
+export type CreateBlogCategoryInput = z.input<typeof createBlogCategorySchema>;
+export type UpdateBlogCategoryInput = z.input<typeof updateBlogCategorySchema>;

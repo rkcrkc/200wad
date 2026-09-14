@@ -5,8 +5,14 @@
 
 import { createClient } from "./client";
 
-export type StorageBucket = "word-images" | "audio" | "word-videos";
-export type EntityType = "languages" | "words" | "sentences" | "image-groups";
+export type StorageBucket = "word-images" | "audio" | "word-videos" | "blog-images";
+export type EntityType =
+  | "languages"
+  | "words"
+  | "sentences"
+  | "image-groups"
+  | "posts"
+  | "authors";
 
 /** Max size for a memory-trigger MP4 (mirrors the word-videos bucket file_size_limit). */
 export const WORD_VIDEO_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -195,9 +201,10 @@ export async function uploadFileClient(
 ): Promise<UploadResult> {
   const supabase = createClient();
 
-  // Auto-resize + re-encode word images to WebP @ max 1000px wide.
+  // Auto-resize + re-encode word/blog images to WebP @ max 1000px wide.
   const fileToUpload =
-    bucket === "word-images" && file.type.startsWith("image/")
+    (bucket === "word-images" || bucket === "blog-images") &&
+    file.type.startsWith("image/")
       ? await processWordImage(file)
       : file;
 

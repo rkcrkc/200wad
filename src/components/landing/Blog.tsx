@@ -3,9 +3,18 @@ import Link from "next/link";
 /** The three teaser posts. `href` points at the (future) article route; the cards
  *  are links so the whole card is tappable. */
 const POSTS = [
-  { title: "100 reasons to learn a language", href: "/blog" },
-  { title: "Learning languages the 200 Words a Day way", href: "/blog" },
-  { title: "The science behind why funny beats boring", href: "/blog" },
+  {
+    title: "100 reasons to learn a language",
+    href: "/blog/100-reasons-to-learn-a-language",
+  },
+  {
+    title: "Learning languages the 200 Words a Day way",
+    href: "/blog/learning-languages-the-200-words-a-day-way",
+  },
+  {
+    title: "The science behind why funny beats boring",
+    href: "/blog/the-science-behind-why-funny-beats-boring",
+  },
 ] as const;
 
 /** One blog teaser: a thumbnail placeholder, an "Article" eyebrow and the title,
@@ -15,7 +24,7 @@ function BlogCard({ title, href }: { title: string; href: string }) {
   return (
     <Link
       href={href}
-      className="flex flex-col items-start gap-5 rounded-[30px] border-[3px] border-[var(--ink)] bg-white p-6 !no-underline shadow-[5px_5px_0_var(--ink)] transition-[transform,box-shadow] duration-[80ms] ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0_var(--ink)]"
+      className="flex flex-col items-start gap-5 rounded-[30px] border-[3px] border-[var(--ink)] bg-white p-6 !no-underline shadow-[5px_5px_0_var(--ink)] transition duration-[80ms] ease-out hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0_var(--ink)]"
     >
       <div className="h-[148px] w-full rounded-[10px] bg-[rgba(217,217,217,0.2)]" aria-hidden />
       <p className="eyebrow">Article</p>
