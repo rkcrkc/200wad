@@ -45,6 +45,8 @@ const MARKETING_ONLY_PREFIXES = [
   "/for",
   "/guides",
   "/about",
+  "/contact",
+  "/blog",
   "/welcome-back",
   "/go",
   "/lp",

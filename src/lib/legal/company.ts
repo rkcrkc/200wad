@@ -27,6 +27,9 @@ export const PRIVACY_EMAIL = "[privacy@yourdomain.com]";
 /** General support / billing inbox. */
 export const SUPPORT_EMAIL = "[support@yourdomain.com]";
 
+/** Public contact inbox shown on the /contact page and used to route form submissions. */
+export const CONTACT_EMAIL = "hello@200wordsaday.com";
+
 /**
  * UK/EU (Art. 27) representative, if appointed. Because the service is offered
  * to UK/EEA users from outside those regions, a representative may be required.

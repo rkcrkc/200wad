@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { Star } from "lucide-react";
 import { HeroDemo } from "./HeroDemo";
 import { Testimonials } from "./Testimonials";
@@ -15,6 +14,7 @@ import { ClosingCTA } from "./ClosingCTA";
 import { EmailCapture } from "./EmailCapture";
 import { Blog } from "./Blog";
 import { Footer } from "./Footer";
+import { SiteNav } from "./SiteNav";
 import { HERO_LANGUAGES_G } from "./heroDemoData";
 import { appUrl } from "@/lib/host";
 import "@/styles/site.css";
@@ -105,50 +105,8 @@ export function LandingG({ courseHref }: { courseHref?: string | null }) {
         </div>
       </div>
 
-      {/* 1 · NAVBAR — logo left; links + "Start free" right. No border (matches
-          Figma); collapses to logo + CTA on mobile. */}
-      <header className="bg-[var(--paper)]">
-        <div className="container flex items-center justify-between gap-4 py-4">
-          <Link href="/" aria-label="200 Words a Day — home" className="shrink-0 !no-underline">
-            <Image
-              src="/marketing/g/logo.svg"
-              alt="200 Words a Day"
-              width={88}
-              height={49}
-              className="h-11 w-auto"
-              priority
-            />
-          </Link>
-          <nav className="flex items-center gap-5 sm:gap-[30px]">
-            {[
-              { href: "#how", label: "How it works" },
-              { href: "#about", label: "About" },
-              { href: "#pricing", label: "Pricing" },
-              // Logged-in visitors don't need a Login link.
-              ...(courseHref ? [] : [{ href: appUrl("/login"), label: "Login" }]),
-            ].map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="hidden text-[14px] font-semibold tracking-[-0.015em] text-[var(--ink)] !no-underline hover:opacity-70 sm:block"
-              >
-                {l.label}
-              </Link>
-            ))}
-            {/* Shared cross-subdomain session → offer the app, not signup, when logged in
-                (no auto-forward: the visitor stays on the marketing page by choice). */}
-            {courseHref ? (
-              <Link href={courseHref} className="btn ghost">
-                Go to your course
-              </Link>
-            ) : (
-              <Link href={appUrl("/signup")} className="btn ghost">
-                Start free
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      {/* 1 · NAVBAR — shared marketing chrome; same-page hash anchors on the homepage. */}
+      <SiteNav courseHref={courseHref} samePageAnchors />
 
       <main className="flex-1">
         {/* 2 · HERO — copy column + auto-playing Word Demo Card. */}
@@ -253,8 +211,8 @@ export function LandingG({ courseHref }: { courseHref?: string | null }) {
         <Blog />
       </main>
 
-      {/* 14 · FOOTER — yellow sign-off band: brand + social, four link columns,
-          and a copyright / legal row. */}
+      {/* 14 · FOOTER — yellow sign-off band: brand + social, the word-of-the-day
+          capture above four link columns, and a copyright / legal row. */}
       <Footer />
     </div>
   );

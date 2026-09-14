@@ -1,11 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { appUrl } from "@/lib/host";
+import { EmailCaptureCard } from "./EmailCaptureCard";
 
 /** The four link columns. Headings render as the Figma "200W/Caption/Small" eyebrow;
  *  each link is the "200W/Label Heavy/Regular" face (.label-heavy). Hrefs mirror the
- *  navbar + section ids (#how / #pricing / #about / #blog); coming-soon languages point
- *  at the hero waitlist anchor, and pages that don't exist in this concept stay at "#". */
+ *  navbar: the homepage section anchor (#how) plus the standalone /pricing, /about and
+ *  /blog pages; coming-soon languages point at the hero waitlist anchor, and pages that
+ *  don't exist yet stay at "#". */
 const MENUS = [
   {
     heading: "Languages",
@@ -20,8 +22,8 @@ const MENUS = [
     heading: "Product",
     links: [
       { label: "How it works", href: "#how" },
-      { label: "Pricing", href: "#pricing" },
-      { label: "Blog", href: "#blog" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Blog", href: "/blog" },
     ],
   },
   {
@@ -34,8 +36,8 @@ const MENUS = [
   {
     heading: "Company",
     links: [
-      { label: "About", href: "#about" },
-      { label: "Contact us", href: "#" },
+      { label: "About", href: "/about" },
+      { label: "Contact us", href: "/contact" },
     ],
   },
 ] as const;
@@ -45,20 +47,21 @@ const MENUS = [
 const MICRO = "text-[12px] font-medium leading-[1.5] tracking-[-0.01em] text-[var(--ink)]/50";
 
 /**
- * Section 14 · Footer — the yellow sign-off band. A top row pairs the brand block
- * (logo + "*Vocab that sticks*" caption + social badges) with four link columns, and
- * a bottom row carries the copyright and legal links. The columns right-align on the
- * desktop grid (matching Figma) and reflow to a left-aligned 2-up grid on mobile.
+ * Section 14 · Footer — the yellow sign-off band, in three stacked rows:
+ * a top row pairing the brand block (logo + "*Vocab that sticks*" caption) with
+ * the word-of-the-day capture spanning the remaining width; a middle row pairing
+ * the social badges with the four link columns; and a legals row carrying the
+ * copyright and legal links. The link columns right-align on the desktop grid
+ * (matching Figma) and reflow to a left-aligned 2-up grid on mobile.
  */
 export function Footer() {
   return (
     <footer className="bg-[var(--marker)]">
-      <div className="container flex flex-col gap-12 pb-5 pt-12 lg:gap-20">
-        {/* Top — brand + link columns. */}
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
-          {/* Leading — logo, tagline, social badges. */}
-          <div className="flex flex-1 flex-col gap-[30px]">
-            <div className="flex flex-col items-center gap-2.5 self-start">
+      <div className="container flex flex-col gap-12 pb-5 pt-12 lg:gap-16">
+        {/* Top — brand (leading) + mailing list spanning the rest (trailing). */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
+          <div className="flex flex-col items-center gap-2.5 self-start">
+            <Link href="/" aria-label="200 Words a Day — home" className="!no-underline">
               <Image
                 src="/marketing/g/logo.svg"
                 alt="200 Words a Day"
@@ -66,18 +69,25 @@ export function Footer() {
                 height={69}
                 className="h-[69px] w-auto"
               />
-              <p className="eyebrow sm !text-[var(--ink)]">*Vocab that sticks*</p>
-            </div>
-            <Image
-              src="/marketing/g/footer-social.png"
-              alt="Find us on X, Instagram, TikTok and LinkedIn"
-              width={312}
-              height={192}
-              className="h-auto w-[156px] self-start"
-            />
+            </Link>
+            <p className="eyebrow sm !text-[var(--ink)]">*Vocab that sticks*</p>
           </div>
 
-          {/* Trailing — the four navigation columns. */}
+          <section aria-label="Get word of the day" className="w-full lg:flex-1">
+            <EmailCaptureCard variant="footer" />
+          </section>
+        </div>
+
+        {/* Middle — social badges (leading) + link columns (trailing). */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+          <Image
+            src="/marketing/g/footer-social.png"
+            alt="Find us on X, Instagram, TikTok and LinkedIn"
+            width={312}
+            height={192}
+            className="h-auto w-[156px] self-start"
+          />
+
           <nav
             aria-label="Footer"
             className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4 lg:flex lg:gap-[60px]"
@@ -102,7 +112,7 @@ export function Footer() {
           </nav>
         </div>
 
-        {/* Bottom — copyright + legal links. */}
+        {/* Legals — copyright + legal links. */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className={MICRO}>© 200 Words a Day. All rights reserved 2026</p>
           <div className="flex items-center gap-5">

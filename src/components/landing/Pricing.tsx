@@ -157,12 +157,20 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
  * toggle (annual selected by default, "Save 25%") swaps every card's price and
  * billing caption; three plan cards (Free, French only, All Languages) sit above
  * a row of cross-plan feature badges.
+ *
+ * - `transparentBg` — drop the off-white band so the section shows the page's own
+ *   base (used on the standalone /pricing page; the homepage keeps the fill for
+ *   contrast against its neighbouring sections).
  */
-export function Pricing() {
+export function Pricing({ transparentBg = false }: { transparentBg?: boolean } = {}) {
   const [billing, setBilling] = useState<Billing>("annual");
 
   return (
-    <section id="pricing" aria-label="Pricing" className="bg-[#fffdf7] px-6 py-20 sm:py-24">
+    <section
+      id="pricing"
+      aria-label="Pricing"
+      className={`px-6 py-20 sm:py-24 ${transparentBg ? "" : "bg-[#fffdf7]"}`}
+    >
       <div className="mx-auto flex max-w-[1120px] flex-col items-center">
         <p className="eyebrow">Pricing</p>
         <h2 className="heading-xl mt-3 text-center text-[var(--ink)]">Start free</h2>
