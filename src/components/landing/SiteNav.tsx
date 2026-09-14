@@ -71,11 +71,11 @@ export function SiteNav({
           {/* Shared cross-subdomain session → offer the app, not signup, when logged in
               (no auto-forward: the visitor stays on the marketing page by choice). */}
           {courseHref ? (
-            <Link href={courseHref} className="btn ghost">
+            <Link href={courseHref} className="btn ghost ml-2">
               Go to your course
             </Link>
           ) : (
-            <Link href={appUrl("/signup")} className="btn ghost">
+            <Link href={appUrl("/signup")} className="btn ghost ml-2">
               Start free
             </Link>
           )}

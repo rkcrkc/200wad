@@ -23,6 +23,7 @@ const MENUS = [
     links: [
       { label: "How it works", href: "#how" },
       { label: "Pricing", href: "/pricing" },
+      { label: "Refunds", href: "/refunds" },
       { label: "Blog", href: "/blog" },
     ],
   },
@@ -116,10 +117,10 @@ export function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className={MICRO}>© 200 Words a Day. All rights reserved 2026</p>
           <div className="flex items-center gap-5">
-            <Link href="#" className={`${MICRO} !no-underline hover:opacity-100`}>
+            <Link href="/terms" className={`${MICRO} !no-underline hover:opacity-100`}>
               Terms
             </Link>
-            <Link href="#" className={`${MICRO} !no-underline hover:opacity-100`}>
+            <Link href="/privacy" className={`${MICRO} !no-underline hover:opacity-100`}>
               Privacy Policy
             </Link>
           </div>
