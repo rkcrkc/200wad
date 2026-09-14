@@ -50,6 +50,29 @@ export function classifyHost(host: string | null | undefined): HostKind {
   return "combined";
 }
 
+/**
+ * Canonical production hosts. Search engines should only ever index these; every
+ * other host (staging, `*.vercel.app` previews, localhost) is served `noindex`
+ * (see `src/app/robots.ts` + the middleware `X-Robots-Tag`) so staging/preview
+ * content never competes with production in search results.
+ *
+ * These are hard-coded rather than env-derived because the split env vars
+ * (`NEXT_PUBLIC_MARKETING_URL` / `NEXT_PUBLIC_APP_URL`) are ALSO set on staging —
+ * so `classifyHost` can't tell production and staging apart. The apex domain is
+ * locked, so the production hostnames are the reliable discriminator.
+ */
+const PRODUCTION_HOSTS = new Set([
+  "200words-a-day.com",
+  "www.200words-a-day.com",
+  "app.200words-a-day.com",
+]);
+
+/** True only for the locked production apex/app hosts, where indexing is allowed. */
+export function isProductionHost(host: string | null | undefined): boolean {
+  if (!host) return false;
+  return PRODUCTION_HOSTS.has(normalizeHost(host));
+}
+
 function joinOrigin(origin: string | undefined, path: string): string {
   if (!origin) return path; // combined / dev / preview → same-origin relative link
   const base = origin.replace(/\/+$/, "");

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { Database } from "@/types/database";
-import { classifyHost, appUrl, marketingUrl } from "@/lib/host";
+import { classifyHost, appUrl, marketingUrl, isProductionHost } from "@/lib/host";
 
 // Product areas that live on the app subdomain. On the apex (marketing) host these
 // 307 to `app.200wad.com{path}`; in combined/dev mode nothing is gated.
@@ -104,8 +104,17 @@ export async function updateSession(request: NextRequest) {
   // ── Host-based split (apex marketing ⇄ app subdomain) ──────────────────────
   // Only active in production where both hosts are configured; "combined"
   // (localhost / previews / unset env) keeps today's single-host behaviour.
-  const hostKind = classifyHost(request.headers.get("host"));
+  const requestHost = request.headers.get("host");
+  const hostKind = classifyHost(requestHost);
   const search = request.nextUrl.search;
+
+  // Belt-and-braces noindex for every non-production host (staging, previews,
+  // localhost). robots.txt (src/app/robots.ts) disallows crawling; this header
+  // is the stronger signal that also de-indexes anything already discovered.
+  // Production apex/app hosts are left untouched so they index normally.
+  if (!isProductionHost(requestHost)) {
+    supabaseResponse.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   if (hostKind === "apex") {
     // Product + auth pages belong on the app subdomain.
     if (matchesPrefix(pathname, APP_PREFIXES) || matchesPrefix(pathname, AUTH_PAGE_PREFIXES)) {
