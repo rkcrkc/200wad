@@ -22,6 +22,8 @@ type TeamMember = {
   role: string;
   bio: string;
   photo?: string;
+  /** Matching `blog_authors.slug`; links the card to the author's blog page. */
+  authorSlug?: string;
 };
 
 /** Editorial team roster (marketing copy, not the blog-authors table). Kevin has a
@@ -37,11 +39,13 @@ const TEAM: TeamMember[] = [
     name: "Ryan Crocombe",
     role: "Founder",
     bio: "Founder of 200 Words a Day. Obsessed with making vocabulary stick through humour, spaced repetition, and tiny daily wins.",
+    authorSlug: "ryan-crocombe",
   },
   {
     name: "Camille Laurent",
     role: "Language coach",
     bio: "Language coach and polyglot. Camille has taught French and Spanish for over a decade and believes anyone can learn a language with the right daily habit.",
+    authorSlug: "camille-laurent",
   },
 ];
 
@@ -267,6 +271,14 @@ export default function AboutPage() {
                   <p className="eyebrow">{member.role}</p>
                 </div>
                 <p className="body text-[var(--ink-soft)]">{member.bio}</p>
+                {member.authorSlug ? (
+                  <Link
+                    href={`/blog/author/${member.authorSlug}`}
+                    className="label-heavy mt-auto text-[var(--accent)] hover:underline"
+                  >
+                    Read {member.name.split(" ")[0]}&rsquo;s posts →
+                  </Link>
+                ) : null}
               </li>
             ))}
           </ul>
