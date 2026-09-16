@@ -1,14 +1,6 @@
 import Link from "next/link";
 import type { BlogFilters } from "@/lib/queries/blog";
-
-/** Build `/blog?…` preserving the other active filter; a null value drops that param. */
-function href({ category, lang }: { category: string | null; lang: string | null }): string {
-  const params = new URLSearchParams();
-  if (category) params.set("category", category);
-  if (lang) params.set("lang", lang);
-  const qs = params.toString();
-  return qs ? `/blog?${qs}` : "/blog";
-}
+import { blogHref as href } from "./blogHref";
 
 function Pill({
   label,

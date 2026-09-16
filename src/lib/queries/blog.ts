@@ -55,16 +55,33 @@ export interface BlogIndexData {
   filters: BlogFilters;
   activeCategory: string | null;
   activeLang: string | null;
+  /** 1-based current page of the main grid. */
+  page: number;
+  /** Total pages for the current filter set (min 1). */
+  totalPages: number;
+  /** Total grid posts across all pages (excludes featured + product on page 1). */
+  totalPosts: number;
 }
 
 /** Category slug whose posts surface in the "Product updates" sidebar. */
 export const PRODUCT_CATEGORY_SLUG = "product";
 /** Max rows shown in the "Product updates" sidebar list. */
 const PRODUCT_UPDATES_LIMIT = 5;
+/** Posts per page in the main index grid and author archives. */
+export const PAGE_SIZE = 12;
+
+/** Coerce a raw `?page=` value to a 1-based positive int; anything invalid → 1. */
+export function parsePage(raw: string | undefined): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
 
 export interface BlogAuthorPage {
   author: BlogAuthor;
   posts: BlogPostCard[];
+  page: number;
+  totalPages: number;
+  totalPosts: number;
 }
 
 // ── Selects ──────────────────────────────────────────────────────────────────
@@ -164,9 +181,11 @@ export async function getBlogFilters(): Promise<BlogFilters> {
 export async function getBlogIndex({
   category,
   lang,
+  page: rawPage = 1,
 }: {
   category?: string;
   lang?: string;
+  page?: number;
 }): Promise<BlogIndexData> {
   const supabase = await createClient();
   const filters = await getBlogFilters();
@@ -174,6 +193,10 @@ export async function getBlogIndex({
   const activeCategory = category ?? null;
   const activeLang = lang ?? null;
   const filterActive = Boolean(activeCategory || activeLang);
+  const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
   const empty = (): BlogIndexData => ({
     featured: null,
     posts: [],
@@ -181,10 +204,13 @@ export async function getBlogIndex({
     filters,
     activeCategory,
     activeLang,
+    page,
+    totalPages: 1,
+    totalPosts: 0,
   });
 
-  let postsQuery = supabase.from("blog_posts").select(CARD_SELECT).eq("is_published", true);
-
+  // Resolve filter slugs → ids up front; an unknown slug/code yields an empty grid.
+  let categoryId: string | null = null;
   if (activeCategory) {
     const { data: cat } = await supabase
       .from("blog_categories")
@@ -192,8 +218,9 @@ export async function getBlogIndex({
       .eq("slug", activeCategory)
       .maybeSingle();
     if (!cat) return empty();
-    postsQuery = postsQuery.eq("category_id", cat.id);
+    categoryId = cat.id;
   }
+  let languageId: string | null = null;
   if (activeLang) {
     const { data: language } = await supabase
       .from("languages")
@@ -201,15 +228,15 @@ export async function getBlogIndex({
       .eq("code", activeLang)
       .maybeSingle();
     if (!language) return empty();
-    postsQuery = postsQuery.eq("language_id", language.id);
+    languageId = language.id;
   }
 
-  const { data } = await postsQuery.order("published_at", { ascending: false });
-  const all = toCards(data);
-
+  // Featured post + "Product updates" only exist on the unfiltered index. They are
+  // fetched first so the grid query can exclude them (on every page) and keep its
+  // range/count correct; they are only *returned* for page 1.
   let featured: BlogPostCard | null = null;
-  let posts = all;
   let productUpdates: BlogPostCard[] = [];
+  let productCategoryId: string | null = null;
 
   if (!filterActive) {
     const { data: featData } = await supabase
@@ -221,18 +248,58 @@ export async function getBlogIndex({
       .limit(1);
     featured = toCards(featData)[0] ?? null;
 
-    const featuredId = featured?.id ?? null;
-    // Product posts surface in their own sidebar list, so keep them out of the
-    // featured slot and the main editorial grid to avoid duplication.
-    productUpdates = all
-      .filter((p) => p.category?.slug === PRODUCT_CATEGORY_SLUG && p.id !== featuredId)
-      .slice(0, PRODUCT_UPDATES_LIMIT);
-    posts = all.filter(
-      (p) => p.id !== featuredId && p.category?.slug !== PRODUCT_CATEGORY_SLUG
-    );
+    const { data: prodCat } = await supabase
+      .from("blog_categories")
+      .select("id")
+      .eq("slug", PRODUCT_CATEGORY_SLUG)
+      .maybeSingle();
+    productCategoryId = prodCat?.id ?? null;
+
+    if (page === 1 && productCategoryId) {
+      const { data: puData } = await supabase
+        .from("blog_posts")
+        .select(CARD_SELECT)
+        .eq("is_published", true)
+        .eq("category_id", productCategoryId)
+        .order("published_at", { ascending: false })
+        .limit(PRODUCT_UPDATES_LIMIT + 1); // +1 headroom to drop the featured post
+      productUpdates = toCards(puData)
+        .filter((p) => p.id !== featured?.id)
+        .slice(0, PRODUCT_UPDATES_LIMIT);
+    }
   }
 
-  return { featured, posts, productUpdates, filters, activeCategory, activeLang };
+  // Main editorial grid — paginated at the DB with an exact count. When unfiltered
+  // it excludes the featured post and the product category (they have their own slots).
+  let gridQuery = supabase
+    .from("blog_posts")
+    .select(CARD_SELECT, { count: "exact" })
+    .eq("is_published", true);
+  if (categoryId) gridQuery = gridQuery.eq("category_id", categoryId);
+  if (languageId) gridQuery = gridQuery.eq("language_id", languageId);
+  if (!filterActive) {
+    if (featured) gridQuery = gridQuery.neq("id", featured.id);
+    if (productCategoryId) gridQuery = gridQuery.neq("category_id", productCategoryId);
+  }
+
+  const { data, count } = await gridQuery
+    .order("published_at", { ascending: false })
+    .range(from, to);
+
+  const totalPosts = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalPosts / PAGE_SIZE));
+
+  return {
+    featured: page === 1 ? featured : null,
+    posts: toCards(data),
+    productUpdates: page === 1 ? productUpdates : [],
+    filters,
+    activeCategory,
+    activeLang,
+    page,
+    totalPages,
+    totalPosts,
+  };
 }
 
 /** Full article by slug. Returns null for unknown or unpublished slugs (→ 404). */
@@ -304,8 +371,11 @@ export async function getRelatedPosts(
   return toCards(data);
 }
 
-/** Author profile + their published posts. Returns null for unknown slugs (→ 404). */
-export async function getAuthorBySlug(slug: string): Promise<BlogAuthorPage | null> {
+/** Author profile + their published posts (paginated). Returns null for unknown slugs (→ 404). */
+export async function getAuthorBySlug(
+  slug: string,
+  { page: rawPage = 1 }: { page?: number } = {}
+): Promise<BlogAuthorPage | null> {
   const supabase = await createClient();
 
   const { data: author } = await supabase
@@ -315,12 +385,20 @@ export async function getAuthorBySlug(slug: string): Promise<BlogAuthorPage | nu
     .maybeSingle();
   if (!author) return null;
 
-  const { data } = await supabase
+  const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, count } = await supabase
     .from("blog_posts")
-    .select(CARD_SELECT)
+    .select(CARD_SELECT, { count: "exact" })
     .eq("is_published", true)
     .eq("author_id", author.id)
-    .order("published_at", { ascending: false });
+    .order("published_at", { ascending: false })
+    .range(from, to);
 
-  return { author: author as BlogAuthor, posts: toCards(data) };
+  const totalPosts = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalPosts / PAGE_SIZE));
+
+  return { author: author as BlogAuthor, posts: toCards(data), page, totalPages, totalPosts };
 }

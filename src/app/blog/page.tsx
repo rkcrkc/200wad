@@ -1,26 +1,54 @@
 import type { Metadata } from "next";
-import { getBlogIndex } from "@/lib/queries/blog";
+import { notFound } from "next/navigation";
+import { getBlogIndex, parsePage } from "@/lib/queries/blog";
 import { FilterBar } from "./_components/FilterBar";
 import { FeaturedCard } from "./_components/FeaturedCard";
 import { PostCard } from "./_components/PostCard";
 import { ProductUpdates } from "./_components/ProductUpdates";
+import { Pagination } from "./_components/Pagination";
+import { blogHref } from "./_components/blogHref";
 
-export const metadata: Metadata = {
-  title: "Blog — 200 Words a Day",
-  description:
-    "Language-learning motivation, method, and science from the 200 Words a Day team.",
-  alternates: { canonical: "/blog" },
-  robots: { index: true, follow: true },
-};
+type BlogSearchParams = { category?: string; lang?: string; page?: string };
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<BlogSearchParams>;
+}): Promise<Metadata> {
+  const { category, lang, page } = await searchParams;
+  const currentPage = parsePage(page);
+  return {
+    title: "Blog — 200 Words a Day",
+    description:
+      "Language-learning motivation, method, and science from the 200 Words a Day team.",
+    alternates: {
+      canonical: blogHref({ category, lang, page: currentPage }),
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function BlogIndexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; lang?: string }>;
+  searchParams: Promise<BlogSearchParams>;
 }) {
-  const { category, lang } = await searchParams;
-  const { featured, posts, productUpdates, filters, activeCategory, activeLang } =
-    await getBlogIndex({ category, lang });
+  const { category, lang, page } = await searchParams;
+  const currentPage = parsePage(page);
+  const {
+    featured,
+    posts,
+    productUpdates,
+    filters,
+    activeCategory,
+    activeLang,
+    totalPages,
+    totalPosts,
+  } = await getBlogIndex({ category, lang, page: currentPage });
+
+  // Out-of-range pages (beyond the last real page) 404 rather than render a thin,
+  // duplicate empty grid. Page 1 with no posts still shows the empty state below.
+  if (currentPage > totalPages && totalPosts > 0) notFound();
 
   const hasResults = Boolean(featured) || posts.length > 0;
 
@@ -66,6 +94,13 @@ export default async function BlogIndexPage({
           ))}
         </div>
       )}
+
+      {/* Pagination */}
+      <Pagination
+        page={currentPage}
+        totalPages={totalPages}
+        buildHref={(p) => blogHref({ category: activeCategory, lang: activeLang, page: p })}
+      />
 
       {/* Product updates — below the grid on tablet/mobile (shown in the featured
           row on desktop). */}
