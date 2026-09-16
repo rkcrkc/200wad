@@ -27,7 +27,7 @@ export function LegalDoc({ title, lastUpdated, intro, children }: LegalDocProps)
         <p className="mt-4 text-[14px] text-[var(--ink-soft)]">Last updated: {lastUpdated}</p>
         {intro ? <div className="mt-6 label-lg text-[var(--ink-soft)]">{intro}</div> : null}
 
-        <div className="mt-10 flex flex-col gap-4 body text-[var(--ink-soft)] [&_a]:font-medium [&_a]:text-[var(--ink)] [&_a]:underline [&_a]:decoration-dotted [&_a]:underline-offset-2 [&_a:hover]:decoration-solid [&_h2]:mb-1 [&_h2]:mt-10 [&_h2]:text-[24px] [&_h2]:leading-[1.3] [&_h2]:text-[var(--ink)] [&_h3]:mb-1 [&_h3]:mt-6 [&_h3]:text-[20px] [&_h3]:leading-[1.3] [&_h3]:text-[var(--ink)] [&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-2 [&_ol]:pl-6 [&_strong]:font-semibold [&_strong]:text-[var(--ink)] [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2 [&_ul]:pl-6">
+        <div className="mt-10 flex flex-col gap-4 body text-[var(--ink-soft)] [&_a]:font-medium [&_a]:text-[var(--ink)] [&_h2]:mb-1 [&_h2]:mt-10 [&_h2]:text-[24px] [&_h2]:leading-[1.3] [&_h2]:text-[var(--ink)] [&_h3]:mb-1 [&_h3]:mt-6 [&_h3]:text-[20px] [&_h3]:leading-[1.3] [&_h3]:text-[var(--ink)] [&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-2 [&_ol]:pl-6 [&_strong]:font-semibold [&_strong]:text-[var(--ink)] [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2 [&_ul]:pl-6">
           {children}
         </div>
       </div>

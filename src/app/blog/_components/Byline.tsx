@@ -33,7 +33,7 @@ export function Byline({
         {linkAuthor && author ? (
           <Link
             href={`/blog/author/${author.slug}`}
-            className="text-[14px] font-semibold text-[var(--ink)] !no-underline hover:opacity-70"
+            className="text-[14px] font-semibold text-[var(--ink)] hover:opacity-70"
           >
             {name}
           </Link>

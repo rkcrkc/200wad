@@ -82,6 +82,21 @@
   padding: 0 0.08em;
 }
 
+/* ── Links ─────────────────────────────────────────────────────────────────
+   Dotted underline is the brand default for inline text links (solid on hover).
+   Structural links opt out: `.btn`/`.card`/`.pill` set `text-decoration: none`
+   below, and whole-card / nav-chip wrappers use Tailwind `!no-underline` at the
+   call site. This is the single source for the link style — don't re-declare it. */
+.site a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+}
+.site a:hover {
+  text-decoration-style: solid;
+}
+
 /* ── Buttons ───────────────────────────────────────────────────────────────
    Bricolage Bold, ink border, hard offset shadow, press-into-shadow on hover. */
 .site .btn {
@@ -136,6 +151,7 @@
   border: 3px solid var(--ink);
   border-radius: 30px;
   box-shadow: 5px 5px 0 var(--ink);
+  text-decoration: none;
 }
 
 /* Soft tan chip, borderless. */
@@ -148,6 +164,7 @@
   font-weight: 600;
   font-size: 14px;
   background: var(--tan);
+  text-decoration: none;
 }
 
 /* Quotes / testimonials — upright Inter, never italic (no Newsreader face). */

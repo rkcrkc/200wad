@@ -45,7 +45,7 @@ export default function ContactPage() {
                 <p className="eyebrow">Email us</p>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
-                  className="heading-xs text-[var(--ink)] underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                  className="heading-xs text-[var(--ink)]"
                 >
                   {CONTACT_EMAIL}
                 </a>

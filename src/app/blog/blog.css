@@ -50,15 +50,7 @@
   font-style: italic;
 }
 
-.site .blog-prose a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 2px;
-}
-.site .blog-prose a:hover {
-  text-decoration-style: solid;
-}
+/* Prose links inherit the brand default `.site a` dotted-underline style. */
 
 .site .blog-prose ul,
 .site .blog-prose ol {
