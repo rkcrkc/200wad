@@ -3,7 +3,7 @@
 Supabase-backed public blog, styled with the marketing **`.site` brand layer**
 (`src/styles/site.css` tokens + unprefixed `.heading-*` / `.body` / `.eyebrow` utilities +
 bordered white `.card`s with hard offset shadows). New top-level `/blog` route tree,
-indexable, served from the **apex marketing domain** (`200wad.com/blog`).
+indexable, served from the **apex marketing domain** (`200words-a-day.com/blog`).
 
 > **Architecture note (updated post-plan):** This plan originally targeted the old
 > `concept-d/f/g.css` cascade and `.g-*` utilities under a `.concept-d .concept-f .concept-g`
@@ -20,11 +20,11 @@ The blog is marketing content, so it lives on the **apex** domain and must be tr
 other marketing routes:
 
 - Add `/blog` to `MARKETING_ONLY_PREFIXES` in `src/lib/supabase/middleware.ts` so requests to
-  `app.200wad.com/blog` 307-redirect to the apex domain. (Host classification lives in
+  `app.200words-a-day.com/blog` 307-redirect to the apex domain. (Host classification lives in
   `src/lib/host.ts` via `classifyHost()`; `combined` mode on localhost/previews serves everything
   from one host, so `/blog` just works in dev.)
 - Any cross-boundary CTA in the blog (e.g. "Start free", "Login") must build its URL with
-  `appUrl(path)` from `@/lib/host` so it points at `app.200wad.com` in production. Internal blog
+  `appUrl(path)` from `@/lib/host` so it points at `app.200words-a-day.com` in production. Internal blog
   links stay relative.
 - `Footer` already uses `appUrl()` for its auth links, so reusing it needs no changes here.
 

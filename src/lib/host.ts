@@ -2,18 +2,20 @@
  * Host-based routing helpers for the apex (marketing) ⇄ app (subdomain) split.
  *
  * Production runs one Vercel deployment behind two domains:
- *   - apex `200wad.com`        → the marketing site (Landing page, pricing, legal…)
- *   - app  `app.200wad.com`    → the authenticated product
+ *   - apex `200words-a-day.com`     → the marketing site (Landing page, pricing, legal…)
+ *   - app  `app.200words-a-day.com` → the authenticated product
+ * Staging mirrors this on `staging.200words-a-day.com` (apex) and
+ * `app-staging.200words-a-day.com` (app).
  *
  * Locally and on `*.vercel.app` previews the split doesn't exist, so we fall back to
  * **combined** mode — every route served from one host, no cross-host redirects, and
  * the cross-boundary link helpers return relative paths. Combined is also the default
  * whenever the env isn't fully configured, so nothing breaks if a var is missing.
  *
- * Configure per Vercel environment (Production only; leave UNSET on Preview/dev so
- * previews stay in combined mode):
- *   NEXT_PUBLIC_MARKETING_URL = https://200wad.com
- *   NEXT_PUBLIC_APP_URL       = https://app.200wad.com
+ * Configure per Vercel environment (Production/staging only; leave UNSET on Preview/dev
+ * so previews stay in combined mode):
+ *   NEXT_PUBLIC_MARKETING_URL = https://200words-a-day.com
+ *   NEXT_PUBLIC_APP_URL       = https://app.200words-a-day.com
  */
 
 const MARKETING_ORIGIN = process.env.NEXT_PUBLIC_MARKETING_URL;

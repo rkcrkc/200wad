@@ -5,10 +5,9 @@ authenticated app to `app.` on the same domain, share the login session across
 both, and archive the other landing concepts out of the published build.
 
 > **Apex domain:** `200words-a-day.com` — **confirmed production launch domain**
-> (the existing domain, hosted on SiteSell / Solo Build It; a shorter `200wad.com`
-> was considered but dropped for less explanatory power). Production app will live at
-> `app.200words-a-day.com`. The plan text below still uses `200wad.com` as a
-> placeholder in places — treat `200words-a-day.com` as authoritative.
+> (the existing domain, hosted on SiteSell / Solo Build It; a shorter alternative was
+> considered but dropped for less explanatory power). Production app lives at
+> `app.200words-a-day.com`.
 >
 > **Staging (current):** the app runs on Vercel behind two SiteSell "Infin It!"
 > subdomains pointed at the Vercel project's **Production** environment:
@@ -18,17 +17,17 @@ both, and archive the other landing concepts out of the published build.
 
 ### Sign-off answers (locked)
 
-1. Apex = `200wad.com`, `www` → apex redirect.
+1. Apex = `200words-a-day.com`, `www` → apex redirect.
 2. Retire the current `(marketing)/home` landing — `/home` 301s to `/`.
 3. Logged-in visitor to apex `/` sees Landing G with a "Go to your course" button —
    **no auto-forward** into the app.
-4. Auth pages live on the **app host only** (`app.200wad.com/login` etc.); apex auth
+4. Auth pages live on the **app host only** (`app.200words-a-day.com/login` etc.); apex auth
    paths 307 to the app.
 
 ## Decisions locked in
 
-- **Subdomain:** `app.200wad.com` for the app; apex `200wad.com` serves Landing G.
-- **Auth/session:** shared across both hosts via cookie `domain=.200wad.com`.
+- **Subdomain:** `app.200words-a-day.com` for the app; apex `200words-a-day.com` serves Landing G.
+- **Auth/session:** shared across both hosts via cookie `domain=.200words-a-day.com`.
 - **Archive:** other concepts moved out of the build (kept in git, not routed).
 - **Hosting:** Vercel — one project, two domains, host-based routing in middleware.
 - **Design system:** G's tokens/utilities become the canonical **marketing** design
@@ -41,11 +40,11 @@ both, and archive the other landing concepts out of the published build.
 
 ## 1. User goal & entry points
 
-- **Visitor (logged out)** hits `200wad.com` → sees Landing G. CTAs ("Start free",
-  "Log in") deep-link to `app.200wad.com/signup` and `/login`.
-- **Learner (logged in)** hits `200wad.com` → because the session is shared, Landing G
+- **Visitor (logged out)** hits `200words-a-day.com` → sees Landing G. CTAs ("Start free",
+  "Log in") deep-link to `app.200words-a-day.com/signup` and `/login`.
+- **Learner (logged in)** hits `200words-a-day.com` → because the session is shared, Landing G
   renders with a "Go to your course" button (no auto-forward — per sign-off).
-- **Learner** hits `app.200wad.com` → today's app behaviour (root redirects to their
+- **Learner** hits `app.200words-a-day.com` → today's app behaviour (root redirects to their
   `/course/{id}/schedule`; guests get the default-course preview + onboarding modal).
 - **Old deep links** to `/home/g`, `/home`, `/home/c…f` etc. must not 404 — see §7.
 
@@ -72,7 +71,7 @@ Add host awareness there plus a host-aware root page.
     `/auth/*` callbacks, static.
   - App paths (`/course`, `/dashboard`, `/admin`, `/account`, `/tests`, `/dictionary`,
     `/schedule`, `/profile`, `/settings`, `/shop`, `/streak`, `/trophies`, `/community`,
-    `/referrals`, `/help`) → **307 to `https://app.200wad.com{path}`**.
+    `/referrals`, `/help`) → **307 to `https://app.200words-a-day.com{path}`**.
   - Auth pages (`/login`, `/signup`, `/forgot-password`, `/reset-password`,
     `/onboarding`, `/join`) → **307 to app subdomain** (auth lives on the app).
 - **app host:** current logic unchanged. Optionally 307 marketing/`/home*` paths and
@@ -116,21 +115,33 @@ Add host awareness there plus a host-aware root page.
 ## 4. Shared session across subdomains
 
 Set an explicit cookie domain on all three Supabase client creators so the auth
-cookies are visible on both `200wad.com` and `app.200wad.com`.
+cookies are visible on both `200words-a-day.com` and `app.200words-a-day.com`.
 
-- New env `NEXT_PUBLIC_COOKIE_DOMAIN` = `.200wad.com` in prod, **unset** locally
+- New env `NEXT_PUBLIC_COOKIE_DOMAIN` = `.200words-a-day.com` in prod, **unset** locally
   (localhost can't use that domain) and on `*.vercel.app` previews.
 - Pass `cookieOptions: { domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN }` (only when
   set) to:
   - `src/lib/supabase/server.ts` (`createServerClient`)
   - `src/lib/supabase/client.ts` (`createBrowserClient`)
   - `src/lib/supabase/middleware.ts` (`createServerClient`)
-- **Supabase Auth config (dashboard):** add `https://app.200wad.com` as Site URL and
-  to the redirect allowlist; keep `http://localhost:3000` for dev. Email
-  confirmation / OAuth callbacks resolve against the app host.
+- **Supabase Auth config (dashboard)** — current values (Authentication → URL Configuration):
+  - **Site URL:** `https://app-staging.200words-a-day.com` (the currently published host;
+    update to `https://app.200words-a-day.com` at production cutover).
+  - **Redirect URLs allowlist** (glob `/**` path wildcards):
+    - `https://*.200words-a-day.com/**` — covers `app-staging.`, `app.`, `www.`, `staging.`
+    - `https://200words-a-day.com/**` — bare apex (the wildcard doesn't match it)
+    - `https://200wad-iota.vercel.app/**` — Vercel deployment
+    - `http://localhost:3000/**`, `http://127.0.0.1:3000/**`, and LAN IPs for dev
+  - Email confirmation / OAuth callbacks resolve against whichever allowlisted host
+    started the flow (`${origin}/auth/callback`).
+- **Google OAuth (Authentication → Providers → Google):** enabled with the Cloud
+  Console Web client ID/secret from the `200words-a-day.com` Google org. The
+  **Authorised redirect URI on the Google side** is the fixed Supabase callback
+  `https://xfauulfdbxageerwqnvo.supabase.co/auth/v1/callback` (Google → Supabase →
+  app). Skip-nonce-checks and allow-users-without-email are OFF.
 - **Cutover caveat:** existing sessions were set on the old host without a domain.
   After deploy some users may need to log in once so the cookie is re-issued at
-  `.200wad.com`. Acceptable; note it.
+  `.200words-a-day.com`. Acceptable; note it.
 
 ## 5. Cross-boundary links
 
@@ -192,8 +203,8 @@ deleted (their styles now live in `site.css`), so the archived pages' CSS import
 
 ## 8. Vercel / DNS config (manual, outside the code)
 
-- Add `app.200wad.com` as a domain on the same Vercel project (CNAME per Vercel).
-- Keep `200wad.com` + `www.200wad.com` (www → apex redirect) on the project.
+- Add `app.200words-a-day.com` as a domain on the same Vercel project (CNAME per Vercel).
+- Keep `200words-a-day.com` + `www.200words-a-day.com` (www → apex redirect) on the project.
 - Set env vars per environment: `NEXT_PUBLIC_MARKETING_URL`, `NEXT_PUBLIC_APP_URL`,
   `NEXT_PUBLIC_COOKIE_DOMAIN` (prod only).
 - `next.config.ts`: add `www → apex` redirect if not handled at DNS.

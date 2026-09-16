@@ -4,7 +4,7 @@ import { Database } from "@/types/database";
 import { classifyHost, appUrl, marketingUrl, isProductionHost } from "@/lib/host";
 
 // Product areas that live on the app subdomain. On the apex (marketing) host these
-// 307 to `app.200wad.com{path}`; in combined/dev mode nothing is gated.
+// 307 to `app.200words-a-day.com{path}`; in combined/dev mode nothing is gated.
 const APP_PREFIXES = [
   "/course",
   "/dashboard",
@@ -64,8 +64,8 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // Share the auth session across apex + app subdomains. Set to `.200wad.com` in
-  // production; unset locally and on previews (localhost can't use that domain).
+  // Share the auth session across apex + app subdomains. Set to `.200words-a-day.com`
+  // in production; unset locally and on previews (localhost can't use that domain).
   const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 
   const supabase = createServerClient<Database>(
