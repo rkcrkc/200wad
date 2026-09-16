@@ -1,75 +1,84 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { AUTH_ERROR } from "@/components/auth/authBrand";
 
 interface SocialLoginButtonsProps {
   mode: "signup" | "signin";
+  /**
+   * Signup only: the marketing-consent checkbox state, carried through the OAuth
+   * round-trip as `?consent=1` so the callback can record the opt-in for the new
+   * user (OAuth can't set user_metadata before the account is created).
+   */
+  marketingConsent?: boolean;
 }
 
-export function SocialLoginButtons({ mode }: SocialLoginButtonsProps) {
-  const actionText = mode === "signup" ? "Sign up" : "Sign in";
+export function SocialLoginButtons({ mode, marketingConsent = false }: SocialLoginButtonsProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+
+    // Sign-up mirrors the email flow into onboarding; sign-in defers to the root
+    // smart-redirect (last course, else dashboard). Consent only rides along on
+    // sign-up, and only when opted in — the callback never flips an existing
+    // opt-in back off.
+    const next = mode === "signup" ? "/onboarding" : "/";
+    const params = new URLSearchParams({ next });
+    if (mode === "signup" && marketingConsent) {
+      params.set("consent", "1");
+    }
+    const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+
+    // On success the browser navigates away to Google, so we only land here on
+    // error and can surface it without resetting a now-irrelevant redirect.
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-3">
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full cursor-not-allowed opacity-60"
-        disabled
-      >
-        <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
-          <path
-            fill="currentColor"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-          />
-          <path
-            fill="currentColor"
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-          />
-        </svg>
-        {actionText} with Google
-        <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-          Soon
-        </span>
-      </Button>
+    <div className="flex flex-col gap-3">
+      {error && <div className={AUTH_ERROR}>{error}</div>}
 
-      <Button
+      <button
         type="button"
-        variant="outline"
-        className="w-full cursor-not-allowed opacity-60"
-        disabled
+        onClick={handleGoogle}
+        disabled={loading}
+        className="btn ghost big w-full text-center disabled:pointer-events-none disabled:opacity-60"
       >
-        <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-        {actionText} with Facebook
-        <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-          Soon
+        <span className="inline-flex items-center justify-center gap-2.5 align-middle">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+            <path
+              fill="#4285F4"
+              d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"
+            />
+            <path
+              fill="#34A853"
+              d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z"
+            />
+            <path
+              fill="#EA4335"
+              d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"
+            />
+          </svg>
+          {loading ? "Redirecting…" : "Continue with Google"}
         </span>
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full cursor-not-allowed opacity-60"
-        disabled
-      >
-        <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
-        </svg>
-        {actionText} with Apple
-        <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-          Soon
-        </span>
-      </Button>
+      </button>
     </div>
   );
 }

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import {
+  AUTH_CARD,
+  AUTH_ERROR,
+  AUTH_FIELD,
+  AUTH_LABEL,
+  AUTH_SUBMIT,
+} from "@/components/auth/authBrand";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -33,11 +39,11 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-        <div className="border-border bg-card w-full max-w-md space-y-6 rounded-2xl border p-8 text-center shadow-lg">
-          <div className="bg-primary/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+      <div className={`${AUTH_CARD} text-center`}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/10">
             <svg
-              className="text-primary h-8 w-8"
+              className="h-8 w-8 text-[var(--accent)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -50,15 +56,15 @@ export default function ForgotPasswordPage() {
               />
             </svg>
           </div>
-          <h1 className="text-xl-semibold text-foreground">Check your email</h1>
-          <p className="text-muted-foreground">
-            We&apos;ve sent a password reset link to <strong>{email}</strong>. Click the link to
-            reset your password.
-          </p>
-          <Link href="/login">
-            <Button variant="outline" className="mt-4">
-              Back to login
-            </Button>
+          <div className="flex flex-col gap-2">
+            <h1 className="heading-l text-[var(--ink)]">Check your email</h1>
+            <p className="body text-[var(--ink-soft)]">
+              We&apos;ve sent a password reset link to <strong>{email}</strong>. Click the link to
+              reset your password.
+            </p>
+          </div>
+          <Link href="/login" className="btn ghost">
+            Back to login
           </Link>
         </div>
       </div>
@@ -66,22 +72,20 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-      <div className="border-border bg-card w-full max-w-md space-y-8 rounded-2xl border p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-xl-semibold text-foreground">Forgot password?</h1>
-          <p className="text-muted-foreground mt-2">
+    <div className={AUTH_CARD}>
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="heading-l text-[var(--ink)]">Forgot password?</h1>
+          <p className="body text-[var(--ink-soft)]">
             Enter your email and we&apos;ll send you a reset link
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && <div className={AUTH_ERROR}>{error}</div>}
 
-          <div>
-            <label htmlFor="email" className="text-small-semibold text-foreground block">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className={AUTH_LABEL}>
               Email
             </label>
             <input
@@ -90,19 +94,25 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
+              className={AUTH_FIELD}
               placeholder="you@example.com"
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Sending..." : "Send reset link"}
-          </Button>
+          <button type="submit" disabled={loading} className={AUTH_SUBMIT}>
+            {loading ? (
+              "Sending…"
+            ) : (
+              <>
+                Send reset link <span aria-hidden="true">→</span>
+              </>
+            )}
+          </button>
         </form>
 
-        <p className="text-muted-foreground text-center text-sm">
+        <p className="body text-center text-[var(--ink-soft)]">
           Remember your password?{" "}
-          <Link href="/login" className="text-primary font-medium hover:underline">
+          <Link href="/login" className="label-heavy text-[var(--accent)]">
             Sign in
           </Link>
         </p>

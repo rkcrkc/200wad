@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { getPasswordError } from "@/lib/validations/auth";
+import {
+  AUTH_CARD,
+  AUTH_ERROR,
+  AUTH_FIELD,
+  AUTH_LABEL,
+  AUTH_SUBMIT,
+} from "@/components/auth/authBrand";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -14,7 +19,6 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
-  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -62,21 +66,17 @@ export default function ResetPasswordPage() {
 
   // Loading state while checking session
   if (hasSession === null) {
-    return (
-      <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <div className="body text-[var(--ink-soft)]">Loading…</div>;
   }
 
   // No valid session - show error
   if (!hasSession) {
     return (
-      <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-        <div className="border-border bg-card w-full max-w-md space-y-6 rounded-2xl border p-8 text-center shadow-lg">
-          <div className="bg-destructive/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+      <div className={`${AUTH_CARD} text-center`}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--destructive)]/10">
             <svg
-              className="text-destructive h-8 w-8"
+              className="h-8 w-8 text-[var(--destructive)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -89,12 +89,14 @@ export default function ResetPasswordPage() {
               />
             </svg>
           </div>
-          <h1 className="text-xl-semibold text-foreground">Invalid or expired link</h1>
-          <p className="text-muted-foreground">
-            This password reset link is invalid or has expired. Please request a new one.
-          </p>
-          <Link href="/forgot-password">
-            <Button className="mt-4">Request new link</Button>
+          <div className="flex flex-col gap-2">
+            <h1 className="heading-l text-[var(--ink)]">Invalid or expired link</h1>
+            <p className="body text-[var(--ink-soft)]">
+              This password reset link is invalid or has expired. Please request a new one.
+            </p>
+          </div>
+          <Link href="/forgot-password" className="btn">
+            Request new link
           </Link>
         </div>
       </div>
@@ -104,29 +106,26 @@ export default function ResetPasswordPage() {
   // Success state
   if (success) {
     return (
-      <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-        <div className="border-border bg-card w-full max-w-md space-y-6 rounded-2xl border p-8 text-center shadow-lg">
-          <div className="bg-success/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+      <div className={`${AUTH_CARD} text-center`}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--success)]/10">
             <svg
-              className="text-success h-8 w-8"
+              className="h-8 w-8 text-[var(--success)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl-semibold text-foreground">Password updated</h1>
-          <p className="text-muted-foreground">
-            Your password has been successfully reset. You can now sign in with your new password.
-          </p>
-          <Link href="/login">
-            <Button className="mt-4">Sign in</Button>
+          <div className="flex flex-col gap-2">
+            <h1 className="heading-l text-[var(--ink)]">Password updated</h1>
+            <p className="body text-[var(--ink-soft)]">
+              Your password has been successfully reset. You can now sign in with your new password.
+            </p>
+          </div>
+          <Link href="/login" className="btn">
+            Sign in
           </Link>
         </div>
       </div>
@@ -134,56 +133,55 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-      <div className="border-border bg-card w-full max-w-md space-y-8 rounded-2xl border p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-xl-semibold text-foreground">Reset password</h1>
-          <p className="text-muted-foreground mt-2">Enter your new password</p>
+    <div className={AUTH_CARD}>
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="heading-l text-[var(--ink)]">Reset password</h1>
+          <p className="body text-[var(--ink-soft)]">Enter your new password</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && <div className={AUTH_ERROR}>{error}</div>}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="password" className="text-small-semibold text-foreground block">
-                New Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="text-small-semibold text-foreground block"
-              >
-                Confirm New Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className={AUTH_LABEL}>
+              New Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="••••••••"
+            />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Updating..." : "Update password"}
-          </Button>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="confirmPassword" className={AUTH_LABEL}>
+              Confirm New Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className={AUTH_SUBMIT}>
+            {loading ? (
+              "Updating…"
+            ) : (
+              <>
+                Update password <span aria-hidden="true">→</span>
+              </>
+            )}
+          </button>
         </form>
       </div>
     </div>

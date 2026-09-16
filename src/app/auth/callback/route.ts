@@ -21,6 +21,26 @@ export async function GET(request: Request) {
         await fireFirstTimeNotification(userId, "system.welcome");
       }
 
+      // Record the marketing opt-in captured at signup. Two sources converge
+      // here: OAuth carries the checkbox state as `?consent=1` (it can't set
+      // user_metadata before the account exists), while email signup stashes it
+      // in `marketing_consent` metadata. Only ever *set* the opt-in — never flip
+      // an existing `true` to `false` — so a returning user re-authenticating
+      // keeps their prior choice. The row already exists (created by the
+      // `handle_new_user` trigger on auth.users insert), so this is an update.
+      const optedIn =
+        searchParams.get("consent") === "1" ||
+        data.session?.user?.user_metadata?.marketing_consent === true;
+      if (userId && optedIn) {
+        await supabase
+          .from("users")
+          .update({
+            marketing_email_consent: true,
+            marketing_consent_updated_at: new Date().toISOString(),
+          })
+          .eq("id", userId);
+      }
+
       // If the `next` param was lost (fell back to the default) but signup stashed
       // the initial course selection on the user record, recover it so the user
       // lands directly in their chosen language's schedule instead of generic

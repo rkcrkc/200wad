@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { appUrl } from "@/lib/host";
+import { appUrl, marketingUrl } from "@/lib/host";
 import { EmailCaptureCard } from "./EmailCaptureCard";
 
 /** The four link columns. Headings render as the Figma "200W/Caption/Small" eyebrow;
@@ -55,14 +55,21 @@ const MICRO = "text-[12px] font-medium leading-[1.5] tracking-[-0.01em] text-[va
  * copyright and legal links. The link columns right-align on the desktop grid
  * (matching Figma) and reflow to a left-aligned 2-up grid on mobile.
  */
-export function Footer() {
+export function Footer({ crossHost = false }: { crossHost?: boolean }) {
+  // Off the marketing host (e.g. the auth pages on the app subdomain), rewrite the
+  // relative marketing/legal links + logo to absolute apex URLs so they go straight
+  // to the marketing site. `appUrl()`-generated links are already absolute in prod,
+  // so they're left untouched; only same-origin paths/anchors are rerouted.
+  const mkHref = (href: string) =>
+    crossHost && (href.startsWith("/") || href.startsWith("#")) ? marketingUrl(href) : href;
+
   return (
     <footer className="bg-[var(--marker)]">
       <div className="container flex flex-col gap-12 pb-5 pt-12 lg:gap-16">
         {/* Top — brand (leading) + mailing list spanning the rest (trailing). */}
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
           <div className="flex flex-col items-center gap-2.5 self-start">
-            <Link href="/" aria-label="200 Words a Day — home" className="!no-underline">
+            <Link href={mkHref("/")} aria-label="200 Words a Day — home" className="!no-underline">
               <Image
                 src="/marketing/g/logo.svg"
                 alt="200 Words a Day"
@@ -102,8 +109,8 @@ export function Footer() {
                 {menu.links.map((l) => (
                   <Link
                     key={l.label}
-                    href={l.href}
-                    className="label-heavy text-[var(--ink)] !no-underline hover:opacity-70 lg:text-right"
+                    href={mkHref(l.href)}
+                    className="label-heavy text-[var(--ink)] lg:text-right"
                   >
                     {l.label}
                   </Link>
@@ -117,10 +124,10 @@ export function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className={MICRO}>© 200 Words a Day. All rights reserved 2026</p>
           <div className="flex items-center gap-5">
-            <Link href="/terms" className={`${MICRO} !no-underline hover:opacity-100`}>
+            <Link href={mkHref("/terms")} className={`${MICRO} hover:opacity-100`}>
               Terms
             </Link>
-            <Link href="/privacy" className={`${MICRO} !no-underline hover:opacity-100`}>
+            <Link href={mkHref("/privacy")} className={`${MICRO} hover:opacity-100`}>
               Privacy Policy
             </Link>
           </div>

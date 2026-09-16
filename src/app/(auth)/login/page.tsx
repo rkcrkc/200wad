@@ -4,8 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { PrimaryButton } from "@/components/ui/primary-button";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
+import {
+  AUTH_CARD,
+  AUTH_ERROR,
+  AUTH_FIELD,
+  AUTH_LABEL,
+  AUTH_SUBMIT,
+  AuthDivider,
+} from "@/components/auth/authBrand";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,74 +46,72 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-      <div className="border-border bg-card w-full max-w-md space-y-8 rounded-2xl border p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-xl-semibold text-foreground">Welcome back</h1>
-          <p className="text-muted-foreground mt-2">Sign in to continue learning</p>
+    <div className={AUTH_CARD}>
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="heading-l text-[var(--ink)]">Welcome back</h1>
+          <p className="body text-[var(--ink-soft)]">Sign in to continue learning</p>
         </div>
+
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          {error && <div className={AUTH_ERROR}>{error}</div>}
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className={AUTH_LABEL}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className={AUTH_LABEL}>
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="label-heavy text-[var(--accent)] !no-underline hover:opacity-70"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className={AUTH_SUBMIT}>
+            {loading ? (
+              "Signing in…"
+            ) : (
+              <>
+                Sign in <span aria-hidden="true">→</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        <AuthDivider />
 
         <SocialLoginButtons mode="signin" />
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="text-small-semibold text-foreground block">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-small-semibold text-foreground block">
-                  Password
-                </label>
-                <Link href="/forgot-password" className="text-primary text-sm hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <PrimaryButton type="submit" loading={loading} fullWidth>
-            {loading ? "Signing in..." : "Sign in"}
-          </PrimaryButton>
-        </form>
-
-        <p className="text-muted-foreground text-center text-sm">
+        <p className="body text-center text-[var(--ink-soft)]">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary font-medium hover:underline">
+          <Link href="/signup" className="label-heavy text-[var(--accent)]">
             Sign up
           </Link>
         </p>

@@ -14,17 +14,28 @@ import { appUrl, marketingUrl } from "@/lib/host";
  * - `samePageAnchors` — on the homepage the section links are same-page hash
  *   anchors (`#how`); elsewhere (e.g. the blog) they cross back to the apex
  *   homepage via `marketingUrl("/#how")`.
+ * - `crossHost` — set when this nav renders OFF the marketing host (e.g. the auth
+ *   pages on the app subdomain). Marketing page links + the logo are then emitted
+ *   as absolute apex URLs via `marketingUrl()`, so they go straight to the
+ *   marketing site instead of resolving on the current host and 307-redirecting.
  */
 export function SiteNav({
   courseHref,
   samePageAnchors = false,
+  crossHost = false,
 }: {
   courseHref?: string | null;
   samePageAnchors?: boolean;
+  crossHost?: boolean;
 }) {
   const pathname = usePathname();
+  // Same-page hash anchors only make sense on the marketing homepage itself; off
+  // that host they must resolve to the apex home (`marketingUrl("/#how")`).
   const sectionHref = (hash: string) =>
-    samePageAnchors ? hash : marketingUrl(`/${hash}`);
+    samePageAnchors && !crossHost ? hash : marketingUrl(`/${hash}`);
+  // Marketing page links: relative on the apex host (client-side nav), absolute
+  // apex URLs when rendered cross-host.
+  const pageHref = (path: string) => (crossHost ? marketingUrl(path) : path);
 
   // Active = a real page route (not a hash anchor or cross-host URL) matching the
   // current path. `/blog` stays active on its nested post pages.
@@ -36,7 +47,11 @@ export function SiteNav({
   return (
     <header className="bg-[var(--paper)]">
       <div className="container flex items-center justify-between gap-4 py-4">
-        <Link href="/" aria-label="200 Words a Day — home" className="shrink-0 !no-underline">
+        <Link
+          href={pageHref("/")}
+          aria-label="200 Words a Day — home"
+          className="shrink-0 !no-underline"
+        >
           <Image
             src="/marketing/g/logo.svg"
             alt="200 Words a Day"
@@ -49,9 +64,9 @@ export function SiteNav({
         <nav className="flex items-center gap-1 sm:gap-1.5">
           {[
             { href: sectionHref("#how"), label: "How it works" },
-            { href: "/about", label: "About" },
-            { href: "/pricing", label: "Pricing" },
-            { href: "/blog", label: "Blog" },
+            { href: pageHref("/about"), label: "About" },
+            { href: pageHref("/pricing"), label: "Pricing" },
+            { href: pageHref("/blog"), label: "Blog" },
             // Logged-in visitors don't need a Login link.
             ...(courseHref ? [] : [{ href: appUrl("/login"), label: "Login" }]),
           ].map((l) => (

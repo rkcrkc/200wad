@@ -1,12 +1,19 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { getPasswordError } from "@/lib/validations/auth";
+import {
+  AUTH_CARD,
+  AUTH_ERROR,
+  AUTH_FIELD,
+  AUTH_LABEL,
+  AUTH_SUBMIT,
+  AuthDivider,
+} from "@/components/auth/authBrand";
 
 export default function SignupPage() {
   return (
@@ -24,7 +31,6 @@ function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
@@ -83,32 +89,27 @@ function SignupForm() {
 
   if (success) {
     return (
-      <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-        <div className="border-border bg-card w-full max-w-md space-y-6 rounded-2xl border p-8 text-center shadow-lg">
-          <div className="bg-success/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+      <div className={`${AUTH_CARD} text-center`}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--success)]/10">
             <svg
-              className="text-success h-8 w-8"
+              className="h-8 w-8 text-[var(--success)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl-semibold text-foreground">Check your email</h1>
-          <p className="text-muted-foreground">
-            We&apos;ve sent a confirmation link to <strong>{email}</strong>. Click the link to
-            activate your account.
-          </p>
-          <Link href="/login">
-            <Button variant="outline" className="mt-4">
-              Back to login
-            </Button>
+          <div className="flex flex-col gap-2">
+            <h1 className="heading-l text-[var(--ink)]">Check your email</h1>
+            <p className="body text-[var(--ink-soft)]">
+              We&apos;ve sent a confirmation link to <strong>{email}</strong>. Click the link to
+              activate your account.
+            </p>
+          </div>
+          <Link href="/login" className="btn ghost">
+            Back to login
           </Link>
         </div>
       </div>
@@ -116,121 +117,115 @@ function SignupForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-72px)] items-center justify-center">
-      <div className="border-border bg-card w-full max-w-md space-y-8 rounded-2xl border p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-xl-semibold text-foreground">Create an account</h1>
-          <p className="text-muted-foreground mt-2">Start learning 200 words a day</p>
+    <div className={AUTH_CARD}>
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="heading-l text-[var(--ink)]">Create an account</h1>
+          <p className="body text-[var(--ink-soft)]">Start learning 200 words a day</p>
         </div>
 
-        <SocialLoginButtons mode="signup" />
+        <form onSubmit={handleSignup} className="flex flex-col gap-5">
+          {error && <div className={AUTH_ERROR}>{error}</div>}
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
-
-        <form onSubmit={handleSignup} className="space-y-6">
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="text-small-semibold text-foreground block">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="text-small-semibold text-foreground block">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="text-small-semibold text-foreground block"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 mt-1 block w-full rounded-lg border px-4 py-3 focus:ring-2 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <label className="flex cursor-pointer items-start gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className={AUTH_LABEL}>
+              Email
+            </label>
             <input
-              type="checkbox"
-              checked={marketingConsent}
-              onChange={(e) => setMarketingConsent(e.target.checked)}
-              className="border-border text-primary focus:ring-primary/20 mt-0.5 h-4 w-4 shrink-0 rounded"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="you@example.com"
             />
-            <span className="text-small-regular text-muted-foreground">
-              Email me learning tips and product news. Optional — you can unsubscribe anytime.
-            </span>
-          </label>
+          </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Creating account..." : "Create account"}
-          </Button>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className={AUTH_LABEL}>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="••••••••"
+            />
+          </div>
 
-          <p className="text-muted-foreground text-center text-xs leading-relaxed">
-            By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
-            <Link
-              href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="confirmPassword" className={AUTH_LABEL}>
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className={AUTH_FIELD}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className={AUTH_SUBMIT}>
+            {loading ? (
+              "Creating account…"
+            ) : (
+              <>
+                Create account <span aria-hidden="true">→</span>
+              </>
+            )}
+          </button>
         </form>
 
-        <p className="text-muted-foreground text-center text-sm">
+        <AuthDivider />
+
+        <SocialLoginButtons mode="signup" marketingConsent={marketingConsent} />
+
+        {/* Optional marketing opt-in — its own borderless beige card, below both
+            signup methods since it applies to either. */}
+        <label className="flex cursor-pointer items-start gap-3 rounded-[16px] bg-[var(--marker)] p-4">
+          <input
+            type="checkbox"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+          />
+          <span className="text-[15px] font-medium leading-[1.5] text-[var(--ink)]">
+            Email me learning tips and product news. Optional — you can unsubscribe anytime.
+          </span>
+        </label>
+
+        <p className="text-center text-[13px] leading-[1.5] text-[var(--ink-soft)]">
+          By creating an account, you confirm you&rsquo;re 16 or older and agree to our{" "}
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--accent)]"
+          >
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--accent)]"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
+        <p className="body text-center text-[var(--ink-soft)]">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary font-medium hover:underline">
+          <Link href="/login" className="label-heavy text-[var(--accent)]">
             Sign in
           </Link>
         </p>
