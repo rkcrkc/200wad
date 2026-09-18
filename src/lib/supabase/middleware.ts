@@ -165,8 +165,15 @@ export async function updateSession(request: NextRequest) {
   // Public marketing site — logged-out visitors are the audience, so these must
   // never bounce to the app onboarding flow. Same set as the host-redirect list.
   const isMarketingRoute = matchesPrefix(pathname, MARKETING_ONLY_PREFIXES);
+  // Crawler metadata files are always fetched unauthenticated, so they must never
+  // hit the auth gate (a 307 to `/` makes robots.txt/sitemap.xml unparseable).
+  const isMetadataRoute = pathname === "/robots.txt" || pathname === "/sitemap.xml";
   const isPublicRoute =
-    pathname === "/" || isAuthRoute || isGuestSchedule || isMarketingRoute;
+    pathname === "/" ||
+    isAuthRoute ||
+    isGuestSchedule ||
+    isMarketingRoute ||
+    isMetadataRoute;
 
   // Admin routes require both authentication AND admin role
   const isAdminRoute = pathname.startsWith("/admin");
