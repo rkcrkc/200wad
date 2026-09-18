@@ -122,6 +122,46 @@
   color: var(--ink);
 }
 
+/* ── Ordered content blocks (faithful legacy structure) ────────────────────── */
+/* The `blocks` model renders the original page's sections in order: verbatim
+ * headings, prose paragraphs (with inline links/emphasis preserved), the lead
+ * image, and the conjugation table in its original mid-page position. Styling is
+ * the only change vs. the SiteSell original. */
+.site .verb-body {
+  margin-top: 1.5rem;
+}
+.site .verb-section-title {
+  margin: 1.6em 0 0.5em;
+}
+.site .verb-body-p {
+  color: var(--ink-soft);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+  margin: 0.7em 0 0;
+}
+.site .verb-body-p:first-child {
+  margin-top: 0;
+}
+.site .verb-body-p strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.site .verb-body-p a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.site .verb-body-img {
+  margin: 1.2em 0 0;
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 3px solid var(--ink);
+}
+
 /* ── Explanatory prose (intro / notes) ─────────────────────────────────────── */
 .site .verb-prose {
   color: var(--ink-soft);

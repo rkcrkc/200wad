@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getVerbByLegacyPath } from "@/lib/queries/verbs";
 import { ConjugationTable } from "../../_components/ConjugationTable";
 import { VerbProse } from "../../_components/VerbProse";
+import { VerbBlocks } from "../../_components/VerbBlocks";
+import { ALLER_BLOCKS } from "../../_sample/aller-blocks";
 import { AppCta } from "@/app/blog/_components/AppCta";
 
 // The literal `.html` URL is the canonical, ranking-bearing address. The internal
@@ -49,6 +51,34 @@ export default async function VerbPage({
 
   const languageName = verb.language?.name ?? "";
   const languageCode = verb.language?.code ?? "fr";
+
+  // TEMPORARY single-page preview: `aller` renders from the faithful ordered
+  // `blocks` model (verbatim headings, mnemonic inline, table in place) so we can
+  // review the restyled-but-structurally-identical page in production before
+  // rolling the model out to all 748 verbs. Every other verb keeps the old
+  // template untouched.
+  if (verb.legacyPath === "/french-verb-aller.html") {
+    return (
+      <article className="container pb-14 pt-16 sm:pb-20">
+        <div className="mx-auto max-w-[880px]">
+          <div className="card p-6 sm:p-10 lg:p-12">
+            <div className="flex flex-col gap-3">
+              <p className="eyebrow">
+                {[languageName, "verb conjugation"].filter(Boolean).join(" · ")}
+              </p>
+              <h1 className="heading-xl text-[var(--ink)]">{verb.h1}</h1>
+            </div>
+            <VerbBlocks
+              blocks={ALLER_BLOCKS}
+              languageCode={languageCode}
+              conjugation={verb.conjugation}
+            />
+            <AppCta />
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="container pb-14 pt-16 sm:pb-20">
