@@ -168,7 +168,7 @@ export function SchedulerSection({
   };
 
   return (
-    <section className="mt-6 mb-10 md:mt-12 md:mb-16">
+    <section className="mt-4 mb-10 md:mt-8 md:mb-16">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between md:mb-8">
         <h2 className="text-xxl-semibold text-foreground">{heading}</h2>
