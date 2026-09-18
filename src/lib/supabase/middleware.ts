@@ -115,6 +115,29 @@ export async function updateSession(request: NextRequest) {
   if (!isProductionHost(requestHost)) {
     supabaseResponse.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
+  // ── Legacy verb-conjugation pages (SEO Phase B) ────────────────────────────
+  // Migrated SBI pages are served at their literal `.html` URL to preserve exact
+  // ranking signal. They're marketing content (apex host), rendered by the
+  // internal /verbs/[lang]/[slug] route via a rewrite so the URL bar stays
+  // `/french-verb-aller.html`. Handled before the auth gate — these are public.
+  const verbMatch = pathname.match(
+    /^\/(french|spanish|german|italian|welsh)-verb-(.+)\.html$/
+  );
+  if (verbMatch) {
+    if (hostKind === "app") {
+      return NextResponse.redirect(marketingUrl(`${pathname}${search}`), 307);
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = `/verbs/${verbMatch[1]}/${verbMatch[2]}`;
+    const rewrite = NextResponse.rewrite(url);
+    // Carry the refreshed auth cookies + the non-prod noindex header onto the
+    // rewrite response so sessions aren't dropped and staging stays noindex.
+    supabaseResponse.cookies.getAll().forEach((c) => rewrite.cookies.set(c));
+    const robots = supabaseResponse.headers.get("X-Robots-Tag");
+    if (robots) rewrite.headers.set("X-Robots-Tag", robots);
+    return rewrite;
+  }
+
   if (hostKind === "apex") {
     // Product + auth pages belong on the app subdomain.
     if (matchesPrefix(pathname, APP_PREFIXES) || matchesPrefix(pathname, AUTH_PAGE_PREFIXES)) {
@@ -177,8 +200,16 @@ export async function updateSession(request: NextRequest) {
   // Exclude the /auth/* endpoints (logout, callback): those are functional
   // handlers, not pages. Bouncing them here meant a logout POST — made while the
   // user is still authenticated — got redirected to /dashboard before the logout
-  // route could run, so the session was never cleared.
-  if (user && isAuthRoute && !pathname.startsWith("/auth")) {
+  // route could run, so the session was never cleared. Also exclude /onboarding:
+  // brand-new authenticated users (e.g. Google OAuth signup, who never picked a
+  // language) are sent here to choose one — the page itself forwards anyone who
+  // already has a course on to their schedule.
+  if (
+    user &&
+    isAuthRoute &&
+    !pathname.startsWith("/auth") &&
+    !pathname.startsWith("/onboarding")
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

@@ -677,6 +677,7 @@ export type Database = {
           enabled: boolean
           icon: string
           id: string
+          min_xp_for_reward: number
           name: string
           promote_count: number
           relegate_count: number
@@ -691,6 +692,7 @@ export type Database = {
           enabled?: boolean
           icon?: string
           id?: string
+          min_xp_for_reward?: number
           name: string
           promote_count?: number
           relegate_count?: number
@@ -705,6 +707,7 @@ export type Database = {
           enabled?: boolean
           icon?: string
           id?: string
+          min_xp_for_reward?: number
           name?: string
           promote_count?: number
           relegate_count?: number
@@ -2238,6 +2241,80 @@ export type Database = {
           },
         ]
       }
+      verb_conjugations: {
+        Row: {
+          conjugation: Json
+          created_at: string
+          h1: string
+          id: string
+          infinitive: string
+          intro_html: string | null
+          is_published: boolean
+          language_id: string
+          lead_image_alt: string | null
+          lead_image_url: string | null
+          legacy_path: string
+          meta_description: string | null
+          mnemonic: string | null
+          notes_html: string | null
+          slug: string
+          subtitle: string | null
+          title: string
+          translation: string | null
+          updated_at: string
+        }
+        Insert: {
+          conjugation?: Json
+          created_at?: string
+          h1: string
+          id?: string
+          infinitive: string
+          intro_html?: string | null
+          is_published?: boolean
+          language_id: string
+          lead_image_alt?: string | null
+          lead_image_url?: string | null
+          legacy_path: string
+          meta_description?: string | null
+          mnemonic?: string | null
+          notes_html?: string | null
+          slug: string
+          subtitle?: string | null
+          title: string
+          translation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conjugation?: Json
+          created_at?: string
+          h1?: string
+          id?: string
+          infinitive?: string
+          intro_html?: string | null
+          is_published?: boolean
+          language_id?: string
+          lead_image_alt?: string | null
+          lead_image_url?: string | null
+          legacy_path?: string
+          meta_description?: string | null
+          mnemonic?: string | null
+          notes_html?: string | null
+          slug?: string
+          subtitle?: string | null
+          title?: string
+          translation?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verb_conjugations_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_leaderboard_snapshots: {
         Row: {
           avg_accuracy: number | null
@@ -2598,6 +2675,7 @@ export type Database = {
         }
         Returns: string
       }
+      cancel_email_change: { Args: never; Returns: undefined }
       close_league_week: { Args: { p_week_start?: string }; Returns: undefined }
       compute_user_level: { Args: { p_user_id: string }; Returns: number }
       f_unaccent: { Args: { "": string }; Returns: string }

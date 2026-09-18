@@ -1,0 +1,138 @@
+/* Verb-conjugation page styling. Scoped under `.site` so it inherits the marketing
+ * brand tokens/fonts and never leaks into the app UI. Two pieces: the conjugation
+ * table (the one genuinely new block) and the `.verb-prose` explanatory copy. */
+
+/* ── Conjugation table ─────────────────────────────────────────────────────── */
+/* The wrapper scrolls horizontally on small screens so long forms never overflow
+ * the card. The first column (tense name) stays pinned while columns scroll. */
+.site .verb-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+}
+
+.site .verb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.site .verb-table th,
+.site .verb-table td {
+  padding: 10px 14px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--tan);
+  border-right: 1px solid var(--tan);
+}
+.site .verb-table th:last-child,
+.site .verb-table td:last-child {
+  border-right: none;
+}
+.site .verb-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Header row of person pronouns. */
+.site .verb-table thead th {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+  position: sticky;
+  top: 0;
+}
+
+/* Pinned first column: the tense name block. */
+.site .verb-table .tense-cell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--paper);
+  min-width: 168px;
+  white-space: normal;
+}
+.site .verb-table thead .tense-cell {
+  background: var(--ink);
+}
+.site .verb-table tbody tr:nth-child(odd) .tense-cell {
+  background: var(--paper-2);
+}
+.site .verb-table tbody tr:nth-child(even) .tense-cell {
+  background: var(--paper);
+}
+.site .verb-table tbody tr:nth-child(odd) td {
+  background: color-mix(in srgb, var(--paper-2) 55%, transparent);
+}
+
+.site .verb-tense-en {
+  font-weight: 700;
+  color: var(--ink);
+}
+.site .verb-tense-native {
+  color: var(--grey-2);
+  font-size: 13px;
+}
+.site .verb-tense-gloss {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* The conjugated form itself — the thing learners scan for. */
+.site .verb-table tbody td .form {
+  font-weight: 600;
+}
+
+.site .verb-table-section-title {
+  margin: 1.6em 0 0.6em;
+}
+
+/* ── Mnemonic memory hook ──────────────────────────────────────────────────── */
+/* The legacy "Imagine…" sentence, lifted into a highlighted callout so it reads as
+ * the mnemonic device it is rather than a stray line of body copy. */
+.site .verb-mnemonic {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--marker) 30%, var(--paper));
+  padding: 16px 18px;
+}
+.site .verb-mnemonic .verb-mnemonic-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+.site .verb-mnemonic p {
+  margin: 0;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* ── Explanatory prose (intro / notes) ─────────────────────────────────────── */
+.site .verb-prose {
+  color: var(--ink-soft);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+}
+.site .verb-prose p {
+  margin: 0.9em 0 0;
+}
+.site .verb-prose p:first-child {
+  margin-top: 0;
+}

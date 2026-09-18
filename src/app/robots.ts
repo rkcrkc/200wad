@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
-import { isProductionHost } from "@/lib/host";
+import { isProductionHost, marketingUrl } from "@/lib/host";
 
 /**
  * Host-aware `/robots.txt`.
@@ -18,5 +18,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
 
-  return { rules: { userAgent: "*", allow: "/" } };
+  return {
+    rules: { userAgent: "*", allow: "/" },
+    sitemap: marketingUrl("/sitemap.xml"),
+  };
 }

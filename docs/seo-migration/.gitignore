@@ -1,0 +1,4 @@
+# Crawler runtime artifacts — regenerable, not for version control
+.venv/
+cache/
+crawl.log
