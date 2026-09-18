@@ -207,7 +207,8 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# Reconciled to match production (email confirmation is ON there).
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -258,6 +259,16 @@ max_frequency = "5s"
 # timebox = "24h"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
+
+# Route ALL auth mail through our Next.js endpoint, which renders branded React
+# Email templates and sends via Resend. When enabled, Supabase does not send any
+# auth email itself (no custom SMTP needed). Locally this points at the dev
+# server; in production the hook URI is configured in the dashboard against
+# https://app.200words-a-day.com/api/auth/send-email.
+[auth.hook.send_email]
+enabled = true
+uri = "http://host.docker.internal:3000/api/auth/send-email"
+secret = "env(SEND_EMAIL_HOOK_SECRET)"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]

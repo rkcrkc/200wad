@@ -48,6 +48,9 @@ export default async function SettingsPage() {
         email={settings.email}
         dailyXpGoal={settings.dailyXpGoal}
         marketingEmailConsent={settings.marketingEmailConsent}
+        hasPassword={settings.hasPassword}
+        googleConnected={settings.googleConnected}
+        pendingEmail={settings.pendingEmail}
       />
     </PageContainer>
   );

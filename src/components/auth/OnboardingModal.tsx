@@ -107,7 +107,10 @@ export function OnboardingModal({ languages, defaultCourseId, freeLessons = 10 }
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/course/${selectedCourseId}/schedule`,
+        // `signup=1` tells the callback to fire the welcome notification even
+        // though `next` is the schedule (not `/onboarding`), so email signups get
+        // the same welcome as OAuth signups.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/course/${selectedCourseId}/schedule&signup=1`,
         // Persist the initial language/course selection on the user record so it
         // survives email confirmation even if the `next` param is lost (e.g. the
         // link is opened on a different device, where localStorage/URL don't carry

@@ -4,6 +4,26 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AUTH_ERROR } from "@/components/auth/authBrand";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// The onboarding modal stashes the visitor's language/course pick here before the
+// signup step. Read back a trustworthy course id (or null) — UUID-validated so a
+// tampered value can never shape the post-auth redirect path.
+function readOnboardingCourseId(): string | null {
+  try {
+    const raw = localStorage.getItem("onboarding_selection");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { courseId?: unknown };
+    const courseId = parsed?.courseId;
+    return typeof courseId === "string" && UUID_RE.test(courseId)
+      ? courseId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 interface SocialLoginButtonsProps {
   mode: "signup" | "signin";
   /**
@@ -24,14 +44,32 @@ export function SocialLoginButtons({ mode, marketingConsent = false }: SocialLog
     setLoading(true);
 
     // Sign-up mirrors the email flow into onboarding; sign-in defers to the root
-    // smart-redirect (last course, else dashboard). Consent only rides along on
-    // sign-up, and only when opted in — the callback never flips an existing
-    // opt-in back off.
-    const next = mode === "signup" ? "/onboarding" : "/";
-    const params = new URLSearchParams({ next });
-    if (mode === "signup" && marketingConsent) {
-      params.set("consent", "1");
+    // smart-redirect (last course, else dashboard).
+    let next = mode === "signup" ? "/onboarding" : "/";
+    const params = new URLSearchParams();
+
+    if (mode === "signup") {
+      // If the visitor already picked a language in the onboarding modal, carry
+      // that pick through so they land enrolled on its schedule instead of being
+      // asked again. OAuth can't set user_metadata before the account exists, so
+      // the selection rides in the `next` path — the only thing that survives the
+      // round-trip to the server callback. No pick → the /onboarding picker page
+      // handles it after sign-in.
+      const courseId = readOnboardingCourseId();
+      if (courseId) {
+        next = `/course/${courseId}/schedule`;
+      }
+      // Flag the signup so the callback fires the welcome notification regardless
+      // of destination, and mark the browser as a fresh signup so the schedule
+      // auto-opens the upgrade modal (parity with the email flow). Consent only
+      // rides along when opted in — the callback never flips an opt-in back off.
+      params.set("signup", "1");
+      localStorage.setItem("just_signed_up", "1");
+      if (marketingConsent) {
+        params.set("consent", "1");
+      }
     }
+    params.set("next", next);
     const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
 
     const { error } = await supabase.auth.signInWithOAuth({

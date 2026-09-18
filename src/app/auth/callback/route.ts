@@ -14,10 +14,13 @@ export async function GET(request: Request) {
       // Best-effort welcome notification. `fireFirstTimeNotification` is
       // idempotent (only fires if no prior notification has the same
       // template_key) so re-running on subsequent magic-link logins is a
-      // no-op. Skip the recovery flow path so password resets don't
-      // accidentally trigger a "welcome".
+      // no-op. Fire on any signup flow: email signup routes to `/onboarding`,
+      // while OAuth signup carries `?signup=1` (its `next` may instead be the
+      // chosen course's schedule). Recovery flows (e.g. `/reset-password`) set
+      // neither, so password resets never trigger a "welcome".
       const userId = data.session?.user?.id;
-      if (userId && next === "/onboarding") {
+      const isSignup = searchParams.get("signup") === "1";
+      if (userId && (isSignup || next === "/onboarding")) {
         await fireFirstTimeNotification(userId, "system.welcome");
       }
 

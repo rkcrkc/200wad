@@ -1,8 +1,9 @@
 "use server";
 
-import { Resend } from "resend";
 import { contactMessageSchema, type ContactMessageInput } from "@/lib/validations/contact";
-import { CONTACT_EMAIL, BRAND_NAME } from "@/lib/legal/company";
+import { CONTACT_EMAIL } from "@/lib/legal/company";
+import { sendEmail } from "@/lib/email/send";
+import { ContactEmail } from "@/lib/email/templates/ContactEmail";
 
 export interface ContactResult {
   success: boolean;
@@ -10,15 +11,15 @@ export interface ContactResult {
 }
 
 /**
- * Send a contact-form submission as a transactional email via Resend.
+ * Send a contact-form submission as a branded transactional email.
  *
- * Required env (set in .env.local + production):
- *   - RESEND_API_KEY    — Resend API key.
- *   - CONTACT_FROM_EMAIL — verified sender, e.g. "200 Words a Day <hello@200wordsaday.com>".
- *     Falls back to CONTACT_EMAIL, but the domain must be verified in Resend.
+ * Uses the shared `sendEmail()` path (one `from` config, one transport) with the
+ * `ContactEmail` template. The reply-to is set to the visitor's address so
+ * replies go straight back to them. Never throws: all failures are returned in
+ * `error` for the client to show.
  *
- * The reply-to is set to the visitor's address so replies go straight back to them.
- * Never throws: all failures are returned in `error` for the client to show.
+ * Required env: RESEND_API_KEY. Sender is EMAIL_FROM / CONTACT_FROM_EMAIL (see
+ * `src/lib/email/client.ts`); the domain must be verified in Resend.
  */
 export async function submitContactMessage(
   input: ContactMessageInput
@@ -38,28 +39,15 @@ export async function submitContactMessage(
     }
     const { name, email, category, message } = parsed.data;
 
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.error("Contact form: RESEND_API_KEY is not set.");
-      return {
-        success: false,
-        error: "Sorry, the contact form isn't available right now. Please email us directly.",
-      };
-    }
-
-    const from = process.env.CONTACT_FROM_EMAIL || `${BRAND_NAME} <${CONTACT_EMAIL}>`;
-    const resend = new Resend(apiKey);
-
-    const { error } = await resend.emails.send({
-      from,
+    const result = await sendEmail({
       to: CONTACT_EMAIL,
       replyTo: email,
       subject: `[Contact · ${category}] ${name}`,
-      text: `New contact form submission\n\nName: ${name}\nEmail: ${email}\nTopic: ${category}\n\n${message}\n`,
+      react: ContactEmail({ name, email, category, message }),
     });
 
-    if (error) {
-      console.error("Contact form: Resend send failed:", error);
+    if (!result.success) {
+      console.error("Contact form: send failed:", result.error);
       return {
         success: false,
         error: "Something went wrong sending your message. Please try again.",

@@ -78,7 +78,14 @@ export async function updateProfile(
 // ============================================
 
 export async function updateEmail(
-  newEmail: string
+  newEmail: string,
+  /**
+   * The caller's browser origin (e.g. `https://app.200words-a-day.com`), passed
+   * from the client so the confirmation link returns to `/auth/callback` on the
+   * right host — matching the signup flow. Without it the link would fall back
+   * to the project Site URL and skip our callback entirely.
+   */
+  origin?: string
 ): Promise<MutationResult> {
   const supabase = await createClient();
 
@@ -90,9 +97,12 @@ export async function updateEmail(
     return { success: false, error: "Not authenticated" };
   }
 
-  const { error } = await supabase.auth.updateUser({
-    email: newEmail,
-  });
+  const { error } = await supabase.auth.updateUser(
+    { email: newEmail },
+    origin
+      ? { emailRedirectTo: `${origin}/auth/callback?next=/settings` }
+      : undefined
+  );
 
   if (error) {
     console.error("Error updating email:", error);
@@ -101,6 +111,73 @@ export async function updateEmail(
 
   revalidatePath("/settings");
   revalidatePath("/profile");
+  return { success: true, error: null };
+}
+
+/**
+ * Re-send the pair of confirmation links for an email change that's already
+ * in flight. Reads the pending address from the auth user (`new_email`) and
+ * re-issues the same `updateUser({ email })` call, which GoTrue treats as a
+ * resend. No-ops with a clear error if nothing is actually pending.
+ */
+export async function resendEmailChange(
+  origin?: string
+): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  if (!user.new_email) {
+    return { success: false, error: "No email change is pending." };
+  }
+
+  const { error } = await supabase.auth.updateUser(
+    { email: user.new_email },
+    origin
+      ? { emailRedirectTo: `${origin}/auth/callback?next=/settings` }
+      : undefined
+  );
+
+  if (error) {
+    console.error("Error resending email change:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/settings");
+  return { success: true, error: null };
+}
+
+/**
+ * Abort a pending email change so it can't stay "pending" forever. GoTrue has
+ * no public API for this, so we clear its email-change columns via the
+ * `cancel_email_change` SECURITY DEFINER RPC (scoped to auth.uid()). After this
+ * the user's address reverts to the current, confirmed one.
+ */
+export async function cancelEmailChange(): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const { error } = await supabase.rpc("cancel_email_change");
+
+  if (error) {
+    console.error("Error cancelling email change:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/settings");
   return { success: true, error: null };
 }
 

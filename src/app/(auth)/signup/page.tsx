@@ -64,7 +64,7 @@ function SignupForm() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding&signup=1`,
         data: { marketing_consent: marketingConsent },
       },
     });
@@ -82,6 +82,11 @@ function SignupForm() {
       setLoading(false);
       return;
     }
+
+    // Mark this browser as a fresh signup so the schedule auto-opens the upgrade
+    // modal on first landing — same as the modal and OAuth signup flows. Survives
+    // the auth/callback round-trip on the email-verification path (same device).
+    localStorage.setItem("just_signed_up", "1");
 
     setSuccess(true);
     setLoading(false);
