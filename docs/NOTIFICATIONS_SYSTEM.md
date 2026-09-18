@@ -2,6 +2,14 @@
 
 _Last reviewed: 2026-04-23_
 
+> **Update (2026-09):** Email delivery is now **wired**. `sender.ts` implements a
+> `resend` driver (set `EMAIL_PROVIDER=resend` + `RESEND_API_KEY`) that renders
+> the branded `NotificationEmail` (`src/lib/email/templates/`) and sends via
+> Resend's batch endpoint. The admin form's Email channel checkbox is enabled;
+> per-type/per-user opt-out is enforced server-side via
+> `user_notification_preferences.email`. See `docs/EMAIL_SYSTEM_PLAN.md`. The
+> "no-op / coming soon" notes below are historical.
+
 ## Current State: Foundation Only
 
 The notifications system is scaffolded in the database but is **not functional end-to-end** in the app. This doc captures the current state, known bugs, intended purpose, and a brainstorm of future use cases.

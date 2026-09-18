@@ -3,14 +3,13 @@
  *
  * The dispatcher inserts a `notifications` row for every (user × channel)
  * pair, including channel='email'. This module is responsible for the
- * actual email transport. Today the only built-in driver is `noop`, which
- * logs and returns success — keeping the inbox-row pipeline live while we
- * defer real email delivery.
+ * actual email transport. Two drivers are built in:
+ *   - `noop` (default) logs and returns success — keeps the inbox-row pipeline
+ *     live without sending real mail.
+ *   - `resend` renders the branded `NotificationEmail` and sends via Resend's
+ *     batch endpoint (chunked to 100/call).
  *
- * To enable a real provider:
- *   1. Add a case to `dispatchEmail()` (e.g. "resend", "sendgrid").
- *   2. Set EMAIL_PROVIDER=<name> and any provider env vars.
- *   3. The dispatcher will pick it up automatically.
+ * To switch on real delivery: set EMAIL_PROVIDER=resend and RESEND_API_KEY.
  *
  * Opt-out is honoured via `user_notification_preferences.email`. A row with
  * email=false for a given (user, type) suppresses the send. Missing rows
@@ -19,6 +18,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/database";
+import { appUrl } from "@/lib/host";
+import { sendEmailBatch, type BatchEmailMessage } from "@/lib/email/send";
+import { NotificationEmail } from "@/lib/email/templates/NotificationEmail";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -34,11 +36,6 @@ interface EmailRecipient {
   userId: string;
   email: string;
   name: string | null;
-}
-
-interface SendOneResult {
-  success: boolean;
-  error: string | null;
 }
 
 export interface BatchEmailResult {
@@ -100,40 +97,45 @@ async function loadEmailRecipients(
   return { recipients, skipped };
 }
 
+/** Shape read off `notifications.data` for email rendering (mirrors NotificationRow). */
+interface NotificationDataShape {
+  cta?: { label?: string; href?: string };
+  severity?: string;
+}
+
 /**
- * Send a single email. Switches on EMAIL_PROVIDER. Today only `noop` is
- * implemented — real providers can be added without touching the dispatcher.
+ * Build the branded notification email for one recipient. CTA hrefs are mapped
+ * through `appUrl()` so relative paths resolve to the app host; absolute URLs
+ * pass through unchanged.
  */
-async function dispatchEmail(
+function buildNotificationMessage(
   recipient: EmailRecipient,
   payload: BroadcastEmailPayload,
-  provider: string
-): Promise<SendOneResult> {
-  switch (provider) {
-    case "noop":
-      // Intentionally minimal: emit a structured log line so ops can verify
-      // pipeline reachability without sending real mail.
-      console.log(
-        JSON.stringify({
-          event: "email.noop",
-          broadcast_id: payload.broadcastId,
-          user_id: recipient.userId,
-          to: recipient.email,
-          type: payload.type,
-          subject: payload.title,
-        })
-      );
-      return { success: true, error: null };
+  preferencesUrl: string
+): BatchEmailMessage {
+  const data = (payload.data ?? null) as NotificationDataShape | null;
+  const rawCta = data?.cta;
+  const cta =
+    rawCta?.href && rawCta?.label
+      ? {
+          label: rawCta.label,
+          href: /^https?:\/\//i.test(rawCta.href)
+            ? rawCta.href
+            : appUrl(rawCta.href),
+        }
+      : undefined;
 
-    // case "resend": { ... }
-    // case "sendgrid": { ... }
-
-    default:
-      return {
-        success: false,
-        error: `EMAIL_PROVIDER='${provider}' is not implemented`,
-      };
-  }
+  return {
+    to: recipient.email,
+    subject: payload.title,
+    react: NotificationEmail({
+      title: payload.title,
+      message: payload.message,
+      cta,
+      severity: data?.severity,
+      preferencesUrl,
+    }),
+  };
 }
 
 /**
@@ -176,22 +178,53 @@ export async function sendBroadcastEmails(
     return result;
   }
 
-  for (const recipient of recipients) {
+  // `noop` keeps the pre-provider behaviour: log one line per recipient so ops
+  // can verify pipeline reachability without sending real mail.
+  if (provider === "noop") {
+    for (const recipient of recipients) {
+      result.attempted++;
+      console.log(
+        JSON.stringify({
+          event: "email.noop",
+          broadcast_id: payload.broadcastId,
+          user_id: recipient.userId,
+          to: recipient.email,
+          type: payload.type,
+          subject: payload.title,
+        })
+      );
+      result.succeeded++;
+    }
+    return result;
+  }
+
+  if (provider !== "resend") {
+    result.failed = recipients.length;
+    result.errors.push({
+      userId: "*",
+      error: `EMAIL_PROVIDER='${provider}' is not implemented`,
+    });
+    return result;
+  }
+
+  // Resend: send via the batch endpoint (chunked internally to 100/call).
+  // Preferences link points at the settings page on the app host.
+  const preferencesUrl = appUrl("/settings");
+  const messages = recipients.map((r) =>
+    buildNotificationMessage(r, payload, preferencesUrl)
+  );
+
+  const { results } = await sendEmailBatch(messages);
+  for (let i = 0; i < recipients.length; i++) {
     result.attempted++;
-    try {
-      const r = await dispatchEmail(recipient, payload, provider);
-      if (r.success) result.succeeded++;
-      else {
-        result.failed++;
-        result.errors.push({
-          userId: recipient.userId,
-          error: r.error ?? "Unknown driver error",
-        });
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+    const r = results[i];
+    if (r?.success) result.succeeded++;
+    else {
       result.failed++;
-      result.errors.push({ userId: recipient.userId, error: message });
+      result.errors.push({
+        userId: recipients[i].userId,
+        error: r?.error ?? "Unknown driver error",
+      });
     }
   }
 

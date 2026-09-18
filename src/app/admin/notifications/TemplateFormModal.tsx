@@ -638,15 +638,22 @@ export function TemplateFormModal({
                 />
                 Toast
               </label>
-              {/* Email channel is scaffolded server-side but not yet wired to a
-                  provider — disable the toggle so admins can't opt templates
-                  into a no-op delivery channel. */}
-              <label className="flex cursor-not-allowed items-center gap-2 text-sm text-gray-400">
+              {/* Email channel sends the branded NotificationEmail via Resend.
+                  Per-type/per-user opt-out is enforced server-side, so admins
+                  choose per-template whether email fires. */}
+              <label
+                className="flex items-center gap-2 text-sm text-gray-700"
+                title="Also deliver this notification by email. Respects each user's per-type email opt-out."
+              >
                 <input
                   type="checkbox"
                   checked={form.channelEmail}
-                  disabled
-                  readOnly
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      channelEmail: e.target.checked,
+                    }))
+                  }
                 />
                 Email
               </label>
