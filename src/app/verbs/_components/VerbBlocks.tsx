@@ -25,11 +25,14 @@ export function VerbBlocks({
       {blocks.map((block, i) => {
         switch (block.type) {
           case "heading": {
+            // Preserve the original heading level (h2 vs h3) so the page's
+            // heading hierarchy is identical to the legacy page.
+            const Tag = block.level === 2 ? "h2" : "h3";
             const cls = block.level === 2 ? "heading-s" : "heading-xs";
             return (
-              <h2 key={i} className={`${cls} verb-section-title`}>
+              <Tag key={i} className={`${cls} verb-section-title`}>
                 {block.text}
-              </h2>
+              </Tag>
             );
           }
           case "para":
