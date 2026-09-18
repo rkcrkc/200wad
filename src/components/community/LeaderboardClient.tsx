@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   HelpCircle,
   Lock,
+  Target,
   X,
 } from "lucide-react";
 import type {
@@ -109,9 +110,12 @@ function CoinRewardBadge({ coins }: { coins: number }) {
 function LearningTipBody({
   rewardBands,
   movementText,
+  minXpForReward,
 }: {
   rewardBands: LeagueReward[];
   movementText: string;
+  /** Minimum weekly XP needed to qualify for this tier's coin rewards (0 = no floor). */
+  minXpForReward: number;
 }) {
   return (
     <div className="space-y-2 text-sm text-gray-600">
@@ -137,6 +141,16 @@ function LearningTipBody({
           ))}
         </p>
       </div>
+      {minXpForReward > 0 && (
+        <div className="flex items-start gap-2.5">
+          <Target className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" strokeWidth={1.67} />
+          <p>
+            You need at least{" "}
+            <span className="font-medium text-gray-700">{minXpForReward} XP</span>{" "}
+            this week to qualify for coins — a top finish without it earns nothing.
+          </p>
+        </div>
+      )}
       {movementText && (
         <div className="flex items-start gap-2.5">
           <ArrowUpDown
@@ -314,6 +328,8 @@ export function LeaderboardClient({
   const rewardBands = rewards
     .filter((r) => r.league_slug === rewardLeagueSlug)
     .sort((a, b) => a.rank_min - b.rank_min);
+  // Per-tier minimum weekly XP to qualify for coins (same across the tier's bands).
+  const minXpForReward = rewardBands[0]?.min_xp_for_reward ?? 0;
 
   // The signed-in member of the room (always returned by the RPC) and whether
   // they've scored any XP this week. Until they do, the board is hidden behind a
@@ -352,6 +368,7 @@ export function LeaderboardClient({
                   <LearningTipBody
                     rewardBands={rewardBands}
                     movementText={movementText}
+                    minXpForReward={minXpForReward}
                   />
                 }
               >
@@ -388,7 +405,11 @@ export function LeaderboardClient({
             </button>
           </div>
           <div className="mt-2">
-            <LearningTipBody rewardBands={rewardBands} movementText={movementText} />
+            <LearningTipBody
+              rewardBands={rewardBands}
+              movementText={movementText}
+              minXpForReward={minXpForReward}
+            />
           </div>
         </div>
       )}

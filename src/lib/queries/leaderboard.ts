@@ -60,6 +60,8 @@ export interface LeagueReward {
   rank_min: number;
   rank_max: number;
   coin_reward: number;
+  /** Minimum weekly XP required to qualify for this tier's coin rewards. */
+  min_xp_for_reward: number;
 }
 
 /** One competitor in the signed-in user's weekly league room. */
@@ -280,7 +282,7 @@ export async function getLeagueRewards(): Promise<LeagueReward[]> {
 
   const { data, error } = await supabase
     .from("league_rewards")
-    .select("rank_min, rank_max, coin_reward, leagues(slug)")
+    .select("rank_min, rank_max, coin_reward, leagues(slug, min_xp_for_reward)")
     .eq("enabled", true)
     .order("rank_min");
 
@@ -289,12 +291,19 @@ export async function getLeagueRewards(): Promise<LeagueReward[]> {
     return [];
   }
 
-  return (data || []).map((r) => ({
-    league_slug: (r.leagues as { slug: string } | null)?.slug ?? "",
-    rank_min: r.rank_min,
-    rank_max: r.rank_max,
-    coin_reward: r.coin_reward,
-  }));
+  return (data || []).map((r) => {
+    const league = r.leagues as {
+      slug: string;
+      min_xp_for_reward: number;
+    } | null;
+    return {
+      league_slug: league?.slug ?? "",
+      rank_min: r.rank_min,
+      rank_max: r.rank_max,
+      coin_reward: r.coin_reward,
+      min_xp_for_reward: league?.min_xp_for_reward ?? 0,
+    };
+  });
 }
 
 /**
